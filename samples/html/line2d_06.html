@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+		$(function(){
+			var flow=[];
+			for(var i=0;i<25;i++){
+				flow.push(Math.floor(Math.random()*(10+((i%16)*5)))+10);
+			}
+			
+			var data = [
+			         	{
+			         		name : 'PV',
+			         		value:flow,
+			         		color:'#ec4646',
+			         		line_width:2
+			         	}
+			         ];
+	        
+			var labels = ["00","01","02","03","04","05","06","07","08","09","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24"];
+			
+			var chart = new iChart.LineBasic2D({
+				render : 'canvasDiv',
+				data: data,
+				align:'center',
+				title : {
+					text:'ichartjs官方网站上一日PV流量',
+					font : '微软雅黑',
+					fontsize:24,
+					color:'#b4b4b4'
+				},
+				subtitle : {
+					text:'14:00-16:00访问量达到最大值',
+					font : '微软雅黑',
+					color:'#b4b4b4'
+				},
+				footnote : {
+					text:'ichartjs.com',
+					font : '微软雅黑',
+					fontsize:11,
+					fontweight:600,
+					padding:'0 28',
+					color:'#b4b4b4'
+				},
+				width : 800,
+				height : 400,
+				shadow:true,
+				shadow_color : '#202020',
+				shadow_blur : 8,
+				shadow_offsetx : 0,
+				shadow_offsety : 0,
+				background_color:'#2e2e2e',
+				tip:{
+					enable:true,
+					shadow:true,
+					listeners:{
+						 //tip:提示框对象、name:数据名称、value:数据值、text:当前文本、i:数据点的索引
+						parseText:function(tip,name,value,text,i){
+							return "<span style='color:#005268;font-size:12px;'>"+labels[i]+":00访问量约:<br/>"+
+							"</span><span style='color:#005268;font-size:20px;'>"+value+"万</span>";
+						}
+					}
+				},
+				crosshair:{
+					enable:true,
+					line_color:'#ec4646'
+				},
+				sub_option : {
+					smooth : true,
+					label:false,
+					hollow:false,
+					hollow_inside:false,
+					point_size:8
+				},
+				coordinate:{
+					width:640,
+					height:260,
+					striped_factor : 0.18,
+					grid_color:'#4e4e4e',
+					axis:{
+						color:'#252525',
+						width:[0,0,4,4]
+					},
+					scale:[{
+						 position:'left',	
+						 start_scale:0,
+						 end_scale:100,
+						 scale_space:10,
+						 scale_size:2,
+						 scale_enable : false,
+						 label : {color:'#9d987a',font : '微软雅黑',fontsize:11,fontweight:600},
+						 scale_color:'#9f9f9f'
+					},{
+						 position:'bottom',	
+						 label : {color:'#9d987a',font : '微软雅黑',fontsize:11,fontweight:600},
+						 scale_enable : false,
+						 labels:labels
+					}]
+				}
+			});
+			//利用自定义组件构造左侧说明文本
+			chart.plugin(new iChart.Custom({
+					drawFn:function(){
+						//计算位置
+						var coo = chart.getCoordinate(),
+							x = coo.get('originx'),
+							y = coo.get('originy'),
+							w = coo.get('width'),
+							h = coo.get('height');
+						//在左上侧的位置，渲染一个单位的文字
+						chart.target.textAlign('start')
+						.textBaseline('bottom')
+						.textFont('600 11px 微软雅黑')
+						.fillText('访问量(万)',x-40,y-12,false,'#9d987a')
+						.textBaseline('top')
+						.fillText('(时间)',x+w+12,y+h+10,false,'#9d987a');
+						
+					}
+			}));
+		//开始画图
+		chart.draw();
+	});
+	</script>
+</head>
+<body>
+	<div id='canvasDiv'></div>
+	<div class='ichartjs_info'>
+		<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+		<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+		<div class='ichartjs_sm'>说明</div>
+		<div class='ichartjs_details'>
+			示例展示了网站上一日的流量统计。每隔1个小时统计一次。此示例用了平滑曲线代替直线。此示例的风格设计来源于互联网的一组图片。
+			这说明了ichartjs有较强的风格配置能力。
+		</div>
+		<span class='ichartjs_sm'>备注：</span>
+		<span class='ichartjs_details'>
+			数据均为模拟。风格来源于互联网。
+		</span>
+	</div>
+</body>
+</html>
+

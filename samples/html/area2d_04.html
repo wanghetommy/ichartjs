@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+			$(function(){
+				//创建数据
+				var data = [
+				        	{
+				        		name : 'A产品',
+				        		value:[2680,2200,1014,2590,2800,3200,2184,3456,2693,2064,2414,2044],
+				        		color:'#01acb6',
+				        		line_width:2
+				        	}
+				       ];
+				//创建x轴标签文本   
+			    var labels = ["一月","二月","三月","四月","五月","六月","七月","八月","九月","十月","十一月","十二月"];
+			       
+				var chart = new iChart.Area2D({
+						render : 'canvasDiv',
+						data: data,
+						title:{
+							text:'A产品2011年度订单数据分析',
+							color:'#eff4f8',
+							background_color:'#1c4156',
+							height:40,
+							border:{
+								enable:true,
+								width:[0,0,4,0],//只显示下边框
+								color:'#173a4e'
+							}
+						},
+						subtitle:{
+							text:'单位:万件',//利用副标题设置单位信息
+							fontsize:14,
+							color:'#eff4f8',
+							textAlign:'left',
+							padding:'0 40',
+							height:20
+						},
+						footnote:{
+							text:'数据来源:企业ERP数据中心',
+							color:'#708794',
+							padding:'0 20',
+							background_color:'#102c3c',
+							height:30,
+							border:{
+								enable:true,
+								width:[3,0,0,0],//只显示上边框
+								color:'#0f2b3a'
+							}
+						},
+						padding:'5 1',//设置padding,以便title能占满x轴
+						sub_option:{
+							label:false,
+							hollow_inside:false,//设置一个点的亮色在外环的效果
+							point_size:10
+						},
+						tip:{
+							enable:true,
+							listeners:{
+								 //tip:提示框对象、name:数据名称、value:数据值、text:当前文本、i:数据点的索引
+								parseText:function(tip,name,value,text,i){
+									return labels[i]+"订单数:<span style='color:red'>"+value+"</span>万件";
+								}
+							}
+						},
+						width : 800,
+						height : 400,
+						background_color:'#0c222f',
+						gradient:true,
+						shadow:true,
+						shadow_blur:2,
+						shadow_color:'#4e8bae',
+						shadow_offsetx:0,
+						shadow_offsety:0,
+						gradient_mode:'LinearGradientDownUp',//设置一个从下到上的渐变背景
+						border:{
+							radius:5
+						},
+						coordinate:{
+							width : 600,
+							height : 240,
+							grid_color:'#506e7d',
+							background_color:null,//设置坐标系为透明背景
+							scale:[{
+								 position:'left',	
+								 label:{
+									 color:'#eff4f8',
+									 fontsize:14,
+									 fontweight:600
+								 },
+								 start_scale:0,
+								 end_scale:4000,
+								 scale_space:500
+							},{
+								 position:'bottom',	
+								 label:{
+									 color:'#506673',
+									 fontweight:600
+								 },
+								 labels:labels
+							}]
+						}
+					});
+				
+				chart.draw();
+			});
+		</script>
+		</head>
+		<body>
+			<div id='canvasDiv'></div>
+			<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">预览代码</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					应用实例欣赏，此示例展示了A产品2011年度的订单情况，此示例中设置了多种样式，以达到所需的视觉效果。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					数据均为模拟。
+				</span>
+			</div>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta http-equiv="keywords" content="ichartjs demo,Html5 demo,ichart demo"></meta>
+		<meta http-equiv="description" content="The ichartjs's gallery center,ichartjs 示例中心"></meta>
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+			var data = [
+			        	{
+			        		name : '上海',
+			        		value:[4,16,18,20,32,36,38,38,36,26,20,14],
+			        		color:'#dad81f'
+			        	},
+			        	{
+			        		name : '北京',
+			        		value:[2,12,14,20,28,32,34,36,33,24,14,4],
+			        		color:'#1f7e92'
+			        	},
+			        	{
+			        		name : '西安',
+			        		value:[1,12,18,20,28,34,36,34,31,27,24,6],
+			        		color:'#76a871'
+			        	},
+			        	{
+			        		name : '天津',
+			        		value:[3,13,14,20,28,32,34,36,30,24,14,4],
+			        		color:'#6f83a5'
+			        	}
+			        ];
+	        
+			var labels = ["一月","二月","三月","四月","五月","六月","七月","八月","九月","十月","十一月","十二月"];
+			
+			$(function(){
+				var chart = new iChart.Area2D({
+					render : 'canvasDiv',
+					data: data,
+					title : '四城市2012年平均温度情况',
+					width : 800,
+					height : 400,
+					area_opacity:0.15,
+					legend : {
+						enable : true
+					},
+					tip:{
+						enable : true,
+						listeners:{
+							 //tip:提示框对象、name:数据名称、value:数据值、text:当前文本、i:数据点的索引
+							parseText:function(tip,name,value,text,i){
+								return "<span style='color:#005268;font-size:11px;font-weight:600;'>"+name+
+										"</span>&nbsp;<span style='color:#005268;font-size:20px;font-weight:600;'>"+value+"℃</span>";
+							}
+						}
+					},
+					sub_option:{
+						label:false
+					},
+					crosshair:{
+						enable:true,
+						line_color:'#62bce9'
+					},
+					coordinate:{
+						axis : {
+							width : [0, 0, 2, 0]
+						},
+						background_color:'#ffffff',
+						width:'80%',
+						height:'75%',
+						valid_width:'94%',
+						height : 260,
+						scale2grid:false,
+						grids:{
+							horizontal:{
+									way:'share_alike',
+									value:8
+								}
+							}, 
+						scale:[{
+							 position:'left',	
+							 start_scale:0,
+							 end_scale:40,
+							 scale_space:5,
+							 listeners:{
+								parseText:function(t,x,y){
+									return {text:t+"℃"}
+								}
+							}
+						},{
+							 position:'bottom',	
+							 start_scale:1,
+							 end_scale:12,
+							 parseText:function(t,x,y){
+								return {textY:y+10}
+							 },
+							 labels:labels
+						}]
+					}
+				});
+				chart.draw();
+			});
+			</script>
+		</head>
+		<body>
+			<div id='canvasDiv'></div>
+			<div class='ichartjs_info'>
+			<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个多数据面积图示例，该示例展示了4个城市2012年中12个月的平均温度情况。此例中对于重复的数据点的提示进行了排版处理。
+					目前最多也只能处理4个重复点的排版。同时由于有多个区域重复导致背景颜色加深，所以还设置了区域的透明度以减少区域重叠带来的颜色加深问题。<br>
+					对于多组数据，可以考虑利用tipMocker进行提示信息的整合处理。示例请参考 <a href='area2d_05.html'>A网站访问量数据分析</a>
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					数据均为模拟。
+				</span>
+			</div>
+</div>
+</body>
+</html>

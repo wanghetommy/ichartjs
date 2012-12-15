@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta http-equiv="keywords" content="ichartjs demo,Html5 demo,ichart demo"></meta>
+		<meta http-equiv="description" content="The ichartjs's gallery center,ichartjs 示例中心"></meta>
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+			$(function(){
+				var data = [
+				        	{name : 'Other',value : 0.73,color:'#6f83a5'},
+				        	{name : 'IE',value : 35.75,color:'#a5c2d5'},
+				        	{name : 'Chrome',value : 29.84,color:'#cbab4f'},
+				        	{name : 'Firefox',value : 24.88,color:'#76a871'},
+				        	{name : 'Safari',value : 6.77,color:'#9f7961'},
+				        	{name : 'Opera',value : 2.02,color:'#a56f8f'}
+			        	];
+	        	
+				new iChart.Pie2D({
+					render : 'canvasDiv',
+					data: data,
+					title : 'Top 5 Browsers from 1 to 29 Feb 2012',
+					legend : {
+						enable : true
+					},
+					sub_option : {
+						label : {
+							background_color:null,
+							sign:false,//设置禁用label的小图标
+							padding:'0 4',
+							border:{
+								enable:false,
+								color:'#666666'
+							},
+							fontsize:11,
+							fontweight:600,
+							color : '#4572a7'
+						},
+						border : {
+							width : 2,
+							color : '#ffffff'
+						}
+					},
+					animation:true,
+					showpercent:true,
+					decimalsnum:2,
+					width : 800,
+					height : 400,
+					radius:140
+				}).draw();
+			});
+		</script>
+	</head>
+	<body>
+		<div id='canvasDiv'></div>
+		<div class='ichartjs_info'>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个拥有动画的饼状图示例，该示例展示了2012年2月份市场浏览器占有的情况。此示例中，配置了默认的图例。并以百分比的形式展示数据值。<br/>
+					此例中配置animation:true则在图表展示的时候有一个类似开机动画的效果。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					数据均为模拟。
+				</span>
+			</div>
+	</body>
+</html>

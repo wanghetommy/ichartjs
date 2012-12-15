@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+		$(function(){
+			var data = [
+			        	{name : 'A',value : 25,color:'#ebeff0'},
+			        	{name : 'B',value : 40,color:'#d7e2e4'},
+			        	{name : 'C',value : 20,color:'#dfe9eb'},
+			        	{name : 'D',value : 15,color:'#f1f7f8'}
+		        	];
+	    	
+			var chart = new iChart.Donut2D({
+				render : 'canvasDiv',
+				center:{
+					text:'25%',
+					shadow:true,
+					fontsize:50,
+					shadow_offsetx:0,
+					shadow_offsety:2,
+					shadow_blur:2,
+					shadow_color:'#b7b7b7',
+					color:'#6f6f6f'
+				},
+				data: data,
+				shadow:true,
+				shadow_offsetx:0,
+				shadow_offsety:2,
+				shadow_blur:10,
+				shadow_color:'#676767',
+				gradient:true,//开启渐变背景
+				color_factor:0.25,//渐变因子
+				gradient_mode:'LinearGradientDownUp',//渐变模式
+				background_color:'#c5d3d4',
+				separate_angle:4,//分离角度
+				increment:10,//弹出距离
+				sub_option:{
+					gradient:true,
+					color_factor:0.08,
+					gradient_mode:'RadialGradientInOut',
+					label:false
+				},
+				showpercent:true,
+				decimalsnum:2,
+				width : 800,
+				height : 400,
+				radius:140
+			});
+					
+			chart.bound(0);
+		});
+		</script>
+	</head>
+	<body>
+		<div id='canvasDiv'></div>
+		<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个环形图示例，经过简单的配置样式，达到具有一定视觉效果的图表。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					样式来源于网络。
+				</span>
+			</div>
+	</body>
+</html>

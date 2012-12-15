@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+		$(function(){
+			var data = [
+			        	{name : 'Android',value : 52.5,color:'#4572a7'},
+			        	{name : 'IOS',value : 34.3,color:'#aa4643'},
+			        	{name : 'RIM',value : 8.4,color:'#89a54e'},
+			        	{name : 'Microsoft',value : 3.6,color:'#80699b'},
+			        	{name : 'Other',value : 1.2,color:'#3d96ae'}
+		        	];
+
+	    	
+			var chart = new iChart.Pie2D({
+				render : 'canvasDiv',
+				data: data,
+				title : {
+					text : 'Mobile-Friendly Distribution',
+					height:40,
+					fontsize : 30,
+					color : '#282828'
+				},
+				footnote : {
+					text : 'ichartjs.com',
+					color : '#486c8f',
+					fontsize : 12,
+					padding : '0 38'
+				},
+				sub_option : {
+					mini_label_threshold_angle : 40,//迷你label的阀值,单位:角度
+					mini_label:{//迷你label配置项
+						fontsize:20,
+						fontweight:600,
+						color : '#ffffff'
+					},
+					label : {
+						background_color:null,
+						sign:false,//设置禁用label的小图标
+						padding:'0 4',
+						border:{
+							enable:false,
+							color:'#666666'
+						},
+						fontsize:11,
+						fontweight:600,
+						color : '#4572a7'
+					},
+					border : {
+						width : 2,
+						color : '#ffffff'
+					},
+					listeners:{
+						parseText:function(d, t){
+							return d.get('value')+"%";//自定义label文本
+						}
+					} 
+				},
+				legend:{
+					enable:true,
+					padding:0,
+					offsetx:120,
+					offsety:30,
+					color:'#3e576f',
+					fontsize:20,//文本大小
+					sign_size:20,//小图标大小
+					line_height:28,//设置行高
+					sign_space:10,//小图标与文本间距
+					border:false,
+					align:'left',
+					background_color : null//透明背景
+				}, 
+				shadow : true,
+				shadow_blur : 6,
+				shadow_color : '#aaaaaa',
+				shadow_offsetx : 0,
+				shadow_offsety : 0,
+				background_color:'#f1f1f1',
+				align:'right',//右对齐
+				offsetx:-100,//设置向x轴负方向偏移位置60px
+				offset_angle:-90,//逆时针偏移120度
+				width : 800,
+				height : 440,
+				radius:150
+			});
+			//利用自定义组件构造右侧说明文本
+			chart.plugin(new iChart.Custom({
+					drawFn:function(){
+						//在右侧的位置，渲染说明文字
+						chart.target.textAlign('start')
+						.textBaseline('top')
+						.textFont('600 20px Verdana')
+						.fillText('Market Fragmentation:\nTop Mobile\nOperating Systems',120,80,false,'#be5985',false,24)
+						.textFont('600 12px Verdana')
+						.fillText('Source:ComScore,2012',120,160,false,'#999999');
+					}
+			}));
+			
+			chart.draw();
+		});
+		</script>
+	</head>
+	<body>
+		<div id='canvasDiv'></div>
+		<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个饼状图示例，在此例中设置了mini_label配置项。并设置了启用阀值。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					数据来源于网络。
+				</span>
+			</div>
+	</body>
+</html>

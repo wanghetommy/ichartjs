@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+			$(function(){   
+				var data = [
+				        	{name : 'WinXP',value : 68.34,color:'#3883bd'},
+				        	{name : 'Win7',value : 26.83,color:'#3F5C71'},
+				        	{name : 'Other',value : 4.83,color:'#a6bfd2'}
+			        	];
+				
+				var chart = new iChart.Pie3D({
+					render : 'canvasDiv',
+					title:{
+						text:'中国地区2012年08月份操作系统分布情况',
+						color:'#e0e5e8',
+						height:40,
+						border:{
+							enable:true,
+							width:[0,0,2,0],
+							color:'#343b3e'
+						}
+					},
+					padding:'2 10',
+					footnote:{
+						text:'StatCounter Global Stats,design by ichartjs',
+						color:'#e0e5e8',
+						height:30,
+						border:{
+							enable:true,
+							width:[2,0,0,0],
+							color:'#343b3e'
+						}
+					},
+					width : 800,
+					height : 400,
+					data:data,
+					shadow:true,
+					shadow_color:'#15353a',
+					shadow_blur:8,
+					background_color : '#3b4346',
+					gradient:true,
+					color_factor:0.28,
+					gradient_mode:'RadialGradientOutIn',
+					showpercent:true,
+					decimalsnum:2,
+					legend:{
+						enable:true,
+						padding:30,
+						color:'#e0e5e8',
+						border:{
+							width:[0,0,0,2],
+							color:'#343b3e'
+						},
+						background_color : null,
+					},
+					sub_option:{
+						border:{
+							enable:false
+						},
+						label : {
+							background_color:'#fefefe',
+							sign:false,//设置禁用label的小图标
+							line_height:10,
+							padding:4,
+							border:{
+								enable:true,
+								radius : 4,//圆角设置
+								color:'#e0e5e8'
+							},
+							fontsize:11,
+							fontweight:600,
+							color : '#444444'
+						},
+						listeners:{
+							parseText:function(d, t){
+								return d.get('value')+"%";
+							}
+						}
+					},
+					border:{
+						width:[0,20,0,20],
+						color:'#1e2223'
+					}
+				});
+				
+				chart.bound(0);
+			});
+		</script>
+	</head>
+	<body>
+		<div id='canvasDiv'></div>
+		<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					设置了个性化视觉的3D饼图示例。大量利用了边框设置层次视觉。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					数据来源于StatCounter。
+				</span>
+			</div>
+	</body>
+</html>

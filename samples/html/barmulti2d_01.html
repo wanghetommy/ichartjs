@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+		$(function(){
+			var data = [
+			         	{
+			         		name : 'DPS01A',
+			         		value:[45,52,54,74,90,84],
+			         		color:'#47b2c8'
+			         	},
+			         	{
+			         		name : 'DPS01B',
+			         		value:[60,80,105,125,108,120],
+			         		color:'#db6086'
+			         	}
+			         ];
+	         
+			var chart = new iChart.BarMulti2D({
+					render : 'canvasDiv',
+					data: data,
+					labels:["一月","二月","三月","四月","五月","六月"],
+					title : {
+						text:'DPS01A型号比DPS01B型号的产品更受用户喜欢',
+						color:'#585757'
+					},
+					subtitle : {
+						text:'2012上半年DPS01A型号与DPS01B型号的鼠标销售比较,单位:万台',
+						color:'#797373'
+					},
+					footnote : '数据来源：销售中心',
+					footnote_align:'left',
+					width : 800,
+					height : 400,
+					background_color : '#ffffff',
+					legend:{
+						enable:true,
+						background_color : null,
+						border : {
+							enable : false
+						}
+					},
+					coordinate:{
+						scale:[{
+							 position:'bottom',	
+							 start_scale:0,
+							 end_scale:140,
+							 scale_space:20
+						}],
+						background_color : null,
+						axis : {
+							width : 0
+						},
+						width:600,
+						height:280
+					}
+			});
+			chart.draw();
+		});
+		</script>
+	</head>
+	<body>
+		<div id='canvasDiv'></div>
+		<div class='ichartjs_info'>
+			<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+			<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+			<div class='ichartjs_sm'>说明</div>
+			<div class='ichartjs_details'>
+				这是一个蔟状条形的示例，该示例展示了2012年上半年DPS01A型号与DPS01B型号的鼠标销售比较情况。
+				该示例设置了整体颜色以满足个性化的需要。并且设置了副标题和脚注满足信息展示的需要。并通过设置axis的width为0将坐标轴线隐藏。
+				<br>
+			</div>
+			<span class='ichartjs_sm'>备注：</span>
+			<span class='ichartjs_details'>
+				数据均为模拟。
+			</span>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+			var data = [
+			        	{name : 'Google',value : 91.17,color:'#a5c2d5'},
+			        	{name : 'bing',value : 3.22,color:'#cbab4f'},
+			        	{name : 'Yahoo!',value : 2.95,color:'#76a871'},
+			        	{name : 'Babylon',value : 0.54,color:'#9f7961'},
+			        	{name : 'Baidu',value : 0.45,color:'#a56f8f'},
+			        	{name : 'Other',value : 1.67,color:'#db9034'}
+		        	];
+					$(function(){
+						new iChart.Bar2D({
+								render : 'canvasDiv',
+								data: data,
+								title : '2012年7月份全球搜索引擎Top5',
+								footnote : 'Data from StatCounter',
+								width : 800,
+								height : 400,
+								coordinate:{
+									width:640,
+									height:280,
+									scale:[{
+										 position:'bottom',	
+										 start_scale:0,
+										 end_scale:100,
+										 scale_space:10,
+										 listeners:{
+											parseText:function(t,x,y){
+												return {text:t+"%"}
+											}
+										 }
+									}]
+								},
+								rectangle:{
+									listeners:{
+										drawText:function(r,t){
+											return t+"%";
+										}
+									}
+								}
+						}).draw();
+					});
+			</script>
+		</head>
+		<body>
+			<div id='canvasDiv'></div>
+			<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个条形图示例，该示例展示了2012年7月份全球范围内搜索引擎使用的情况。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					数据来源于StatCounter。
+				</span>
+			</div>
+		</body>
+</html>

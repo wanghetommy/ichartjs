@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css" />
+		<script type="text/javascript">
+		$(function() {
+			var data = [
+						{name : 'MISE',value : 55.11,color : '#4572a7'},
+						{name : 'Firefox',value : 29.84,color : '#aa4643'},
+						{name : 'Chrome',value : 24.88,color : '#89a54e'},
+						{name : 'Safari',value : 6.77,color : '#80699b'},
+						{name : 'Opera',value : 2.02,color : '#3d96ae'}
+					];
+	
+			var chart = new iChart.Column2D({
+				render : 'canvasDiv',
+				data : data,
+				title : {
+					text : 'This is a sample spirit from HighCharts',
+					color : '#3e576f'
+				},
+				subtitle : {
+					text : 'Browser market share,April,2011 from 1 to 29 Feb 2012',
+					color : '#6d869f'
+				},
+				footnote : {
+					text : 'ichartjs.com',
+					color : '#909090',
+					fontsize : 11,
+					padding : '0 38'
+				},
+				width : 800,
+				height : 400,
+				label : {
+					fontsize:11,
+					color : '#666666'
+				},
+				shadow : true,
+				shadow_blur : 2,
+				shadow_color : '#aaaaaa',
+				shadow_offsetx : 1,
+				shadow_offsety : 0,
+				colwidth : 62,
+				sub_option : {
+					listeners : {
+						parseText : function(r, t) {
+							return t + "%";
+						}
+					},
+					label : {
+						fontsize:11,
+						fontweight:600,
+						color : '#4572a7'
+					},
+					border : {
+						width : 2,
+						//radius : '5 5 0 0',//上圆角设置
+						color : '#ffffff'
+					}
+				},
+				coordinate : {
+					background_color : null,
+					grid_color : '#c0c0c0',
+					width : 680,
+					axis : {
+						color : '#c0d0e0',
+						width : [0, 0, 1, 0]
+					},
+					scale : [{
+						position : 'left',
+						start_scale : 0,
+						end_scale : 60,
+						scale_space : 10,
+						scale_enable : false,
+						label : {
+							fontsize:11,
+							color : '#666666'
+						}
+					}]
+				}
+			});
+			
+			/**
+			 *利用自定义组件构造左侧说明文本。
+			 */
+			chart.plugin(new iChart.Custom({
+					drawFn:function(){
+						/**
+						 *计算位置
+						 */	
+						var coo = chart.getCoordinate(),
+							x = coo.get('originx'),
+							y = coo.get('originy'),
+							H = coo.get('height');
+						/**
+						 *在左侧的位置，设置逆时针90度的旋转，渲染文字。
+						 */
+						chart.target.textAlign('center')
+						.textBaseline('middle')
+						.textFont('600 13px Verdana')
+						.fillText('Total percent market share',x-40,y+H/2,false,'#6d869f', false,false,false,-90);
+						
+					}
+			}));
+			
+			chart.draw();
+		});
+	</script>
+	</head>
+	<body>
+		<div id='canvasDiv'></div>
+		<div class='ichartjs_info'>
+			<span class='ichartjs_author'>writen by <a title="示例的贡献者"
+				href="mailto:taylor@ichartjs.com">taylor</a> </span>
+			<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">预览代码</span>
+			<div class='ichartjs_sm'>
+				说明
+			</div>
+			<div class='ichartjs_details'>
+				这是一个模仿HighCharts风格的柱形图示例，你可以尝试将该示例中注释部分代码打开，可以设置一个上圆角的效果。
+			</div>
+			<span class='ichartjs_sm'>备注：</span>
+			<span class='ichartjs_details'>示例风格仿至HighCharts。 </span>
+		</div>
+	</body>
+</html>

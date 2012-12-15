@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+			$(function(){
+				var pv=[],ip=[],t;
+				//创建随机数据
+				for(var i=0;i<61;i++){
+					t = Math.floor(Math.random()*(30+((i%12)*5)))+10;
+					pv.push(t);
+					t = Math.floor(t*0.5);
+					t = t-Math.floor((Math.random()*t)/2);
+					ip.push(t);
+				}
+				
+				var data = [
+				         	{
+				         		name : 'PV',
+				         		value:pv,
+				         		color:'#aad0db',
+				         		line_width:2
+				         	},
+				         	{
+				         		name : 'IP',
+				         		value:ip,
+				         		color:'#f68f70',
+				         		line_width:2
+				         	}
+				         ];
+		         
+				//创建x轴标签文本   
+				var date = new Date()
+				date.setDate(date.getDate()-6);
+				var labels = [];
+				for(var i=0;i<6;i++){
+					date.setDate(date.getDate()+1);
+					labels.push(date.getFullYear()+"-"+(date.getMonth()+1)+"-"+date.getDate());
+				}
+				
+				var chart = new iChart.Area2D({
+					render : 'canvasDiv',
+					data: data,
+					align:'center',
+					title : 'A网站近5天流量趋势,按每2小时分组统计',
+					subtitle : '平均每个人访问2-3个页面(访问量单位：万)',
+					footnote : '数据来源：模拟数据',
+					width : 800,
+					height : 400,
+					background_color:'#f4f4f4',
+					tip:{
+						enable:true,
+						shadow:true,
+						border:{
+						 enable:true,
+						 radius : 5,
+						 width:3,
+						 color:'#3f8695'
+						}
+					},
+					tipMocker:function(tips){
+						return "<div style='font-weight:600'>数据分析</div>"+tips.join("<br/>");
+					},
+					legend : {
+						enable : true,
+						row:1,//设置在一行上显示，与column配合使用
+						column : 'max',
+						valign:'top',
+						sign:'bar',
+						background_color:null,//设置透明背景
+						offsetx:-80,//设置x轴偏移，满足位置需要
+						border : true
+					},
+					crosshair:{
+						enable:true,
+						line_color:'#62bce9'//十字线的颜色
+					},
+					sub_option : {
+						label:false,
+						point_size:10
+					},
+					coordinate:{
+						width:640,
+						height:240,
+						axis:{
+							color:'#dcdcdc',
+							width:1
+						},
+						scale:[{
+							 position:'left',	
+							 start_scale:0,
+							 end_scale:100,
+							 scale_space:10,
+							 scale_size:2,
+							 scale_color:'#9f9f9f'
+						},{
+							 position:'bottom',	
+							 labels:labels
+						}]
+					}
+				});
+			
+			//开始画图
+			chart.draw();
+		});
+		</script>
+		</head>
+		<body>
+			<div id='canvasDiv'></div>
+			<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">预览代码</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					应用实例欣赏，此示例展示了A网站近5天访问流量情况，此示例中设置了多种样式，以达到所需的视觉效果。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					数据均为模拟。
+				</span>
+			</div>
+</body>
+</html>

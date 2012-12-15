@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+			$(function(){
+				var data = [
+				        	{name : '鞋区',value : 6078,color:'#97b3bc'},
+				        	{name : '运动区',value : 5845,color:'#FF3333'},
+				        	{name : '女装区',value : 5008,color:'#cd5c5c'},
+				        	{name : '户外区',value : 2662,color:'#006666'},
+				        	{name : '休闲区',value : 2445,color:'#CC3333'},
+				        	{name : '皮具区',value : 2389,color:'#9d4a4a'},
+				        	{name : '男装区',value : 2147,color:'#eee8aa'},
+				        	{name : '内衣区',value : 2135,color:'#CCFF66'},
+				        	{name : '儿童区',value : 820,color:'#5d7f97'},
+				        	{name : '租赁',value : 763,color:'#33FF33'},
+				        	{name : '服饰区',value : 421,color:'#330099'},
+				        	{name : '家居区',value : 272,color:'#33FF99'},
+				        	{name : '毛纺区',value : 261,color:'#ffdead'},
+				        	{name : '羽绒服区',value : 252,color:'#CC3399'}
+			        	];
+	        	
+				new iChart.Bar2D({
+					render : 'canvasDiv',
+					background_color : '#EEEEEE',
+					data: data,
+					title : '2012上半年品类销售分析',
+					subtitle : '鞋区,运动区,女装区三大区占据销售的半壁江山',
+					footnote : '数据来源：ERP基础数据仓库   单位：万元',
+					width : 800,
+					height : 400,
+					coordinate:{
+						width:640,
+						height:260,
+						scale:[{
+							 position:'bottom',	
+							 start_scale:0,
+							 end_scale:6500,
+							 scale_space:500
+						}]
+					},
+					sub_option:{
+						border:{
+							enable : false
+						},
+						label:{color:'#333333'}
+					},
+					shadow:true,
+					shadow_color:'#8d8d8d',
+					shadow_blur:1,
+					shadow_offsety:1,
+					shadow_offsetx:1,
+					legend:{enable:false}
+				}).draw();
+			});
+		</script>
+	</head>
+	<body>
+		<div id='canvasDiv'></div>
+		<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:wanglongqq@gmail.com">debby</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个实际中常见的示例，利用条形图展示了2012年实际的销售分布的情况。设置了副标题与脚注来增加信息的完整性。设置了自定义的刻度值。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					数据均为模拟。
+				</span>
+			</div>
+	</body>
+</html>

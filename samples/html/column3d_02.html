@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+		var data = [
+		        	{name : '已服务客户数量',value : 30,color:'#bc6666'},
+		        	{name : '其中已服务VIP数量',value : 4,color:'#6f83a5'},
+		        	{name : '等待中数量',value : 20,color:'#76a871'},
+		        	{name : '处理中数量',value : 10,color:'#2ba5a4'}
+	        	];
+			$(function(){	
+				new iChart.Column3D({
+					render : 'canvasDiv',
+					data: data,
+					title : 'Status Of Customer Service',
+					width : 800,
+					height : 400,
+					sub_option:{
+						label:{
+							fontsize:30,
+							color : '#4c4f48'
+						}
+					},
+					zScale:0.5,
+					xAngle : 50,
+					bottom_scale:1.1,
+					coordinate:{
+						scale:[{
+							 position:'left',	
+							 label:{
+								fontsize:12,
+								color : '#4c4f48',
+								fontweight:600
+							 },
+							 start_scale:0,
+							 end_scale:40,
+							 scale_space:4
+						}]
+					}
+				}).draw();
+			});
+			</script>
+		</head>
+		<body>
+			<div id='canvasDiv'></div>
+			<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个3D柱形图示例，该示例展示了目前服务客户的情况。此示例中，配置了个性化的值轴。对于个性化值轴，关键在于能够知道全部数据中的最大值。设置其起始值(start_scale),最大值(end_scale),值间距(scale_space)。
+					当然，如果你的柱形图的值是不确定的，则组件会自动帮你计算最大值。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					数据均为模拟。
+				</span>
+			</div>
+		</body>
+</html>

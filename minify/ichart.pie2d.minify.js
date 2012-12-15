@@ -1,0 +1,1 @@
+iChart.Pie2D=iChart.extend(iChart.Pie,{configure:function(){iChart.Pie2D.superclass.configure.call(this);this.type="pie2d"},doSector:function(){return new iChart.Sector2D(this.get("sub_option"),this)},doConfig:function(){iChart.Pie2D.superclass.doConfig.call(this);var a=this._();a.push("sub_option.radius",a.r);a.data.each(function(b,c){a.doParse(a,b,c)},a)}});

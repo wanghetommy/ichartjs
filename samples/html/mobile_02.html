@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<style type="text/css">
+			body{
+				padding:0px;
+				margin:0px;
+				overflow:hidden;
+				text-align: center;
+				background-color:#20262f;
+			}
+		</style>
+		<script type="text/javascript">
+		$(function(){
+			var data = [
+			        	{name : '1月',value : 42,color:'#CD4C43'},
+			        	{name : '2月',value : 30,color:'#ECBD31'},
+			        	{name : '3月',value : 10,color:'#9bb60f'},
+			        	{name : '4月',value : 8,color:'#058d8d'},
+			        	{name : '5月',value : 6,color:'#84588d'},
+			        	{name : '6月',value : 10,color:'#9bb60f'},
+			        	{name : '7月',value : 8,color:'#058d8d'},
+			        	{name : '8月',value : 6,color:'#84588d'},
+			        	{name : '9月',value : 4,color:'#b4cfe4'}
+		        	];
+	    	
+				var chart = new iChart.Pie3D({
+					render : 'canvasDiv',
+					data: data,
+					title : {
+						text:'2012年全年销售统计',
+						textAlign:'center',
+						height:60,
+						fontsize:44,
+						color:'#ffffff'
+					},
+					padding:5,
+					yHeight:50,
+					radius:'80%',//设置半径为最小有效区域的80%
+					align:'center',
+					fit:true,
+					zRotate : 60,
+					shadow:true,
+					shadow_color : '#20262f',
+					shadow_blur : 4,
+					shadow_offsetx : 0,
+					shadow_offsety : 2,
+					border:false,
+					background_color:null,
+					showpercent:true,
+					decimalsnum:1, 
+					legend : {
+						enable : true,
+						background_color:'rgba(61,67,75,0.6)',
+						column:3,
+						border : {
+							enable : true,
+							color : '#D7D8D9',
+							style : 'solid',
+							width : 2,
+							radius : 10
+						},
+						padding:"12 20 2 20",//设置内边距
+						legend_space:30,//图例间距
+						line_height:30,//设置行高
+						sign_space:20,//小图标与文本间距
+						sign_size:26,//小图标大小
+						color:'#ffffff',
+						fontsize:26,//文本大小
+						valign:'bottom',
+						align : 'center'
+					},
+					sub_option : {
+						label : {
+							color:'#ffffff',
+							fontsize:34,
+							line_thickness:2,
+							background_color:null,//透明背景
+							sign:false,//设置禁用label的小图标
+							padding:'0 4',
+							border:{
+								enable:false,
+								color:'#ffffff'
+							}
+						},
+						border : {
+							enable : true,
+							color : '#D7D8D9',
+							width : 2
+						},
+						listeners:{
+							parseText:function(s, t){
+								return s.get('value')+"%";
+							}
+						}
+					}
+				});
+				chart.draw();
+		});
+	</script>
+</head>
+<body>
+	<div id='canvasDiv'></div>
+</body>
+</html>

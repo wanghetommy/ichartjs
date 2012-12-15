@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+		$(function() {
+			var data = [
+			        	{name : '广东',value : 104303132,color:'#4572a7'},
+			        	{name : '山东',value : 95793065,color:'#4572a7'},
+			        	{name : '河南',value : 94023567,color:'#4572a7'},
+			        	{name : '四川',value : 80418200,color:'#4572a7'},
+			        	{name : '江苏',value : 78659903,color:'#4572a7'},
+			        	{name : '河北',value : 71854202,color:'#4572a7'},
+			        	{name : '湖南',value : 65683722,color:'#4572a7'},
+			        	{name : '安徽',value : 59500510,color:'#4572a7'},
+			        	{name : '湖北',value : 57237740,color:'#4572a7'},
+			        	{name : '浙江',value : 54426891,color:'#4572a7'},
+			        	{name : '广西',value : 46026629,color:'#4572a7'},
+			        	{name : '云南',value : 45966239,color:'#4572a7'},
+			        	{name : '江西',value : 44567475,color:'#4572a7'},
+			        	{name : '辽宁',value : 43746323,color:'#4572a7'},
+			        	{name : '黑龙江',value : 38312224,color:'#4572a7'},
+			        	{name : '陕西',value : 37327378,color:'#4572a7'},
+			        	{name : '福建',value : 36327378,color:'#4572a7'},
+			        	{name : '山西',value : 35712111,color:'#4572a7'},
+			        	{name : '贵州',value : 34746468,color:'#4572a7'},
+			        	{name : '重庆',value : 28846170,color:'#4572a7'},
+			        	{name : '吉林',value : 27462297,color:'#4572a7'},
+			        	{name : '甘肃',value : 25575254,color:'#4572a7'},
+			        	{name : '内蒙古',value : 24706321,color:'#4572a7'},
+			        	{name : '上海',value : 23019148,color:'#4572a7'},
+			        	{name : '新疆',value : 21813334,color:'#4572a7'},
+			        	{name : '北京',value : 19612368,color:'#4572a7'},
+			        	{name : '天津',value : 12938224,color:'#4572a7'},
+			        	{name : '海南',value : 8671518,color:'#4572a7'},
+			        	{name : '宁夏',value : 6301350,color:'#4572a7'},
+			        	{name : '青海',value : 5626722,color:'#4572a7'},
+			        	{name : '西藏',value : 3002166,color:'#4572a7'}
+		        	];
+			
+			var chart = new iChart.Column2D({
+				render : 'canvasDiv',
+				data : data,
+				title : {
+					text : '全国2010年第六次全国人口普查数据',
+					color : '#3e576f'
+				},
+				subtitle : {
+					text : '图表展示了31个省、自治区、直辖市2010年的常住人口数据，并进行排名',
+					color : '#6d869f'
+				},
+				footnote : {
+					text : 'ichartjs.com',
+					color : '#909090',
+					fontsize : 11,
+					padding : '0 38'
+				},
+				width : 800,
+				height : 400,
+				label : {
+					fontsize:11,
+					textAlign:'right',
+					textBaseline:'middle',
+					rotate:-45,
+					color : '#666666'
+				},
+				tip:{
+					enable:true,
+					listeners:{
+						 //tip:提示框对象、name:数据名称、value:数据值、text:当前文本、i:数据点的索引
+						parseText:function(tip,name,value,text,i){
+							//将数字进行千位格式化
+							var f = new String(value);
+							f = f.split("").reverse().join("").replace(/(\d{3})/g,"$1,").split("").reverse();
+							if(f[0]==','){
+								f.shift();
+							}	
+							f = f.join("");
+							
+							return name+"人口:<br/>"+f+"人<br/>占全国比重:<br/>"+(value/this.get('total') * 100).toFixed(2)+ '%';
+						}
+					}
+				},
+				shadow : true,
+				shadow_blur : 2,
+				shadow_color : '#aaaaaa',
+				shadow_offsetx : 1,
+				shadow_offsety : 0,
+				colwidth : 62,
+				sub_option : {
+					label : false,
+					border : {
+						width : 2,
+						color : '#ffffff'
+					}
+				},
+				coordinate : {
+					background_color : null,
+					grid_color : '#c0c0c0',
+					width : 660,
+					height:240,
+					axis : {
+						color : '#c0d0e0',
+						width : [0, 0, 1, 0]
+					},
+					scale : [{
+						position : 'left',
+						start_scale : 0,
+						end_scale : 110000000,
+						scale_space : 10000000,
+						scale_enable : false,
+						label : {
+							fontsize:11,
+							color : '#666666'
+						},
+						listeners:{
+							parseText:function(t,x,y){
+								return {text:t/10000}
+							}
+						 }
+					}]
+				}
+			});
+			
+			//利用自定义组件构造左侧说明文本
+			chart.plugin(new iChart.Custom({
+					drawFn:function(){
+						//计算位置
+						var coo = chart.getCoordinate(),
+							x = coo.get('originx'),
+							y = coo.get('originy');
+						//在左上侧的位置，渲染一个单位的文字
+						chart.target.textAlign('start')
+						.textBaseline('bottom')
+						.textFont('600 11px Verdana')
+						.fillText('人口数(万人)',x-40,y-10,false,'#6d869f');
+						
+					}
+			}));
+			
+			chart.draw();
+		});
+		</script>
+	</head>
+	<body>
+		<div id='canvasDiv'></div>
+		<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个实际中的示例，展示了31个省、自治区、直辖市2010年的常住人口数据，并进行排名。<br>
+					由于x坐标轴文字比较多，因此将x坐标轴的坐标文本进行了旋转处理。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					本资料数据来源为各地区公布的2010年第六次全国人口普查数据公报
+				</span>
+			</div>
+	</body>
+</html>

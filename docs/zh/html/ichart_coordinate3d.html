@@ -1,0 +1,78 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>iChart.Coordinate3D-Document</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="Content-Style-Type" content="text/css"/>
+<link rel="stylesheet" href="../resources/style.css" type="text/css"/>
+
+</head>
+<body class='ichartjs_page'>
+<div class='ichartjs_p_5'><div class='ichartjs_title ichartjs_radius2 ichartjs_p_5'><div class='ichartjs_inline ichartjs_left'>概览&nbsp;&nbsp;</div><a class='ichartjs_anchor' href='#configs'>配置项</a><a class='ichartjs_anchor' href='#events'>事件</a><a class='ichartjs_anchor' href='#methods'>方法</a></div><div class='ichartjs_overview_content'>
+<span class='ichartjs_class'>Coordinate3D</span>&nbsp;&nbsp;<br/><div class='ichartjs_p_10 ichartjs_m_10 ichartjs_color ichartjs_inline ichartjs_radius5'><div class='ichartjs_font_600 ichartjs_h_25'>
+层次树</div>
+<div class='ichartjs_h_18'><span class='ichartjs_h_18'><a href="ichart_element.html" target="main" >iChart.Element</a></span>
+</div>
+<div class='ichartjs_h_18'><span class='ichartjs_indent'><div class='ichartjs_tree'></div></span><span class='ichartjs_h_18'><a href="ichart_painter.html" target="main" >iChart.Painter</a></span>
+</div>
+<div class='ichartjs_h_18'><span class='ichartjs_indent'></span><span class='ichartjs_indent'><div class='ichartjs_tree'></div></span><span class='ichartjs_h_18'><a href="ichart_component.html" target="main" >iChart.Component</a></span>
+</div>
+<div class='ichartjs_h_18'><span class='ichartjs_indent'></span><span class='ichartjs_indent'></span><span class='ichartjs_indent'><div class='ichartjs_tree'></div></span><span class='ichartjs_h_18'><a href="ichart_coordinate2d.html" target="main" >iChart.Coordinate2D</a></span>
+</div>
+<div class='ichartjs_h_18'><span class='ichartjs_indent'></span><span class='ichartjs_indent'></span><span class='ichartjs_indent'></span><span class='ichartjs_indent'><div class='ichartjs_tree'></div></span><span class='ichartjs_h_18'><a href="ichart_coordinate3d.html" target="main" >iChart.Coordinate3D</a></span>
+</div>
+</div><br/>3D坐标系的实现类<br/>
+ <br/
+</div></div><div class='ichartjs_p_5' id='configs' name='configs'><div class='ichartjs_title ichartjs_p_5'>配置项</div><table class='ichartjs_table'><tr class='ichartjs_table_header'><th class='ichartjs_table_parameter'>参数</th><th class='ichartjs_table_type'>类型</th><th class='ichartjs_table_description'>描述</th><th class='ichartjs_table_definedBy'>定义者</th></tr><tr class='ichartjs_even'><td id='ichart_link_axis'>axis</td><td>Boolean</td><td>覆盖默认值。关闭轴线的设置。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate3d.html" target="main" >Coordinate3D</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_background_color'>background_color</td><td>String</td><td>覆盖默认值。设置网格的颜色为'#d6dbd2'。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate3d.html" target="main" >Coordinate3D</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_board_deep'>board_deep</td><td>Number</td><td>3D效果中，坐标系背部面板的厚度。(默认为20)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate3d.html" target="main" >Coordinate3D</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_color_factor'>color_factor</td><td>float</td><td>覆盖默认值。设置颜色因子的值为0.18。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate3d.html" target="main" >Coordinate3D</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_gradient'>gradient</td><td>Boolean</td><td>覆盖默认值。默认启用渐变效果。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate3d.html" target="main" >Coordinate3D</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_grid_color'>grid_color</td><td>String</td><td>覆盖默认值。设置网格的颜色为'#a4ad96'。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate3d.html" target="main" >Coordinate3D</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_grid_line_width'>grid_line_width</td><td>Number</td><td>网格的宽度值。(默认为1)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate2d.html" target="main" >Coordinate2D</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_height'>height</td><td>String</td><td>坐标系高度。可以设置为像素和百分比形式。百分比形式相对于图表可用高度。(默认为'80%')<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate2d.html" target="main" >Coordinate2D</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_ignoreEdge'>ignoreEdge</td><td>Boolean</td><td>覆盖默认值。设置忽略与边缘重合的网格线。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate3d.html" target="main" >Coordinate3D</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_left_board'>left_board</td><td>Boolean</td><td>为true则显示左侧的面板。(默认为true)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate3d.html" target="main" >Coordinate3D</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_pedestal_height'>pedestal_height</td><td>Number</td><td>3D效果中，坐标系底座的高度。(默认为22)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate3d.html" target="main" >Coordinate3D</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_scale'>scale</td><td>Array</td><td>刻度的配置项。请参考<a href='ichart_scale.html'>iChart.Scale</a><br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate2d.html" target="main" >Coordinate2D</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_shadow_offsetx'>shadow_offsetx</td><td>Number</td><td>覆盖默认值。设置阴影x轴偏移为4。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate3d.html" target="main" >Coordinate3D</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_shadow_offsety'>shadow_offsety</td><td>Number</td><td>覆盖默认值。设置阴影y轴偏移为2。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate3d.html" target="main" >Coordinate3D</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_striped'>striped</td><td>Boolean</td><td>覆盖默认值。关闭隔行变色。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate3d.html" target="main" >Coordinate3D</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_valid_height'>valid_height</td><td>Number</td><td>坐标系有效绘图高度，可以设置为像素和百分比形式。百分比形式相对于坐标系高度。(默认为'100%')<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate2d.html" target="main" >Coordinate2D</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_valid_width'>valid_width</td><td>Number</td><td>坐标系有效绘图宽度，可以设置为像素和百分比形式。百分比形式相对于坐标系宽度。(默认为'100%')<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate2d.html" target="main" >Coordinate2D</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_wall_style'>wall_style</td><td>Array</td><td>自定义3D坐标系中6个面板的样式。如果给出长度小于6，则用<a href='#ichart_link_background_color'>background_color</a>代替。<br/>
+ 每个配置项的可见属性为：<br/>
+ @Option color 背景墙颜色<br/>
+ @Option alpha 背景墙透明度<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate3d.html" target="main" >Coordinate3D</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_width'>width</td><td>String</td><td>坐标系宽度。可以设置为像素和百分比形式。百分比形式相对于图表可用宽度。(默认为'80%')<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate2d.html" target="main" >Coordinate2D</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_xAngle'>xAngle</td><td>Number(0~90)</td><td>3D效果中x轴角度。一般由图表统一给出此配置项。(默认为60)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate3d.html" target="main" >Coordinate3D</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_yAngle'>yAngle</td><td>Number(0~90)</td><td>3D效果中y轴角度。一般由图表统一给出此配置项。(默认为20)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate3d.html" target="main" >Coordinate3D</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_zHeight'>zHeight</td><td>Number</td><td>3D效果中z轴的深度。一般由图表统一给出此配置项。(默认为0)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_coordinate3d.html" target="main" >Coordinate3D</a></td></tr></table></div><div class='ichartjs_p_5' id='events' name='events'><div class='ichartjs_title ichartjs_p_5'>事件</div><table class='ichartjs_table'><tr class='ichartjs_table_header'><th class='ichartjs_table_parameter'>名称</th><th class='ichartjs_table_description'>描述</th><th class='ichartjs_table_definedBy'>定义者</th></tr><tr class='ichartjs_even'><td>beforedraw</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>绘图之前触发，返回false停止绘图行为。<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;Coordinate3D&nbsp;&nbsp;</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td>click</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>点击时触发。<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;Coordinate3D&nbsp;&nbsp;</li>
+<li>e&nbsp;:&nbsp;EventObject&nbsp;&nbsp; 鼠标事件对象</li>
+<li>param&nbsp;:&nbsp;Object&nbsp;&nbsp; 额外的参数</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_even'><td>initialize</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>初始化完成之后触发。<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;Coordinate3D&nbsp;&nbsp;</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_element.html" target="main" >Element</a></td></tr><tr class='ichartjs_odd'><td>mousemove</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>鼠标移动时触发。<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;Coordinate3D&nbsp;&nbsp;</li>
+<li>e&nbsp;:&nbsp;EventObject&nbsp;&nbsp; 鼠标事件对象</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_even'><td>mouseout</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>鼠标在离开时触发。<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;Coordinate3D&nbsp;&nbsp;</li>
+<li>e&nbsp;:&nbsp;EventObject&nbsp;&nbsp; 鼠标事件对象</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td>mouseover</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>鼠标在进入时触发。<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;Coordinate3D&nbsp;&nbsp;</li>
+<li>e&nbsp;:&nbsp;EventObject&nbsp;&nbsp; 鼠标事件对象</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr></table></div><div class='ichartjs_p_5' id='methods' name='methods'><div class='ichartjs_title ichartjs_p_5'>方法</div><table class='ichartjs_table'><tr class='ichartjs_table_header'><th class='ichartjs_table_parameter'>名称</th><th class='ichartjs_table_description'>描述</th><th class='ichartjs_table_definedBy'>定义者</th></tr><tr class='ichartjs_even'><td>draw</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>绘图方法接口，这是一个抽象模板方法。实现此方法之后定义自己的行为。目前为止,<a href='ichart_chart.html'>iChart.Chart</a> 和 <a href='ichart_component.html'>iChart.Component</a> 实现了此方法.<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>无<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>返回值<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;void</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td>getDimension</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>获取当前组件的尺寸。返回对象包含以下属性：<br/>
+	 * @property x:左上方x轴坐标<br/>
+	 * @property y:左上方y轴坐标<br/>
+	 * @property width:宽度，单位:px。<br/>
+	 * @property height:高度，单位:px。<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>无<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>返回值<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;object</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_component.html" target="main" >Component</a></td></tr></table></div><div class='ichartjs_reference'><strong>参考:</strong><span class='ichartjs_reference_item'><a href="ichart_coordinate2d.html" target="main" >Coordinate2D</a></span></div>
+</body>
+</html>

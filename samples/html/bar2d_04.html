@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+			$(function(){
+				var data = [
+				        	{name : 'Renren',value : 33.1,color:'#b5bcc5'},
+				        	{name : 'Facebook',value : 19.14,color:'#b5bcc5'},
+				        	{name : 'StumbleUpon',value : 13.97,color:'#b5bcc5'},
+				        	{name : 'reddit',value : 7.44,color:'#b5bcc5'},
+				        	{name : 'Hi5',value : 5.22,color:'#b5bcc5'},
+				        	{name : 'LinkedIn',value : 4.85,color:'#b5bcc5'},
+				        	{name : 'Twitter',value : 4.59,color:'#b5bcc5'},
+				        	{name : 'Other',value : 11.68,color:'#b5bcc5'}
+			        	];
+	        	
+				new iChart.Bar2D({
+					render : 'canvasDiv',
+					data: data,
+					title : {
+						text:'StatCounter Global Stats',
+						color:'#b5bcc5'
+					},
+					subtitle : {
+						text:'Top 7 Social Media Sites in Chain from Oct 2011 to Oct 2012',
+						color:'#afb6c0'
+					},
+					footnote : 'Data from StatCounter',
+					width : 800,
+					height : 400,
+					offsetx:20,
+					coordinate:{
+						width:620,
+						height:240,
+						grid_color:'#4e5464',
+						axis:{
+							color:'#4e5464',
+							width:[0,0,8,1]
+						},
+						scale:[{
+							 position:'bottom',	
+							 start_scale:0,
+							 end_scale:40,
+							 scale_space:5,
+							 label:{color:'#ffffff'},
+							 listeners:{
+								parseText:function(t,x,y){
+									return {text:t+"%"}
+								}
+							 }
+						}]
+					},
+					label:{color:'#dcdcdc'},
+					background_color : '#3c4251',
+					sub_option:{
+						listeners:{
+							parseText:function(r,t){
+								return t+"%";
+							}
+						}
+					},
+					legend:{enable:false}
+				}).draw();
+			});
+		</script>
+	</head>
+	<body>
+		<div id='canvasDiv'></div>
+		<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个条形图的示例，该示例展示了从2011年10月份到2012年10月份中国社交网站的TOP7。在该示例中，设计了一个具有一定高度的x坐标轴。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					数据来源互联网。
+				</span>
+			</div>
+	</body>
+</html>

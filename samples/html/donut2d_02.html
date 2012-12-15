@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+			$(function(){
+				var data = [
+				        	{name : 'UC浏览器',value : 40.0,color:'#4572a7'},
+				        	{name : 'QQ浏览器',value : 37.1,color:'#aa4643'},
+				        	{name : '欧朋浏览器',value : 13.8,color:'#89a54e'},
+				        	{name : '百度浏览器',value : 1.6,color:'#80699b'},
+				        	{name : '海豚浏览器',value : 1.4,color:'#92a8cd'},
+				        	{name : '天天浏览器',value : 1.2,color:'#db843d'},
+				        	{name : '其他',value : 4.9,color:'#a47d7c'}
+			        	];
+
+	        	
+				var chart = new iChart.Donut2D({
+					render : 'canvasDiv',
+					data: data,
+					title : {
+						text : '2012年第3季度中国第三方手机浏览器市场份额',
+						color : '#3e576f'
+					},
+					footnote : {
+						text : 'ichartjs.com',
+						color : '#486c8f',
+						fontsize : 11,
+						padding : '0 38'
+					},
+					center : {
+						text:'90%',
+						color:'#3e576f',
+						shadow:true,
+						shadow_blur : 2,
+						shadow_color : '#557797',
+						shadow_offsetx : 0,
+						shadow_offsety : 0,
+						fontsize : 40
+					},
+					sub_option : {
+						label : {
+							background_color:null,
+							sign:false,//设置禁用label的小图标
+							padding:'0 4',
+							border:{
+								enable:false,
+								color:'#666666'
+							},
+							fontsize:11,
+							fontweight:600,
+							color : '#4572a7'
+						},
+						border : {
+							width : 2,
+							color : '#ffffff'
+						}
+					},
+					shadow : true,
+					shadow_blur : 6,
+					shadow_color : '#aaaaaa',
+					shadow_offsetx : 0,
+					shadow_offsety : 0,
+					background_color:'#fefefe',
+					offset_angle:-120,//逆时针偏移120度
+					showpercent:true,
+					decimalsnum:2,
+					width : 800,
+					height : 440,
+					radius:120
+				});
+				
+				chart.draw();
+			});
+		</script>
+	</head>
+	<body>
+		<div id='canvasDiv'></div>
+		<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个环形图示例，展示了UC浏览器、手机QQ浏览器及欧朋浏览器分别以活跃用户市场40%、37.1%及13.8%的份额位列第三方手机浏览器市场前三甲。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					数据来源于网络。
+				</span>
+			</div>
+	</body>
+</html>

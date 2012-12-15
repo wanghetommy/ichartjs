@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+				$(function(){
+					var data = [
+					        	{name : 'IE',value : 35.75,color:'#a5c2d5'},
+					        	{name : 'Chrome',value : 29.84,color:'#cbab4f'},
+					        	{name : 'Firefox',value : 24.88,color:'#76a871'},
+					        	{name : 'Safari',value : 6.77,color:'#9f7961'},
+					        	{name : 'Opera',value : 2.02,color:'#a56f8f'},
+					        	{name : 'Other',value : 0.73,color:'#6f83a5'}
+				        	];
+		        	
+					new iChart.Column2D({
+						render : 'canvasDiv',
+						data: data,
+						title : 'Top 5 Browsers from 1 to 29 Feb 2012',
+						showpercent:true,
+						decimalsnum:2,
+						width : 800,
+						height : 400,
+						coordinate:{
+							scale:[{
+								 position:'left',	
+								 start_scale:0,
+								 end_scale:40,
+								 scale_space:8,
+								 listeners:{
+									parseText:function(t,x,y){
+										return {text:t+"%"}
+									}
+								}
+							}]
+						},
+						sub_option:{
+							listeners:{
+								/**
+								 * r:iChart.Rectangle2D对象
+								 * e:eventObject对象
+								 * m:额外参数
+								 */
+								click:function(r,e,m){
+									alert(r.get('name')+' '+r.get('value'));
+								}
+							}
+						}
+					}).draw();
+			});
+				
+			</script>
+		</head>
+		<body>
+			<div id='canvasDiv'></div>
+			<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个柱形图的示例，该示例展示了2012年2月份市场浏览器占有的情况。此示例中，配置了个性化的值轴。并以百分比的形式展示数据值。<br/>
+					在此示例中为每个柱体注册了一个点击事件的回调函数。回调函数中alert了点击的柱形图的名字和值。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					数据均为模拟。
+				</span>
+			</div>
+		</body>
+</html>

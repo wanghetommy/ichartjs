@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>test</title>
+		<meta name="Description" content="" />
+		<meta name="Keywords" content="" />
+
+		<script type="text/javascript" src="../src/ichart.core.js"></script>
+		<script type="text/javascript" src="../src/ichart.element.js"></script>
+		<script type="text/javascript" src="../src/ichart.html.js"></script>
+		<script type="text/javascript" src="../src/ichart.painter.js"></script>
+		<script type="text/javascript" src="../src/ichart.component.js"></script>
+		<script type="text/javascript" src="../src/ichart.legend.js"></script>
+		<script type="text/javascript" src="../src/ichart.label.js"></script>
+		<script type="text/javascript" src="../src/ichart.chart.js"></script>
+		<script type="text/javascript" src="../src/ichart.custom.js"></script>
+		<script type="text/javascript" src="../src/ichart.sector.js"></script>
+		<script type="text/javascript" src="../src/ichart.sector2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.sector3d.js"></script>
+		<script type="text/javascript" src="../src/ichart.rectangle.js"></script>
+		<script type="text/javascript" src="../src/ichart.rectangle2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.rectangle3d.js"></script>
+		<script type="text/javascript" src="../src/ichart.column.js"></script>
+		<script type="text/javascript" src="../src/ichart.column2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.bar.js"></script>
+		<script type="text/javascript" src="../src/ichart.bar2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.columnmulti2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.columnmulti3d.js"></script>
+		<script type="text/javascript" src="../src/ichart.barmulti2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.column3d.js"></script>
+		<script type="text/javascript" src="../src/ichart.tip.js"></script>
+		<script type="text/javascript" src="../src/ichart.text.js"></script>
+		<script type="text/javascript" src="../src/ichart.pie.js"></script>
+		<script type="text/javascript" src="../src/ichart.pie2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.donut2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.pie3d.js"></script>
+		<script type="text/javascript" src="../src/ichart.coordinate.js"></script>
+		<script type="text/javascript" src="../src/ichart.crosshair.js"></script>
+		<script type="text/javascript" src="../src/ichart.linesegment.js"></script>
+		<script type="text/javascript" src="../src/ichart.line.js"></script>
+		<script type="text/javascript" src="../src/ichart.linebasic2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.area2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.linemonitor2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.points.js"></script>
+	<style type="text/css">
+		body{
+			margin-top:10px;
+			text-align: center;
+			background-color:#333333;
+			background-repeat: repeat;
+		}
+		#canvasDiv{
+			margin:0px auto;
+			text-align: center;
+		}
+	</style>
+	<script type="text/javascript">
+	$(function(){
+		var data = [
+		        	{name : 'UC浏2',value : 90,color:'#4572a7'},
+		        	{name : '欧朋1',value : 50,color:'#89a54e',cylinder_height:90},
+		        	{name : 'UC浏2',value : 90,color:'#4572a7'},
+		        	{name : '欧朋3',value : 50,color:'#aa4643'},
+		        	{name : '欧朋1',value : 50,color:'#89a54e',cylinder_height:90},
+		        	{name : '欧朋3',value : 50,color:'#aa4643'},
+		        	{name : 'UC浏2',value : 90,color:'#4572a7'},
+		        	{name : '欧朋3',value : 50,color:'#aa4643'}
+	        	];
+
+    	
+		var chart = new iChart.Pie3D({
+			render : 'canvasDiv',
+			data: data,
+			title : {
+				text : '2012年第3季度中国第三方手机浏览器市场份额',
+				color : '#3e576f'
+			},
+			footnote : {
+				text : 'ichartjs.com',
+				color : '#486c8f',
+				fontsize : 11,
+				padding : '0 38'
+			},
+			sub_option : {
+				label : {
+					background_color:null,
+					sign:false,//设置禁用label的小图标
+					padding:'0 4',
+					border:{
+						enable:false,
+						color:'#be5985'
+					},
+					fontsize:11,
+					fontweight:600,
+					color : '#be5985'
+				},
+				border : {
+					width : 2,
+					color : '#ffffff'
+				}
+			},
+			shadow : true,
+			shadow_blur : 6,
+			shadow_color : '#aaaaaa',
+			shadow_offsetx : 0,
+			shadow_offsety : 0,
+			background_color:'#fefefe',
+			offset_angle:-40,//逆时针偏移120度
+			showpercent:true,
+			//animation:true,
+			duration_animation_duration:500,
+			decimalsnum:2,
+			width : 800,
+			height : 440,
+			radius:160
+		});
+
+		chart.on('beforedraw',function(e){
+			chart.START_RUN_TIME = new Date().getTime();
+			return true;
+		});
+		
+		chart.on('draw',function(e){
+			chart.END_RUN_TIME = new Date().getTime();
+			console.log("cost:"+(chart.END_RUN_TIME - chart.START_RUN_TIME)+"ms");
+		});
+		
+		chart.draw();
+	});
+	</script>
+	</head>
+	<body>
+		<div id='canvasDiv' ></div>
+	</body>
+</html>

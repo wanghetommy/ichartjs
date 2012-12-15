@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+			$(function(){
+				var data = [
+				         	{
+				         		name : '普通高等教育本专科招生人数',
+				         		value:[321,384,447,504,546,566,608,640,662,682],
+				         		color:'#de9972'
+				         	},
+				         	{
+				         		name : '各类中等职业教育招生人数',
+				         		value:[474,516,566,656,748,810,812,869,870,809],
+				         		color:'#28847f'
+				         	},
+				         	{
+				         		name : '全国普通高中招生人数',
+				         		value:[677,752,822,878,871,840,837,830,836,851],
+				         		color:'#90abc0'
+				         	}
+				         ];
+				var chart = new iChart.ColumnMulti3D({
+						render : 'canvasDiv',
+						data: data,
+						labels:["2002","2003","2004","2005","2006","2007","2008","2009","2010","2011"],
+						title : {
+							text : '2002-2011年各类教育招生人数',
+							color : '#3e576f'
+						},
+						footnote : {
+							text : '数据来源：中华人民共和国国家统计局',
+							color : '#909090',
+							fontsize : 11,
+							padding : '0 44'
+						},
+						width : 800,
+						height : 400,
+						background_color : '#ffffff',
+						legend:{
+							enable:true,
+							background_color : null,
+							align : 'center',
+							valign : 'bottom',
+							row:1,
+							column:'max',
+							border : {
+								enable : false
+							}
+						},
+						colwidth : 8,//柱形宽度
+						zScale:8,//z轴深度倍数
+						xAngle : 50,
+						bottom_scale:1.1,
+						label:{
+							color:'#4c4f48'
+						},
+						sub_option:{
+							label :false
+						},
+						tip:{
+							enable :true
+						},
+						text_space : 16,//坐标系下方的label距离坐标系的距离。
+						coordinate:{
+							background_color : '#d7d7d5',
+							grid_color : '#a4a4a2',
+							color_factor : 0.24,
+							board_deep:10,
+							offsety:-10,
+							pedestal_height:10,
+							left_board:false,//取消左侧面板
+							width:620,
+							height:240,
+							scale:[{
+								 position:'left',	
+								 start_scale:0,
+								 end_scale:1000,
+								 scale_space:200,
+								 scale_enable : false,
+								 label:{
+									color:'#4c4f48'
+								 }
+							}]
+						}
+				});
+
+				//利用自定义组件构造左侧说明文本
+				chart.plugin(new iChart.Custom({
+						drawFn:function(){
+							//计算位置
+							var coo = chart.getCoordinate(),
+								x = coo.get('originx'),
+								y = coo.get('originy');
+							//在左上侧的位置，渲染一个单位的文字
+							chart.target.textAlign('start')
+							.textBaseline('bottom')
+							.textFont('600 11px Verdana')
+							.fillText('招生人数(万人)',x-40,y-28,false,'#6d869f');
+							
+						}
+				}));
+				
+				chart.draw();
+			});
+			</script>
+		</head>
+		<body>
+			<div id='canvasDiv'></div>
+			<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个蔟状3D柱形图的示例，该示例展示了2002年-2011年10年间各类教育招生人数的对比情况。此示例中利用配置项zScale设置了一个z轴深度比较大的效果。
+					<br>
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					数据来源：中华人民共和国国家统计局。
+				</span>
+			</div>
+		</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs unit Test</title>
+		<meta name="Description" content="" />
+		<meta name="Keywords" content="" />
+		<script type="text/javascript" src="../dist/ichartjs.base.js"></script>
+		<script type="text/javascript" src="../dist/ichartjs.column.js"></script>
+		<script type="text/javascript" src="../dist/ichartjs.line.js"></script>
+		<script type="text/javascript" src="../dist/ichartjs.pie.js"></script>
+		<script type="text/javascript" src="data.js"></script>
+		<script type="text/javascript" src="test.js"></script>
+		
+	<style type="text/css">
+		body{
+			margin-top:10px;
+			text-align: center;
+			font-size: 12px;
+		}
+		#myCanvas{
+			display: none;
+		}
+		.test_item{
+			border: 1px solid #dadee4;
+			border-collapse:collapse;
+			width:540px;
+			height:24px;
+			margin:0px auto;
+			background-color: #FEFEFE;
+			margin:1px auto;
+			font-family:'微软雅黑',sans-serif,serif;
+			border: 1px solid #dadee4;
+		}
+		.test_item td{
+			height:20px;
+			padding:2px;
+			border-collapse:collapse;
+			border: 1px solid #dadee4;
+		}
+		
+		.test_item_name{
+			text-align:left;
+			width:240px;
+			font-weight: 600;
+		}
+		
+		.test_item_success{
+			width:100px;
+			background-color: green;
+		}
+		
+		.test_item_fail{
+			width:100px;
+			background-color: red;
+		}
+		.test_item_cost{
+			text-align: center;
+		}
+		.test_item_cause{
+			width:100px;
+			text-align: left;
+			padding-left:15px;
+		}
+		.test_result{
+			text-align:left;
+			margin:10px auto;
+			width:540px;
+			font-weight: 600;
+			font-size: 13px;
+			font-family:'微软雅黑',sans-serif,serif;
+		}
+		.test_item_speed_high{
+			width:100px;
+			background-color: #6191c1;
+		}
+		.test_item_speed_middle{
+			width:100px;
+			background-color: #f2b829;
+		}
+		.test_item_speed_low{
+			width:100px;
+			background-color: #cc6650;
+		}
+		.test_item_speed_poor{
+			width:100px;
+			background-color: #ee3207;
+		}
+		.square{
+			width:12px;height:12px;display: inline-block;top: 2px;position: relative;margin: 0px 1px;
+		}
+	</style>
+	<script type="text/javascript">
+			
+	</script>
+	</head>
+	<body>
+		<h2>ichartjs render unitTest</h2>
+		<div style="background-color:#d5e2e6;width:540px;height:30px;line-height:30px;text-align: left;padding:0px;margin: 0px auto;">
+			<span class='intro'>&nbsp;<strong>Speed:</strong></span>
+			[
+			<span class='intro'>
+				<span style="background-color:#6191c1;" class="square"></span>
+				<span style="font-size: 12px;">excellent(&lt;=20)</span>
+				<span style="background-color:#f2b829;" class="square"></span>
+				<span style="font-size: 12px;">superior(&lt;=30)</span>
+				<span style="background-color:#cc6650;" class="square"></span>
+				<span style="font-size: 12px;">good(&lt;=40)</span>
+				<span style="background-color:#ee3207;" class="square"></span>
+				<span style="font-size: 12px;">poor(&gt;40)</span>
+			</span>
+			]
+		</div>
+		<table class="test_item" style="background-color:#EFEFEF;font-size: 13px;font-weight: 600;">
+			<tr>
+				<td class="test_item_name">TestCase Name</td>
+				<td style="width:100px">Result</td>
+				<td style="width:100px">Speed</td>
+				<td>Cost</td>
+			</tr>
+		</table>
+		<div id='result_list'></div>
+		<div style="background-color:#d5e2e6;width:540px;height:30px;line-height:30px;text-align: left;ont-size: 12px;padding:0px;margin: 0px auto;">
+			&nbsp;你的浏览器平均渲染时间: &nbsp;
+			<span id='result_score' style="font-size: 16px;font-weight: 600;"></span>
+			&nbsp;ms
+		</div>
+		<div id='tool_panel'></div>
+		<div id='myCanvas'></div>
+	</body>
+</html>

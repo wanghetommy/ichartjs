@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+			$(function(){
+				var data = [
+				        	{
+				        		name : '北京',
+				        		value:[-9,1,12,20,26,30,32,29,22,12,0,-6],
+				        		color:'#1f7e92',
+				        		line_width:2
+				        	}
+				       ];
+			       
+				var chart = new iChart.Area2D({
+						render : 'canvasDiv',
+						data: data,
+						title : '北京2012年平均温度情况',
+						width : 800,
+						height : 400,
+						coordinate:{width:'90%',height:'80%',background_color:'#edf8fa'},
+						sub_option:{
+							hollow_inside:false,//设置一个点的亮色在外环的效果
+							point_size:10
+						},
+						labels:["一月","二月","三月","四月","五月","六月","七月","八月","九月","十月","十一月","十二月"]
+					});
+				
+				chart.draw();
+			});
+		</script>
+		</head>
+		<body>
+			<div id='canvasDiv'></div>
+			<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">预览代码</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个面积图示例，该示例展示了北京2012年的平均温度情况。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					数据均为模拟。
+				</span>
+			</div>
+</body>
+</html>

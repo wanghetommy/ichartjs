@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta http-equiv="keywords" content="ichartjs demo,Html5 demo,ichart demo"></meta>
+		<meta http-equiv="description" content="The ichartjs's gallery center,ichartjs 示例中心"></meta>
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+		var colors = ["#4572a7","#aa4643","#89a54e","#80699b","#92a8cd","#db843d"];
+		var data = [];
+		for(var i=0;i<24;i++){
+			data.push({name : 'UC浏览器'+i,value : 10,color:colors[i%6]});
+		}
+		
+		function test(offset){
+			return new iChart.Pie2D({
+				render : 'canvasDiv',
+				data: data,
+				title : {
+					text : '2012年第3季度中国第三方手机浏览器市场份额',
+					color : '#3e576f'
+				},
+				footnote : {
+					text : 'ichartjs.com',
+					color : '#486c8f',
+					fontsize : 11,
+					padding : '0 38'
+				},
+				sub_option : {
+					label : {
+						background_color:null,
+						sign:false,//设置禁用label的小图标
+						padding:'0 4',
+						border:{
+							enable:false,
+							color:'#4572a7'
+						},
+						fontsize:11,
+						fontweight:600,
+						color : '#4572a7'
+					},
+					border : {
+						width : 2,
+						color : '#ffffff'
+					}
+				},
+				shadow : true,
+				shadow_blur : 6,
+				shadow_color : '#aaaaaa',
+				shadow_offsetx : 0,
+				shadow_offsety : 0,
+				background_color:'#fefefe',
+				offsetx:-80,//设置向x轴负方向偏移位置60px
+				offset_angle:offset,//逆时针偏移120度
+				//mutex : true,problem
+				showpercent:true,
+				decimalsnum:2,
+				width : 800,
+				height : 640,
+				radius:100
+			});
+		}
+		var offsetA = 0;
+		$(function(){
+			test(offsetA).draw();
+		});
+		function change(){
+			offsetA+=10;
+			test(offsetA).draw();
+		}
+		function change1(){
+			offsetA-=10;
+			test(offsetA).draw();
+		}
+	</script>
+	</head>
+	<body>
+		<div id='canvasDiv' ></div>
+		<input type="button" value="test1" onclick="change()"/> 
+		<input type="button" value="test2" onclick="change1()"/> 
+	</body>
+</html>

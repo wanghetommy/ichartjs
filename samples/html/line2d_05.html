@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+			$(function(){
+				var flow=[];
+				for(var i=0;i<21;i++){
+					flow.push(Math.floor(Math.random()*(30+((i%12)*5)))+10);
+				}
+				
+				var data = [
+				         	{
+				         		name : 'PV',
+				         		value:flow,
+				         		color:'#0d8ecf',
+				         		line_width:2
+				         	}
+				         ];
+		         
+				var labels = ["2012-12-01","2012-12-02","2012-12-03","2012-12-04","2012-12-05","2012-12-06"];
+				
+				var line = new iChart.LineBasic2D({
+					render : 'canvasDiv',
+					data: data,
+					align:'center',
+					title : 'ichartjs官方网站最近5天PV流量趋势',
+					subtitle : '平均18:00-22:00访问量达到最大值(单位：万)',
+					footnote : '数据来源：模拟数据',
+					width : 800,
+					height : 400,
+					sub_option:{
+						smooth : true,//平滑曲线
+						point_size:10
+					},
+					tip:{
+						enable:true,
+						shadow:true
+					},
+					legend : {
+						enable : false
+					},
+					crosshair:{
+						enable:true,
+						line_color:'#62bce9'
+					},
+					coordinate:{
+						width:600,
+						valid_width:500,
+						height:260,
+						axis:{
+							color:'#9f9f9f',
+							width:[0,0,2,2]
+						},
+						grids:{
+							vertical:{
+								way:'share_alike',
+						 		value:12
+							}
+						},
+						scale:[{
+							 position:'left',	
+							 start_scale:0,
+							 end_scale:100,
+							 scale_space:10,
+							 scale_size:2,
+							 scale_color:'#9f9f9f'
+						},{
+							 position:'bottom',	
+							 labels:labels
+						}]
+					}
+				});
+			//开始画图
+			line.draw();
+		});
+				
+			</script>
+		</head>
+		<body>
+			<div id='canvasDiv'></div>
+			<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个很常见的的折线图示例，示例展示了网站最近5天的流量统计。每隔6个小时统计一次。此示例用了平滑曲线代替直线。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					数据均为模拟。
+				</span>
+			</div>
+		</body>
+</html>
+

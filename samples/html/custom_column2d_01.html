@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+				$(function(){
+					var data = [
+					        	{name : '广州',value : 4000,color:'#a5c2d5'},
+					        	{name : '上海',value : 4200,color:'#cbab4f'},
+					        	{name : '南昌',value : 3500,color:'#76a871'},
+					        	{name : '哈尔滨',value : 3600,color:'#9f7961'},
+					        	{name : '北京',value : 4150,color:'#a56f8f'}
+				        	];
+		        	
+					var chart = new iChart.Column2D({
+						render : 'canvasDiv',
+						data: data,
+						title : '2012年5个城市平均工资的情况',
+						width : 800,
+						height : 400,
+						coordinate:{
+							width:580,
+							height:260,
+							scale:[{
+								 position:'left',	
+								 start_scale:1000,
+								 end_scale:5000,
+								 scale_space:500
+							}]
+						}
+					});
+
+					/**
+					 *自定义组件,画平均线。
+					 */
+					chart.plugin(new iChart.Custom({
+							drawFn:function(){
+								/**
+								 *计算平均值的高度(坐标Y值)
+								 */	
+								var avg = chart.total/5,
+									coo = chart.getCoordinate(),
+									x = coo.get('originx'),
+									W = coo.get('width'),
+									S = coo.getScale('left'),
+									H = coo.get('height'),
+									h = (avg - S.start) * H / S.distance,
+									y = chart.y + H - h;
+								
+								chart.target.line(x,y,x+W,y,2,'#b32c0d')
+								.textAlign('start')
+								.textBaseline('middle')
+								.textFont('600 12px Verdana')
+								.fillText('平均:$'+avg,x+W+5,y,false,'#b32c0d');
+							}
+					}));	
+						
+					chart.draw();
+			});
+			</script>
+		</head>
+		<body>
+			<div id='canvasDiv'></div>
+			<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个柱形图示例，该示例展示了2012年5个城市平均工资的情况。并且增加了一个绘制平均线的自定义组件。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					数据均为模拟。
+				</span>
+			</div>
+		</body>
+</html>

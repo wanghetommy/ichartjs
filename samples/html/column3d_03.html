@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+		$(function(){	
+			var data = [
+			        	{name : 'Alex',value : 25,color:'#849fb4'},
+			        	{name : 'Mark',value : 35,color:'#bf9d32'},
+			        	{name : 'David',value : 42.3,color:'#728f1b'},
+			        	{name : 'Graham',value : 35.3,color:'#bf784c'},
+			        	{name : 'John',value : 31.3,color:'#2f8586'}
+		        	];
+	    	
+			var chart = new iChart.Column3D({
+				render : 'canvasDiv',
+				data: data,
+				title : {
+					text : 'This is a sample spirit from FusionCharts',
+					color : '#3e576f'
+				},
+				subtitle : {
+					text : 'Top 5 Sales Person,2011',
+					color : '#6d869f'
+				},
+				footnote : {
+					text : 'ichartjs.com',
+					color : '#909090',
+					fontsize : 11,
+					padding : '0 38'
+				},
+				width : 800,
+				height : 400,
+				shadow : true,
+				shadow_blur : 2,
+				shadow_color : '#aaaaaa',
+				shadow_offsetx : 1,
+				shadow_offsety : 0,
+				colwidth : 98,
+				zScale:0.5,
+				xAngle : 50,
+				bottom_scale:1.1,
+				label:{
+					color:'#4c4f48'
+				},
+				sub_option:{
+					label : {
+						color : '#4c4f48'
+					},
+					listeners:{
+						parseText:function(r,t){
+							//自定义柱形图上方label的格式。
+							return '$'+t+'k';
+						}
+					}
+				},
+				text_space : 16,//坐标系下方的label距离坐标系的距离。
+				coordinate:{
+					background_color : '#d5d8d1',
+					grid_color : '#a4ad96',
+					color_factor : 0.24,
+					board_deep:10,//背面厚度
+					pedestal_height:10,//底座高度
+					left_board:false,//取消左侧面板
+					width:580,
+					valid_width:560,
+					scale:[{
+						 position:'left',	
+						 start_scale:0,
+						 end_scale:50,
+						 scale_space:10,
+						 label:{
+							color:'#4c4f48'
+						 },
+						 listeners:{
+							parseText:function(t,x,y){
+							//自定义左侧坐标系刻度文本的格式。
+								return {text:'$'+t+'k'}
+							}
+						 }
+					}]
+				}
+			});
+
+			 //利用自定义组件构造左侧说明文本。
+			chart.plugin(new iChart.Custom({
+					drawFn:function(){
+						 //计算位置
+						var coo = chart.getCoordinate(),
+							x = coo.get('originx'),
+							y = coo.get('originy'),
+							H = coo.get('height');
+						//在左侧的位置，渲染说明文字。
+						chart.target.textAlign('center')
+						.textBaseline('middle')
+						.textFont('600 13px Verdana')
+						.fillText('Sales Figure',x-40,y+H/2,false,'#6d869f', false,false,false,-90);
+						
+					}
+			}));
+			
+			chart.draw();
+		});
+		
+		</script>
+		</head>
+		<body>
+			<div id='canvasDiv'></div>
+			<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个3D柱形图示例，该示例展示了公司年度销售5强的情况。此示例中，模拟了FusionCharts的图表风格。
+					特点是对坐标系进行了细致的配置，利用配置项left_board去除了左侧的面板，利用valid_width配置项限定了有效的横向坐标区域。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					图表示例模拟FusionCharts风格。
+				</span>
+			</div>
+		</body>
+</html>

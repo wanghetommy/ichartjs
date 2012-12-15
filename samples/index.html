@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs Gallery Center</title>
+		<meta http-equiv="keywords" content="ichartjs demo,Html5 demo,ichart demo"></meta>
+   	 	<meta http-equiv="description" content="The ichartjs's gallery center,ichartjs 示例中心"></meta>
+   	 	<meta name="viewport" content="width=device-width, initial-scale=1.0"></meta>
+    	<link rel="shortcut icon" href="../images/favicon.ico"/>
+		<script type="text/javascript" src="js/jquery-1.7.2.min.js"></script>
+		<script type="text/javascript" src="jq-ui/jquery-ui-1.8.21.custom.min.js"></script>
+		<link rel="stylesheet" href="jq-ui/themes/base/jquery.ui.all.css">
+		<link rel="stylesheet" href="css/style.css" type="text/css"/>
+		<script type="text/javascript">
+			var hash = location.hash,$pre,$num,$win,index=0;
+			$(function() {
+				var icons = {
+					header: "ui-icon-circle-arrow-e",
+					headerSelected: "ui-icon-circle-arrow-s"
+				};
+				$( "#ichartjs_accordion" ).accordion({
+					icons: icons,
+					active:false,
+					collapsible: true,
+					autoHeight: false
+				}); 
+				if(hash.indexOf("#")!=-1){
+					hash = hash.substring(1,hash.length);
+					hash = hash.split('&');
+					document.getElementById("viewport").src="html/"+hash[0]+".html";
+					index = parseInt(hash[1]) || 0;
+				}else{
+					document.getElementById("viewport").src="html/area2d_01.html";
+				}
+				$( "#ichartjs_accordion" ).accordion( "activate" ,index);
+				
+				$pre = $("#ichartjs_pre");
+				$num = $("#ichartjs_number");
+				$win = $("#ichartjs_codeview");
+				$win.dialog({
+					width:'auto',
+					height:600,
+					maxWidth:1000,
+					modal: true,
+					autoHeight: true,
+					autoOpen:false,
+					open:function(){
+						$(document.body).css("overflow","hidden");
+					},
+					close:function(){
+						$(document.body).css("overflow","visible");
+					}
+				});
+			});
+			var keyword = new RegExp("(var |true|false|function|new |null|return|if|else)","g");
+			var quote = new RegExp("'(.*?)'","g");
+			var dQuote = new RegExp('"(.*?)"',"g");
+			var row = new RegExp("^","m");
+			var note = new RegExp("(//.*)","g");
+			var xml = new RegExp("<","g");
+			function viewCode(doc){
+				//获取最后一个script
+				var scripts = doc.getElementsByTagName("script");	
+				var html = scripts[scripts.length-1].innerHTML;
+				//简单的代码语法显示
+				html = html.replace(xml,"&lt;");
+				html = html.replace(quote,"'<span class=ichartjs_string>$1</span>'");	
+				html = html.replace(dQuote,'"<span class=ichartjs_string>$1</span>"');	
+				html = html.replace("ichartjs_string","'ichartjs_string'");	
+				html = html.replace(keyword,"<span class='ichartjs_keyword'>$1</span>");
+				var tt = html.split(row);
+				tt.shift();//去除第一行空行
+				var number = [],j = 1;
+				for(var i=0;i<tt.length;i++){
+					tt[i] = tt[i].replace(note,"<span class='ichartjs_note'>$1</span>");
+					tt[i] = "<div id='ichartjs_row_"+i+"'>"+tt[i]+"</div>";
+					number.push("<span class='ichartjs_number' row="+i+">"+(j++)+".</span><br/>");
+				}
+				
+				$num.html(number.join(""));	
+				$pre.html(tt.join(""));
+				
+				$(".ichartjs_number").hover(function(){
+					$("#ichartjs_row_"+$(this).attr("row")).addClass("ichartjs_number_over");
+				},function(){
+					$("#ichartjs_row_"+$(this).attr("row")).removeClass("ichartjs_number_over");
+				});	
+				
+				$( "#ichartjs_codeview" ).dialog("open"); 
+			}
+		</script>
+	</head>
+	<body>
+		<div id="ichartjs_wrapper">
+		
+	     <div id="ichartjs_header">
+	     	<a href="http://www.ichartjs.com" title="site home" target="_self" style="text-decoration: none;">
+	    	<div id="ichart_header_top">
+	    		<div id="ichart_header_logo"></div>
+	    		<div id="ichart_header_description">
+	    			Gallery Center
+	    		</div>
+	    	</div>
+	     	</a>
+	    	<div id="ichart_header_line"></div>
+	    </div>
+	    
+		<div id="ichartjs_body">
+			<div id="ichartjs_menu">
+				<div id="ichartjs_accordion">
+					<h3><a href="#">面积图</a></h3>
+					<div>
+						<a target="viewport" class='ichartjs_item' href='html/area2d_01.html'>基本面积图</a>
+						<a target="viewport" class='ichartjs_item' href='html/area2d_02.html'>多数据源的面积图</a>
+						<a target="viewport" class='ichartjs_item' href='html/area2d_03.html'>多点重合提示的面积图</a>
+						<a target="viewport" class='ichartjs_item' href='html/area2d_04.html'>A产品2011年度订单数据分析</a>
+						<a target="viewport" class='ichartjs_item' href='html/area2d_05.html'>A网站访问量数据分析</a>
+					</div>
+					<h3><a href="#">2D条形图</a></h3>
+					<div>
+						<a target="viewport" class='ichartjs_item' href='html/bar2d_01.html'>基本条形图</a>
+						<a target="viewport" class='ichartjs_item' href='html/bar2d_02.html'>2012品类销售分析</a>
+						<a target="viewport" class='ichartjs_item' href='html/bar2d_03.html'>6月份中国手机市场份额TOP10</a>
+						<a target="viewport" class='ichartjs_item' href='html/bar2d_04.html'>中国社交媒体网站TOP7</a>
+						<a target="viewport" class='ichartjs_item' href='html/bar2d_05.html'>全球搜索引擎Top5</a>
+						<a target="viewport" class='ichartjs_item' href='html/barmulti2d_01.html'>上半年产品销售对比</a>
+					</div>
+					<h3><a href="#">2D柱形图</a></h3>
+					<div>
+						<a target="viewport" class='ichartjs_item' href='html/column2d_01.html'>基本柱形图</a>
+						<a target="viewport" class='ichartjs_item' href='html/column2d_02.html'>中国社交媒体网站TOP7</a>
+						<a target="viewport" class='ichartjs_item' href='html/column2d_03.html'>字母表中的Hello World</a>
+						<a target="viewport" class='ichartjs_item' href='html/column2d_04.html'>2011年4月浏览器市场份额</a>
+						<a target="viewport" class='ichartjs_item' href='html/column2d_05.html'>第六次全国人口普查数据</a>
+						<a target="viewport" class='ichartjs_item' href='html/column2d_06.html'>pinterest网站访问量</a>
+						<a target="viewport" class='ichartjs_item' href='html/columnmulti2d_01.html'>上半年产品销售对比</a>
+					</div>
+					<h3><a href="#">3D柱形图</a></h3>
+					<div>
+						<a target="viewport" class='ichartjs_item' href='html/column3d_01.html'>基本柱形图</a>
+						<a target="viewport" class='ichartjs_item' href='html/column3d_02.html'>自定义刻度的柱形图</a>
+						<a target="viewport" class='ichartjs_item' href='html/column3d_03.html'>2011年度销售5强A</a>
+						<a target="viewport" class='ichartjs_item' href='html/column3d_04.html'>2011年度销售5强B</a>
+						<a target="viewport" class='ichartjs_item' href='html/columnmulti3d_01.html'>2002-2011年招生情况</a>
+					</div>
+					<h3><a href="#">折线图</a></h3>
+					<div>
+						<a target="viewport" class='ichartjs_item' href='html/line2d_01.html'>基本折线图</a>
+						<a target="viewport" class='ichartjs_item' href='html/line2d_02.html'>网站最近5天PV流量趋势 </a>
+						<a target="viewport" class='ichartjs_item' href='html/line2d_03.html'>网站最近5天流量趋势A</a>
+						<a target="viewport" class='ichartjs_item' href='html/line2d_04.html'>网站最近5天流量趋势B </a>
+						<a target="viewport" class='ichartjs_item' href='html/line2d_05.html'>平滑曲线之5天流量趋势 </a>
+						<a target="viewport" class='ichartjs_item' href='html/line2d_06.html'>平滑曲线上一日流量趋势 </a>
+					</div>
+					<h3><a href="#">2D饼图</a></h3>
+					<div>
+						<a target="viewport" class='ichartjs_item' href='html/pie2d_01.html'>基本饼图</a>
+						<a target="viewport" class='ichartjs_item' href='html/pie2d_02.html'>手机浏览器市场份额</a>
+						<a target="viewport" class='ichartjs_item' href='html/pie2d_03.html'>Mobile-Friendly Distribution</a>
+						<a target="viewport" class='ichartjs_item' href='html/pie2d_04.html'>操作系统分布情况</a>
+					</div>
+					<h3><a href="#">2D环形图</a></h3>
+					<div>
+						<a target="viewport" class='ichartjs_item' href='html/donut2d_01.html'>攻城师需要的核心技能</a>
+						<a target="viewport" class='ichartjs_item' href='html/donut2d_02.html'>手机浏览器市场份额</a>
+						<a target="viewport" class='ichartjs_item' href='html/donut2d_03.html'>Procrastination Activity</a>
+						<a target="viewport" class='ichartjs_item' href='html/donut2d_04.html'>突出某一数据的图表</a>
+					</div>
+					<h3><a href="#">3D饼图</a></h3>
+					<div>
+						<a target="viewport" class='ichartjs_item' href='html/pie3d_01.html'>手机浏览器市场份额</a>
+						<a target="viewport" class='ichartjs_item' href='html/pie3d_02.html'>Mobile-Friendly Distribution</a>
+						<a target="viewport" class='ichartjs_item' href='html/pie3d_03.html'>操作系统分布情况</a>
+					</div>
+					<h3><a href="#">动画</a></h3>
+					<div>
+						<a target="viewport" class='ichartjs_item' href='html/animation_pie2d_01.html'>带有动画的饼图</a>
+						<a target="viewport" class='ichartjs_item' href='html/animation_pie3d_01.html'>带有动画的3D饼图</a>
+						<a target="viewport" class='ichartjs_item' href='html/animation_bar2d_01.html'>带有动画的条形图</a>
+						<a target="viewport" class='ichartjs_item' href='html/animation_column2d_01.html'>带有动画的柱形图</a>
+						<a target="viewport" class='ichartjs_item' href='html/animation_line2d_01.html'>带有动画的折线图</a>
+					</div>
+					<h3><a href="#">事件</a></h3>
+					<div>
+						<a target="viewport" class='ichartjs_item' href='html/event_pie2d_01.html'>简单的点击事件</a>
+						<a target="viewport" class='ichartjs_item' href='html/event_column2d_01.html'>点击事件的应用</a>
+						<a target="viewport" class='ichartjs_item' href='html/event_column2d_02.html'>浏览器市场份额分析</a>
+					</div>
+					<h3><a href="#">自定义组件</a></h3>
+					<div>
+						<a target="viewport" class='ichartjs_item' href='html/custom_column2d_01.html'>自定义平均薪水线</a>
+						<a target="viewport" class='ichartjs_item' href='html/custom_column2d_02.html'>突出平均薪水线一下区域</a>
+					</div>
+					<h3><a href="#">移动客户端预览</a></h3>
+					<div>
+						<a target="_blank" class='ichartjs_item' href='html/mobile_01.html'>2011年浏览器市场份额</a>
+						<a target="_blank" class='ichartjs_item' href='html/mobile_02.html'>2012年全年销售统计</a>
+						<a target="_blank" class='ichartjs_item' href='html/mobile_03.html'>网站流量统计</a>
+					</div>
+				</div>
+			</div>
+			<div id="ichartjs_view">
+				<iframe width="100%" height="700" frameborder="0" src="" name="viewport" id="viewport" style="border:none;"> </iframe>
+			</div>
+		</div>
+		</div>
+		<div id="ichartjs_codeview" title="Js代码">
+			<table id="ichartjs_code">
+				<tr>
+					<td valign="top">
+						<pre id="ichartjs_number"><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/></pre>
+					</td>
+					<td valign="top">
+						<pre id="ichartjs_pre"></pre>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>

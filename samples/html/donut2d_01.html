@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+		$(function(){
+			var data = [
+			        	{name : 'HTML5&CSS3',value : 30,color:'#fedd74'},
+			        	{name : 'JavaScript',value : 25,color:'#82d8ef'},
+			        	{name : 'Java',value : 15,color:'#f76864'},
+			        	{name : 'XML',value : 20,color:'#80bd91'},
+			        	{name : 'PhotoShop',value : 10,color:'#fd9fc1'}
+		        	];
+	    	
+			var chart = new iChart.Donut2D({
+				render : 'canvasDiv',
+				center:{
+					text:'CORE\nSKILLS',
+					shadow:true,
+					shadow_offsetx:0,
+					shadow_offsety:2,
+					shadow_blur:2,
+					shadow_color:'#b7b7b7',
+					color:'#6f6f6f'
+				},
+				data: data,
+				offsetx:-60,
+				shadow:true,
+				background_color:'#f4f4f4',
+				separate_angle:10,//分离角度
+				legend : {
+					enable : true,
+					shadow:true,
+					background_color:null,
+					border:false,
+					legend_space:30,//图例间距
+					line_height:34,//设置行高
+					sign_space:10,//小图标与文本间距
+					sign_size:30,//小图标大小
+					color:'#6f6f6f',
+					fontsize:30//文本大小
+				},
+				sub_option:{
+					label:false,
+					color_factor : 0.3
+				},
+				showpercent:true,
+				decimalsnum:2,
+				width : 800,
+				height : 440,
+				radius:140
+			});
+
+			/**
+			 *利用自定义组件构造左侧说明文本。
+			 */
+			chart.plugin(new iChart.Custom({
+					drawFn:function(){
+						/**
+						 *计算位置
+						 */	
+						var y = chart.get('originy');
+						/**
+						 *在左侧的位置，设置竖排模式渲染文字。
+						 */
+						chart.target.textAlign('center')
+						.textBaseline('middle')
+						.textFont('600 24px 微软雅黑')
+						.fillText('攻城师需要掌握的核心技能',100,y,false,'#6d869f', 'tb',26,false,0,'middle');
+						
+					}
+			}));
+			
+			chart.draw();
+		});
+	</script>
+	</head>
+	<body>
+		<div id='canvasDiv'></div>
+		<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个基本的环形图示例，展示了作为前端攻城师所需要掌握的技能比。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					模拟数据,仅用于展示图表。
+				</span>
+			</div>
+	</body>
+</html>

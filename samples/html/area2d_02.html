@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart-1.0.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+		$(function(){
+			var data = [
+			        	{
+			        		name : '上海',
+			        		value:[4,16,18,24,32,36,38,38,36,26,20,14],
+			        		color:'#aad0db',
+			        		line_width:2
+			        	},
+			        	{
+			        		name : '北京',
+			        		value:[-9,1,12,20,26,30,32,29,22,12,0,-6],
+			        		color:'#f68f70',
+			        		line_width:2
+			        	}
+			        ];
+		    
+			var labels = ["01月","02月","03月","04月","05月","06月","07月","08月","09月","10月","11月","12月"];
+			
+			var chart = new iChart.Area2D({
+				render : 'canvasDiv',
+				data: data,
+				title : '北京-上海两城市2012年平均温度情况',
+				width : 800,
+				height : 400,
+				legend : {
+					enable : true,
+					row:1,//设置在一行上显示，与column配合使用
+					column : 'max',
+					valign:'top',
+					background_color:null,//设置透明背景
+					offsetx:-30,//设置x轴偏移，满足位置需要
+					border : false 
+				},
+				tip:{
+					enable : true,
+					listeners:{
+						 //tip:提示框对象、name:数据名称、value:数据值、text:当前文本、i:数据点的索引
+						parseText:function(tip,name,value,text,i){
+							return name+"地区<br/>:"+labels[i]+"平均温度:"+value+"℃";
+						}
+					}
+				},
+				crosshair:{
+					enable:true,
+					line_color:'#62bce9',
+					line_width:2
+				},
+				sub_option:{
+					label:false,
+					point_size:10 
+				},
+				background_color:'#f2f2f2',
+				coordinate:{
+					axis : {
+						width : [0, 0, 2, 0]
+					},
+					background_color:'#ffffff',
+					width:'90%',
+					height:'75%',
+					scale:[{
+						 position:'left',	
+						 scale_space:5,
+						 scale_enable:false,//禁用小横线
+						 listeners:{
+							parseText:function(t,x,y){
+								return {text:t+"℃"}
+							}
+						}
+					},{
+						 position:'bottom',	
+						 start_scale:1,
+						 end_scale:12,
+						 parseText:function(t,x,y){
+							return {textY:y+10}
+						 },
+						 labels:labels
+					}]
+				}
+			});
+			chart.draw();
+		
+		});
+			</script>
+		</head>
+		<body>
+			<div id='canvasDiv'></div>
+			<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个多数据面积图示例，该示例展示了北京与上海2012年中12个月的平均温度情况。此示例配置了提示、图例和个性化的值轴。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					数据均为模拟。
+				</span>
+			</div>
+</body>
+</html>
