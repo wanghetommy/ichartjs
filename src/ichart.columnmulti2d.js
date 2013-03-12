@@ -24,39 +24,30 @@ iChart.ColumnMulti2D = iChart.extend(iChart.Column, {
 		});
 
 	},
+	doEngine:function(_,cw,s,S,H,w2,q,gw,x,y,y0){
+		var h;
+		_.columns.each(function(c, i) {
+			c.item.each(function(d, j) {
+				h = (d.value - S.start) * H / S.distance;
+				_.doParse(_, d, j, {
+					id : i + '_' + j,
+					originx : x + j * (cw + q) + i * gw,
+					originy : y - (h > 0 ? h : 0),
+					height : Math.abs(h)
+				});
+				_.rectangles.push(new iChart[_.sub](_.get('sub_option'), _));
+			}, _);
+
+			_.doLabel(_, i, c.name, x - s * 0.5 + (i + 0.5) * gw, y0);
+		}, _);
+	},
 	doConfig : function() {
 		iChart.ColumnMulti2D.superclass.doConfig.call(this);
 
 		/**
-		 * get the max/min scale of this coordinate for calculated the height
+		 * start up engine
 		 */
-		var _ = this._(),
-			s = _.get('hispace'),
-			bw = _.get('colwidth'), 
-			H = _.coo.get(_.H), 
-			S = _.coo.getScale(_.get('scaleAlign')), 
-			q = bw * (_.get('group_fator') || 0), 
-			gw = _.data.length * bw + s + (_.is3D() ? (_.data.length - 1) * q : 0), 
-			h,
-			x = _.coo.get('x_start') + s,
-			y = _.coo.get(_.Y) - S.basic * H + H,
-			y0=_.coo.get(_.Y) + H + _.get('text_space')+ _.coo.get('axis.width')[2];
-		
-		_.columns.each(function(column, i) {
-			column.item.each(function(d, j) {
-				h = (d.value - S.start) * H / S.distance;
-				_.doParse(_, d, j, {
-					id : i + '-' + j,
-					originx : x + j * (bw + q) + i * gw,
-					originy : y - (h > 0 ? h : 0),
-					height : Math.abs(h)
-				});
-				_.rectangles.push(new iChart[_.sub](_.get('sub_option'), this));
-			}, _);
-
-			_.doLabel(_, i, column.name, x - s * 0.5 + (i + 0.5) * gw, y0);
-		}, _);
-
+		this.engine(this);
 	}
 });
 /**

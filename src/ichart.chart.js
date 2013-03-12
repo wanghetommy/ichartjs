@@ -38,89 +38,95 @@
 	pF = function(n){
 		return $.isNumber(n)?n:$.parseFloat(n,n);
 	},
-	simple = function(c) {
-		var M,V=0,MI,ML=0,n='minValue',x='maxValue';
-		this.total = 0,init=false;
-		c.each(function(d,i){
-			V  = d.value;
-			if($.isArray(V)){
-				var T = 0;
-				ML = V.length>ML?V.length:ML;
-				for(var j=0;j<V.length;j++){
-					V[j] = pF(V[j]);
-					T+=V[j];
+	parse = function(c,_){
+		var M,V=0,MI,ML=0,init=false,g = _.get('labels');
+		_.data = c;
+		if(_.dataType=='simple'){
+			_.total = 0;
+			c.each(function(d,i){
+				d.background_color = d.color;
+				V  = d.value;
+				if($.isArray(V)){
+					var T = 0;
+					ML = V.length>ML?V.length:ML;
+					for(var j=0;j<V.length;j++){
+						V[j] = pF(V[j]);
+						T+=V[j];
+						if(!init){
+							M = MI = V[j];
+							init=true;
+						}
+						M = max(V[j],M);
+						MI = min(V[j],MI);
+					}
+					d.total = T;
+				}else{
+					V = pF(V);
+					d.value = V;
+					_.total+=V;
 					if(!init){
-						M = MI = V[j];
+						M = MI = V;
 						init=true;
 					}
-					M = max(V[j],M);
-					MI = min(V[j],MI);
+					M = max(V,M);
+					MI = min(V,MI);
 				}
-				d.total = T;
-			}else{
-				V = pF(V);
-				d.value = V;
-				this.total+=V;
-				if(!init){
-					M = MI = V;
-					init=true;
-				}
-				M = max(V,M);
-				MI = min(V,MI);
+			},_);
+			
+			if($.isArray(g)){
+				ML = g.length>ML?g.length:ML;
 			}
-		},this);
-		
-		if(this.get(n)){
-			MI = min(this.get(n),MI);
-		}
-		
-		if(this.get(x)){
-			M = max(this.get(x),M);
-		}
-		
-		if($.isArray(this.get('labels'))){
-			ML = this.get('labels').length>ML?this.get('labels').length:ML;
-		}
-		this.push('maxItemSize',ML);
-		this.push(n,MI);
-		this.push(x,M);
-	},
-	complex = function(c){
-		var _=this._(),M,MI,V,d,L,init=false;
-		_.labels = _.get('labels');
-		L =_.labels.length;
-		if(L==0){
-			L=c[0].value.length;for(var i=0;i<L;i++)_.labels.push("");
-		}
-		_.columns = [];_.total = 0;
-		for(var i=0;i<L;i++){
-			var item = [];
-			for(var j=0;j<c.length;j++){
-				d = c[j];
-				V = d.value[i];
-				if(!V)continue;
-				V =  pF(V,V);
-				d.value[i] = V;
-				_.total+=V;
-				if(!init){
-					M = MI = V;
-					init=true;
-				}
-				M = max(V,M);
-				MI = min(V,MI);
-				item.push({
-					name:d.name,
-					value:d.value[i],
-					color:d.color
+			_.push('maxItemSize',ML);
+		}else if(_.dataType=='stacked'||_.dataType=='complex'){
+			var L=g.length,item,T,r,stack=_.dataType=='stacked';
+			if(L==0){
+				L=c[0].value.length;for(var i=0;i<L;i++)g.push("");
+			}
+			_.columns = [];
+			for(var i=0;i<L;i++){
+				item = [],T = 0;
+				c.each(function(d,j){
+					V = d.value[i];
+					if(!V)return;
+					d.value[i] = V =  pF(V,V);
+					T+=V;
+					if(stack){
+						r = c[j].color;
+					}else{
+						r = d.color;
+						if(!init){
+							M = MI = V;
+							init=true;
+						}
+						M = max(V,M);
+						MI = min(V,MI);
+					}
+					item.push({
+						name:d.name,
+						value:d.value[i],
+						background_color:r,
+						color:r
+					});
+				});
+				if(stack){
+					if(!init){
+						M = MI = V;
+						init=true;
+					}
+					M = max(T,M);
+					MI = min(T,MI);
+				}	
+				_.columns.push({
+					total:T,
+					name:g[i],
+					item:item
 				});
 			}
-			_.columns.push({
-				name:_.labels[i],
-				item:item
-			});
 		}
 		_.push('minValue',MI); 
 		_.push('maxValue',M);
+		_.doConfig();
+		_.initialization = true;
 	};
 	
 	/**
@@ -134,8 +140,6 @@
 
 		this.canvas = c;
 		this.c = this.canvas.getContext("2d");
-		this.width = this.canvas.width;
-		this.height = this.canvas.height;
 	}
 
 	Cans.prototype = {
@@ -169,8 +173,9 @@
 		 */
 		arc : function(x, y, r, dw, s, e, c, b, bw, bc, sw, ccw, a2r, last) {
 			if(!r)return this;
-			var ccw = !!ccw, a2r = !!a2r&&!dw;
 			this.save().gCo(last).strokeStyle(b,bw,bc).fillStyle(c).beginPath();
+			if(b)
+				r-=floor(bw/2);
 			
 			if(dw){
 				this.moveTo(x+cos(s)*(r-dw),y+sin(s)*(r-dw)).lineTo(x+cos(s)*r,y+sin(s)*r);
@@ -179,13 +184,11 @@
 				this.c.arc(x, y, r-dw, e, s,!ccw);
 			}else{
 				this.c.arc(x, y, r, s, e, ccw);
+				if (a2r)
+					this.lineTo(x, y);
 			}
 			
-			if (a2r)
-				this.lineTo(x, y);
-			
 			this.closePath();
-			
 			if(!b){
 				this.shadowOn(sw).fill(c);
 			}else{
@@ -197,10 +200,10 @@
 		/**
 		 * draw sector
 		 */
-		sector : function(x, y, r, dw,s, e, c, b, bw, bc, sw, ccw) {
+		sector : function(x, y, r, dw,s, e, c, b, bw, bc, sw, ccw,a2a,font) {
 			if (sw)
-				this.arc(x, y, r, dw, s, e, c,0,0,0,sw,ccw, true, true);
-			return this.arc(x, y, r, dw, s, e, c, b, bw, bc, false, ccw, true);
+				this.arc(x, y, r, dw, s, e,c,b,bw,bc,sw,ccw, !a2a, !font);
+			return this.arc(x, y, r, dw, s, e, c, b, bw, bc, false, ccw, !a2a);
 		},
 		sector3D : function() {
 			var x0, y0,sPaint = function(x, y, a, b, s, e, ccw, h, c) {
@@ -252,8 +255,6 @@
 				 * paint outside layer
 				 */
 				sPaint.call(this, x, y, a, b, s, e, ccw, h, c);
-				
-				
 				return this;
 			}
 			s3.layerPaint = layerPaint;
@@ -319,7 +320,7 @@
 			this.c.shadowBlur = this.c.shadowOffsetX = this.c.shadowOffsetY = 0;
 			return this;
 		},
-		gradient : function(x, y, w, h, c,m) {
+		gradient : function(x, y, w, h, c,m,r) {
 			m = m.toLowerCase();
 			var x0=x,y0=y,f=!m.indexOf("linear");
 			m = m.substring(14);
@@ -345,10 +346,7 @@
 			}else{
 				x+=w/2;
 				y+=h/2;
-				if(m=='outin'){
-					c.reverse();
-				}
-				return this.avgRadialGradient(x,y,0,x,y,(w>h?h:w)*0.8,c);
+				return this.avgRadialGradient(x,y,(r||0),x,y,(w>h?h:w),m=='outin'?c.reverse():c);
 			}
 		},
 		avgLinearGradient : function(xs, ys, xe, ye, c) {
@@ -363,18 +361,18 @@
 		avgRadialGradient : function(xs, ys, rs, xe, ye, re, c) {
 			var g = this.createRadialGradient(xs, ys, rs, xe, ye, re);
 			for ( var i = 0; i < c.length; i++)
-				g.addColorStop(i / (c.length - 1), c[i]);
+				g.addColorStop(i/ (c.length - 1), c[i]);
 			return g;
 		},
 		createRadialGradient : function(xs, ys, rs, xe, ye, re) {
 			return this.c.createRadialGradient(xs, ys, rs, xe, ye, re);
 		},
 		text : function(t, x, y, max, color, align, line, font, mode, h,sw,ro) {
-			if(t=='')return this;
 			return this.save().textStyle(align, line, font).fillText(t, x, y, max, color, mode, h,sw,ro).restore();
 		},
 		fillText : function(t, x, y, max, color, mode, h,sw,ro) {
 			t = t.toString();
+			if(!t||!t.length)return this;
 			max = max || false;
 			mode = mode || 'lr';
 			h = h || 16;
@@ -589,23 +587,6 @@
 			}
 			return this.stroke(true).restore();
 		},
-		manyLine : function(p, w, c, smooth, smo) {
-			var T = [],Q  = false;
-			smo = smo || 1.5;
-			p.each(function(p0){
-				if(p0.ignored&&Q){
-					this.lineArray(T, w, c, smooth, smo);
-					T = [];
-					Q = false;
-				}else if(!p0.ignored){
-					T.push(p0);
-					Q = true;
-				}
-			},this);
-			if(T.length){
-				this.lineArray(T, w, c, smooth, smo);
-			}
-		},
 		dotted : function(x1, y1, x2, y2, w, c,L,f,last) {
 			if (!w)
 				return this;
@@ -613,7 +594,7 @@
 			y1 = fd(w, y1);
 			x2 = fd(w, x2);
 			y2 = fd(w, y2);
-			var d = iChart.distanceP2P(x1, y1, x2, y2),t;
+			var d = $.distanceP2P(x1, y1, x2, y2),t;
 			if(L<=0||d<=L||(x1!=x2&&y1!=y2)){
 				return this.line(x1, y1, x2, y2, w, c, last);
 			}
@@ -644,6 +625,9 @@
 		},
 		round : function(x, y, r, c, bw, bc) {
 			return this.arc(x, y, r,0, 0, PI2, c, !!bc, bw, bc);
+		},
+		round0 : function(q, r, c, bw, bc) {
+			return this.arc(q.x, q.y, r,0, 0, PI2, c, !!bc, bw, bc);
 		},
 		fillRect : function(x, y, w, h) {
 			this.c.fillRect(x, y, w, h);
@@ -757,7 +741,7 @@
 	}
 	
 	/**
-	 * @overview this component use for abc
+	 * @overview this component is a super class of all chart
 	 * @component#iChart.Chart
 	 * @extend#iChart.Painter
 	 */
@@ -781,6 +765,13 @@
 			this.dataType = 'simple';
 
 			this.set({
+				/**
+				 * @cfg {String} The unique id of this element (defaults to an auto-assigned id).
+				 */
+				id : '',
+				/**
+				 * @cfg {String} id of dom you want rendered(defaults '').
+				 */
 				render : '',
 				/**
 				 * @cfg {Array} Required,The datasource of Chart.must be not empty.
@@ -899,7 +890,7 @@
 				/**
 				 * @cfg {Number} Specifies the duration when animation complete in millisecond.(default to 1000)
 				 */
-				duration_animation_duration : 1000,
+				animation_duration : 1000,
 				/**
 				 * @cfg {Number} Specifies the chart's z_index.override the default as 999 to make it at top layer.(default to 999)
 				 */
@@ -934,20 +925,24 @@
 			'afterAnimation', 'animating');
 
 			this.T = null;
-			this.RENDERED = false;
-			this.animationed = false;
+			this.Rendered = false;
+			this.Combination = false;
+			this.Animationed = false;
 			this.data = [];
 			this.plugins = [];
-			this.oneways = [];
+			this.components = [];
 			this.total = 0;
+			this.ICHARTJS_CHART = true;
 		},
 		toDataURL : function(g) {
 			return this.T.toDataURL(g);
 		},
 		segmentRect : function() {
+			if(!this.Combination)
 			this.T.clearRect(this.get('l_originx'), this.get('t_originy'), this.get('client_width'), this.get('client_height'));
 		},
 		resetCanvas : function() {
+			if(!this.Combination)
 			this.T.box(this.get('l_originx'), this.get('t_originy'), this.get('client_width'), this.get('client_height'),0,this.get('f_color'),0,0,true);
 		},
 		animation : function(_) {
@@ -957,14 +952,22 @@
 			_.segmentRect();
 			
 			/**
+			 * draw coordinate
+			 */
+			if(_.coo&&!_.ILLUSIVE_COO)
+				_.coo.draw();
+			
+			/**
 			 * doAnimation of implement
 			 */
 			_.doAnimation(_.variable.animation.time, _.duration,_);
+			
 			/**
 			 * draw plugins
 			 */
 			if(_.legend)
 			_.legend.draw();
+			
 			/**
 			 * draw plugins
 			 */
@@ -972,16 +975,19 @@
 				if(p.A_draw){
 					p.variable.animation.animating =true;
 					p.variable.animation.time =_.variable.animation.time;
-					p.variable.animation.duration =_.duration;
 					p.draw();
 					p.variable.animation.animating =false;
 				}
 			});
 			
+			if(_.Combination){
+				return;
+			}
 			/**
 			 * fill the background
 			 */
 			_.resetCanvas();
+			
 			if (_.variable.animation.time < _.duration) {
 				_.variable.animation.time++;
 				$.requestAnimFrame(function() {
@@ -989,35 +995,52 @@
 				});
 			} else {
 				$.requestAnimFrame(function() {
-					_.variable.animation.time = 0;
-					_.animationed = true;
-					_.draw();
+					_.Animationed = true;
+					
+					/**
+					 * make plugins's status is the same as chart
+					 */
+					_.plugins.each(function(p){
+						p.Animationed = true;
+					});
 					_.processAnimation = false;
+					_.draw();
+					_.plugins.each(function(p){
+						p.processAnimation = false;
+					});
 					_.fireEvent(_, 'afterAnimation', [_]);
 				});
 			}
 		},
-		runAnimation : function() {
-			this.fireEvent(this, 'beforeAnimation', [this]);
-			this.animation(this);
+		runAnimation : function(_) {
+			_.fireEvent(_, 'beforeAnimation', [_]);
+			if(!_.A_draw)
+			_.variable.animation = {
+				type : 0,
+				time : 0,
+				queue : []
+			}
+			_.processAnimation = true;
+			_.animation(_);
 		},
 		doSort:function(){
 			this.components.sor(function(p, q){
 				return ($.isArray(p)?(p.zIndex||0):p.get('z_index'))>($.isArray(q)?(q.zIndex||0):q.get('z_index'))});
 		},
 		commonDraw : function(_,e) {
-			$.Assert.isTrue(_.RENDERED, _.type + ' has not rendered.');
-			$.Assert.isTrue(_.initialization, _.type + ' has initialize failed.');
-			$.Assert.gt(_.data.length,0,_.type + '\'s data is empty.');
 			
 			if (!_.redraw) {
+				$.Assert.isTrue(_.Rendered, _.type + ' has not rendered');
+				$.Assert.isTrue(_.data&&_.data.length>0,_.type + '\'s data is empty');
+				$.Assert.isTrue(_.initialization, _.type + ' Failed to initialize');
 				_.doSort();
 				_.oneways.eachAll(function(o) {o.draw()});
 			}
+			
 			_.redraw = true;
 			
-			if (!_.animationed && _.get('animation')) {
-				_.runAnimation();
+			if (!_.Animationed && _.get('animation')) {
+				_.runAnimation(_);
 				return;
 			}
 			
@@ -1031,14 +1054,28 @@
 
 		},
 		/**
-		 * @method register the customize component
-		 * @paramter <link>iChart.Custom</link>#component 
+		 * @method register the customize component or combinate with other charts
+		 * @paramter <link>iChart.Custom</link><link>iChart.Chart</link>#object 
 		 * @return void
 		 */
 		plugin : function(c) {
-			c.inject(this);
-			this.components.push(c);
-			this.plugins.push(c);
+			var _ = this._();
+			c.inject(_);
+			if(c.ICHARTJS_CHART){
+				c.Combination = true;
+				c.setUp();
+			}
+			if(!_.get('animation')){
+				c.push('animation',false);
+			}
+			c.duration =_.duration;
+			_.components.push(c);
+			_.plugins.push(c);
+		},
+		destroy:function(){
+			this.components.eachAll(function(C) {
+				C.destroy();
+			});
 		},
 		/**
 		 * @method return the title,return undefined if unavailable
@@ -1082,10 +1119,11 @@
 		 * @return void
 		 */
 		setUp:function(){
-			this.redraw = false;
-			this.T.clearRect();
-			this.initialization = false;
-			this.initialize();
+			var _ = this._();
+			_.redraw = false;
+			_.T.clearRect();
+			_.initialization = false;
+			_.initialize();
 		},
 		create : function(_,shell) {
 			/**
@@ -1102,28 +1140,15 @@
 			    _.push(_.H, h);
 			}
 			
-			/**
-			 * did default should to calculate the size of warp?
-			 */
-			_.width = _.pushIf(_.W, 400);
-			_.height = _.pushIf(_.H, 300);
-			_.canvasid = $.iGather(_.type);
+			_.canvasid = $.uid(_.type);
 			_.shellid = "shell-"+_.canvasid;
 			
 			var H = [];
 			H.push("<div id='");
 			H.push(_.shellid);
-			H.push("' style='width:");
-			H.push(_.width);
-			H.push("px;height:");
-			H.push(_.height);
-			H.push("px;padding:0px;margin:0px;overflow:hidden;position:relative;'>");
+			H.push("' style='padding:0px;margin:0px;overflow:hidden;position:relative;'>");
 			H.push("<canvas id= '");
 			H.push(_.canvasid);
-			H.push("'  width='");
-			H.push(_.width);
-			H.push("' height='");
-			H.push(_.height);
 			H.push("'><p>Your browser does not support the canvas element</p></canvas></div>");
 			/**
 			 * also use appendChild()
@@ -1137,32 +1162,48 @@
 			 */
 			_.T = _.target = new Cans(_.canvasid);
 			
-			_.RENDERED = true;
+			/**
+			 * do size
+			 */
+			_.size(_);
+			
+			_.Rendered = true;
+		},
+		size:function(_){
+			_.T.canvas.width = _.width = _.pushIf(_.W, 400);
+			_.T.canvas.height = _.height = _.pushIf(_.H, 300);
+			_.shell.style.width = _.width+'px';
+			_.shell.style.height = _.height+'px';
 		},
 		initialize : function() {
-			
 			var _ = this._(),d = _.get('data'),r = _.get('render');
-			/**
-			 * create dom
-			 */
-			if (!_.RENDERED) {
-				if (typeof r == "string" && $(r))
-					_.create(_,$(r));
-				else if (typeof r == 'object')
-					_.create(_,r);
-			}
-			/**
-			 * set up
-			 */
-			if (d.length > 0 && _.RENDERED && !_.initialization){
-				if(_.dataType=='simple'){
-					simple.call(_,d);
-				}else if(_.dataType=='complex'){
-					complex.call(_,d);
+			if(_.Combination){
+				$.apply(_.options, $.clone([_.W,_.H,'padding','border','client_height','client_width',
+				                                      'minDistance','maxDistance','minstr','centerx', 'centery',
+				                                      'l_originx','r_originx','t_originy','b_originy'], _.root.options,true));
+				_.width = _.get(_.W);
+				_.height = _.get(_.H);
+				_.shell = _.root.shell;
+				_.Rendered = true;
+			}else if (!_.Rendered) {
+				if(r)
+				_.create(_,$(r));
+			}else{
+				if(_.width != _.get(_.W)||_.height!=_.get(_.H)){
+					_.size(_);
 				}
-				_.data = d;
-				_.doConfig();
-				_.initialization = true;
+			}
+			
+			if(_.Rendered && !_.initialization){
+				if(d&&d.length>0){
+					parse.call(_,d,_);
+				}else if($.isString(_.get('url'))){
+					_.ajax.call(_,_.get('url'),function(D){
+						_.push('data',D);
+						_.initialize();
+						_.draw();
+					});
+				}
 			}
 		},
 		/**
@@ -1179,114 +1220,170 @@
 		 * this method only invoked once
 		 */
 		oneWay:function(_){
-			
-			var E = _.variable.event,tot=!_.get('turn_off_touchmove'), mCSS = !$.touch&&_.get('default_mouseover_css'), O, AO,events = $.touch?['touchstart','touchmove']:['click','mousemove'];
-			
+			var E = _.variable.event,comb=_.Combination,tot=!_.get('turn_off_touchmove')&&!comb, mCSS = !$.touch&&_.get('default_mouseover_css')&&!comb, O, AO,events = $.touch?['touchstart','touchmove']:['click','mousemove'];
 			_.stopEvent = false;
+			_.A_draw = comb&&_.processAnimation;
 			
-			events.each(function(it) {
-				_.T.addEvent(it, function(e) {
-					if (_.processAnimation||_.stopEvent)
-						return;
-					
-					if(e.targetTouches&&e.targetTouches.length!=1){
-						return;
-					}
-					_.fireEvent(_, it, [_, $.Event.fix(e)]);
-				}, false);
-			});
+			/**
+			 * register chart in Registry
+			 */
+			$.register(_);
+			
+			/**
+			 * If Combination,ignore binding event because of root have been do this.
+			 */
+			if(!comb){
+				events.each(function(it) {
+					_.T.addEvent(it, function(e) {
+						if (_.processAnimation||_.stopEvent)
+							return;
+						if(e.targetTouches&&e.targetTouches.length!=1){
+							return;
+						}
+						_.fireEvent(_, it, [_, $.Event.fix(e)]);
+					}, false);
+				});
+			}
+			
 			_.on(events[0], function(_, e) {
 				_.components.eachAll(function(C) {
-					var M = C.isMouseOver(e);
-					if (M.valid){
-						E.click = true;
-						C.fireEvent(C,'click', [C, e, M]);
-						return !e.stopPropagation;
+					if(C.ICHARTJS_CHART){
+						/**
+						 * meaning this component is a Combination Chart
+						 */
+						if(C.fireEvent(C,events[0], [C, e])){
+							E.click = true;
+							return false;
+						}
+					}else{
+						/**
+						 * generic component
+						 */
+						var M = C.isMouseOver(e);
+						if (M.valid){
+							E.click = true;
+							C.fireEvent(C,'click', [C, e, M]);
+							return !e.stopPropagation;
+						}
 					}
 				});
 				if(E.click){
 					if(tot)
 					e.event.preventDefault();
 					E.click = false;
+					return true;
 				}
 			});
 			
-			if(!$.touch||tot)
-			_.on(events[1], function(_, e) {
-				O = AO = false;
-				_.components.eachAll(function(cot) {
-						var cE = cot.variable.event, M = cot.isMouseOver(e);
-						if (M.valid) {
-							O = true;
-							AO = AO || cot.atomic;
-							if (!E.mouseover) {
-								E.mouseover = true;
-								_.fireEvent(_, 'mouseover', [cot,e, M]);
-							}
-							
-							if (mCSS && AO) {
-								_.T.css("cursor", "pointer");
-							}
-							
-							if (!cE.mouseover) {
-								cE.mouseover = true;
-								cot.fireEvent(cot, 'mouseover', [cot,e, M]);
-							}
-							cot.fireEvent(cot, 'mousemove', [cot,e, M]);
-							if(M.stop){
+			if(!$.touch||tot){
+				_.on(events[1], function(_, e) {
+					O = AO = false;
+					_.components.eachAll(function(C) {
+						if(C.ICHARTJS_CHART){
+							/**
+							 * meaning this component is a Combination Chart
+							 */
+							if(C.fireEvent(C,events[1], [C, e])){
+								O = true;
 								return false;
 							}
-						} else {
-							if (cE.mouseover) {
-								cE.mouseover = false;
-								cot.fireEvent(cot, 'mouseout', [cot,e, M]);
+						}else{
+							var cE = C.variable.event, M = C.isMouseOver(e);
+							if (M.valid) {
+								O = O || C.atomic;
+								if (!cE.mouseover) {
+									cE.mouseover = true;
+									C.fireEvent(C, 'mouseover', [C,e, M]);
+								}
+								C.fireEvent(C, 'mousemove', [C,e, M]);
+								if(M.stop){
+									return false;
+								}
+							} else {
+								if (cE.mouseover) {
+									cE.mouseover = false;
+									C.fireEvent(C, 'mouseout', [C,e, M]);
+								}
 							}
+							return !e.stopPropagation;
 						}
-						return !e.stopPropagation;
+					});
+					
+					if(E.mouseover){
+						e.event.preventDefault();
+						if (!O && E.mouseover) {
+							E.mouseover = false;
+							_.fireEvent(_, 'mouseout', [_,e]);
+						}
+						return E.mouseover;
+					}else{
+						if(O){
+							E.mouseover = O;
+							_.fireEvent(_, 'mouseover', [_,e]);
+						}
+					}
 				});
-				
-				if(E.mouseover){
-					e.event.preventDefault();
-					if (mCSS && !AO) {
+				/**
+				 * defalut mouse style
+				 */
+				if (mCSS) {
+					_.on('mouseover',function(){
+						_.T.css("cursor", "pointer");
+					}).on('mouseout',function(){
 						_.T.css("cursor", "default");
-					}
-					if (!O && E.mouseover) {
-						E.mouseover = false;
-						_.fireEvent(_, 'mouseout', [_,e]);
-					}
+					});
 				}
-			});
+			}
 			_.oneWay = $.emptyFn;
 		},
-		getPercent:function(v){
-			return this.get('showpercent') ? iChart.toPercent(v / this.total, this.get('decimalsnum')) : v;
+		/**
+		 * calculate chart's alignment
+		 */
+		originXY:function(_,x,y){
+			var A = _.get('align');
+			
+			if (A == _.L) {
+				_.pushIf(_.X, x[0]);
+			} else if (A == _.R) {
+				_.pushIf(_.X, x[1]);
+			} else {
+				_.pushIf(_.X, x[2]);
+			}
+			
+			_.x = _.push(_.X, _.get(_.X) + _.get('offsetx'));
+			_.y = _.push(_.Y, _.get(_.Y)||y[0]+ _.get('offsety'));
+			
+			return {
+				x:_.x,
+				y:_.y
+			}
+		},
+		getPercent:function(v,T){
+			return this.get('showpercent') ? (v / (T||this.total||1) * 100).toFixed(this.get('decimalsnum')) + '%' : v;
 		},
 		doActing:function(_,d,o,i,t){
-			var f=!!_.get('communal_acting');
+			var f=!!_.get('communal_acting'),v=_.getPercent(d.value,d.total);
 			/**
 			 * store or restore the option
 			 */
-			_.push(f?'sub_option':'communal_acting',iChart.clone(_.get(f?'communal_acting':'sub_option'),true));
+			_.push(f?'sub_option':'communal_acting',$.clone(_.get(f?'communal_acting':'sub_option'),true));
 			/**
 			 * merge the option
 			 */
-			iChart.merge(_.get('sub_option'),d);
+			$.merge(_.get('sub_option'),d);
 			
 			/**
 			 * merge specific option
 			 */
-			iChart.merge(_.get('sub_option'),o);
+			$.merge(_.get('sub_option'),o);
 			
-			/**
-			 * prevent there no property background_color,use coloe instead
-			 */
-			_.pushIf('sub_option.background_color', d.color);
+			_.push('sub_option.value',v);
 			
 			if (_.get('sub_option.tip.enable')){
-				_.push('sub_option.tip.text',t || (d.name + ' ' +_.getPercent(d.value)));
+				_.push('sub_option.tip.text',t || (d.name + ' ' +v));
 				_.push('sub_option.tip.name',d.name);
 				_.push('sub_option.tip.value',d.value);
-				_.push('sub_option.tip.total',_.total);
+				_.push('sub_option.tip.total',d.total||_.total);
 			}
 			
 		},
@@ -1296,10 +1393,8 @@
 			
 			var _ = this._();
 			
-			$.Assert.isArray(_.data);
-				
 			_.T.strokeStyle(true,0, _.get('strokeStyle'), _.get('lineJoin'));
-
+			
 			_.processAnimation = _.get('animation');
 			
 			/**
@@ -1307,27 +1402,15 @@
 			 */
 			_.push('communal_acting',0);
 			
-			_.duration = ceil(_.get('duration_animation_duration') * $.FRAME / 1000);
 			if($.isFunction(_.get('doAnimation'))){
 				_.doAnimation = _.get('doAnimation');
 			}
-			_.variable.animation = {
-				type : 0,
-				time : 0,
-				queue : []
-			};
-			
-			_.components = [];
-			_.oneways = [];
-			
+			_.animationArithmetic = $.getAA(_.get('animation_timing_function'));
 			/**
-			 * push the background in it
+			 * destroy exist dom
 			 */
-			_.oneways.push(new iChart.Custom({
-				drawFn:function(){
-					_.T.box(0, 0, _.width, _.height, _.get('border'), _.get('f_color'),0,0,true);
-				}
-			}));
+			_.destroy();
+			_.components = [];
 			
 			/**
 			 * make sure hold the customize plugin 
@@ -1336,96 +1419,109 @@
 				_.components.push(o);
 			});
 			
-			_.applyGradient();
-			
-			_.animationArithmetic = $.getAA(_.get('animation_timing_function'));
-			
-			/**
-			_.on('afterAnimation', function() {
-				var N = _.variable.animation.queue.shift();
-				if (N) {
-					_[N.handler].apply(_, N.arguments);
-				}
-			});
-			*/
-			
 			_.oneWay(_);
-			
-			_.push('r_originx', _.width - _.get('padding_right'));
-			_.push('b_originy', _.height - _.get('padding_bottom'));
-			
-			var H = 0, l = _.push('l_originx', _.get('padding_left')), t = _.push('t_originy', _.get('padding_top')), w = _.push('client_width', (_.get(_.W) - _.get('hpadding'))), h;
-
-			if ($.isString(_.get('title'))) {
-				_.push('title', $.applyIf({
-					text : _.get('title')
-				}, _.default_.title));
-			}
-			if ($.isString(_.get('subtitle'))) {
-				_.push('subtitle', $.applyIf({
-					text : _.get('subtitle')
-				}, _.default_.subtitle));
-			}
-			if ($.isString(_.get('footnote'))) {
-				_.push('footnote', $.applyIf({
-					text : _.get('footnote')
-				}, _.default_.footnote));
-			}
-
-			if (_.get('title.text') != '') {
-				var st = _.get('subtitle.text') != '';
-				H = st ? _.get('title.height') + _.get('subtitle.height') : _.get('title.height');
-				t = _.push('t_originy', t + H);
-				_.push('title.originx', l);
-				_.push('title.originy', _.get('padding_top'));
-				_.push('title.width', w);
-				_.title = new $.Text(_.get('title'), _);
-				_.oneways.push(_.title);
-				if (st) {
-					_.push('subtitle.originx', l);
-					_.push('subtitle.originy', _.get('title.originy') + _.get('title.height'));
-					_.push('subtitle.width', w);
-					_.subtitle = new $.Text(_.get('subtitle'), _);
-					_.oneways.push(_.subtitle);
-				}
-			}
-
-			if (_.get('footnote.text') != '') {
-				var g = _.get('footnote.height');
-				H += g;
-				_.push('b_originy', _.get('b_originy') - g);
-				_.push('footnote.originx', l);
-				_.push('footnote.originy', _.get('b_originy'));
-				_.push('footnote.width', w);
-				_.footnote = new $.Text(_.get('footnote'), _);
-				_.oneways.push(_.footnote);
-			}
-
-			h = _.push('client_height', (_.get(_.H) - _.get('vpadding') - H));
-
-			_.push('minDistance', min(w, h));
-			_.push('maxDistance', max(w, h));
-			_.push('minstr', w < h ? _.W : _.H);
-
-			_.push('centerx', l + w / 2);
-			_.push('centery', t + h / 2);
 			
 			/**
 			 * clone config to sub_option
 			 */
-			iChart.applyIf(_.get('sub_option'), iChart.clone(['shadow', 'shadow_color', 'shadow_blur', 'shadow_offsetx', 'shadow_offsety','tip'], _.options,true));
+			$.applyIf(_.get('sub_option'), $.clone(['shadow','tip'], _.options,true));
+			
+			_.push('r_originx', _.width - _.get('padding_right'));
+			_.push('b_originy', _.height - _.get('padding_bottom'));
+			
+			
+			_.oneways = [];
+			
+			if(!_.Combination){
+				var H = 0, l = _.push('l_originx', _.get('padding_left')), t = _.push('t_originy', _.get('padding_top')), w = _.push('client_width', (_.width - _.get('hpadding'))), h;
+				_.duration = ceil(_.get('animation_duration') * $.FRAME / 1000);
+				
+				/**
+				 * push the background in it
+				 */
+				_.oneways.push(new $.Custom({
+					drawFn:function(){
+						_.T.box(0, 0, _.width, _.height, _.get('border'), _.get('f_color'),0,0,true);
+					}
+				}));
+				
+				_.applyGradient();
+				
+				/**
+				_.on('afterAnimation', function() {
+					var N = _.variable.animation.queue.shift();
+					if (N) {
+						_[N.handler].apply(_, N.arguments);
+					}
+				});
+				*/
+				
+				if ($.isString(_.get('title'))) {
+					_.push('title', $.applyIf({
+						text : _.get('title')
+					}, _.default_.title));
+				}
+				if ($.isString(_.get('subtitle'))) {
+					_.push('subtitle', $.applyIf({
+						text : _.get('subtitle')
+					}, _.default_.subtitle));
+				}
+				if ($.isString(_.get('footnote'))) {
+					_.push('footnote', $.applyIf({
+						text : _.get('footnote')
+					}, _.default_.footnote));
+				}
+	
+				if (_.get('title.text') != '') {
+					var st = _.get('subtitle.text') != '';
+					H = st ? _.get('title.height') + _.get('subtitle.height') : _.get('title.height');
+					t = _.push('t_originy', t + H);
+					_.push('title.originx', l);
+					_.push('title.originy', _.get('padding_top'));
+					_.push('title.width', w);
+					_.title = new $.Text(_.get('title'), _);
+					_.oneways.push(_.title);
+					if (st) {
+						_.push('subtitle.originx', l);
+						_.push('subtitle.originy', _.get('title.originy') + _.get('title.height'));
+						_.push('subtitle.width', w);
+						_.subtitle = new $.Text(_.get('subtitle'), _);
+						_.oneways.push(_.subtitle);
+					}
+				}
+	
+				if (_.get('footnote.text') != '') {
+					var g = _.get('footnote.height');
+					H += g;
+					_.push('b_originy', _.get('b_originy') - g);
+					_.push('footnote.originx', l);
+					_.push('footnote.originy', _.get('b_originy'));
+					_.push('footnote.width', w);
+					_.footnote = new $.Text(_.get('footnote'), _);
+					_.oneways.push(_.footnote);
+				}
+				h = _.push('client_height', (_.get(_.H) - _.get('vpadding') - H));
+				
+				_.push('minDistance', min(w, h));
+				_.push('maxDistance', max(w, h));
+				_.push('minstr', w < h ? _.W : _.H);
+				
+				_.push('centerx', l + w / 2);
+				_.push('centery', t + h / 2);
+			}
+			
 			/**
 			 * legend
 			 */
 			if (_.get('legend.enable')) {
 				_.legend = new $.Legend($.apply({
-					maxwidth : w,
+					maxwidth : _.get('client_width'),
 					data : _.data
 				}, _.get('legend')), _);
 				_.components.push(_.legend);
 			}
-			_.push('sub_option.tip.wrap',_.push('tip.wrap', _.shell));
 			
+			_.push('sub_option.tip.wrap',_.push('tip.wrap', _.shell));
 		}
 	});
 })(iChart);

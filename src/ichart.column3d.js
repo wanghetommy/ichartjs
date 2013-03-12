@@ -1,5 +1,5 @@
 /**
- * @overview this component use for abc
+ * @overview the column3d componment
  * @component#@chart#iChart.Column3D
  * @extend#iChart.Column2D
  */

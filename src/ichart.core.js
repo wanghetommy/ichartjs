@@ -1,5 +1,5 @@
 /**
- * ichartjs Library v1.0 http://www.ichartjs.com/
+ * ichartjs Library v1.1 http://www.ichartjs.com/
  * 
  * @author wanghe
  * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License"); 
@@ -222,7 +222,7 @@
 			} else if (_.isObject(a)) {
 				for ( var b in a) {
 					// avoid recursion reference
-					if (e && _.isObject(a[b])&& !(a[b] instanceof _.Painter))
+					if (e && _.isObject(a[b])&& !(a[b].ICHARTJS_OBJECT))
 						d[b] = _.clone(a[b], e);
 					else
 						d[b] = a[b];
@@ -285,8 +285,8 @@
 			}
 		}();
 
-		// *******************Math************************
 		var sin = Math.sin, cos = Math.cos, atan = Math.atan, tan = Math.tan, acos = Math.acos, sqrt = Math.sqrt, abs = Math.abs, pi = Math.PI, pi2 = 2 * pi, ceil = Math.ceil, round = Math.round, floor = Math.floor, max = Math.max, min = Math.min, pF = parseFloat,
+		Registry={},
 		factor = function(v, w) {
 			if (v == 0)
 				return v;
@@ -301,9 +301,9 @@
 				f = 1;
 				while(M<1){
 					M = M*10;
-					f = f/10;
+					f = f *10;
 				}
-				return round(v/f+w)*f;
+				return round(v*f+w)/f;
 			}
 		}, colors = {
 			navy : 'rgb(0,0,128)',
@@ -615,15 +615,15 @@
 			toPI2 : function(a) {
 				while(a<0)
 					a+=pi2;
-				return a%pi2;
+				return a;
 			},
 			visible:function(s, e, f){
-				if(s>e)return [];
+				if(s>=e)return [];
 				var q1 = _.quadrantd(s),q2 = _.quadrantd(e);
 				if((q1==2||q1==3)&&(q2==2||q2==3)&&((e-s)<pi))return[];
 				s = _.toPI2(s);
 				e = _.toPI2(e);
-				if(e<s){e+=pi2;}
+				if(e<=s){e+=pi2;}
 				if(s > pi){s = pi2;}
 				else if(e>pi2){
 					return [{s:s,e:pi,f:f},{s:pi2,e:e,f:f}]
@@ -646,7 +646,7 @@
 				return v < l ? l : v;
 			},
 			between : function(l, u, v) {
-				return v > u ? u : v < l ? l : v;
+				return l>u?_.between(u, l, v):(v > u ? u : v < l ? l : v);
 			},
 			inRange : function(l, u, v) {
 				return u > v && l < v;
@@ -691,20 +691,35 @@
 					y : y * cos(x)
 				}
 			},
-			iGather : function(k) {
-				return (k || 'ichartjs') + '-' + ceil(Math.random()*10000)+new Date().getTime().toString().substring(4);
+			uid : function(k) {
+				return (k || 'ichartjs') + '_' + ceil(Math.random()*10000)+new Date().getTime().toString().substring(4);
 			},
-			toPercent : function(v, d) {
-				return (v * 100).toFixed(d) + '%';
+			register:function(c){
+				var id = c.get('id');
+				if(!id||id==''){
+					id = _.uid(c.type);
+					while(Registry[id]){
+						id = _.uid(c.type);
+					}
+					c.push('id',id);
+				}
+				if(Registry[id]){
+					throw new Error("exist reduplicate id :"+id);
+				}
+				c.id = id;
+				Registry[id] = c;
+			},
+			get:function(id){
+				return Registry[id];
 			},
 			parsePercent:function(v,f){
 				if(_.isString(v)){
 					v = v.match(/(.*)%/);
 					if(v){
-						return f?floor(pF(v[1])*f/100):v[1]/100;
+						v = f?floor(pF(v[1])*f/100):v[1]/100;
 					}
 				}
-				return v;
+				return (!v ||v <= 0 || v > f)?f:v;
 			},
 			parseFloat : function(v, d) {
 				if (!_.isNumber(v)) {
@@ -750,18 +765,6 @@
 		});
 		
 		_.Assert = {
-			gt : function(v, c, n) {
-				if (!_.isNumber(v) && v >= c)
-					throw new Error(n + " required Number gt " + c + ",given:" + v);
-			},
-			isNumber : function(v, n) {
-				if (!_.isNumber(v))
-					throw new Error(n + " required Number,given:" + v);
-			},
-			isArray : function(v, n) {
-				if (!_.isArray(v))
-					throw new Error(n + " required Array,given:" + v);
-			},
 			isTrue : function(v, cause) {
 				if (v !== true)
 					throw new Error(cause);

@@ -10,6 +10,8 @@ iChart.Element = function(config) {
 	 * indicate the element's type
 	 */
 	_.type = 'element';
+	
+	_.ICHARTJS_OBJECT = true;
 
 	/**
 	 * define abstract method
@@ -23,10 +25,6 @@ iChart.Element = function(config) {
 	_.options = {};
 
 	_.set({
-		/**
-		 * @inner {String} The unique id of this element (defaults to an auto-assigned id).
-		 */
-		id : '',
 		/**
 		 * @cfg {Object} Specifies the border for this element.
 		 * Available property are:
@@ -83,7 +81,7 @@ iChart.Element = function(config) {
 	_.variable = {};
 	
 	/**
-	 * the container of all events
+	 * the root of all events
 	 */
 	_.events = {
 		'mouseup':[],
@@ -93,7 +91,8 @@ iChart.Element = function(config) {
 		'mousedown':[],
 		'dblclick':[]
 	};
-	this.registerEvent(
+	
+	_.registerEvent(
 			/**
 			 * @event Fires after the element initializing is finished this is for test
 			 * @paramter iChart.Painter#this
@@ -116,26 +115,26 @@ iChart.Element = function(config) {
 	 * megre customize config
 	 */
 	_.set(config);
-	_.afterConfiguration();
+	_.afterConfiguration(_);
 }
 
 iChart.Element.prototype = {
 	_:function(){return this},	
-	afterConfiguration : function() {
+	afterConfiguration : function(_) {
 		/**
 		 * register customize event
 		 */
-		if (iChart.isObject(this.get('listeners'))) {
-			for ( var e in this.get('listeners')) {
-				this.on(e, this.get('listeners')[e]);
+		if (iChart.isObject(_.get('listeners'))) {
+			for ( var e in _.get('listeners')) {
+				_.on(e, _.get('listeners')[e]);
 			}
 		}
-		this.initialize();
+		_.initialize();
 		
 		/**
 		 * fire the initialize event,this probable use to unit test
 		 */
-		this.fireEvent(this, 'initialize', [this]);
+		_.fireEvent(_, 'initialize', [_]);
 	},
 	registerEvent : function() {
 		for ( var i = 0; i < arguments.length; i++) {
@@ -158,9 +157,7 @@ iChart.Element.prototype = {
 		return r;
 	},
 	on : function(n, fn) {
-		if(iChart.isString(n)){
-			if (!this.events[n])
-				throw new Error('['+this.type+"] invalid event:'" + n + "'");
+		if(iChart.isString(n)&&iChart.isArray(this.events[n])){
 			this.events[n].push(fn);
 		}else if(iChart.isArray(n)){
 			n.each(function(c){this.on(c, fn)},this);
@@ -174,30 +171,30 @@ iChart.Element.prototype = {
 		if (iChart.isObject(c))
 			iChart.merge(this.options, c);
 	},
-	pushIf : function(name, value) {
-		if (!iChart.isDefined(this.get(name))) {
-			return this.push(name, value);
+	pushIf : function(n, v) {
+		if (!iChart.isDefined(this.get(n))||this.get(n)==null) {
+			return this.push(n, v);
 		}
-		return this.get(name);
+		return this.get(n);
 	},
 	/**
 	 * average write speed about 0.013ms
 	 */
-	push : function(name, value) {
-		var A = name.split("."),L=A.length - 1,V = this.options;
+	push : function(n, v) {
+		var A = n.split("."),L=A.length - 1,V = this.options;
 		for (var i = 0; i < L; i++) {
 			if (!V[A[i]])
 				V[A[i]] = {};
 			V = V[A[i]];
 		}
-		V[A[L]] = value;
-		return value;
+		V[A[L]] = v;
+		return v;
 	},
 	/**
 	 * average read speed about 0.005ms
 	 */
-	get : function(name) {
-		var A = name.split("."), V = this.options[A[0]];
+	get : function(n) {
+		var A = n.split("."), V = this.options[A[0]];
 		for (var i = 1; i < A.length; i++) {
 			if (!V)
 				return null;

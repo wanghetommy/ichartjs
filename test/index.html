@@ -5,7 +5,7 @@
 		<title>ichartjs unit Test</title>
 		<meta name="Description" content="" />
 		<meta name="Keywords" content="" />
-		<script type="text/javascript" src="../ichart-1.0.js"></script>
+		<script type="text/javascript" src="../ichart.1.1.js"></script>
 		<script type="text/javascript" src="data.js"></script>
 		<script type="text/javascript" src="test.js"></script>
 		
@@ -117,10 +117,25 @@
 			</tr>
 		</table>
 		<div id='result_list'></div>
-		<div style="background-color:#d5e2e6;width:540px;height:30px;line-height:30px;text-align: left;ont-size: 12px;padding:0px;margin: 0px auto;">
+		<div style="background-color:#d5e2e6;width:540px;height:30px;line-height:30px;text-align: left;font-size: 12px;padding:0px;margin: 0px auto;border-bottom: 1px solid #666666;">
 			&nbsp;你的浏览器平均渲染时间: &nbsp;
 			<span id='result_score' style="font-size: 16px;font-weight: 600;"></span>
 			&nbsp;ms
+		</div>
+		<div style="background-color:#d5e2e6;width:540px;height:30px;line-height:30px;text-align: left;padding:0px;margin: 0px auto;">
+			<span class='intro'>&nbsp;<strong>Speed:</strong></span>
+			[
+			<span class='intro'>
+				<span style="background-color:#6191c1;" class="square"></span>
+				<span style="font-size: 12px;">excellent(&lt;=20)</span>
+				<span style="background-color:#f2b829;" class="square"></span>
+				<span style="font-size: 12px;">superior(&lt;=30)</span>
+				<span style="background-color:#cc6650;" class="square"></span>
+				<span style="font-size: 12px;">good(&lt;=40)</span>
+				<span style="background-color:#ee3207;" class="square"></span>
+				<span style="font-size: 12px;">poor(&gt;40)</span>
+			</span>
+			]
 		</div>
 		<div id='tool_panel'></div>
 		<div id='myCanvas'></div>

@@ -69,9 +69,9 @@ iChart.Line = iChart.extend(iChart.Chart, {
 			 */
 			proportional_spacing : true,
 			/**
-			 * @inner {Number} the space of each label
+			 * @cfg {Number} the space of each point.(default to null)
 			 */
-			label_spacing : 0,
+			point_space : null,
 			/**
 			 * @cfg {<link>iChart.LineSegment</link>} the option for linesegment.
 			 */
@@ -115,56 +115,65 @@ iChart.Line = iChart.extend(iChart.Chart, {
 		iChart.Line.superclass.doConfig.call(this);
 		var _ = this._(), s = _.data.length == 1;
 		
-		/**
-		 * apply the coordinate feature
-		 */
-		iChart.Coordinate.coordinate.call(_);
-		
-		var vw = _.get('coordinate.valid_width'),vh = _.get('coordinate.valid_height');
 		_.lines = [];
 		_.lines.zIndex = _.get('z_index');
 		_.components.push(_.lines);
 		
-		if (_.get('proportional_spacing'))
-			_.push('label_spacing', vw / (_.get('maxItemSize') - 1));
-		
-		_.push('sub_option.width', vw);
-		_.push('sub_option.height', vh);
-		_.pushIf('sub_option.keep_with_coordinate',s);
+		var k = _.pushIf('sub_option.keep_with_coordinate',s);
 		
 		if (_.get('crosshair.enable')) {
-			_.push('coordinate.crosshair', _.get('crosshair'));
-			_.push('coordinate.crosshair.hcross', s);
-			_.push('coordinate.crosshair.invokeOffset', function(e, m) {
+			_.push('crosshair.hcross', s);
+			_.push('crosshair.invokeOffset', function(e, m) {
 				/**
 				 * TODO how fire muti line?now fire by first line
 				 */
 				var r = _.lines[0].isEventValid(e);
-				return r.valid ? r : false;
+				return r.valid ? r : k;
 			});
 		}
 		
-		_.pushIf('coordinate.scale',[{
-			position : _.get('scaleAlign'),
-			max_scale : _.get('maxValue')
-		}, {
-			position : _.get('labelAlign'),
-			start_scale : 1,
-			scale : 1,
-			end_scale : _.get('maxItemSize'),
-			labels : _.get('labels'),
-			label:_.get('label')
-		}]);
+		if(!_.Combination){
+			_.push('coordinate.crosshair', _.get('crosshair'));
+			_.pushIf('coordinate.scale',[{
+				position : _.get('scaleAlign'),
+				max_scale : _.get('maxValue')
+			}, {
+				position : _.get('labelAlign'),
+				start_scale : 1,
+				scale : 1,
+				end_scale : _.get('maxItemSize'),
+				labels : _.get('labels'),
+				label:_.get('label')
+			}]);
+		}
 		
 		/**
 		 * use option create a coordinate
 		 */
 		_.coo = iChart.Coordinate.coordinate_.call(_);
 		
-		_.push('sub_option.originx', _.coo.get('x_start'));
-		_.push('sub_option.originy', _.coo.get(_.Y) + _.coo.get(_.H));
+		if(_.Combination){
+			_.coo.push('crosshair', _.get('crosshair'));
+			_.coo.doCrosshair(_.coo);
+		}
 		
-		_.components.push(_.coo);
+		var vw = _.coo.get('valid_width'),vh = _.coo.get('valid_height'),
+			M=vw / (_.get('maxItemSize') - 1),ps=_.get('point_space');
+		
+		if (_.get('proportional_spacing')){
+			if(ps&&ps<M){
+				vw = (_.get('maxItemSize') - 1)*ps;
+			}else{
+				_.push('point_space',M);
+			}
+		}
+		
+		_.push('sub_option.width', vw);
+		_.push('sub_option.height', vh);
+		
+		
+		_.push('sub_option.originx', _.coo.get('x_start')+(_.coo.get('valid_width')-vw)/2);
+		_.push('sub_option.originy', _.coo.get(_.Y) + _.coo.get(_.H));
 		
 		if (_.get('tip.enable')){
 			if(iChart.isFunction(_.get('tipMocker'))){

@@ -94,7 +94,7 @@ function start(){
 			result(false,chart.get('title.text') || chart.type,e.name+":"+e.message);
 		}
 		start();
-	},300)
+	},100)
 }
 
 /////////////////////上面的写成一个测试的js//////////////////////
@@ -487,6 +487,109 @@ function test(){
 			}
 		});
 	});
+	
+	//19
+	unit.push(function(){
+		return new iChart.ColumnStacked2D({
+			render :canvas,
+			title : {text: 'Test ColumnStacked2D No Shadow'},
+			data: data2,
+			labels:labels,
+			footnote : '数据来源：销售中心',
+			coordinate:{
+				background_color : 0,
+				axis : {
+					color : '#c0d0e0',
+					width : 0
+				}, 
+				scale:[{
+					 position:'left',	
+					 scale_enable : false,
+					 start_scale:0,
+					 scale_space:20,
+					 label:{color:'#254d70',fontsize:11,fontweight:600}
+				}],
+			}
+		});
+	});
+	
+	//20
+	unit.push(function(){
+		return new iChart.ColumnStacked2D({
+			render :canvas,
+			title : {text: 'Test ColumnStacked2D'},
+			data: data2,
+			labels:labels,
+			shadow:true,
+			footnote : '数据来源：销售中心',
+			coordinate:{
+				background_color : 0,
+				axis : {
+					color : '#c0d0e0',
+					width : 0
+				}, 
+				scale:[{
+					 position:'left',	
+					 scale_enable : false,
+					 start_scale:0,
+					 scale_space:20,
+					 label:{color:'#254d70',fontsize:11,fontweight:600}
+				}],
+			}
+		});
+	});
+	
+	//21
+	unit.push(function(){
+		return new iChart.ColumnStacked3D({
+			render :canvas,
+			title : {text: 'Test ColumnStacked3D No Shadow'},
+			data: data2,
+			labels:labels,
+			footnote : '数据来源：销售中心',
+			coordinate:{
+				background_color : 0,
+				axis : {
+					color : '#c0d0e0',
+					width : 0
+				}, 
+				scale:[{
+					 position:'left',	
+					 scale_enable : false,
+					 start_scale:0,
+					 scale_space:20,
+					 label:{color:'#254d70',fontsize:11,fontweight:600}
+				}],
+			}
+		});
+	});
+	
+	//22
+	unit.push(function(){
+		return new iChart.ColumnStacked3D({
+			render :canvas,
+			title : {text: 'Test ColumnStacked3D'},
+			data: data2,
+			labels:labels,
+			shadow:true,
+			footnote : '数据来源：销售中心',
+			coordinate:{
+				background_color : 0,
+				axis : {
+					color : '#c0d0e0',
+					width : 0
+				}, 
+				scale:[{
+					 position:'left',	
+					 scale_enable : false,
+					 start_scale:0,
+					 scale_space:20,
+					 label:{color:'#254d70',fontsize:11,fontweight:600}
+				}],
+			}
+		});
+	});
+	
 	/**
 	 * start Test
 	 */

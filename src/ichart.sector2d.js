@@ -1,5 +1,5 @@
 	/**
-	 * @overview this component use for abc
+	 * @overview the sector2d componment
 	 * @component#iChart.Sector2D
 	 * @extend#iChart.Sector
 	 */
@@ -55,12 +55,12 @@
 			return {valid:false};
 		},
 		tipInvoke:function(){
-			var _ = this;
+			var _ = this,A = _.get('middleAngle'),Q  = iChart.quadrantd(A);
 			return function(w,h){
-				var P = iChart.p2Point(this.x,this.y,this.get('middleAngle'),this.r*0.8),Q  = iChart.quadrantd(this.get('middleAngle'));
+				var P = iChart.p2Point(_.x,_.y,A,_.r*0.8)
 				return {
-					left:(Q>=2&&Q<=3)?(P.x - w):P.x,
-					top:Q>=3?(P.y - h):P.y
+					left:(Q>=1&&Q<=2)?(P.x - w):P.x,
+					top:Q>=2?(P.y - h):P.y
 				}
 			}
 		},
@@ -69,13 +69,11 @@
 			var _ = this._();
 			_.r = _.get('radius');
 			
-			iChart.Assert.gt(_.r,0);
-			
 			if(_.get('donutwidth')>_.r){
 				_.push('donutwidth',0);
 			}
-			_.applyGradient(_.x-_.r,_.y-_.r,2*_.r,2*_.r);
 			
+			_.applyGradient(_.x-_.r,_.y-_.r,2*_.r*0.9,2*_.r*0.9);
 			
 			var A = _.get('middleAngle'),L = _.pushIf('increment',iChart.lowTo(5,_.r/10)),p2;
 			_.push('inc_x',L * Math.cos(2 * Math.PI -A));

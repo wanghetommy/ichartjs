@@ -1,0 +1,156 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>iChart.Gauge2D-Document</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="Content-Style-Type" content="text/css"/>
+<link rel="stylesheet" href="../resources/style.css" type="text/css"/>
+
+</head>
+<body class='ichartjs_page'>
+<div class='ichartjs_p_5'><div class='ichartjs_title ichartjs_radius2 ichartjs_p_5'><div class='ichartjs_inline ichartjs_left'>Overview&nbsp;&nbsp;</div><a class='ichartjs_anchor' href='#configs'>Configs</a><a class='ichartjs_anchor' href='#events'>Events</a><a class='ichartjs_anchor' href='#methods'>Methods</a></div><div class='ichartjs_overview_content'>
+<span class='ichartjs_class'>Gauge2D</span>&nbsp;&nbsp;<br/><div class='ichartjs_p_10 ichartjs_m_10 ichartjs_color ichartjs_inline ichartjs_radius5'><div class='ichartjs_font_600 ichartjs_h_25'>
+Hierarchy</div>
+<div class='ichartjs_h_18'><span class='ichartjs_h_18'><a href="ichart_element.html" target="main" >iChart.Element</a></span>
+</div>
+<div class='ichartjs_h_18'><span class='ichartjs_indent'><div class='ichartjs_tree'></div></span><span class='ichartjs_h_18'><a href="ichart_painter.html" target="main" >iChart.Painter</a></span>
+</div>
+<div class='ichartjs_h_18'><span class='ichartjs_indent'></span><span class='ichartjs_indent'><div class='ichartjs_tree'></div></span><span class='ichartjs_h_18'><a href="ichart_chart.html" target="main" >iChart.Chart</a></span>
+</div>
+<div class='ichartjs_h_18'><span class='ichartjs_indent'></span><span class='ichartjs_indent'></span><span class='ichartjs_indent'><div class='ichartjs_tree'></div></span><span class='ichartjs_h_18'><a href="ichart_gauge2d.html" target="main" >iChart.Gauge2D</a></span>
+</div>
+</div><br/>the ichartjs Plug-in,the circular gauge component<br/>
+ <br/
+</div></div><div class='ichartjs_p_5' id='configs' name='configs'><div class='ichartjs_title ichartjs_p_5'>Configs</div><table class='ichartjs_table'><tr class='ichartjs_table_header'><th class='ichartjs_table_parameter'>Parameter</th><th class='ichartjs_table_type'>Type</th><th class='ichartjs_table_description'>Description</th><th class='ichartjs_table_definedBy'>Defined By</th></tr><tr class='ichartjs_even'><td id='ichart_link_align'>align</td><td>String</td><td>this property specifies the horizontal alignment of chart in an module (defaults to 'center') Available value are:<br/>
+ @Option 'left'<br/>
+ @Option 'center'<br/>
+ @Option 'right'<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_animation'>animation</td><td>Boolean</td><td>If true element will have a animation when show, false to skip the animation.(default to false)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_animation_duration'>animation_duration</td><td>Number</td><td>Specifies the duration when animation complete in millisecond.(default to 1000)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_animation_timing_function'>animation_timing_function</td><td>String</td><td>(default to 'ease-in-out') Available value are:<br/>
+ @Option 'easeIn'<br/>
+ @Option 'easeOut'<br/>
+ @Option 'easeInOut'<br/>
+ @Option 'linear'<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_background_color'>background_color</td><td>String</td><td>Specifies the backgroundColor for this element.(defaults to 'FDFDFD')<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_border'>border</td><td>Object</td><td>Here,specify as true by default<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_color'>color</td><td>String</td><td>Specifies the font's color for this element.(defaults to 'black')<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_color_factor'>color_factor</td><td>float</td><td>Specifies the factor make color dark or light for this element,relative to background-color,the bigger the value you set,the larger the color changed.scope{0.01 - 0.5}.(defaults to '0.15')<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_data'>data</td><td>Array</td><td>Required,The datasource of Chart.must be not empty.<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_decimalsnum'>decimalsnum</td><td>Number</td><td>Specifies the number of decimal.(default to 0)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_gauge2d.html" target="main" >Gauge2D</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_default_mouseover_css'>default_mouseover_css</td><td>Boolean</td><td>If true mouse change to a pointer when a mouseover fired.only available when use PC.(defaults to true)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_end_angle'>end_angle</td><td>Float</td><td>Specifies the gauge's end angle.(default to null)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_gauge2d.html" target="main" >Gauge2D</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_footnote'>footnote</td><td>Object/String</td><td>Specifies the config of footnote details see <a href='ichart_text.html'>iChart.Text</a>,If given a string,it will only apply the text.note:If the text is empty,then will not display<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_gradient'>gradient</td><td>Boolean</td><td>True to apply the gradient.(default to false)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_gradient_mode'>gradient_mode</td><td>String</td><td>Specifies the gradient mode of background.(defaults to 'LinearGradientUpDown')<br/>
+ @Option 'LinearGradientUpDown'<br/>
+ @Option 'LinearGradientDownUp'<br/>
+ @Option 'LinearGradientLeftRight'<br/>
+ @Option 'LinearGradientRightLeft'<br/>
+ @Option 'RadialGradientOutIn'<br/>
+ @Option 'RadialGradientInOut'<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_height'>height</td><td>Number</td><td>Specifies the height of this canvas<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_id'>id</td><td>String</td><td>The unique id of this element (defaults to an auto-assigned id).<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_label_space'>label_space</td><td>Number</td><td>the distance of column's bottom and text(default to 12)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_gauge2d.html" target="main" >Gauge2D</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_legend'>legend</td><td>Object</td><td>Specifies the config of Legend.For details see <a href='ichart_legend.html'>iChart.Legend</a> Note:this has a extra property named 'enable',indicate whether legend available(default to false)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_lineJoin'>lineJoin</td><td>String</td><td>Specifies the default lineJoin of the canvas's context in this element.(defaults to 'round')<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_listeners'>listeners</td><td>Object</td><td>A config object containing one or more event handlers.(default to null)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_offsetx'>offsetx</td><td>Number</td><td>Specifies Horizontal offset(x-axis) in pixel.(default to 0)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_offsety'>offsety</td><td>Number</td><td>Specifies Vertical distance (y-axis) in pixel.(default to 0)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_originx'>originx</td><td>Number</td><td>If you want to totally override the positioning of the chart,you should setting it.(default to null)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_originy'>originy</td><td>Number</td><td>If you want to totally override the positioning of the chart,you should setting it.(default to null)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_padding'>padding</td><td>Number</td><td>Specifies the padding for this element in pixel,the same rule as css padding.(defaults to 10)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_radius'>radius</td><td>Float/String</td><td>Specifies the gauge's radius.If given a percentage,it will relative to minDistance.(default to '100%')<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_gauge2d.html" target="main" >Gauge2D</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_render'>render</td><td>String</td><td>id of dom you want rendered(defaults '').<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_shadow'>shadow</td><td>Boolean</td><td>Specifies whether the element should be show a shadow.In general there will be get a high render speed when apply false.(default to false)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_element.html" target="main" >Element</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_shadow_blur'>shadow_blur</td><td>Number</td><td>Specifies How blur you want your shadow to be.(default to 4)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_element.html" target="main" >Element</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_shadow_color'>shadow_color</td><td>String</td><td>Specifies the color of your shadow is.(default to '#666666')<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_element.html" target="main" >Element</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_shadow_offsetx'>shadow_offsetx</td><td>Number</td><td>Specifies Horizontal distance (x-axis) between the shadow and the shape in pixel.(default to 0)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_element.html" target="main" >Element</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_shadow_offsety'>shadow_offsety</td><td>Number</td><td>Specifies Vertical distance (y-axis) between the shadow and the shape in pixel.(default to 0)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_element.html" target="main" >Element</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_showpercent'>showpercent</td><td>Boolean</td><td>Specifies as true to display with percent.(default to false)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_strokeStyle'>strokeStyle</td><td>String</td><td>Specifies the default strokeStyle of the canvas's context in this element.(defaults to 'gray')<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_subtitle'>subtitle</td><td>Object/String</td><td>Specifies the config of subtitle details see <a href='ichart_text.html'>iChart.Text</a>,If given a string,it will only apply the text.note:If the title or subtitle'text is empty,then will not display<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_text'>text</td><td>Object/String</td><td>Specifies the config of Top Text details see <a href='ichart_text.html'>iChart.Text</a>,If given a string,it will only apply the text.note:If the text is empty,then will not display<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_gauge2d.html" target="main" >Gauge2D</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_tip'>tip</td><td>Object</td><td>Specifies the config of Tip.For details see <a href='ichart_tip.html'>iChart.Tip</a> Note:this has a extra property named 'enable',indicate whether tip available(default to false)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_title'>title</td><td>Object/String</td><td>Specifies the config of Title details see <a href='ichart_text.html'>iChart.Text</a>,If given a string,it will only apply the text.note:If the text is empty,then will not display<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_turn_off_touchmove'>turn_off_touchmove</td><td>Boolean</td><td>If true ignore the event touchmove.only available when support touchEvent.(defaults to false)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_value'>value</td><td>Float</td><td>Specifies the gauge's initialized value.If not given,it will the same as tickmarks.lower.(default to null)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_gauge2d.html" target="main" >Gauge2D</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_width'>width</td><td>Number</td><td>Specifies the width of this canvas<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_z_index'>z_index</td><td>Number</td><td>Specifies the chart's z_index.override the default as 999 to make it at top layer.(default to 999)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr></table></div><div class='ichartjs_p_5' id='events' name='events'><div class='ichartjs_title ichartjs_p_5'>Events</div><table class='ichartjs_table'><tr class='ichartjs_table_header'><th class='ichartjs_table_parameter'>Name</th><th class='ichartjs_table_description'>Description</th><th class='ichartjs_table_definedBy'>Defined By</th></tr><tr class='ichartjs_even'><td>afterAnimation</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>Fires when this element Animation finished.Only valid when <a href='#ichart_link_animation'>animation</a> is true<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;Gauge2D&nbsp;&nbsp;</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td>beforeAnimation</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>Fires before this element Animation.Only valid when <a href='#ichart_link_animation'>animation</a> is true<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;Gauge2D&nbsp;&nbsp;</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td>beforedraw</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>Fires before the element drawing.Return false from an event handler to stop the draw.<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;Gauge2D&nbsp;&nbsp;</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td>change</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>Fires when value changed<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>g&nbsp;:&nbsp;<a href='ichart_gauge2d.html'>iChart.Gauge2D</a>&nbsp;&nbsp;</li>
+<li>value&nbsp;:&nbsp;int&nbsp;&nbsp;</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_gauge2d.html" target="main" >Gauge2D</a></td></tr><tr class='ichartjs_even'><td>click</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>Fires when this element is clicked<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;Gauge2D&nbsp;&nbsp;</li>
+<li>e&nbsp;:&nbsp;EventObject&nbsp;&nbsp; The click event object</li>
+<li>param&nbsp;:&nbsp;Object&nbsp;&nbsp; The additional parameter</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td>initialize</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>Fires after the element initializing is finished this is for test<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;Gauge2D&nbsp;&nbsp;</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_element.html" target="main" >Element</a></td></tr><tr class='ichartjs_even'><td>mousemove</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>Fires when the mouse move on the element<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;Gauge2D&nbsp;&nbsp;</li>
+<li>e&nbsp;:&nbsp;EventObject&nbsp;&nbsp; The mousemove event object</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td>mouseout</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>Fires when the mouse exits the element<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;Gauge2D&nbsp;&nbsp;</li>
+<li>e&nbsp;:&nbsp;EventObject&nbsp;&nbsp; The mouseout event object</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_even'><td>mouseover</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>Fires when the mouse hovers over the element<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;Gauge2D&nbsp;&nbsp;</li>
+<li>e&nbsp;:&nbsp;EventObject&nbsp;&nbsp; The mouseover event object</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr></table></div><div class='ichartjs_p_5' id='methods' name='methods'><div class='ichartjs_title ichartjs_p_5'>Methods</div><table class='ichartjs_table'><tr class='ichartjs_table_header'><th class='ichartjs_table_parameter'>Name</th><th class='ichartjs_table_description'>Description</th><th class='ichartjs_table_definedBy'>Defined By</th></tr><tr class='ichartjs_even'><td>draw</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>The commnd fire to draw the chart use configuration,<br/>
+	 * this is a abstract method.Currently known,both <a href='ichart_chart.html'>iChart.Chart</a> and <a href='ichart_component.html'>iChart.Component</a> implement this method.<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>None<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>Return<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;void</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td>eventOff</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>turn off the event listener<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>None<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>Return<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;void</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td>eventOn</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>turn on the event listener<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>None<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>Return<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;void</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td>getDrawingArea</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>return the main Drawing Area's dimension,return following property:<br/>
+		 * x:the left-top coordinate-x<br/>
+		 * y:the left-top coordinate-y<br/>
+		 * width:the width of drawing area<br/>
+		 * height:the height of drawing area<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>None<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>Return<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;Object&nbsp;:&nbsp;contains dimension info</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td>getFootNote</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>return the footnote,return undefined if unavailable<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>None<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>Return<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;<a href='ichart_text.html'>iChart.Text</a>&nbsp;:&nbsp;the footnote object</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td>getSubTitle</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>return the subtitle,return undefined if unavailable<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>None<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>Return<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;<a href='ichart_text.html'>iChart.Text</a>&nbsp;:&nbsp;the subtitle object</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td>getTitle</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>return the title,return undefined if unavailable<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>None<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>Return<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;<a href='ichart_text.html'>iChart.Text</a>&nbsp;:&nbsp;the title object</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td>plugin</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>register the customize component or combinate with other charts<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li><a href='ichart_custom.html'>iChart.Custom</a><a href='ichart_chart.html'>iChart.Chart</a>&nbsp;:&nbsp;object&nbsp;&nbsp;* @return void</li>
+</ul></div>
+<div class='ichartjs_stress'>Return<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;void</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td>setUp</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>set up the chart by latest configruation<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>None<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>Return<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;void</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td>to</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>setting the vaule of gauge,the value must between the valid range<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>int&nbsp;:&nbsp;value&nbsp;&nbsp;the vaule of gauge</li>
+</ul></div>
+<div class='ichartjs_stress'>Return<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;void</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_gauge2d.html" target="main" >Gauge2D</a></td></tr></table></div><div class='ichartjs_reference'><strong>reference:</strong><span class='ichartjs_reference_item'><a href="ichart_chart.html" target="main" >Chart</a></span></div>
+</body>
+</html>

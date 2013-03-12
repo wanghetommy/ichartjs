@@ -1,5 +1,5 @@
 /**
- * @overview this component use for abc
+ * @overview the area2d componment
  * @component#@chart#iChart.Area2D
  * @extend#iChart.LineBasic2D
  */

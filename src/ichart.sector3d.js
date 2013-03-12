@@ -1,5 +1,5 @@
 	/**
-	 * @overview this component use for abc
+	 * @overview the sector3d componment
 	 * @component#iChart.Sector3D
 	 * @extend#iChart.Sector
 	 */
@@ -31,27 +31,7 @@
 				cylinder_height:0
 			});
 			
-			
-		},
-		drawSector:function(){
-			this.T.sector3D(
-					this.x,
-					this.y,
-					this.a,
-					this.b,
-					this.get('startAngle'),
-					this.get('endAngle'),
-					this.h,
-					this.get('f_color'),
-					this.get('border.enable'),
-					this.get('border.width'),
-					this.get('border.color'),
-					this.get('shadow'),
-					this.get('shadow_color'),
-					this.get('shadow_blur'),
-					this.get('shadow_offsetx'),
-					this.get('shadow_offsety'),
-					this.get('counterclockwise'));
+			this.proxy = true;
 		},
 		isEventValid:function(e,_){
 			if(!_.get('ignored')){
@@ -91,9 +71,7 @@
 			_.b = _.get('semi_minor_axis');
 			_.h = _.get('cylinder_height');
 			
-			iChart.Assert.gt(_.a,0);
-			iChart.Assert.gt(_.b,0);
-			
+			iChart.Assert.isTrue(_.a*_.b>=0,'major&minor');
 			
 			var pi2 = 2 * Math.PI,toAngle = function(A){
 				while(A<0)A+=pi2;

@@ -1,5 +1,5 @@
 	/**
-	 * @overview this component use for abc
+	 * @overview the customize componment
 	 * @component#iChart.Custom
 	 * @extend#iChart.Component
 	 */
@@ -16,11 +16,11 @@
 			this.type = 'custom';
 			
 			this.set({
-				
 				/**
 				 * @cfg {Function} Specifies the customize function.(default to emptyFn)
 				 */
 				drawFn:iChart.emptyFn,
+				configFn:iChart.emptyFn,
 				/**
 				 * @cfg {Function} Specifies the customize event valid function.(default to undefined)
 				 */
@@ -30,9 +30,6 @@
 				 */
 				animating_draw:true
 			});
-			
-			this.registerEvent();
-			
 		},
 		doDraw:function(_){
 			_.get('drawFn').call(_,_);
@@ -44,12 +41,14 @@
 		},
 		doConfig:function(){
 			iChart.Custom.superclass.doConfig.call(this);
-			this.A_draw = this.get('animating_draw');
-			this.variable.animation = {
+			var _ = this._();
+			_.A_draw = _.get('animating_draw');
+			_.variable.animation = {
 				animating:false,	
-				time : 0,
-				duration:0
+				time : 0
 			};
+			_.duration = 0;
+			_.get('configFn').call(_,_);
 		}
 });
 /**

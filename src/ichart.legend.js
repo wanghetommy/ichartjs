@@ -1,5 +1,5 @@
 /**
- * @overview this component use for abc
+ * @overview the legend componment
  * @component#iChart.Legend
  * @extend#iChart.Component
  */
@@ -50,9 +50,9 @@ iChart.Legend = iChart.extend(iChart.Component, {
 			 */
 			sign : 'square',
 			/**
-			 * @cfg {Number} the size of legend' sign (default to 12)
+			 * @cfg {Number} the size of legend' sign (default to 10)
 			 */
-			sign_size : 12,
+			sign_size : 10,
 			/**
 			 * @cfg {Number} the distance of legend' sign and text (default to 5)
 			 */
@@ -245,7 +245,7 @@ iChart.Legend = iChart.extend(iChart.Component, {
 	doConfig : function() {
 		iChart.Legend.superclass.doConfig.call(this);
 		
-		var _ = this._(),g = _.container,c = iChart.isNumber(_.get('column')),r = iChart.isNumber(_.get('row')), L = _.data.length;
+		var _ = this._(),g = _.root,c = iChart.isNumber(_.get('column')),r = iChart.isNumber(_.get('row')), L = _.data.length;
 		/**
 		 * if the position is incompatible,rectify it.
 		 */
@@ -254,7 +254,7 @@ iChart.Legend = iChart.extend(iChart.Component, {
 		}
 
 		/**
-		 * if this position incompatible with container,rectify it.
+		 * if this position incompatible with root,rectify it.
 		 */
 		if (g.get('align') == _.L) {
 			if (_.get('valign') == 'middle') {

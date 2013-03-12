@@ -1,5 +1,5 @@
 /**
- * @overview this component use for abc
+ * @overview the pie2d componment
  * @component#@chart#iChart.Pie2D
  * @extend#iChart.Pie
  */
@@ -15,9 +15,6 @@ iChart.Pie2D = iChart.extend(iChart.Pie, {
 
 		this.type = 'pie2d';
 
-	},
-	doSector:function(_){
-		return  new iChart[_.sub](_.get('sub_option'), _);
 	},
 	doConfig : function() {
 		iChart.Pie2D.superclass.doConfig.call(this);

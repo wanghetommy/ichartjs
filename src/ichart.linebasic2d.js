@@ -18,7 +18,6 @@ iChart.LineBasic2D = iChart.extend(iChart.Line, {
 		this.tipInvokeHeap = [];
 	},
 	doAnimation : function(t, d,_) {
-		_.coo.draw();
 		_.lines.each(function(l){
 			l.get('points').each(function(p){
 				p.y = l.y - Math.ceil(_.animationArithmetic(t, 0, l.y - p.y_, d));
@@ -33,16 +32,17 @@ iChart.LineBasic2D = iChart.extend(iChart.Line, {
 		/**
 		 * get the max/min scale of this coordinate for calculated the height
 		 */
-		var S = _.coo.getScale(_.get('scaleAlign')), H = _.get('coordinate.valid_height'), sp = _.get('label_spacing'), points, x, y, 
-		ox = _.get('sub_option.originx'), oy = _.get('sub_option.originy')- S.basic*H, p;
+		var S, H = _.coo.get('valid_height'), sp = _.get('point_space'), points, x, y, 
+		ox = _.get('sub_option.originx'), oy, p;
 		
 		_.push('sub_option.tip.showType', 'follow');
 		_.push('sub_option.coordinate', _.coo);
 		_.push('sub_option.tipInvokeHeap', _.tipInvokeHeap);
 		_.push('sub_option.point_space', sp);
 		
-		
 		_.data.each(function(d, i) {
+			S = _.coo.getScale(d.scaleAlign||_.get('scaleAlign'));
+			oy = _.get('sub_option.originy')- S.basic*H;
 			points = [];
 			d.value.each(function(v, j) {
 				x = sp * j;
@@ -57,10 +57,13 @@ iChart.LineBasic2D = iChart.extend(iChart.Line, {
 				points.push(p);
 			}, _);
 			
-			_.push('sub_option.name', d.name);
+			/**
+			 * merge the option
+			 */
+			iChart.merge(_.get('sub_option'),d);
+			
 			_.push('sub_option.points', points);
 			_.push('sub_option.brushsize', d.linewidth || d.line_width || 1);
-			_.push('sub_option.background_color', d.background_color || d.color);
 			_.lines.push(new iChart.LineSegment(_.get('sub_option'), _));
 		}, this);
 	}

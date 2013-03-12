@@ -21,9 +21,13 @@ iChart.Column = iChart.extend(iChart.Chart, {
 			 */
 			coordinate : {},
 			/**
-			 * @cfg {Number} the width of each column(default to calculate according to coordinate's width)
+			 * @cfg {Number} By default,if a width is not specified the chart will attempt to distribution in horizontally.(default to undefined)
 			 */
-			colwidth : undefined,
+			column_width : undefined,
+			/**
+			 * @cfg {Number} the space of each column.this option is readOnly.(default to undefined)
+			 */
+			column_space : undefined,
 			/**
 			 * @cfg {Number} the distance of column's bottom and text(default to 6)
 			 */
@@ -49,7 +53,6 @@ iChart.Column = iChart.extend(iChart.Chart, {
 	},
 	doAnimation : function(t, d,_) {
 		var h;
-		_.coo.draw();
 		_.labels.each(function(l){
 			l.draw();
 		});
@@ -78,63 +81,72 @@ iChart.Column = iChart.extend(iChart.Chart, {
 	doParse : function(_,d, i, o) {
 		_.doActing(_,d,o,i);
 	},
+	engine:function(_){
+		var cw = _.get('column_width'),
+		s = _.get('column_space'),
+		S = _.coo.getScale(_.get('scaleAlign')),
+		H = _.coo.get(_.H), 
+		w2 = cw / 2, 
+		q = cw * (_.get('group_fator') || 0), 
+		gw = _.dataType != 'complex'?(cw + s):(_.data.length * cw + s + (_.is3D() ? (_.data.length - 1) * q : 0)), 
+		y0 = _.coo.get(_.Y) +  H,
+		y = y0 - S.basic*H - (_.is3D()?(_.get('zHeight') * (_.get('bottom_scale') - 1) / 2 * _.get('yAngle_')):0),
+		x = s+_.coo.get('x_start');
+		y0 = y0 + _.get('text_space') + _.coo.get('axis.width')[2];
+		/**
+		 * applies paramters to subClass
+		 */
+		_.doEngine(_,cw,s,S,H,w2,q,gw,x,y,y0);
+	},
 	doConfig : function() {
 		iChart.Column.superclass.doConfig.call(this);
 		
-		var _ = this._(),c = 'colwidth',z = 'z_index';
-		
+		var _ = this._(),c = 'column_width',z = 'z_index';
 		_.sub = _.is3D()?'Rectangle3D':'Rectangle2D';
-		
 		_.rectangles = [];
 		_.labels = [];
-		
 		_.components.push(_.labels);
 		_.components.push(_.rectangles);
-		
-		/**
-		 * apply the coordinate feature
-		 */
-		iChart.Coordinate.coordinate.call(_);
-		
-		_.rectangles.zIndex = _.get(z);
-		
-		_.labels.zIndex = _.get(z) + 1;
-		
-		var L = _.data.length, W = _.get('coordinate.valid_width'),w_,hw,KL;
-		
-		if (_.dataType == 'simple') {
-			w_= Math.floor(W*2 / (L * 3 + 1));
-			hw = _.pushIf(c, w_);
-			KL = L+1;
-		}else{
-			KL = _.get('labels').length;
-			L = KL * L + (_.is3D()?(L-1)*KL*_.get('group_fator'):0);
-			w_= Math.floor(W / (KL + 1 + L));
-			hw = _.pushIf(c,w_);
-			KL +=1;
-		}
-		
-		if (hw * L > W) {
-			hw = _.push(c, w_);
-		}
-		/**
-		 * the space of two column
-		 */
-		_.push('hispace', (W - hw * L) / KL);
-		
-		if (_.is3D()) {
-			_.push('zHeight', _.get(c) * _.get('zScale'));
-			_.push('sub_option.zHeight', _.get('zHeight'));
-			_.push('sub_option.xAngle_', _.get('xAngle_'));
-			_.push('sub_option.yAngle_', _.get('yAngle_'));
-		}
 		/**
 		 * use option create a coordinate
 		 */
-		_.coo = iChart.Coordinate.coordinate_.call(_);
+		_.coo = iChart.Coordinate.coordinate_.call(_,function(){
+			var L = _.data.length, W = _.get('coordinate.valid_width'),w_,hw,KL;
+			
+			if (_.dataType == 'complex') {
+				KL = _.get('labels').length;
+				L = KL * L + (_.is3D()?(L-1)*KL*_.get('group_fator'):0);
+				w_= Math.floor(W / (KL + 1 + L));
+				hw = _.pushIf(c,w_);
+				KL +=1;
+			}else{
+				if(_.dataType == 'stacked'){
+					L = _.get('labels').length;
+				}
+				w_= Math.floor(W*2 / (L * 3 + 1));
+				hw = _.pushIf(c, w_);
+				KL = L+1;
+			}
+			
+			if(hw * L > W){
+				hw = _.push(c, w_);
+			}
+			
+			/**
+			 * the space of two column
+			 */
+			_.push('column_space', (W - hw * L) / KL);
+			
+			if (_.is3D()) {
+				_.push('zHeight', _.get(c) * _.get('zScale'));
+				_.push('sub_option.zHeight', _.get('zHeight'));
+				_.push('sub_option.xAngle_', _.get('xAngle_'));
+				_.push('sub_option.yAngle_', _.get('yAngle_'));
+			}
+		});
 		
-		_.components.push(_.coo);
-		
+		_.rectangles.zIndex = _.get(z);
+		_.labels.zIndex = _.get(z) + 1;
 		_.push('sub_option.width', _.get(c));
 	}
 

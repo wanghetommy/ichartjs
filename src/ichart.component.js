@@ -47,6 +47,7 @@ iChart.Component = iChart.extend(iChart.Painter, {
 		 * If method draw be proxy.(default to false)
 		 */
 		this.proxy = false;
+		this.ICHARTJS_CHART = false;
 		this.inject(c);
 	},
 	initialize : function() {
@@ -70,6 +71,11 @@ iChart.Component = iChart.extend(iChart.Painter, {
 			y : this.y,
 			width : this.get("width"),
 			height : this.get("height")
+		}
+	},
+	destroy:function(){
+		if(this.tip){
+			this.tip.destroy();
 		}
 	},
 	doConfig : function() {
@@ -104,7 +110,7 @@ iChart.Component = iChart.extend(iChart.Painter, {
 		return this.isEventValid(e,this);
 	},
 	redraw : function(e) {
-		this.container.draw(e);
+		this.root.draw(e,this.root.Combination);
 	},
 	commonDraw : function(_) {
 		/**
@@ -113,12 +119,6 @@ iChart.Component = iChart.extend(iChart.Painter, {
 		if (!_.proxy)
 			_.doDraw.call(_,_);
 
-	},
-	inject : function(c) {
-		if (c) {
-			this.container = c;
-			this.target = this.T = c.T;
-		}
 	}
 });
 /**

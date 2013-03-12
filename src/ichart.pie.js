@@ -1,5 +1,5 @@
 /**
- * @overview this component use for abc
+ * @overview the base class of pie chart
  * @component#iChart.Pie
  * @extend#iChart.Chart
  */
@@ -79,7 +79,8 @@ iChart.Pie = iChart.extend(iChart.Chart, {
 		 * @paramter int#index
 		 */
 		'rebound');
-
+		
+		this.ILLUSIVE_COO = true;
 	},
 	/**
 	 * @method Toggle sector bound or rebound by a specific index.
@@ -139,7 +140,7 @@ iChart.Pie = iChart.extend(iChart.Chart, {
 	doParse : function(_,d, i) {
 		var t = d.name + ' ' +_.getPercent(d.value);
 		
-		_.doActing(_,d,i,t);
+		_.doActing(_,d,null,i,t);
 		
 		_.push('sub_option.id', i);
 		
@@ -149,7 +150,11 @@ iChart.Pie = iChart.extend(iChart.Chart, {
 		_.push('sub_option.listeners.changed', function(se, st, i) {
 			_.fireEvent(_, st ? 'bound' : 'rebound', [_, se.get('name')]);
 		});
+		
 		_.sectors.push(_.doSector(_,d));
+	},
+	doSector:function(_){
+		return  new iChart[_.sub](_.get('sub_option'), _);
 	},
 	dolayout : function(_,x,y,l,d,Q) {
 		if(_.is3D()?iChart.inEllipse(_.get(_.X) - x,_.topY-y,_.a,_.b):iChart.distanceP2P(_.get(_.X),_.topY,x,y)<_.r){
@@ -189,7 +194,6 @@ iChart.Pie = iChart.extend(iChart.Chart, {
 	},
 	doConfig : function() {
 		iChart.Pie.superclass.doConfig.call(this);
-		iChart.Assert.gt(this.total,0,'this.total');
 		var _ = this._(),r = _.get('radius'), f = _.get('sub_option.label') ? 0.35 : 0.44,pi2=Math.PI*2;
 		_.sub = _.is3D()?'Sector3D':'Sector2D';
 		_.sectors = [];
@@ -199,8 +203,6 @@ iChart.Pie = iChart.extend(iChart.Chart, {
 		//If 3D,let it bigger
 		if (_.is3D())
 			f += 0.06;
-		
-		f = Math.floor(_.get('minDistance') * f);
 		
 		var L = _.data.length,sepa = iChart.angle2Radian(iChart.between(0,90,_.get('separate_angle'))),PI = pi2-sepa,sepa=sepa/L,eA = _.oA+sepa, sA = eA;
 		
@@ -216,26 +218,9 @@ iChart.Pie = iChart.extend(iChart.Chart, {
 			sA = eA+sepa;
 		}, _);
 		
-		r = iChart.parsePercent(r,f);
-		/**
-		 * calculate pie chart's radius
-		 */
-		if (r <= 0 || r > f) {
-			r = _.push('radius',f);
-		}
-		_.r = r;
+		_.r = r = iChart.parsePercent(r,Math.floor(_.get('minDistance') * f));
 		
-		/**
-		 * calculate pie chart's alignment
-		 */
-		if (_.get('align') == _.L) {
-			_.push(_.X, r + _.get('l_originx') + _.get('offsetx'));
-		} else if (_.get('align') == _.R) {
-			_.push(_.X, _.get('r_originx') - r + _.get('offsetx'));
-		} else {
-			_.push(_.X, _.get('centerx') + _.get('offsetx'));
-		}
-		_.topY = _.push(_.Y, _.get('centery') + _.get('offsety'));
+		_.topY = _.originXY(_,[r + _.get('l_originx'),_.get('r_originx') - r,_.get('centerx')],[_.get('centery')]).y;
 		
 		iChart.apply(_.get('sub_option'),iChart.clone([_.X, _.Y, 'bound_event','mutex','increment'], _.options));
 		

@@ -85,7 +85,8 @@ iChart.Sector = iChart.extend(iChart.Component, {
 			/**
 			 * @cfg {<link>iChart.Label</link>} Specifies the config of label.when mini_label is unavailable,there will as a <link>iChart.Label</link>. note:set false to make label disabled.
 			 */
-			label : {}
+			label : {},
+			rounded:false
 		});
 
 		/**
@@ -170,6 +171,12 @@ iChart.Sector = iChart.extend(iChart.Component, {
 
 		var _ = this._(), v = _.variable.event, f = _.get('label'),event=_.get('bound_event'),g;
 		
+		if(_.get('rounded')){
+			_.push('startAngle',0);
+			_.push('endAngle',Math.PI*2);
+			return;
+		}
+		
 		/**
 		 * mouseover light
 		 */
@@ -203,7 +210,7 @@ iChart.Sector = iChart.extend(iChart.Component, {
 			}
 			_.tip = new iChart.Tip(_.get('tip'), _);
 		}
-
+		
 		v.poped = false;
 		
 		/**

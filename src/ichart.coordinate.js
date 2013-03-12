@@ -144,6 +144,17 @@ iChart.Scale = iChart.extend(iChart.Component, {
 			valid : false
 		};
 	},
+	getScale:function(_){
+		var u = [_.get('basic_value'),_.get('start_scale'),_.get('end_scale'),_.get('end_scale') - _.get('start_scale'),0];
+		u[4] = iChart.inRange(u[1],u[2]+1,u[0])||iChart.inRange(u[2]-1,u[1],u[0]);
+		return {
+			range:u[4],
+			basic:u[4]?(u[0]-u[1]) / u[3]:0,
+			start : u[4]?u[0]:u[1],
+			end : u[2],
+			distance : u[3]
+		}
+	},
 	/**
 	 * from left to right,top to bottom
 	 */
@@ -170,8 +181,7 @@ iChart.Scale = iChart.extend(iChart.Component, {
 	},
 	doConfig : function() {
 		iChart.Scale.superclass.doConfig.call(this);
-		iChart.Assert.isNumber(this.get('distance'), 'distance');
-
+		
 		var _ = this._(),abs = Math.abs,customL = _.get('labels').length, min_s = _.get('min_scale'), max_s = _.get('max_scale'), s_space = _.get('scale_space'), e_scale = _.get('end_scale'), start_scale = _.get('start_scale');
 
 		_.items = [];
@@ -181,18 +191,19 @@ iChart.Scale = iChart.extend(iChart.Component, {
 		if (customL > 0) {
 			_.number = customL - 1;
 		} else {
-			iChart.Assert.isTrue(iChart.isNumber(max_s) || iChart.isNumber(e_scale), 'max_scale&end_scale');
-			/**
-			 * end_scale must greater than maxScale
-			 */
-			if (!iChart.isNumber(e_scale) || e_scale < max_s) {
-				e_scale = _.push('end_scale', iChart.ceil(max_s));
-			}
 			/**
 			 * startScale must less than minScale
 			 */
 			if (start_scale > min_s) {
 				start_scale = _.push('start_scale', iChart.floor(min_s));
+			}
+			
+			/**
+			 * end_scale must greater than maxScale
+			 */
+			if (!iChart.isNumber(e_scale) || e_scale < max_s) {
+				e_scale = iChart.ceil(max_s);
+				e_scale = _.push('end_scale', (!e_scale&&!start_scale)?1:e_scale);
 			}
 			
 			
@@ -206,13 +217,13 @@ iChart.Scale = iChart.extend(iChart.Component, {
 			 * value of each scale
 			 */
 			if (!s_space || s_space >( e_scale - start_scale)) {
-				s_space = _.push('scale', (e_scale - start_scale) / _.get('scale_share'));
+				var W = ((e_scale - start_scale)+"").indexOf('.')+1,M=1;
+				while(W>0){W--;M*=10;}
+				s_space = _.push('scale', (e_scale - start_scale)*M / _.get('scale_share')/M);
 			}
 			
 			if (parseInt(s_space)!=s_space && _.get('decimalsnum') == 0) {
-				var dec = s_space+"";
-				dec =  dec.substring(dec.indexOf('.')+1);
-				_.push('decimalsnum', dec.length);
+				_.push('decimalsnum',(s_space+"").substring((s_space+"").indexOf('.')+1).length);
 			}
 		}
 		
@@ -277,10 +288,10 @@ iChart.Scale = iChart.extend(iChart.Component, {
 				x1 : x + x1,
 				y1 : y + y1
 			});
-
 			/**
 			 * put the label into a Text?
 			 */
+			if(_.get('label'))
 			_.labels.push(new iChart.Text(iChart.applyIf(iChart.apply(_.get('label'), iChart.merge({
 				text : text,
 				x : x,
@@ -303,38 +314,62 @@ iChart.Scale = iChart.extend(iChart.Component, {
  * @end
  */
 iChart.Coordinate = {
-	coordinate_ : function() {
-		var _ = this._(),scale = _.get('coordinate.scale'),li=_.get('scaleAlign'),f=true;
+	coordinate_ : function(g) {
+		var _ = this._(),coo = _.get('coordinate');
+		if(coo.ICHARTJS_OBJECT){
+			/**
+			 * Imply it was illusive
+			 */
+			_.ILLUSIVE_COO = true;
+			return coo;
+		}
+		/**
+		 * Apply the coordinate feature
+		 */
+		var f = 0.84,
+			parse=iChart.parsePercent, 
+			scale = _.get('coordinate.scale'),
+			li=_.get('scaleAlign'),
+			w = _.push('coordinate.width',parse(_.get('coordinate.width'),Math.floor(_.get('client_width') * f))), 
+			h = _.push('coordinate.height',parse(_.get('coordinate.height'),Math.floor(_.get('client_height') * f))-(_.is3D()?((_.get('coordinate.pedestal_height')||22) + (_.get('coordinate.board_deep')||20)):0));
+			
+			_.push('coordinate.valid_width',parse(_.get('coordinate.valid_width'),w)), 
+			_.push('coordinate.valid_height',parse(_.get('coordinate.valid_height'),h));
+		
+		_.originXY(_,[_.get('l_originx'),_.get('r_originx') - w,_.get('centerx') - w / 2],[_.get('centery') - h / 2]);
+		
+		_.push('coordinate.originx', _.x);
+		_.push('coordinate.originy', _.y);
+		
+		/**
+		 * invoke call back
+		 */
+		if(g)g();
+		
 		if(iChart.isObject(scale)){
 			scale = [scale];
 		}
 		if(iChart.isArray(scale)){
 			scale.each(function(s){
-				if(s.position ==li){
-					f  = false;
-					return false;
+				/**
+				 * applies the percent shower
+				 */
+				if(_.get('percent')&&s.position==li){
+					s = iChart.apply(s,{
+						start_scale : 0,
+						end_scale : 100,
+						scale_space : 10,
+						listeners:{
+							parseText:function(t,x,y){
+								return {text:t+'%'}
+							}
+						 }
+					});
 				}
-			});
-			if(f){
-				if(li==_.L){
-					li = _.R;
-				}else if(li==_.R){
-					li = _.L;
-				}else if(li==_.O){
-					li = _.B;
-				}else{
-					li = _.O;
-				}
-				_.push('scaleAlign',li);
-			}
-			scale.each(function(s){
-				if(s.position ==li){
-					if(!s.start_scale)
-						s.min_scale = _.get('minValue');
-					if(!s.end_scale)
-						s.max_scale = _.get('maxValue');
-					return false;
-				}
+				if(!s.start_scale)
+					s.min_scale = _.get('minValue');
+				if(!s.end_scale)
+					s.max_scale = _.get('maxValue');
 			});
 		}else{
 			_.push('coordinate.scale',{
@@ -354,68 +389,13 @@ iChart.Coordinate = {
 			_.push('coordinate.zHeight', _.get('zHeight') * _.get('bottom_scale'));
 		}
 		
-		return new iChart[_.is3D()?'Coordinate3D':'Coordinate2D'](_.get('coordinate'), _);
-	},
-	coordinate : function() {
-		/**
-		 * calculate chart's measurement
-		 */
-		var _ = this._(), f = 0.8, 
-			_w = _.get('client_width'), 
-			_h = _.get('client_height'), 
-			w = _.push('coordinate.width',iChart.parsePercent(_.get('coordinate.width'),_w)), 
-			h = _.push('coordinate.height',iChart.parsePercent(_.get('coordinate.height'),_h)), 
-			vw = _.get('coordinate.valid_width'), 
-			vh = _.get('coordinate.valid_height');
-		
-		if (!h || h > _h) {
-			h = _.push('coordinate.height', Math.floor(_h * f));
-		}
-		
-		if (!w || w > _w) {
-			w = _.push('coordinate.width', Math.floor(_w * f));
-		}
-		
-		vw = _.push('coordinate.valid_width',iChart.parsePercent(vw,w));
-		vh = _.push('coordinate.valid_height',iChart.parsePercent(vh,h));
-		
-		if (_.is3D()) {
-			var a = _.get('coordinate.pedestal_height');
-			var b = _.get('coordinate.board_deep');
-			a = iChart.isNumber(a)?a:22;
-			b = iChart.isNumber(b)?b:20;
-			h = _.push('coordinate.height', h - a - b);
-		}
-		
-		/**
-		 * calculate chart's alignment
-		 */
-		if (_.get('align') == _.L) {
-			_.push(_.X, _.get('l_originx'));
-		} else if (_.get('align') == _.R) {
-			_.push(_.X, _.get('r_originx') - w);
-		} else {
-			_.push(_.X, _.get('centerx') - w / 2);
-		}
-
-		_.x = _.push(_.X, _.get(_.X) + _.get('offsetx'));
-		_.y = _.push(_.Y, _.get('centery') - h / 2 + _.get('offsety'));
-		
-		if (!vw || vw > w) {
-			_.push('coordinate.valid_width', w);
-		}
-		
-		if (!vh || vh > h) {
-			_.push('coordinate.valid_height', h);
-		}
-		
-		_.push('coordinate.originx', _.x);
-		_.push('coordinate.originy', _.y);
-		
+		coo = new iChart[_.is3D()?'Coordinate3D':'Coordinate2D'](_.get('coordinate'), _);
+		_.components.push(coo);
+		return coo;
 	}
 }
 /**
- * @overview this component use for abc
+ * @overview the coordinate2d componment
  * @component#iChart.Coordinate2D
  * @extend#iChart.Component
  */
@@ -574,26 +554,26 @@ iChart.Coordinate2D = iChart.extend(iChart.Component, {
 		this.scale = [];
 		this.gridlines = [];
 	},
-	getScale : function(p) {
-		for ( var i = 0; i < this.scale.length; i++) {
-			var k = this.scale[i];
-			if (k.get('position') == p) {
-				var u = [k.get('basic_value'),k.get('start_scale'),k.get('end_scale'),k.get('end_scale') - k.get('start_scale'),0];
-				u[4] = iChart.inRange(u[1],u[2]+1,u[0])||iChart.inRange(u[2]-1,u[1],u[0]);
-				return {
-					range:u[4],
-					basic:u[4]?(u[0]-u[1]) / u[3]:0,
-					start : u[4]?u[0]:u[1],
-					end : u[2],
-					distance : u[3]
-				};
+	getScale : function(p,L) {
+		var _ = this._(),r;
+		for(var i=0;i<_.scale.length;i++){
+			if(_.scale[i].get('position')==p){
+				return _.scale[i].getScale(_.scale[i]);
 			}
 		}
-		return {
-			start : 0,
-			end : 0,
-			distance : 0
-		};
+		if(!L){
+			if(p==_.L){
+				p = _.R;
+			}else if(p==_.R){
+				p = _.L;
+			}else if(p==_.O){
+				p = _.B;
+			}else{
+				p = _.O;
+			}
+			return _.getScale(p,true);
+		}
+		throw new Error("there no valid scale");
 	},
 	isEventValid : function(e,_) {
 		return {
@@ -632,14 +612,26 @@ iChart.Coordinate2D = iChart.extend(iChart.Component, {
 			s.draw()
 		});
 	},
+	destroy:function(){
+		if(this.crosshair){
+			this.crosshair.destroy();
+		}
+	},
+	doCrosshair:function(_){
+		if (_.get('crosshair.enable')&&!_.crosshair) {
+			_.push('crosshair.wrap', _.root.shell);
+			_.push('crosshair.height', _.get(_.H));
+			_.push('crosshair.width', _.get(_.W));
+			_.push('crosshair.top', _.y);
+			_.push('crosshair.left', _.x);
+			_.crosshair = new iChart.CrossHair(_.get('crosshair'), _);
+		}
+	},
 	doConfig : function() {
 		iChart.Coordinate2D.superclass.doConfig.call(this);
 
 		var _ = this._();
-
-		iChart.Assert.isNumber(_.get(_.W), _.W);
-		iChart.Assert.isNumber(_.get(_.H), _.H);
-
+		
 		/**
 		 * this element not atomic because it is a container,so this is a particular case.
 		 */
@@ -660,15 +652,7 @@ iChart.Coordinate2D = iChart.extend(iChart.Component, {
 			_.push('axis.width', [0, 0, 0, 0]);
 		}
 
-		if (_.get('crosshair.enable')) {
-			_.push('crosshair.wrap', _.container.shell);
-			_.push('crosshair.height', _.get(_.H));
-			_.push('crosshair.width', _.get(_.W));
-			_.push('crosshair.top', _.y);
-			_.push('crosshair.left', _.x);
-
-			_.crosshair = new iChart.CrossHair(_.get('crosshair'), _);
-		}
+		_.doCrosshair(_);
 
 		var jp, cg = !!(_.get('gridlinesVisible') && _.get('grids')), hg = cg && !!_.get('grids.horizontal'), vg = cg && !!_.get('grids.vertical'), h = _.get(_.H), w = _.get(_.W), vw = _.get('valid_width'), vh = _.get('valid_height'), k2g = _.get('gridlinesVisible')
 				&& _.get('scale2grid') && !(hg && vg), sw = (w - vw) / 2, sh = (h - vh) / 2, axis = _.get('axis.width');
@@ -719,7 +703,7 @@ iChart.Coordinate2D = iChart.extend(iChart.Component, {
 				kd['distance'] = h;
 				kd['valid_distance'] = vh;
 			}
-			_.scale.push(new iChart.Scale(kd, _.container));
+			_.scale.push(new iChart.Scale(kd, _.root));
 		}, _);
 
 		var iol = _.push('ignoreOverlap', _.get('ignoreOverlap') && _.get('axis.enable') || _.get('ignoreEdge'));
@@ -780,7 +764,7 @@ iChart.Coordinate2D = iChart.extend(iChart.Component, {
 		}
 		if (vg) {
 			var gv = _.get('grids.vertical');
-			iChart.Assert.gt(gv['value'],0, 'value');
+			iChart.Assert.isTrue(gv['value']>0, 'vertical value');
 			var d = w / gv['value'], n = gv['value'];
 			if (gv['way'] == 'given_value') {
 				n = d;
@@ -804,7 +788,7 @@ iChart.Coordinate2D = iChart.extend(iChart.Component, {
 		}
 		if (hg) {
 			var gh = _.get('grids.horizontal');
-			iChart.Assert.gt(gh['value'],0,'value');
+			iChart.Assert.isTrue(gh['value']>0,'horizontal value');
 			var d = h / gh['value'], n = gh['value'];
 			if (gh['way'] == 'given_value') {
 				n = d;
@@ -832,7 +816,7 @@ iChart.Coordinate2D = iChart.extend(iChart.Component, {
  * @end
  */
 /**
- * @overview this component use for abc
+ * @overview the coordinate3d componment
  * @component#iChart.Coordinate3D
  * @extend#iChart.Coordinate2D
  */
@@ -958,12 +942,13 @@ iChart.Coordinate3D = iChart.extend(iChart.Coordinate2D, {
 
 		var _ = this._(),
 			ws = _.get('wall_style'),
-			bg = _.get('background_color'),
+			bg = _.get('background_color')||'#d6dbd2',
 			h = _.get(_.H),
 			w = _.get(_.W),
 			f = _.get('color_factor'),
 			offx = _.push('z_offx',_.get('xAngle_') * _.get('zHeight')),
 			offy = _.push('z_offy',_.get('yAngle_') * _.get('zHeight'));
+		
 			/**
 			 * bottom-lower bottom-left
 			 */

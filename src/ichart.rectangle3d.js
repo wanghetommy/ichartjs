@@ -1,5 +1,5 @@
 	/**
-	 * @overview this component use for abc
+	 * @overview the rectangle3d componment
 	 * @component#iChart.Rectangle3D
 	 * @extend#iChart.Rectangle
 	 */

@@ -23,6 +23,10 @@ iChart.Html = iChart.extend(iChart.Element,{
 		this.set({
 			 animation:true,
 			 /**
+			  * @cfg If true the component will has defalut action when event fired.(default to true)
+			  */
+			 default_action:true,
+			 /**
 			  * @inner Specifies the width of this element in pixels.
 			  */
 			 width:0,
@@ -53,19 +57,30 @@ iChart.Html = iChart.extend(iChart.Element,{
 		this.transitions = "";
 	},
 	initialize:function(){
-		this.wrap = this.get('wrap');
-		this.dom = document.createElement("div");
+		var _ = this._();
+		_.wrap = _.get('wrap');
+		_.dom = document.createElement("div");
 		
-		if(this.get('shadow')){
-			this.css('boxShadow',this.get('shadow_offsetx')+'px '+this.get('shadow_offsety')+'px '+this.get('shadow_blur')+'px '+this.get('shadow_color'));
+		if(_.get('shadow')){
+			_.css('boxShadow',_.get('shadow_offsetx')+'px '+_.get('shadow_offsety')+'px '+_.get('shadow_blur')+'px '+_.get('shadow_color'));
 		}
-		if(this.get('border.enable')){
-			this.css('border',this.get('border.width')+"px "+this.get('border.style')+" "+this.get('border.color'));
-			this.css('borderRadius',this.get('border.radius')+"px");
+		if(_.get('border.enable')){
+			_.css('border',_.get('border.width')+"px "+_.get('border.style')+" "+_.get('border.color'));
+			_.css('borderRadius',_.get('border.radius')+"px");
 		}
-		this.css('zIndex',this.get('index'));
 		
-		this.applyStyle();
+		_.css('position','absolute');
+		_.css('zIndex',_.get('index'));
+		
+		_.applyStyle();
+		
+		_.wrap.appendChild(_.dom);
+		
+		_.style = _.dom.style;
+		
+		if(_.get('default_action')){
+			_.doAction(_);
+		}
 	},
 	width:function(){
 		return this.dom.offsetWidth;
@@ -82,6 +97,9 @@ iChart.Html = iChart.extend(iChart.Element,{
 		}
 		iChart.Event.addEvent(this.dom,type,fn,useCapture);
 	},
+	destroy:function(){
+		this.wrap.removeChild(this.dom); 
+	},
 	transition:function(v){
 		this.transitions = this.transitions==''?v:this.transitions+','+v;
 		if(iChart.isWebKit){
@@ -94,8 +112,11 @@ iChart.Html = iChart.extend(iChart.Element,{
 			this.css('transition',this.transitions);
 		}
 	},
+	beforeshow:function(e,m,_){
+		_.follow(e,m,_);
+	},
 	show:function(e,m){
-		this.beforeshow(e,m);
+		this.beforeshow(e,m,this);
 		this.css('visibility','visible');
 		if(this.get('animation')){
 			this.css('opacity',1);

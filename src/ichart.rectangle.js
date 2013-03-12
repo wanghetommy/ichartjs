@@ -1,5 +1,5 @@
 	/**
-	 * @overview this component use for abc
+	 * @overview the base class of rectangle
 	 * @component#iChart.Rectangle
 	 * @extend#iChart.Component
 	 */
@@ -52,6 +52,7 @@
 				 * @cfg {String} Specifies the value's text alignment of chart(defaults to 'top') Available value are:
 				 * @Option 'left'
 				 * @Option 'right'
+				 * @Option 'middle'
 				 * @Option 'top'
 				 * @Option 'bottom'
 				 */
@@ -89,7 +90,6 @@
 		doConfig:function(){
 			iChart.Rectangle.superclass.doConfig.call(this);
 			var _ = this._(),v = _.variable.event,vA=_.get('valueAlign');
-			iChart.Assert.gt(_.get(_.W),0,_.W);
 			
 			/**
 			 * mouseover light
@@ -116,7 +116,7 @@
 			}else if(vA==_.B){
 				y = _.y  + _.height + s;
 				b = _.O;
-			}else{
+			}else if(vA==_.O){
 				y = _.y  - s;
 				b = _.B;
 			}

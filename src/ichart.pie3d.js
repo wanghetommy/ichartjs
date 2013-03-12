@@ -1,5 +1,5 @@
 /**
- * @overview this component use for abc
+ * @overview the pie3d componment
  * @component#@chart#iChart.Pie3D
  * @extend#iChart.Pie
  */
@@ -23,25 +23,13 @@ iChart.Pie3D = iChart.extend(iChart.Pie, {
 			 */
 			yHeight : 30
 		});
-
+		this.positive = true;
 	},
 	doSector : function(_,d) {
-		_.push('sub_option.cylinder_height', (d.cylinder_height ? d.cylinder_height * Math.cos(iChart.angle2Radian(_.get('zRotate'))) : _.get('cylinder_height')));
-		var s = new iChart[_.sub](_.get('sub_option'), _);
-		s.proxy = true;
-		return s;
+		_.push('sub_option.cylinder_height', (d.cylinder_height ? d.cylinder_height * _.get('zRotate') : _.get('cylinder_height')));
+		return new iChart[_.sub](_.get('sub_option'), _);
 	},
-	doConfig : function() {
-		iChart.Pie3D.superclass.doConfig.call(this);
-		var _ = this._(), z = _.get('zRotate');
-		_.push('zRotate', iChart.between(0, 90, 90 - z));
-		_.push('cylinder_height', _.get('yHeight') * Math.cos(iChart.angle2Radian(z)));
-		_.a = _.push('sub_option.semi_major_axis', _.r);
-		_.b = _.push('sub_option.semi_minor_axis', _.r * z / 90);
-		_.topY = _.push('sub_option.originy', _.get(_.Y) - _.get('yHeight') / 2);
-		
-		_.parse(_);
-
+	one:function(_){
 		var layer,spaint,L = [],c = _.get('counterclockwise'), abs = function(n,M) {
 			/**
 			 * If M,close to pi/2,else pi*3/2
@@ -141,7 +129,22 @@ iChart.Pie3D = iChart.extend(iChart.Pie, {
 				_.T.ellipse(s.x, s.y, s.a, s.b, s.get(t), s.get(d), s.get('f_color'), s.get('border.enable'), s.get('border.width'), s.get('border.color'), false, false, true);
 			}, _);
 		}
-
+		_.one = $.emptyFn;
+	},
+	doConfig : function() {
+		iChart.Pie3D.superclass.doConfig.call(this);
+		var _ = this._(), z = iChart.angle2Radian(_.get('zRotate'));
+		
+		_.push('cylinder_height', _.get('yHeight') * _.push('zRotate',Math.abs(Math.cos(z))));
+		
+		_.a = _.push('sub_option.semi_major_axis', _.r);
+		_.b = _.push('sub_option.semi_minor_axis', _.r * Math.abs(Math.sin(z)));
+		_.topY = _.push('sub_option.originy', _.get(_.Y) - _.get('yHeight') / 2);
+		
+		_.parse(_);
+		
+		_.one(_);
+		
 		_.components.push(_.proxy);
 	}
 });

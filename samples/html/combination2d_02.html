@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart.1.1.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css" />
+		<script type="text/javascript">
+		$(function() {
+			var data = [
+						{name : 'MAY\n2011',value : 0.4,color : '#c52120'},
+						{name : 'JUN\n2011',value : 0.6,color : '#c52120'},
+						{name : 'JUL\n2011',value : 1,color : '#c52120'},
+						{name : 'AUG\n2011',value : 1.2,color : '#c52120'},
+						{name : 'SEP\n2011',value : 2,color : '#c52120'},
+						{name : 'OCT\n2011',value : 3.2,color : '#c52120'},
+						{name : 'NOV\n2011',value : 4.8,color : '#c52120'},
+						{name : 'DEC\n2011',value : 7.8,color : '#c52120'},
+						{name : 'JAN\n2012',value : 11.8,color : '#c52120'}
+					];
+			var data1 = [
+				        	{
+				        		name : '',
+				        		value:[16,20,38,52,92,81,88,78,96],
+				        		color:'#34a1d9',
+				        		line_width:5
+				        	}
+				       ];
+		       
+			var chart = new iChart.Column2D({
+				render : 'canvasDiv',
+				data : data,
+				title:{
+					text:'The Rise of Pinterest',
+					color:'#4572a7',
+					textAlign:'left',
+					padding:'0 40',
+					border:{
+						enable:true,
+						width:[0,0,4,0],
+						color:'#4572a7'
+					},
+					height:40
+				},
+				footnote : {
+					text : 'source:comScore',
+					height:30,
+					color:'#c52120',
+					fontweight : 600,
+					padding : '0 40'
+				},
+				width : 800,
+				height : 400,
+				padding:0,
+				label : {
+					fontsize:11,
+					fontweight:600,
+					color : '#666666'
+				},
+				shadow : true,
+				shadow_blur : 2,
+				shadow_color : '#aaaaaa',
+				shadow_offsetx : 1,
+				shadow_offsety : 0,
+				background_color : '#f7f7f7',
+				column_width : 62,
+				sub_option : {
+					label : false,
+					border : {
+						width : 2,
+						radius : '5 5 0 0',//上圆角设置
+						color : '#ffffff'
+					}
+				},
+				coordinate : {
+					background_color : null,
+					grid_color : '#c0c0c0',
+					width : 680,
+					height:220,
+					axis : {
+						color : '#c0d0e0',
+						width : [0, 0, 1, 0]
+					},
+					scale : [{
+						position : 'left',
+						start_scale : 0,
+						end_scale : 12,
+						scale_space : 2,
+						scale_enable : false,
+						label : {
+							fontsize:11,
+							fontweight:600,
+							color : '#666666'
+						}
+					},{
+						 position:'right',	
+						 start_scale:0,
+						 scale_space:20,
+						 end_scale:120,
+						 scale_enable : false,
+						 scaleAlign:'right',
+						 label:{
+							fontsize:11,
+							fontweight:600,
+							color:'#666666'
+						 }
+					}]
+				}
+			});
+			//构造折线图
+			var line = new iChart.LineBasic2D({
+				z_index:1000,
+				data: data1,
+				label:{
+					color:'#4c4f48'
+				},
+				point_space:chart.get('column_width')+chart.get('column_space'),
+				scaleAlign : 'right',
+				sub_option : {
+					label:false,
+					point_size:22
+				},
+				coordinate:chart.coo//共用坐标系
+			});
+			
+			chart.plugin(line);
+			
+			
+			//利用自定义组件构造左侧说明文本
+			chart.plugin(new iChart.Custom({
+					drawFn:function(){
+						//计算位置
+						var coo = chart.getCoordinate(),
+							x = coo.get('originx'),
+							y = coo.get('originy');
+						//在左上侧的位置，渲染一个单位的文字
+						chart.target.textAlign('start')
+						.textBaseline('bottom')
+						.textFont('600 16px Verdana')
+						.fillText('U.S UNIQUE VISITORS',x-20,y-20,false,'#c52120')
+						.textFont('600 11px Verdana')
+						.fillText('in millions',x-20,y-10,false,'#c52120');
+
+						//在右上侧的位置，渲染一个单位的文字
+						chart.target.textAlign('end')
+						.textBaseline('bottom')
+						.textFont('600 16px Verdana')
+						.fillText('AVERAGE MINUTES PRE VISITOR',x+20+coo.get('width'),y-20,false,'#34a1d9')
+						.textFont('600 11px Verdana')
+						.fillText('in thousands',x+20+coo.get('width'),y-10,false,'#34a1d9');
+						
+					}
+			}));
+			
+			chart.draw();
+		});
+	</script>
+	</head>
+	<body>
+		<div id='canvasDiv'></div>
+		<div class='ichartjs_info'>
+			<span class='ichartjs_author'>writen by <a title="示例的贡献者"
+				href="mailto:taylor@ichartjs.com">taylor</a> </span>
+			<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">预览代码</span>
+			<div class='ichartjs_sm'>
+				说明
+			</div>
+			<div class='ichartjs_details'>
+				此示例在示例<a href='column2d_06.html'>pinterest网站访问量</a>基础上组合了一个折线图表。折线图共用了柱形图的坐标系，并且以右侧Y轴作为参照轴。
+			</div>
+			<span class='ichartjs_sm'>备注：</span>
+			<span class='ichartjs_details'>示例数据来源网络。仅供参考。 </span>
+		</div>
+	</body>
+</html>

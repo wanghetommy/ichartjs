@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart.1.1.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css" />
+		<script type="text/javascript">
+		$(function(){
+			var data = [
+			         	{
+			         		name : '一月',
+			         		value:[45,52,54,60],
+			         		color:'#4f81bd'
+			         	},
+			         	{
+			         		name : '二月',
+			         		value:[60,80,105,80],
+			         		color:'#bd4d4a'
+			         	},
+			         	{
+			         		name : '三月',
+			         		value:[50,70,120,100],
+			         		color:'#98c045'
+			         	}
+			         ];
+	        
+			var chart = new iChart.ColumnStacked2D({
+					render : 'canvasDiv',
+					data: data,
+					labels:["北京","上海","广州","深圳"],
+					title : {
+						text:'DPS01A型号产品第一季度4城市销售情况',
+						color:'#254d70'
+					},
+					footnote : '数据来源：销售中心',
+					width : 800,
+					height : 400,
+					column_width:90,
+					background_color : '#ffffff',
+					shadow : true,
+					shadow_blur : 2,
+					shadow_color : '#aaaaaa',
+					shadow_offsetx : 1,
+					shadow_offsety : 0, 
+					sub_option:{
+						label:{color:'#f9f9f9',fontsize:12,fontweight:600},
+						border : {
+							width : 2,
+							color : '#ffffff'
+						} 
+					},
+					label:{color:'#254d70',fontsize:12,fontweight:600},
+					percent:true,//标志为百分比堆积图
+					showpercent:true,
+					decimalsnum:1,
+					legend:{
+						enable:true,
+						background_color : null,
+						line_height:25,
+						color:'#254d70',
+						fontsize:12,
+						fontweight:600,
+						border : {
+							enable : false
+						}
+					},
+					coordinate:{
+						background_color : 0,
+						axis : {
+							color : '#c0d0e0',
+							width : 0
+						}, 
+						scale:[{
+							 position:'left',	
+							 scale_enable : false,
+							 start_scale:0,
+							 scale_space:50,
+							 label:{color:'#254d70',fontsize:11,fontweight:600}
+						}],
+						width:600,
+						height:260
+					}
+			});
+
+			//利用自定义组件构造左侧说明文本
+			chart.plugin(new iChart.Custom({
+					drawFn:function(){
+						//计算位置
+						var coo = chart.getCoordinate(),
+							x = coo.get('originx'),
+							y = coo.get('originy');
+						//在左上侧的位置，渲染一个单位的文字
+						chart.target.textAlign('start')
+						.textBaseline('bottom')
+						.textFont('600 11px Verdana')
+						.fillText('销售量(万件)',x-40,y-12,false,'#254d70');
+						
+					}
+			}));
+			
+			chart.draw();
+		});
+	</script>
+	</head>
+	<body>
+		<div id='canvasDiv'></div>
+		<div class='ichartjs_info'>
+			<span class='ichartjs_author'>writen by <a title="示例的贡献者"
+				href="mailto:taylor@ichartjs.com">taylor</a> </span>
+			<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">预览代码</span>
+			<div class='ichartjs_sm'>
+				说明
+			</div>
+			<div class='ichartjs_details'>
+				这是一个2D堆积柱形图的示例，该示例展示了2012年第一季度DPS01A型号的产品销售情况。堆积柱形图与簇状柱形图数据源一致，要注意两者表现的区别。
+			</div>
+			<span class='ichartjs_sm'>备注：</span>
+			<span class='ichartjs_details'>数据均为模拟。 </span>
+		</div>
+	</body>
+</html>

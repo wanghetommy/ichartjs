@@ -24,14 +24,20 @@
 					collapsible: true,
 					autoHeight: false
 				}); 
-				if(hash.indexOf("#")!=-1){
-					hash = hash.substring(1,hash.length);
-					hash = hash.split('&');
-					document.getElementById("viewport").src="html/"+hash[0]+".html";
-					index = parseInt(hash[1]) || 0;
-				}else{
-					document.getElementById("viewport").src="html/area2d_01.html";
+				try{ 
+					document.createElement('canvas').getContext('2d');
+					if(hash.indexOf("#")!=-1){
+						hash = hash.substring(1,hash.length);
+						hash = hash.split('&');
+						document.getElementById("viewport").src="html/"+hash[0]+".html";
+						index = parseInt(hash[1]) || 0;
+					}else{
+						document.getElementById("viewport").src="html/area2d_01.html";
+					}
+				}catch (e) {
+					document.getElementById("viewport").src="notsupport.html";
 				}
+				
 				$( "#ichartjs_accordion" ).accordion( "activate" ,index);
 				
 				$pre = $("#ichartjs_pre");
@@ -115,6 +121,7 @@
 						<a target="viewport" class='ichartjs_item' href='html/area2d_03.html'>多点重合提示的面积图</a>
 						<a target="viewport" class='ichartjs_item' href='html/area2d_04.html'>A产品2011年度订单数据分析</a>
 						<a target="viewport" class='ichartjs_item' href='html/area2d_05.html'>A网站访问量数据分析</a>
+						<a target="viewport" class='ichartjs_item' href='html/area2d_06.html'>春节期间销售数据分析</a>
 					</div>
 					<h3><a href="#">2D条形图</a></h3>
 					<div>
@@ -123,7 +130,7 @@
 						<a target="viewport" class='ichartjs_item' href='html/bar2d_03.html'>6月份中国手机市场份额TOP10</a>
 						<a target="viewport" class='ichartjs_item' href='html/bar2d_04.html'>中国社交媒体网站TOP7</a>
 						<a target="viewport" class='ichartjs_item' href='html/bar2d_05.html'>全球搜索引擎Top5</a>
-						<a target="viewport" class='ichartjs_item' href='html/barmulti2d_01.html'>上半年产品销售对比</a>
+						<a target="viewport" class='ichartjs_item' href='html/barmulti2d_01.html'>上半年产品销售对比(簇状)</a>
 					</div>
 					<h3><a href="#">2D柱形图</a></h3>
 					<div>
@@ -133,15 +140,19 @@
 						<a target="viewport" class='ichartjs_item' href='html/column2d_04.html'>2011年4月浏览器市场份额</a>
 						<a target="viewport" class='ichartjs_item' href='html/column2d_05.html'>第六次全国人口普查数据</a>
 						<a target="viewport" class='ichartjs_item' href='html/column2d_06.html'>pinterest网站访问量</a>
-						<a target="viewport" class='ichartjs_item' href='html/columnmulti2d_01.html'>上半年产品销售对比</a>
+						<a target="viewport" class='ichartjs_item' href='html/columnmulti2d_01.html'>上半年产品销售对比(簇状)</a>
+						<a target="viewport" class='ichartjs_item' href='html/columnstacked2d_01.html'>产品销售情况(堆积)</a>
+						<a target="viewport" class='ichartjs_item' href='html/columnstacked2d_02.html'>限额以上连锁零售业情况(堆积)</a>
 					</div>
 					<h3><a href="#">3D柱形图</a></h3>
 					<div>
 						<a target="viewport" class='ichartjs_item' href='html/column3d_01.html'>基本柱形图</a>
-						<a target="viewport" class='ichartjs_item' href='html/column3d_02.html'>自定义刻度的柱形图</a>
+						<a target="viewport" class='ichartjs_item' href='html/column3d_02.html'>2013年2月浏览器市场份额</a>
 						<a target="viewport" class='ichartjs_item' href='html/column3d_03.html'>2011年度销售5强A</a>
 						<a target="viewport" class='ichartjs_item' href='html/column3d_04.html'>2011年度销售5强B</a>
-						<a target="viewport" class='ichartjs_item' href='html/columnmulti3d_01.html'>2002-2011年招生情况</a>
+						<a target="viewport" class='ichartjs_item' href='html/columnmulti3d_01.html'>2002-2011年招生情况(簇状)</a>
+						<a target="viewport" class='ichartjs_item' href='html/columnstacked3d_01.html'>产品销售情况(堆积)</a>
+						<a target="viewport" class='ichartjs_item' href='html/columnstacked3d_02.html'>连锁零售企业总部数TOP5(堆积)</a>
 					</div>
 					<h3><a href="#">折线图</a></h3>
 					<div>
@@ -191,6 +202,12 @@
 						<a target="viewport" class='ichartjs_item' href='html/custom_column2d_01.html'>自定义平均薪水线</a>
 						<a target="viewport" class='ichartjs_item' href='html/custom_column2d_02.html'>突出平均薪水线一下区域</a>
 					</div>
+					<h3><a href="#">组合图</a></h3>
+					<div>
+						<a target="viewport" class='ichartjs_item' href='html/combination2d_01.html'>2011年度销售5强A</a>
+						<a target="viewport" class='ichartjs_item' href='html/combination2d_02.html'>pinterest网站访问量</a>
+						<a target="viewport" class='ichartjs_item' href='html/combination3d_01.html'>2011年度销售5强B</a>
+					</div>
 					<h3><a href="#">移动客户端预览</a></h3>
 					<div>
 						<a target="_blank" class='ichartjs_item' href='html/mobile_01.html'>2011年浏览器市场份额</a>
@@ -208,7 +225,7 @@
 			<table id="ichartjs_code">
 				<tr>
 					<td valign="top">
-						<pre id="ichartjs_number"><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/><span>1.</span><br/></pre>
+						<pre id="ichartjs_number"></pre>
 					</td>
 					<td valign="top">
 						<pre id="ichartjs_pre"></pre>

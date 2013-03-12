@@ -81,19 +81,20 @@ iChart.Painter = iChart.extend(iChart.Element, {
 			 */
 			listeners : null,
 			/**
-			 * @inner {Number} inner use
+			 * @cfg {Number} If you want to totally override the positioning of the chart,you should setting it.(default to null)
 			 */
-			originx : 0,
+			originx : null,
 			/**
-			 * @inner {Number} inner use
+			 * @cfg {Number} If you want to totally override the positioning of the chart,you should setting it.(default to null)
 			 */
-			originy : 0
+			originy : null
 		});
 
 		this.variable.event = {
 			mouseover : false
 		};
 		
+		this.variable.animation = {}
 		/**
 		 * register the common event
 		 */
@@ -141,7 +142,7 @@ iChart.Painter = iChart.extend(iChart.Element, {
 	},
 	applyGradient:function(x,y,w,h){
 		var _ = this._();
-		if(_.get('gradient')){
+		if(_.get('gradient')&&_.get('f_color')){
 			_.push('f_color', _.T.gradient(x||_.x||0,y||_.y||0,w||_.get(_.W),h||_.get(_.H),[_.get('dark_color'), _.get('light_color')],_.get('gradient_mode')));
 			_.push('light_color', _.T.gradient(x||_.x||0,y||_.y||0,w||_.get(_.W),h||_.get(_.H),[_.get('background_color'), _.get('light_color')],_.get('gradient_mode')));
 			_.push('f_color_',_.get('f_color'));
@@ -152,22 +153,35 @@ iChart.Painter = iChart.extend(iChart.Element, {
 	 * this is a abstract method.Currently known,both <link>iChart.Chart</link> and <link>iChart.Component</link> implement this method.
 	 * @return void
 	 */
-	draw : function(e) {
-		/**
-		 * fire the beforedraw event
-		 */
-		if (!this.fireEvent(this, 'beforedraw', [this,e])) {
-			return this;
+	draw : function(e,comb) {
+		if(comb){
+			/**
+			 * fire the root Refresh
+			 */
+			this.root.draw(e);
+		}else{
+			/**
+			 * fire the beforedraw event
+			 */
+			if (!this.fireEvent(this, 'beforedraw', [this,e])) {
+				return this;
+			}
+			/**
+			 * execute the commonDraw() that the subClass implement
+			 */
+			this.commonDraw(this,e);
+	
+			/**
+			 * fire the draw event
+			 */
+			this.fireEvent(this, 'draw', [this,e]);
 		}
-		/**
-		 * execute the commonDraw() that the subClass implement
-		 */
-		this.commonDraw(this,e);
-
-		/**
-		 * fire the draw event
-		 */
-		this.fireEvent(this, 'draw', [this,e]);
+	},
+	inject : function(c) {
+		if (c) {
+			this.root = c;
+			this.target = this.T = c.T;
+		}
 	},
 	doConfig : function() {
 		
@@ -188,8 +202,7 @@ iChart.Painter = iChart.extend(iChart.Element, {
 			vpadding:p[0] + p[2] + b[0] + b[2]
 		});	
 		
-		
-		if (_.get('shadow')) {
+		if (_.get('shadow')===true) {
 			_.push('shadow', {
 				color : _.get('shadow_color'),
 				blur : _.get('shadow_blur'),
@@ -203,8 +216,6 @@ iChart.Painter = iChart.extend(iChart.Element, {
 		_.push("light_color", iChart.light(bg, f,g));
 		_.push("dark_color", iChart.dark(bg, f*0.8,g));
 		_.push("light_color2", iChart.light(bg, f * 2,g));
-		
-		_.id = _.get('id');
 		
 		if(_.is3D()&&!_.get('xAngle_')){
 			var P = iChart.vectorP2P(_.get('xAngle'),_.get('yAngle'));
