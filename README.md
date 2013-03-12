@@ -1,4 +1,4 @@
-ichartjs Library, release 1.0 (2012-12-16)
+ichartjs Library, release 1.1 (2013-03-13)
 --------------------------------------------------
 Licensed under the Apache License, Version 2.0 (the "License");
 --------------------------------------------------
