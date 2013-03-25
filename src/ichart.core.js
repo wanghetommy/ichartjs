@@ -1,7 +1,7 @@
 /**
  * ichartjs Library v1.1 http://www.ichartjs.com/
  * 
- * @author wanghe
+ * @author taylor
  * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License"); 
  * you may not use this file except in compliance with the License. 
  * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -15,7 +15,7 @@
 		Linear : function(t, b, c, d) {
 			return c * t / d + b;
 		},
-		Cubic : {
+		Cubic : { 
 			easeIn : function(t, b, c, d) {
 				return c * (t /= d) * t * t + b;
 			},
@@ -895,10 +895,10 @@
 		var _=this,L = _.length-1,T; 
 		for(var i = 0; i < L; i++){
 			for (var j = L; j > i;j--) {
-			　　if (f?!f(_[j],_[j - 1]):(_[j] < _[j - 1])){ 
-				　　T = _[j]; 　　
-					_[j] = _[j - 1]; 　　
-					_[j - 1] = T; 
+				if (f ? !f(_[j], _[j - 1]) : (_[j] < _[j - 1])) {
+					T = _[j];
+					_[j] = _[j - 1];
+					_[j - 1] = T;
 				} 
 			} 
 		} 

@@ -1,13 +1,13 @@
 /**
  * ichartjs Library v1.1 http://www.ichartjs.com/
  * 
- * @author wanghe
+ * @author taylor
  * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License"); 
  * you may not use this file except in compliance with the License. 
  * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
  */
 ;
-(function(window) {
+(function(window){
 	var ua = navigator.userAgent.toLowerCase(), mc = function(e) {
 		return e.test(ua)
 	}, ts = Object.prototype.toString, isOpera = mc(/opera/), isChrome = mc(/\bchrome\b/), isWebKit = mc(/webkit/), isSafari = !isChrome && mc(/safari/), isIE = !isOpera && mc(/msie/), supportCanvas = !!document.createElement('canvas').getContext, isGecko = !isWebKit
@@ -895,10 +895,10 @@
 		var _=this,L = _.length-1,T; 
 		for(var i = 0; i < L; i++){
 			for (var j = L; j > i;j--) {
-			　　if (f?!f(_[j],_[j - 1]):(_[j] < _[j - 1])){ 
-				　　T = _[j]; 　　
-					_[j] = _[j - 1]; 　　
-					_[j - 1] = T; 
+				if (f ? !f(_[j], _[j - 1]) : (_[j] < _[j - 1])) {
+					T = _[j];
+					_[j] = _[j - 1];
+					_[j - 1] = T;
 				} 
 			} 
 		} 
@@ -1944,8 +1944,7 @@ $.Legend = $.extend($.Component, {
 			 */
 			line_height : 16,
 			/**
-			 * @cfg {String} Specifies the shape of legend' sign (default to 'square') Available value are：
-			 * @Option 'round'
+			 * @cfg {String} Specifies the shape of legend' sign (default to 'square') Available value are:			 * @Option 'round'
 			 * @Option 'square'
 			 * @Option 'bar'
 			 * @Option 'round-bar'
@@ -2227,8 +2226,7 @@ $.Label = $.extend($.Component, {
 			 */
 			line_thickness : 1,
 			/**
-			 * @cfg {String} Specifies the shape of legend' sign (default to 'square').Available value are：
-			 * @Option 'round'
+			 * @cfg {String} Specifies the shape of legend' sign (default to 'square').Available value are:			 * @Option 'round'
 			 * @Option 'square'
 			 */
 			sign : 'square',
@@ -2789,24 +2787,23 @@ $.Label = $.extend($.Component, {
 			var x0=x,y0=y,f=!m.indexOf("linear");
 			m = m.substring(14);
 			if(f){
-				switch(m)
-			   　　{
-			　　   case 'updown':
-			 　　    y0+=h;
-			 　　    break;
-			　　   case 'downup':
-			　　    y+=h;
-			　　     break;
-			   	 case 'leftright':
-			 　　    x0+=w;
-			 　　    break;
-			　　   case 'rightleft':
-				  x+=w;
-			　　     break;
-			　　   default:
-			　　     return c[0];
-			　　   }
-				return this.avgLinearGradient(x,y,x0,y0,c);
+				switch (m) {
+				case 'updown':
+					y0 += h;
+					break;
+				case 'downup':
+					y += h;
+					break;
+				case 'leftright':
+					x0 += w;
+					break;
+				case 'rightleft':
+					x += w;
+					break;
+				default:
+					return c[0];
+				}
+				return this.avgLinearGradient(x, y, x0, y0, c);
 			}else{
 				x+=w/2;
 				y+=h/2;

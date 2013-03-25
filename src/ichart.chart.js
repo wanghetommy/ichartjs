@@ -1,6 +1,5 @@
 ;
 (function($) {
-
 	var PI = Math.PI, inc = PI / 90,inc2 = inc/2, ceil = Math.ceil, floor = Math.floor, PI2 = 2 * PI, max = Math.max, min = Math.min, sin = Math.sin, cos = Math.cos, fd = function(w, c) {
 		return w == 1 ? (floor(c) + 0.5) : Math.round(c);
 	}, getCurvePoint = function(seg, point, i, smo) {
@@ -325,24 +324,23 @@
 			var x0=x,y0=y,f=!m.indexOf("linear");
 			m = m.substring(14);
 			if(f){
-				switch(m)
-			   　　{
-			　　   case 'updown':
-			 　　    y0+=h;
-			 　　    break;
-			　　   case 'downup':
-			　　    y+=h;
-			　　     break;
-			   	 case 'leftright':
-			 　　    x0+=w;
-			 　　    break;
-			　　   case 'rightleft':
-				  x+=w;
-			　　     break;
-			　　   default:
-			　　     return c[0];
-			　　   }
-				return this.avgLinearGradient(x,y,x0,y0,c);
+				switch (m) {
+				case 'updown':
+					y0 += h;
+					break;
+				case 'downup':
+					y += h;
+					break;
+				case 'leftright':
+					x0 += w;
+					break;
+				case 'rightleft':
+					x += w;
+					break;
+				default:
+					return c[0];
+				}
+				return this.avgLinearGradient(x, y, x0, y0, c);
 			}else{
 				x+=w/2;
 				y+=h/2;
