@@ -1,5 +1,5 @@
 /**
- * ichartjs Library v1.1 http://www.ichartjs.com/
+ * ichartjs Library v1.2 http://www.ichartjs.com/
  * 
  * @author wanghe
  * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License"); 
