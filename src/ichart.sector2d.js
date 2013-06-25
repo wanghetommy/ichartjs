@@ -81,7 +81,7 @@
 			L *=2;
 			if(_.get('label')){
 				if(_.get('mini_label')){
-					P2 = iChart.p2Point(_.x,_.y,A,_.get('donutwidth')?_.r - _.get('donutwidth')/2:_.r/2);
+					P2 = iChart.p2Point(_.x,_.y,A,_.get('donutwidth')?_.r - _.get('donutwidth')/2:_.r*5/8);
 					_.doText(_,P2.x,P2.y);
 				}else{
 					var Q  = iChart.quadrantd(A),

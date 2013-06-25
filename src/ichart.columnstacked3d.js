@@ -58,6 +58,7 @@ iChart.ColumnStacked3D = iChart.extend(iChart.ColumnStacked2D, {
 		iChart.ColumnStacked3D.superclass.doConfig.call(this);
 	}
 });
+iChart.register('ColumnStacked3D');
 /**
  *@end 
  */

@@ -40,10 +40,10 @@ iChart.ColumnMulti3D = iChart.extend(iChart.ColumnMulti2D, {
 	doConfig : function() {
 		iChart.ColumnMulti3D.superclass.doConfig.call(this);
 
-		
 
 	}
 });
+iChart.register('ColumnMulti3D');
 /**
  * @end
  */

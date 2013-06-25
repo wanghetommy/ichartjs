@@ -115,6 +115,7 @@ iChart.Element = function(config) {
 	 * megre customize config
 	 */
 	_.set(config);
+	
 	_.afterConfiguration(_);
 }
 

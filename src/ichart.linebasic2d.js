@@ -32,14 +32,13 @@ iChart.LineBasic2D = iChart.extend(iChart.Line, {
 		/**
 		 * get the max/min scale of this coordinate for calculated the height
 		 */
-		var S, H = _.coo.get('valid_height'), sp = _.get('point_space'), points, x, y, 
+		var S, H = _.coo.valid_height, sp = _.get('point_space'), points, x, y, 
 		ox = _.get('sub_option.originx'), oy, p;
 		
 		_.push('sub_option.tip.showType', 'follow');
 		_.push('sub_option.coordinate', _.coo);
 		_.push('sub_option.tipInvokeHeap', _.tipInvokeHeap);
 		_.push('sub_option.point_space', sp);
-		
 		_.data.each(function(d, i) {
 			S = _.coo.getScale(d.scaleAlign||_.get('scaleAlign'));
 			oy = _.get('sub_option.originy')- S.basic*H;
@@ -53,22 +52,21 @@ iChart.LineBasic2D = iChart.extend(iChart.Line, {
 					value : v,
 					text : d.name+' '+v
 				};
-				iChart.merge(p, _.fireEvent(_, 'parsePoint', [d, v, x, y, j]));
+				iChart.merge(p, _.fireEvent(_, 'parsePoint', [d, v, x, y, j,S]));
 				points.push(p);
 			}, _);
-			
 			/**
 			 * merge the option
 			 */
 			iChart.merge(_.get('sub_option'),d);
 			
 			_.push('sub_option.points', points);
-			_.push('sub_option.brushsize', d.linewidth || d.line_width || 1);
+			_.push('sub_option.brushsize', d.linewidth || d.line_width);
 			_.lines.push(new iChart.LineSegment(_.get('sub_option'), _));
 		}, this);
 	}
-
 });
+iChart.register('LineBasic2D');
 /**
  * @end
  */

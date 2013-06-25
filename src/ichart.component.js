@@ -29,6 +29,10 @@ iChart.Component = iChart.extend(iChart.Painter, {
 			 */
 			fontweight : 'normal',
 			/**
+			 * @cfg {String} Specifies the unit of font-size.(default to 'px')
+			 */
+			fontunit:'px',
+			/**
 			 * @inner {Boolean} Specifies the config of Tip.For details see <link>iChart.Tip</link> Note:this has a extra property named 'enable',indicate whether tip available(default to false)
 			 */
 			tip : {
@@ -80,12 +84,26 @@ iChart.Component = iChart.extend(iChart.Painter, {
 	},
 	doConfig : function() {
 		iChart.Component.superclass.doConfig.call(this);
-		var _ = this._();
-
-		_.x = _.push(_.X, _.get(_.X) + _.get('offsetx'));
+		var _ = this._(),w = _.get(_.W),W = _.get('maxwidth'),x = _.get(_.X);
+		if(w&&W){
+			w = _.push(_.W,iChart.parsePercent(w,W));
+			if(w>W){
+				w = _.push('width',W);
+			}
+			if(W>w){
+				var C = _.get('align')||_.C;
+				if(C == _.C){
+					x +=(W-w)/2;
+				}else if(C == _.R){
+					x += (W-w);
+				}
+			}
+		}
+		
+		_.x = _.push(_.X, x + _.get('offsetx'));
 		_.y = _.push(_.Y, _.get(_.Y) + _.get('offsety'));
 		
-		_.push('fontStyle', iChart.getFont(_.get('fontweight'), _.get('fontsize'), _.get('font')));
+		_.push('fontStyle', iChart.getFont(_.get('fontweight'), _.get('fontsize'), _.get('font'),_.get('fontunit')));
 		
 		/**
 		 * if have evaluate it
@@ -112,6 +130,7 @@ iChart.Component = iChart.extend(iChart.Painter, {
 	redraw : function(e) {
 		this.root.draw(e,this.root.Combination);
 	},
+	last:iChart.emptyFn,
 	commonDraw : function(_) {
 		/**
 		 * execute the doDraw() that the subClass implement

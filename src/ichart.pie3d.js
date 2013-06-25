@@ -26,7 +26,7 @@ iChart.Pie3D = iChart.extend(iChart.Pie, {
 		this.positive = true;
 	},
 	doSector : function(_,d) {
-		_.push('sub_option.cylinder_height', (d.cylinder_height ? d.cylinder_height * _.get('zRotate') : _.get('cylinder_height')));
+		_.push('sub_option.cylinder_height', (d.cylinder_height ? d.cylinder_height * _.get('zRotate_') : _.get('cylinder_height')));
 		return new iChart[_.sub](_.get('sub_option'), _);
 	},
 	one:function(_){
@@ -135,10 +135,11 @@ iChart.Pie3D = iChart.extend(iChart.Pie, {
 		iChart.Pie3D.superclass.doConfig.call(this);
 		var _ = this._(), z = iChart.angle2Radian(_.get('zRotate'));
 		
-		_.push('cylinder_height', _.get('yHeight') * _.push('zRotate',Math.abs(Math.cos(z))));
+		_.push('cylinder_height', _.get('yHeight') * _.push('zRotate_',Math.abs(Math.cos(z))));
 		
 		_.a = _.push('sub_option.semi_major_axis', _.r);
 		_.b = _.push('sub_option.semi_minor_axis', _.r * Math.abs(Math.sin(z)));
+		
 		_.topY = _.push('sub_option.originy', _.get(_.Y) - _.get('yHeight') / 2);
 		
 		_.parse(_);
@@ -148,6 +149,7 @@ iChart.Pie3D = iChart.extend(iChart.Pie, {
 		_.components.push(_.proxy);
 	}
 });
+iChart.register('Pie3D');
 /**
  * @end
  */

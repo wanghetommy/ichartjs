@@ -82,10 +82,12 @@
 			
 			this.label = null;
 		},
-		doDraw:function(_){
-			_.drawRectangle();
+		last:function(_){
 			if(_.label)
 				_.label.draw();
+		},
+		doDraw:function(_){
+			_.drawRectangle();
 		},
 		doConfig:function(){
 			iChart.Rectangle.superclass.doConfig.call(this);
@@ -105,7 +107,6 @@
 				b = 'middle',
 				s=_.get('value_space');
 			
-			_.push('value',_.fireString(_, 'parseText', [_, _.get('value')], _.get('value')));
 			
 			if(vA==_.L){
 				a = _.R;
@@ -124,7 +125,7 @@
 			if(_.get('label')){
 				_.push('label.originx', x);
 				_.push('label.originy', y);
-				_.push('label.text',_.get('value'));
+				_.push('label.text',_.push('value',_.fireString(_, 'parseText', [_, _.get('value')], _.get('value'))));
 				iChart.applyIf(_.get('label'),{
 					textAlign : a,
 					textBaseline : b,

@@ -36,7 +36,7 @@ iChart.BarMulti2D = iChart.extend(iChart.Bar, {
 				});
 				_.rectangles.push(new iChart.Rectangle2D(_.get('sub_option'), _));
 			}, _);
-			_.doLabel(i, c.name, x0, y0 - s * 0.5 + (i + 0.5) * gw);
+			_.doLabel(_,i, c.name, x0, y0 - s * 0.5 + (i + 0.5) * gw);
 		}, _);
 	},
 	doConfig : function() {
@@ -46,8 +46,8 @@ iChart.BarMulti2D = iChart.extend(iChart.Bar, {
 		 */
 		this.engine(this);
 	}
-
 });
+iChart.register('BarMulti2D');
 /**
  * @end
  */

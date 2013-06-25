@@ -1,5 +1,6 @@
 ;
 (function($) {
+
 	var PI = Math.PI, inc = PI / 90,inc2 = inc/2, ceil = Math.ceil, floor = Math.floor, PI2 = 2 * PI, max = Math.max, min = Math.min, sin = Math.sin, cos = Math.cos, fd = function(w, c) {
 		return w == 1 ? (floor(c) + 0.5) : Math.round(c);
 	}, getCurvePoint = function(seg, point, i, smo) {
@@ -44,7 +45,7 @@
 			_.total = 0;
 			c.each(function(d,i){
 				d.background_color = d.color;
-				V  = d.value;
+				V  = d.value||0;
 				if($.isArray(V)){
 					var T = 0;
 					ML = V.length>ML?V.length:ML;
@@ -100,12 +101,12 @@
 						M = max(V,M);
 						MI = min(V,MI);
 					}
-					item.push({
+					item.push($.applyIf({
 						name:d.name,
 						value:d.value[i],
 						background_color:r,
 						color:r
-					});
+					},$.isArray(d.extra)?(d.extra[i]||{}):d));					
 				});
 				if(stack){
 					if(!init){
@@ -171,11 +172,10 @@
 		 * arc
 		 */
 		arc : function(x, y, r, dw, s, e, c, b, bw, bc, sw, ccw, a2r, last) {
-			if(!r)return this;
-			this.save().gCo(last).strokeStyle(b,bw,bc).fillStyle(c).beginPath();
 			if(b)
-				r-=floor(bw/2);
-			
+			r-=floor(bw/2);
+			if(r<=0)return this;
+			this.save().gCo(last).strokeStyle(b,bw,bc).fillStyle(c).beginPath();
 			if(dw){
 				this.moveTo(x+cos(s)*(r-dw),y+sin(s)*(r-dw)).lineTo(x+cos(s)*r,y+sin(s)*r);
 				this.c.arc(x, y, r, s, e,ccw);
@@ -324,7 +324,7 @@
 			var x0=x,y0=y,f=!m.indexOf("linear");
 			m = m.substring(14);
 			if(f){
-				switch (m) {
+			switch (m) {
 				case 'updown':
 					y0 += h;
 					break;
@@ -374,6 +374,8 @@
 			max = max || false;
 			mode = mode || 'lr';
 			h = h || 16;
+			x = fd(0, x);
+			y = fd(0, y);
 			var T = t.split(mode == 'tb' ? "" : "\n");
 			if(T.length>1){
 				if(this.c.textBaseline=='middle'){
@@ -385,7 +387,7 @@
 			this.save().fillStyle(color).translate(x,y).rotate(inc2*ro).shadowOn(sw);
 			T.each(function(t,i) {
 				try {
-					if (max)
+					if (max&&max>0)
 						this.c.fillText(t, 0,i*h, max);
 					else
 						this.c.fillText(t, 0, i*h);
@@ -555,6 +557,7 @@
 			return this.closePath().stroke(b).fill(bg).restore();
 		},
 		lines : function(p, w, c, last) {
+			if(!w)return this;
 			this.save().gCo(last).beginPath().strokeStyle(true,w, c).moveTo(fd(w, p[0]), fd(w, p[1]));
 			for ( var i = 2; i < p.length - 1; i += 2) {
 				this.lineTo(fd(w, p[i]), fd(w, p[i + 1]));
@@ -575,6 +578,7 @@
 				.restore();
 		},
 		lineArray : function(p, w, c, smooth, smo) {
+			if(!w)return this;
 			this.save().beginPath().strokeStyle(true,w, c).moveTo(fd(w, p[0].x), fd(w, p[0].y));
 			for ( var i = 1; i < p.length; i++){
 				if (smooth) {
@@ -642,8 +646,8 @@
 		clearRect : function(x, y, w, h) {
 			x = x || 0;
 			y = y || 0;
-			w = w || this.width;
-			h = h || this.height;
+			w = w || this.canvas.width;
+			h = h || this.canvas.height;
 			this.c.clearRect(x, y, w, h);
 			return this;
 		},
@@ -856,20 +860,6 @@
 					height : 20
 				},
 				/**
-				 * @inner {String} Specifies how align title horizontally Available value are:
-				 * @Option 'left'
-				 * @Option 'center'
-				 * @Option 'right'
-				 */
-				title_align : 'center',
-				/**
-				 * @inner {String} Specifies how align title vertically Available value are:
-				 * @Option 'top'
-				 * @Option 'middle' Only applies when title_writingmode = 'tb'
-				 * @Option 'bottom'
-				 */
-				title_valign : 'top',
-				/**
 				 * @cfg {Boolean} If true element will have a animation when show, false to skip the animation.(default to false)
 				 */
 				animation : false,
@@ -920,15 +910,25 @@
 			 * @event Fires when this element Animation finished.Only valid when <link>animation</link> is true
 			 * @paramter iChart.Chart#this
 			 */
-			'afterAnimation', 'animating');
+			'afterAnimation',
+			/**
+			 * @event Fires when chart resize.
+			 * @paramter int#width chart's width
+			 * @paramter int#height chart's height
+			 * @return Object object the new config for chart
+			 */
+			'resize',
+			'animating');
 
 			this.T = null;
 			this.Rendered = false;
 			this.Combination = false;
 			this.Animationed = false;
+			this.show = false;
 			this.data = [];
 			this.plugins = [];
 			this.components = [];
+			this.oneways = [];
 			this.total = 0;
 			this.ICHARTJS_CHART = true;
 		},
@@ -937,7 +937,7 @@
 		},
 		segmentRect : function() {
 			if(!this.Combination)
-			this.T.clearRect(this.get('l_originx'), this.get('t_originy'), this.get('client_width'), this.get('client_height'));
+			this.T.clearRect();
 		},
 		resetCanvas : function() {
 			if(!this.Combination)
@@ -963,12 +963,6 @@
 			/**
 			 * draw plugins
 			 */
-			if(_.legend)
-			_.legend.draw();
-			
-			/**
-			 * draw plugins
-			 */
 			_.plugins.each(function(p){
 				if(p.A_draw){
 					p.variable.animation.animating =true;
@@ -981,10 +975,8 @@
 			if(_.Combination){
 				return;
 			}
-			/**
-			 * fill the background
-			 */
-			_.resetCanvas();
+			
+			_.oneways.each(function(o) {o.draw()});
 			
 			if (_.variable.animation.time < _.duration) {
 				_.variable.animation.time++;
@@ -1022,17 +1014,18 @@
 			_.animation(_);
 		},
 		doSort:function(){
-			this.components.sor(function(p, q){
-				return ($.isArray(p)?(p.zIndex||0):p.get('z_index'))>($.isArray(q)?(q.zIndex||0):q.get('z_index'))});
+			var f = function(p, q){return ($.isArray(p)?(p.zIndex||0):p.get('z_index'))>($.isArray(q)?(q.zIndex||0):q.get('z_index'))};
+			this.components.sor(f);
+			this.oneways.sor(f);
 		},
 		commonDraw : function(_,e) {
+			_.show = false;
 			
 			if (!_.redraw) {
 				$.Assert.isTrue(_.Rendered, _.type + ' has not rendered');
 				$.Assert.isTrue(_.data&&_.data.length>0,_.type + '\'s data is empty');
 				$.Assert.isTrue(_.initialization, _.type + ' Failed to initialize');
 				_.doSort();
-				_.oneways.eachAll(function(o) {o.draw()});
 			}
 			
 			_.redraw = true;
@@ -1041,15 +1034,18 @@
 				_.runAnimation(_);
 				return;
 			}
-			
 			_.segmentRect();
-
+			//order?
 			_.components.eachAll(function(c) {
 				c.draw(e);
 			});
+			_.components.eachAll(function(c) {
+				if(c.last)c.last(c);
+			});
+			//order?
+			_.oneways.each(function(o) {o.draw()});
 			
-			_.resetCanvas();
-
+			_.show = true;
 		},
 		/**
 		 * @method register the customize component or combinate with other charts
@@ -1067,12 +1063,15 @@
 				c.push('animation',false);
 			}
 			c.duration =_.duration;
-			_.components.push(c);
+			_.register(c);
 			_.plugins.push(c);
 		},
-		destroy:function(){
-			this.components.eachAll(function(C) {
+		destroy:function(_){
+			_.components.eachAll(function(C){
 				C.destroy();
+			});
+			_.oneways.each(function(O){
+				O.destroy();
 			});
 		},
 		/**
@@ -1112,17 +1111,6 @@
 				height:this.get("client_height")
 			}
 		},
-		/**
-		 * @method set up the chart by latest configruation
-		 * @return void
-		 */
-		setUp:function(){
-			var _ = this._();
-			_.redraw = false;
-			_.T.clearRect();
-			_.initialization = false;
-			_.initialize();
-		},
 		create : function(_,shell) {
 			/**
 			 * fit the window
@@ -1147,7 +1135,10 @@
 			H.push("' style='padding:0px;margin:0px;overflow:hidden;position:relative;'>");
 			H.push("<canvas id= '");
 			H.push(_.canvasid);
-			H.push("'><p>Your browser does not support the canvas element</p></canvas></div>");
+			H.push("' style='-webkit-text-size-adjust: none;'>");
+			H.push("<p>Your browser does not support the canvas element</p></canvas>");
+			H.push("</div>");
+			
 			/**
 			 * also use appendChild()
 			 */
@@ -1164,8 +1155,55 @@
 			 * do size
 			 */
 			_.size(_);
-			
 			_.Rendered = true;
+		},
+		/**
+		 * @method set up the chart by latest configruation
+		 * @return void
+		 */
+		setUp:function(){
+			var _ = this._();
+			_.redraw = false;
+			_.T.clearRect();
+			_.initialization = false;
+			_.initialize();
+		},
+		/**
+		 * @method load the new data
+		 * @paramter array#data 
+		 * @return void
+		 */
+		load:function(d){
+			var _ = this._();
+			_.push('data', d||[]);
+			_.setUp();
+			(_.Combination?_.root:_).draw();
+		},
+		/**
+		 * @method resize the chart
+		 * @paramter int#width 
+		 * @paramter int#height 
+		 * @return void
+		 */
+		resize:function(w,h){
+			w = $.parseFloat(w);
+			h = $.parseFloat(h);
+			var _ = this._();
+			if(!_.Combination){
+				_.width = _.push(_.W, w);
+				_.height = _.push(_.H, h);
+				_.size(_);
+			}
+			_.set(_.fireEvent(_,'resize',[w,h]));
+			_.setUp();
+			_.plugins.eachAll(function(P) {
+				if(P.Combination){
+					P.resize(w,h);
+				}
+			});
+			if(!_.Combination){
+				_.draw();
+			}
 		},
 		size:function(_){
 			_.T.canvas.width = _.width = _.pushIf(_.W, 400);
@@ -1175,9 +1213,13 @@
 		},
 		initialize : function() {
 			var _ = this._(),d = _.get('data'),r = _.get('render');
+			
+			_.push(_.X, null);
+			_.push(_.Y, null);
+			
 			if(_.Combination){
 				$.apply(_.options, $.clone([_.W,_.H,'padding','border','client_height','client_width',
-				                                      'minDistance','maxDistance','minstr','centerx', 'centery',
+				                                      'minDistance','maxDistance','centerx', 'centery',
 				                                      'l_originx','r_originx','t_originy','b_originy'], _.root.options,true));
 				_.width = _.get(_.W);
 				_.height = _.get(_.H);
@@ -1186,10 +1228,6 @@
 			}else if (!_.Rendered) {
 				if(r)
 				_.create(_,$(r));
-			}else{
-				if(_.width != _.get(_.W)||_.height!=_.get(_.H)){
-					_.size(_);
-				}
 			}
 			
 			if(_.Rendered && !_.initialization){
@@ -1218,6 +1256,16 @@
 		 * this method only invoked once
 		 */
 		oneWay:function(_){
+			
+			_.T.strokeStyle(true,0, _.get('strokeStyle'), _.get('lineJoin'));
+			
+			_.processAnimation = _.get('animation');
+			
+			if($.isFunction(_.get('doAnimation'))){
+				_.doAnimation = _.get('doAnimation');
+			}
+			_.animationArithmetic = $.getAA(_.get('animation_timing_function'));
+			
 			var E = _.variable.event,comb=_.Combination,tot=!_.get('turn_off_touchmove')&&!comb, mCSS = !$.touch&&_.get('default_mouseover_css')&&!comb, O, AO,events = $.touch?['touchstart','touchmove']:['click','mousemove'];
 			_.stopEvent = false;
 			_.A_draw = comb&&_.processAnimation;
@@ -1306,10 +1354,9 @@
 							return !e.stopPropagation;
 						}
 					});
-					
 					if(E.mouseover){
 						e.event.preventDefault();
-						if (!O && E.mouseover) {
+						if (!O) {
 							E.mouseover = false;
 							_.fireEvent(_, 'mouseout', [_,e]);
 						}
@@ -1332,6 +1379,24 @@
 					});
 				}
 			}
+			/**
+			 * clone config to sub_option
+			 */
+			$.applyIf(_.get('sub_option'), $.clone(['shadow','tip'], _.options,true));
+			
+			if(!_.Combination){
+				/**
+				 * push the background in it
+				 */
+				_.bg = new $.Custom({
+					z_index:-1,
+					drawFn:function(){
+						_.T.box(0, 0, _.width, _.height, _.get('border'), _.get('f_color'),0,0,true);
+					}
+				});
+				_.duration = ceil(_.get('animation_duration') * $.FRAME / 1000);
+			}
+			
 			_.oneWay = $.emptyFn;
 		},
 		/**
@@ -1339,7 +1404,6 @@
 		 */
 		originXY:function(_,x,y){
 			var A = _.get('align');
-			
 			if (A == _.L) {
 				_.pushIf(_.X, x[0]);
 			} else if (A == _.R) {
@@ -1347,9 +1411,8 @@
 			} else {
 				_.pushIf(_.X, x[2]);
 			}
-			
 			_.x = _.push(_.X, _.get(_.X) + _.get('offsetx'));
-			_.y = _.push(_.Y, _.get(_.Y)||y[0]+ _.get('offsety'));
+			_.y = _.push(_.Y, y[0]+ _.get('offsety'));
 			
 			return {
 				x:_.x,
@@ -1376,83 +1439,51 @@
 			$.merge(_.get('sub_option'),o);
 			
 			_.push('sub_option.value',v);
+			_.push('sub_option.value_',d.value);
 			
 			if (_.get('sub_option.tip.enable')){
 				_.push('sub_option.tip.text',t || (d.name + ' ' +v));
 				_.push('sub_option.tip.name',d.name);
+				_.push('sub_option.tip.index',i);
 				_.push('sub_option.tip.value',d.value);
 				_.push('sub_option.tip.total',d.total||_.total);
 			}
-			
+		},
+		register:function(c){
+			c.id = $.uid(c.type);
+			this.components.push(c);
+			return c;
+		},
+		remove:function(_,c){
+			if(c)
+			_.components.each(function(C,i){
+				if(c.id==C.id){
+					_.components.splice(i,1);
+					return false;
+				}
+			});
 		},
 		doConfig : function() {
-			
 			$.Chart.superclass.doConfig.call(this);
-			
 			var _ = this._();
 			
-			_.T.strokeStyle(true,0, _.get('strokeStyle'), _.get('lineJoin'));
+			_.destroy(_);
 			
-			_.processAnimation = _.get('animation');
+			_.oneways.length =0;
+			
+			_.oneWay(_);
 			
 			/**
 			 * for store the option of each item in chart
 			 */
 			_.push('communal_acting',0);
 			
-			if($.isFunction(_.get('doAnimation'))){
-				_.doAnimation = _.get('doAnimation');
-			}
-			_.animationArithmetic = $.getAA(_.get('animation_timing_function'));
-			/**
-			 * destroy exist dom
-			 */
-			_.destroy();
-			_.components = [];
-			
-			/**
-			 * make sure hold the customize plugin 
-			 */
-			_.plugins.each(function(o){
-				_.components.push(o);
-			});
-			
-			_.oneWay(_);
-			
-			/**
-			 * clone config to sub_option
-			 */
-			$.applyIf(_.get('sub_option'), $.clone(['shadow','tip'], _.options,true));
-			
-			_.push('r_originx', _.width - _.get('padding_right'));
-			_.push('b_originy', _.height - _.get('padding_bottom'));
-			
-			
-			_.oneways = [];
-			
 			if(!_.Combination){
-				var H = 0, l = _.push('l_originx', _.get('padding_left')), t = _.push('t_originy', _.get('padding_top')), w = _.push('client_width', (_.width - _.get('hpadding'))), h;
-				_.duration = ceil(_.get('animation_duration') * $.FRAME / 1000);
-				
-				/**
-				 * push the background in it
-				 */
-				_.oneways.push(new $.Custom({
-					drawFn:function(){
-						_.T.box(0, 0, _.width, _.height, _.get('border'), _.get('f_color'),0,0,true);
-					}
-				}));
+				_.oneways.push(_.bg);
+				_.push('r_originx', _.width - _.get('padding_right'));
+				_.push('b_originy', _.height - _.get('padding_bottom'));
 				
 				_.applyGradient();
-				
-				/**
-				_.on('afterAnimation', function() {
-					var N = _.variable.animation.queue.shift();
-					if (N) {
-						_[N.handler].apply(_, N.arguments);
-					}
-				});
-				*/
 				
 				if ($.isString(_.get('title'))) {
 					_.push('title', $.applyIf({
@@ -1464,59 +1495,62 @@
 						text : _.get('subtitle')
 					}, _.default_.subtitle));
 				}
+				
 				if ($.isString(_.get('footnote'))) {
 					_.push('footnote', $.applyIf({
 						text : _.get('footnote')
 					}, _.default_.footnote));
 				}
-	
-				if (_.get('title.text') != '') {
+				var H = 0, l = _.push('l_originx', _.get('padding_left')), t = _.push('t_originy', _.get('padding_top')), w = _.push('client_width', (_.width - _.get('hpadding'))), h;
+				
+				if (_.get('title.text') != ''){
 					var st = _.get('subtitle.text') != '';
 					H = st ? _.get('title.height') + _.get('subtitle.height') : _.get('title.height');
 					t = _.push('t_originy', t + H);
 					_.push('title.originx', l);
 					_.push('title.originy', _.get('padding_top'));
-					_.push('title.width', w);
+					_.push('title.maxwidth', w);
+					_.pushIf('title.width', w);
 					_.title = new $.Text(_.get('title'), _);
 					_.oneways.push(_.title);
 					if (st) {
 						_.push('subtitle.originx', l);
-						_.push('subtitle.originy', _.get('title.originy') + _.get('title.height'));
-						_.push('subtitle.width', w);
+						_.push('subtitle.originy', _.get('padding_top') + _.get('title.height'));
+						_.pushIf('subtitle.width', w);
+						_.push('subtitle.maxwidth', w);
 						_.subtitle = new $.Text(_.get('subtitle'), _);
 						_.oneways.push(_.subtitle);
 					}
 				}
-	
+					
 				if (_.get('footnote.text') != '') {
 					var g = _.get('footnote.height');
 					H += g;
 					_.push('b_originy', _.get('b_originy') - g);
 					_.push('footnote.originx', l);
 					_.push('footnote.originy', _.get('b_originy'));
-					_.push('footnote.width', w);
+					_.push('footnote.maxwidth', w);
+					_.pushIf('footnote.width', w);
 					_.footnote = new $.Text(_.get('footnote'), _);
 					_.oneways.push(_.footnote);
 				}
-				h = _.push('client_height', (_.get(_.H) - _.get('vpadding') - H));
+				h = _.push('client_height', (_.get(_.H) - _.get('vpadding') - _.pushIf('other_height',H)));
 				
 				_.push('minDistance', min(w, h));
 				_.push('maxDistance', max(w, h));
-				_.push('minstr', w < h ? _.W : _.H);
-				
 				_.push('centerx', l + w / 2);
 				_.push('centery', t + h / 2);
 			}
 			
 			/**
-			 * legend
+			 * TODO legend dosize?
 			 */
-			if (_.get('legend.enable')) {
+			if (_.get('legend.enable')){
 				_.legend = new $.Legend($.apply({
 					maxwidth : _.get('client_width'),
 					data : _.data
 				}, _.get('legend')), _);
-				_.components.push(_.legend);
+				_.oneways.push(_.legend);
 			}
 			
 			_.push('sub_option.tip.wrap',_.push('tip.wrap', _.shell));

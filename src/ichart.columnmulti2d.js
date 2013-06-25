@@ -50,6 +50,7 @@ iChart.ColumnMulti2D = iChart.extend(iChart.Column, {
 		this.engine(this);
 	}
 });
+iChart.register('ColumnMulti2D');
 /**
  * @end
  */

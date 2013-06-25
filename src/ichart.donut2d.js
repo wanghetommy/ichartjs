@@ -67,6 +67,7 @@ iChart.Donut2D = iChart.extend(iChart.Pie, {
 		_.parse(_);
 	}
 });
+iChart.register('Donut2D');
 /**
  * @end
  */

@@ -73,7 +73,7 @@
 			_.pushIf("zHeight",_.get(_.W));
 			
 			_.topCenterX=_.x+(_.get(_.W)+_.get(_.W)*_.get('xAngle_'))/2;
-			_.topCenterY=_.y-_.get(_.W)*_.get('yAngle_')/2;
+			_.topCenterY=_.y-_.get(_.W)*_.get('yAngle_')/2-_.get('value_space');
 			
 			if(_.get('valueAlign')==_.O&&_.label){
 				_.label.push('textx',_.topCenterX);

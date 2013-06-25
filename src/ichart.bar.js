@@ -55,28 +55,27 @@ iChart.Bar = iChart.extend(iChart.Chart, {
 	getCoordinate : function() {
 		return this.coo;
 	},
-	doLabel : function(id, text, x, y) {
-		this.labels.push(new iChart.Text(iChart.apply(this.get('label'), {
+	doLabel : function(_,id, text, x, y) {
+		_.labels.push(new iChart.Text(iChart.apply(_.get('label'), {
 			id : id,
 			text : text,
 			textAlign : 'right',
 			textBaseline : 'middle',
 			originx : x,
 			originy : y
-		}), this));
+		}), _));
 	},
 	doParse : function(_, d, i, o) {
 		_.doActing(_, d, o,i);
 	},
 	engine:function(_){
-		var 
-		bh = _.get('bar_height'),
+		var bh = _.get('bar_height'),
 		s = _.get('bar_space'),
 		S = _.coo.getScale(_.get('scaleAlign')),
-		W = _.coo.get(_.W),
+		W = _.coo.valid_width,
 		h2 = bh / 2,
 		gw =  _.dataType != 'complex'?bh + s:_.data.length * bh + s,
-		x = _.coo.get(_.X) + S.basic * W,
+		x = _.coo.get('x_start')+ S.basic * W,
 		x0 = _.coo.get(_.X) - _.get('text_space')-_.coo.get('axis.width')[3], 
 		y0 = _.coo.get('y_start')+ s;
 		
@@ -96,45 +95,48 @@ iChart.Bar = iChart.extend(iChart.Chart, {
 
 		var _ = this._(), b = 'bar_height', z = 'z_index';
 		
-		/**
-		 * use option create a coordinate
-		 */
-		_.coo = iChart.Coordinate.coordinate_.call(_);
-		
 		_.rectangles = [];
 		_.labels = [];
 		_.rectangles.zIndex = _.get(z);
 		_.labels.zIndex = _.get(z) + 1;
 		_.components.push(_.labels);
 		_.components.push(_.rectangles);
-
-		var L = _.data.length, H = _.coo.get('valid_height'),h_,bh,KL;
 		
-		if (_.dataType == 'simple') {
-			h_= Math.floor(H*2 / (L * 3 + 1));
-			bh = _.pushIf(b, h_);
-			KL = L+1;
-		}else{
-			KL = _.get('labels').length;
-			L = KL * L + (_.is3D()?(L-1)*KL*_.get('group_fator'):0);
-			h_= Math.floor(H / (KL + 1 + L));
-			bh = _.pushIf(b,h_);
-			KL +=1;
-		}
-		
-		if (bh * L > H) {
-			bh = _.push(b, h_);
-		}
 		/**
-		 * the space of two bar
+		 * use option create a coordinate
 		 */
-		_.push('bar_space', (H - bh * L) / KL);
-
-
+		_.coo = iChart.Coordinate.coordinate_.call(_,function(){
+			var L = _.data.length, H = _.get('coordinate.valid_height_value'),h_,bh,KL;
+			
+			if (_.dataType == 'complex') {
+				KL = _.get('labels').length;
+				L = KL * L + (_.is3D()?(L-1)*KL*_.get('group_fator'):0);
+				h_= Math.floor(H / (KL + 1 + L));
+				bh = _.pushIf(b,h_);
+				KL +=1;
+			}else{
+				if(_.dataType == 'stacked'){
+					L = _.get('labels').length;
+				}
+				h_= Math.floor(H*2 / (L * 3 + 1));
+				bh = _.pushIf(b, h_);
+				KL = L+1;
+			}
+			
+			if (bh * L > H) {
+				bh = _.push(b, h_);
+			}
+			/**
+			 * the space of two bar
+			 */
+			_.push('bar_space', (H - bh * L) / KL);
+			
+		});
+		
 		/**
 		 * quick config to all rectangle
 		 */
-		_.push('sub_option.height', bh);
+		_.push('sub_option.height', _.get(b));
 		_.push('sub_option.valueAlign', _.R);
 		_.push('sub_option.tipAlign', _.R);
 	}

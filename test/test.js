@@ -589,7 +589,56 @@ function test(){
 			}
 		});
 	});
+	//23
+	unit.push(function(){
+		return new iChart.BarStacked2D({
+			render :canvas,
+			title : {text: 'Test BarStacked2D No Shadow'},
+			data: data2,
+			labels:labels,
+			footnote : '数据来源：销售中心',
+			coordinate:{
+				background_color : 0,
+				axis : {
+					color : '#c0d0e0',
+					width : 0
+				}, 
+				scale:[{
+					 position:'bottom',	
+					 scale_enable : false,
+					 start_scale:0,
+					 scale_space:20,
+					 label:{color:'#254d70',fontsize:11,fontweight:600}
+				}],
+			}
+		});
+	});
 	
+	//24
+	unit.push(function(){
+		return new iChart.BarStacked2D({
+			render :canvas,
+			title : {text: 'Test BarStacked2D'},
+			data: data2,
+			labels:labels,
+			shadow:true,
+			footnote : '数据来源：销售中心',
+			coordinate:{
+				background_color : 0,
+				axis : {
+					color : '#c0d0e0',
+					width : 0
+				}, 
+				scale:[{
+					 position:'bottom',	
+					 scale_enable : false,
+					 start_scale:0,
+					 scale_space:20,
+					 label:{color:'#254d70',fontsize:11,fontweight:600}
+				}],
+			}
+		});
+	});
 	/**
 	 * start Test
 	 */

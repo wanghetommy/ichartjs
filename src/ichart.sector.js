@@ -68,6 +68,7 @@ iChart.Sector = iChart.extend(iChart.Component, {
 			 * @inner {Number} Specifies the offset when bounded.Normally,this will given by chart.(default to undefined)
 			 */
 			increment : undefined,
+			label_length : undefined,
 			/**
 			 * @cfg {String} Specifies the gradient mode of background.(defaults to 'RadialGradientOutIn')
 			 * @Option 'RadialGradientOutIn'

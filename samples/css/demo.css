@@ -52,3 +52,23 @@ body {
 #ichartjs_code{
 	display:none;
 }
+#ichartjs_result{
+	position: absolute;
+	left: 20px;
+	bottom: 20px;
+	padding:8px;
+	color:#fefefe;
+	font-size:20px;
+	font-weight:600;
+	background-color:#6d869f;
+	cursor: pointer;
+	text-align:center;
+	border:1px solid #6a869d;
+	-webkit-box-shadow:0px 0px 2px #375073;
+	-moz-box-shadow:0px 0px 2px #375073;
+	box-shadow:0px 0px 2px #375073;
+	-moz-border-radius:10px;
+	-webkit-border-radius:10px;
+	-khtml-border-radius:10px;
+	border-radius:10px
+}

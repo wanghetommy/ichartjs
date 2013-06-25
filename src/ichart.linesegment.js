@@ -115,7 +115,7 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 		this.tip = null;
 	},
 	drawSegment : function() {
-		var _ = this._(),p = _.get('points'),b=_.get('f_color'),h=_.get('brushsize');
+		var _ = this._();
 		
 		_.polygons.each(function(P){
 			_.T.polygon.apply(_.T,P);
@@ -207,7 +207,7 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 			}
 			
 			if(I&&!q.ignored){
-				_.intersections.push(_.sign_plugin?[_.T,_.get('sign'),q,ps,g,j]:_.get('hollow')?[q, ps/2-h+1,g,h+1,j]:[q,ps/2,g]);
+				_.intersections.push(_.sign_plugin?[_.T,_.get('sign'),q,ps,q.color||g,q.hollow_color||j]:_.get('hollow')?[q, ps/2-h+1,q.color||g,h+1,q.hollow_color||j]:[q,ps/2,q.color||g]);
 			}
 			
 		});
@@ -247,7 +247,7 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 			_.push('tip.invokeOffsetDynamic', true);
 			_.tip = new iChart.Tip(_.get('tip'), _);
 		}
-
+		
 		var c = _.get('coordinate'), ly = _.get('limit_y'), k = _.get('keep_with_coordinate'), valid = function(p0, x, y) {
 			if (!p0.ignored&&Math.abs(x - (p0.x)) < rx && (!ly || (ly && Math.abs(y - (p0.y)) < ry))) {
 				return true;

@@ -39,6 +39,7 @@ iChart.Column2D = iChart.extend(iChart.Column, {
 		
 	}
 });
+iChart.register('Column2D');
 /**
  *@end 
  */

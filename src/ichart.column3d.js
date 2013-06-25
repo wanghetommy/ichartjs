@@ -42,8 +42,8 @@ iChart.Column3D = iChart.extend(iChart.Column2D, {
 	doConfig : function() {
 		iChart.Column3D.superclass.doConfig.call(this);
 	}
-
 });
+iChart.register('Column3D');
 /**
  *@end 
  */

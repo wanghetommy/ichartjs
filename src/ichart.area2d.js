@@ -31,6 +31,7 @@ iChart.Area2D = iChart.extend(iChart.LineBasic2D, {
 		iChart.Area2D.superclass.doConfig.call(this);
 	}
 });
+iChart.register('Area2D');
 /**
  * @end
  */

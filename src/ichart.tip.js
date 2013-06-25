@@ -18,6 +18,7 @@
 			
 			this.set({
 				name:'',
+				index:0,
 				value:'',
 				/**
 				 * @cfg {String} Specifies the text want to disply.(default to '')
@@ -133,7 +134,7 @@
 			
 			var _ = this._();
 			
-			_.text(_.get('name'),_.get('value'),_.get('text'),0,_);
+			_.text(_.get('name'),_.get('value'),_.get('text'),_.get('index'),_);
 			_.hidden();
 			
 			if(_.get('animation')){

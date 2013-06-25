@@ -63,6 +63,7 @@ iChart.ColumnStacked2D = iChart.extend(iChart.Column, {
 		this.engine(this);
 	}
 });
+iChart.register('ColumnStacked2D');
 /**
  *@end 
  */

@@ -29,7 +29,8 @@ iChart.Label = iChart.extend(iChart.Component, {
 			 */
 			line_thickness : 1,
 			/**
-			 * @cfg {String} Specifies the shape of legend' sign (default to 'square').Available value are:			 * @Option 'round'
+			 * @cfg {String} Specifies the shape of legend' sign (default to 'square').Available value are:
+			 * @Option 'round'
 			 * @Option 'square'
 			 */
 			sign : 'square',

@@ -69,10 +69,6 @@ iChart.Line = iChart.extend(iChart.Chart, {
 			 */
 			proportional_spacing : true,
 			/**
-			 * @cfg {Number} the space of each point.(default to null)
-			 */
-			point_space : null,
-			/**
 			 * @cfg {<link>iChart.LineSegment</link>} the option for linesegment.
 			 */
 			sub_option : {},
@@ -103,6 +99,8 @@ iChart.Line = iChart.extend(iChart.Chart, {
 		 */
 		'parsePoint');
 
+		this.lines = [];
+		this.components.push(this.lines);
 	},
 	/**
 	 * @method Returns the coordinate of this element.
@@ -115,14 +113,12 @@ iChart.Line = iChart.extend(iChart.Chart, {
 		iChart.Line.superclass.doConfig.call(this);
 		var _ = this._(), s = _.data.length == 1;
 		
-		_.lines = [];
+		_.lines.length = 0;
 		_.lines.zIndex = _.get('z_index');
-		_.components.push(_.lines);
 		
 		var k = _.pushIf('sub_option.keep_with_coordinate',s);
-		
 		if (_.get('crosshair.enable')) {
-			_.push('crosshair.hcross', s);
+			_.pushIf('crosshair.hcross', s);
 			_.push('crosshair.invokeOffset', function(e, m) {
 				/**
 				 * TODO how fire muti line?now fire by first line
@@ -157,29 +153,27 @@ iChart.Line = iChart.extend(iChart.Chart, {
 			_.coo.doCrosshair(_.coo);
 		}
 		
-		var vw = _.coo.get('valid_width'),vh = _.coo.get('valid_height'),
-			M=vw / (_.get('maxItemSize') - 1),ps=_.get('point_space');
+		var vw = _.coo.valid_width,nw=vw,size=_.get('maxItemSize') - 1,M=vw / (size),ps=_.get('point_space');
 		
 		if (_.get('proportional_spacing')){
 			if(ps&&ps<M){
-				vw = (_.get('maxItemSize') - 1)*ps;
+				nw = size*ps;
 			}else{
 				_.push('point_space',M);
 			}
 		}
 		
-		_.push('sub_option.width', vw);
-		_.push('sub_option.height', vh);
+		_.push('sub_option.width', nw);
+		_.push('sub_option.height', _.coo.valid_height);
 		
-		
-		_.push('sub_option.originx', _.coo.get('x_start')+(_.coo.get('valid_width')-vw)/2);
-		_.push('sub_option.originy', _.coo.get(_.Y) + _.coo.get(_.H));
+		_.push('sub_option.originx', _.coo.get('x_start')+(vw-nw)/2);
+		_.push('sub_option.originy', _.coo.get('y_end'));
 		
 		if (_.get('tip.enable')){
-			if(iChart.isFunction(_.get('tipMocker'))){
+			if(!_.mocker&&iChart.isFunction(_.get('tipMocker'))){
 				_.push('sub_option.tip.enable', false);
 				_.push('tip.invokeOffsetDynamic', true);
-				var U,x=_.coo.get(_.X),y=_.coo.get(_.Y),H=_.coo.get(_.H),f = _.get('tipMockerOffset'),r0,r,r1;
+				var U,x=_.coo.get(_.X),y=_.coo.get(_.Y),H=_.coo.height,f = _.get('tipMockerOffset'),r0,r,r1;
 				f = iChart.isNumber(f)?(f<0?0:(f>1?1:f)):null;
 				_.push('tip.invokeOffset',function(w,h,m){
 					if(f!=null){
@@ -201,7 +195,7 @@ iChart.Line = iChart.extend(iChart.Chart, {
 				var p = _.get('tip.listeners.parseText');
 				if(p)
 				delete _.get('tip.listeners').parseText;
-				var mocker = new iChart.Custom({
+				_.mocker = new iChart.Custom({
 					eventValid:function(e){
 						r = _.lines[0].isEventValid(e);
 						r.hit = r0 != r.i;
@@ -223,15 +217,11 @@ iChart.Line = iChart.extend(iChart.Chart, {
 						return r.valid ? r : false;
 					}
 				});
-				new iChart.Tip(_.get('tip'),mocker);
-				_.components.push(mocker);
+				new iChart.Tip(_.get('tip'),_.mocker);
+				_.register(_.mocker);
 			}
 		}
-		
-		/**
-		 * quick config to all linesegment
-		 */
-		iChart.applyIf(_.get('sub_option'), iChart.clone(['area_opacity'], _.options));
+		_.pushIf('sub_option.area_opacity',_.get('area_opacity'));
 	}
 
 });

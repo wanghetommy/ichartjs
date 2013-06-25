@@ -28,6 +28,7 @@ iChart.Pie2D = iChart.extend(iChart.Pie, {
 		
 	}
 });
+iChart.register('Pie2D');
 /**
  * @end
  */

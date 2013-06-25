@@ -41,7 +41,8 @@ iChart.Legend = iChart.extend(iChart.Component, {
 			 */
 			line_height : 16,
 			/**
-			 * @cfg {String} Specifies the shape of legend' sign (default to 'square') Available value are:			 * @Option 'round'
+			 * @cfg {String} Specifies the shape of legend' sign (default to 'square') Available value are:
+			 * @Option 'round'
 			 * @Option 'square'
 			 * @Option 'bar'
 			 * @Option 'round-bar'
@@ -118,7 +119,7 @@ iChart.Legend = iChart.extend(iChart.Component, {
 	},
 	drawCell : function(x, y, text, color,n,_) {
 		var s = _.get('sign_size'),f = _.getPlugin('sign');
-		if(!f||!f.call(_,_.T,n,x + s / 2,y,s,color)){
+		if(!f||!f.call(_,_.T,n,{x:x + s / 2,y:y},s,color)){
 			if(n.indexOf("bar")!=-1){
 				_.T.box(x, y - s / 12, s, s / 6, 0, color);
 			}
@@ -185,18 +186,18 @@ iChart.Legend = iChart.extend(iChart.Component, {
 			_.columnheight[i] = temp;
 			h+=temp;
 		}
-		
 		w = _.push(_.W, w + _.get('hpadding') + _.get('signwidth') * c + (c - 1) * _.get('legend_space'));
-		
-		if (w > _.get('maxwidth')) {
-			var f = _.get('maxwidth')/w,l2=iChart.lowTo,o=Math.floor;
-			_.push('fontsize', l2(6,o(_.get('fontsize')*f)));
-			_.push('sign_size', l2(6,o(ss*f)));
-			_.push('sign_space', l2(4,o(_.get('sign_space')*f)));
-			_.push('legend_space', l2(4,o(_.get('legend_space')*f)));
-			_.push('fontStyle', iChart.getFont(_.get('fontweight'), _.get('fontsize'), _.get('font')));
-			_.doLayout(_,g);
-			return;
+		if (w > _.get('maxwidth')){
+			var fs=Math.floor(_.get('fontsize')*(_.get('maxwidth')/w));
+			if(!(fs<10&&c==1)){
+				if(fs>9){
+					_.push('fontStyle',iChart.getFont(_.get('fontweight'), _.push('fontsize', fs), _.get('font')));
+				}else if(c>1){
+					_.push('row', Math.ceil(L / _.push('column',c-1)));
+				}
+				_.doLayout(_,g);
+				return;
+			}
 		}
 		
 		var d,x,y,y2;
@@ -211,6 +212,7 @@ iChart.Legend = iChart.extend(iChart.Component, {
 		} else {
 			_.y = g.get('centery') - h / 2;
 		}
+		
 		if (_.get('align') == _.L) {
 			_.x = g.get('l_originx');
 		} else if (_.get('align') == _.C) {
@@ -219,8 +221,9 @@ iChart.Legend = iChart.extend(iChart.Component, {
 			_.x = g.get('r_originx') - w;
 		}
 		
-		_.x = _.push(_.X, _.x + _.get('offsetx'));
-		_.y = _.push(_.Y, _.y + _.get('offsety'));
+		_.x = _.push(_.X, (_.x<0?g.get('l_originx'):_.x) + _.get('offsetx'));
+		_.y = _.push(_.Y, (_.y<0?g.get('t_originy'):_.y) + _.get('offsety'));
+		
 		
 		y = _.y + _.get('padding_top');
 		
@@ -266,7 +269,7 @@ iChart.Legend = iChart.extend(iChart.Component, {
 		 */
 		_.data.each(function(d, i) {
 			iChart.merge(d, _.fireEvent(_, 'parse', [_, d.name, i]));
-			d.text = d.text || d.name;
+			d.text = d.text || d.name ||'';
 			d.sign = d.sign || _.get('sign')
 		}, _);
 		
@@ -284,8 +287,8 @@ iChart.Legend = iChart.extend(iChart.Component, {
 			r += Math.ceil((L - r * c) / c);
 			r = _.push('row', r);
 		}
-		_.columnwidth = new Array(c);
-		_.columnheight = new Array(r);
+		_.columnwidth = [];
+		_.columnheight = [];
 		
 		_.doLayout(_,g);
 		

@@ -77,7 +77,12 @@ Hierarchy</div>
 <div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;Column&nbsp;&nbsp;</li>
 <li>e&nbsp;:&nbsp;EventObject&nbsp;&nbsp; The mouseover event object</li>
 </ul></div></div>
-</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr></table></div><div class='ichartjs_p_5' id='methods' name='methods'><div class='ichartjs_title ichartjs_p_5'>Methods</div><table class='ichartjs_table'><tr class='ichartjs_table_header'><th class='ichartjs_table_parameter'>Name</th><th class='ichartjs_table_description'>Description</th><th class='ichartjs_table_definedBy'>Defined By</th></tr><tr class='ichartjs_even'><td>draw</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>The commnd fire to draw the chart use configuration,<br/>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td>resize</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>Fires when chart resize.<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>width&nbsp;:&nbsp;int&nbsp;&nbsp; chart's width</li>
+<li>height&nbsp;:&nbsp;int&nbsp;&nbsp; chart's height</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr></table></div><div class='ichartjs_p_5' id='methods' name='methods'><div class='ichartjs_title ichartjs_p_5'>Methods</div><table class='ichartjs_table'><tr class='ichartjs_table_header'><th class='ichartjs_table_parameter'>Name</th><th class='ichartjs_table_description'>Description</th><th class='ichartjs_table_definedBy'>Defined By</th></tr><tr class='ichartjs_even'><td>draw</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>The commnd fire to draw the chart use configuration,<br/>
 	 * this is a abstract method.Currently known,both <a href='ichart_chart.html'>iChart.Chart</a> and <a href='ichart_component.html'>iChart.Component</a> implement this method.<br/></div>
 <div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
 <div class='ichartjs_pl_10'><ul><li>None<br/></li>
@@ -138,9 +143,23 @@ Hierarchy</div>
 <div class='ichartjs_stress'>Return<br/></div>
 <div class='ichartjs_pl_10'>&nbsp;&nbsp;<a href='ichart_text.html'>iChart.Text</a>&nbsp;:&nbsp;the title object</div>
 </div>
-</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td>plugin</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>register the customize component or combinate with other charts<br/></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td>load</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>load the new data<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>array&nbsp;:&nbsp;data&nbsp;&nbsp;* @return void</li>
+</ul></div>
+<div class='ichartjs_stress'>Return<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;void</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td>plugin</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>register the customize component or combinate with other charts<br/></div>
 <div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
 <div class='ichartjs_pl_10'><ul><li><a href='ichart_custom.html'>iChart.Custom</a><a href='ichart_chart.html'>iChart.Chart</a>&nbsp;:&nbsp;object&nbsp;&nbsp;* @return void</li>
+</ul></div>
+<div class='ichartjs_stress'>Return<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;void</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td>resize</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>resize the chart<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>Parameter<br/></div>
+<div class='ichartjs_pl_10'><ul><li>int&nbsp;:&nbsp;width&nbsp;&nbsp;* @paramter int#height </li>
 </ul></div>
 <div class='ichartjs_stress'>Return<br/></div>
 <div class='ichartjs_pl_10'>&nbsp;&nbsp;void</div>
