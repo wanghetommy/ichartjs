@@ -1,0 +1,181 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>iChart.BarStacked2D-Document</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="Content-Style-Type" content="text/css"/>
+<link rel="stylesheet" href="../resources/style.css" type="text/css"/>
+
+</head>
+<body class='ichartjs_page'>
+<div class='ichartjs_p_5'><div class='ichartjs_title ichartjs_radius2 ichartjs_p_5'><div class='ichartjs_inline ichartjs_left'>概览&nbsp;&nbsp;</div><a class='ichartjs_anchor' href='#configs'>配置项</a><a class='ichartjs_anchor' href='#events'>事件</a><a class='ichartjs_anchor' href='#methods'>方法</a></div><div class='ichartjs_overview_content'>
+<span class='ichartjs_class'>BarStacked2D</span>&nbsp;&nbsp;<br/><div class='ichartjs_p_10 ichartjs_m_10 ichartjs_color ichartjs_inline ichartjs_radius5'><div class='ichartjs_font_600 ichartjs_h_25'>
+层次树</div>
+<div class='ichartjs_h_18'><span class='ichartjs_h_18'><a href="ichart_element.html" target="main" >iChart.Element</a></span>
+</div>
+<div class='ichartjs_h_18'><span class='ichartjs_indent'><div class='ichartjs_tree'></div></span><span class='ichartjs_h_18'><a href="ichart_painter.html" target="main" >iChart.Painter</a></span>
+</div>
+<div class='ichartjs_h_18'><span class='ichartjs_indent'></span><span class='ichartjs_indent'><div class='ichartjs_tree'></div></span><span class='ichartjs_h_18'><a href="ichart_chart.html" target="main" >iChart.Chart</a></span>
+</div>
+<div class='ichartjs_h_18'><span class='ichartjs_indent'></span><span class='ichartjs_indent'></span><span class='ichartjs_indent'><div class='ichartjs_tree'></div></span><span class='ichartjs_h_18'><a href="ichart_bar.html" target="main" >iChart.Bar</a></span>
+</div>
+<div class='ichartjs_h_18'><span class='ichartjs_indent'></span><span class='ichartjs_indent'></span><span class='ichartjs_indent'></span><span class='ichartjs_indent'><div class='ichartjs_tree'></div></span><span class='ichartjs_h_18'><a href="ichart_barstacked2d.html" target="main" >iChart.BarStacked2D</a></span>
+</div>
+</div><br/>2D堆积条形图类。<br/>
+  若单独引用js文件，此图表依赖dist中的以下文件：<br/>
+  ichartjs.base.js(Required)<br/>
+  ichart.coordinate.js(Required)<br/>
+  ichartjs.column.js(Required)<br/>
+ <br/
+</div></div><div class='ichartjs_p_5' id='configs' name='configs'><div class='ichartjs_title ichartjs_p_5'>配置项</div><table class='ichartjs_table'><tr class='ichartjs_table_header'><th class='ichartjs_table_parameter'>参数</th><th class='ichartjs_table_type'>类型</th><th class='ichartjs_table_description'>描述</th><th class='ichartjs_table_definedBy'>定义者</th></tr><tr class='ichartjs_even'><td id='ichart_link_align'>align</td><td>String</td><td>绘主图区在图表中的水平对齐位置。(默认为'center')<br/>
+ 可选值为：<br/>
+ @Option 'left'<br/>
+ @Option 'center'<br/>
+ @Option 'right'<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_animation'>animation</td><td>Boolean</td><td>是否启用过渡动画,false则跳过过渡动画.(默认为false)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_animation_duration'>animation_duration</td><td>Number</td><td>指定动画持续时间，单位毫秒。此时间会与运行平台的FPS有关。(默认为1000)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_animation_timing_function'>animation_timing_function</td><td>String</td><td>启用动画的动作函数(默认为'ease-in-out')可选值有：<br/>
+ @Option 'easeIn'<br/>
+ @Option 'easeOut'<br/>
+ @Option 'easeInOut'<br/>
+ @Option 'linear'<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_background_color'>background_color</td><td>String</td><td>组件中背景颜色(填充色)的值。(默认为'FEFEFE')<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_bar_height'>bar_height</td><td>Number</td><td>单个条形的高度。单位px。(默认会根据坐标系的高度进行计算)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_bar.html" target="main" >Bar</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_bar_space'>bar_space</td><td>Number</td><td>柱形之间的间距。单位px。此配置项为只读。(默认会根据坐标系的高度进行计算)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_bar.html" target="main" >Bar</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_border'>border</td><td>Object</td><td>此处设置了开启边框配置项。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_color'>color</td><td>String</td><td>组件中字体颜色的值。(默认为'black')<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_color_factor'>color_factor</td><td>float(0.01 - 0.5)</td><td>颜色因子，指示其颜色相对于背景色的变化量,值越大，变化值越大(越亮或者越暗)(默认为0.15)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_coordinate'>coordinate</td><td><a href='ichart_coordinate2d.html'>iChart.Coordinate2D</a></td><td>坐标系的配置项。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_bar.html" target="main" >Bar</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_data'>data</td><td>Array</td><td>必需属性,图表的数据源。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_decimalsnum'>decimalsnum</td><td>Number</td><td>百分比小数点精度(小数点后几位)。(默认为 1)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_default_mouseover_css'>default_mouseover_css</td><td>Boolean</td><td>是否当鼠标进入时触发默认的手型鼠标样式。(默认为true)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_footnote'>footnote</td><td>Object/String</td><td>脚注的配置项，若给出字符串，则用默认配置进行渲染标题，若给出对象，则配置为 <a href='ichart_text.html'>iChart.Text</a>对象。如果text属性为空则不显示脚注。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_gradient'>gradient</td><td>Boolean</td><td>True表示开启渐变效果.(默认为false)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_gradient_mode'>gradient_mode</td><td>String</td><td>背景渐变的样式。(默认为'LinearGradientUpDown')<br/>
+ @Option 'LinearGradientUpDown'<br/>
+ @Option 'LinearGradientDownUp'<br/>
+ @Option 'LinearGradientLeftRight'<br/>
+ @Option 'LinearGradientRightLeft'<br/>
+ @Option 'RadialGradientOutIn'<br/>
+ @Option 'RadialGradientInOut'<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_height'>height</td><td>Number</td><td>图表的高度，单位px。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_id'>id</td><td>String</td><td>组件的唯一id。(默认自动分配一个字符串).<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_label'>label</td><td><a href='ichart_text.html'>iChart.Text</a></td><td>条形坐标轴上的标签文本的配置项。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_bar.html" target="main" >Bar</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_legend'>legend</td><td>Object</td><td>图例的配置项.详情请参考 <a href='ichart_legend.html'>iChart.Legend</a> Note:设置为false表示禁用图例。(默认为false)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_lineJoin'>lineJoin</td><td>String</td><td>组件中context的lineJoin的值。(默认为'round')<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_listeners'>listeners</td><td>Object</td><td>事件的配置项。(默认为null)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_offsetx'>offsetx</td><td>Number</td><td>组件中水平偏移量，正数向右，负数向左。单位像素。(默认为0)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_offsety'>offsety</td><td>Number</td><td>组件中垂直偏移量，正数向下，负数向上。单位像素。(默认为0)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_originx'>originx</td><td>Number</td><td>图表原点x坐标，不指定会根据对齐方式计算。(默认为null)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_originy'>originy</td><td>Number</td><td>图表原点y坐标，不指定会根据对齐方式计算。(默认为null)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_padding'>padding</td><td>Number</td><td>组件中内边框的值,规则与css中的一致，单位像素。(默认为10)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_percent'>percent</td><td>Boolean</td><td>为True则表现为百分比堆积图.(默认为 false)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_barstacked2d.html" target="main" >BarStacked2D</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_render'>render</td><td>String</td><td>图表渲染的HTML DOM的id。(默认为'').<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_scaleAlign'>scaleAlign</td><td>String</td><td>此配置项有两个功能：<br/>
+ 1、轴刻度的对齐方式、此配置项仅在没有设置<a href='ichart_coordinate2d.html#ichart_link_sacle'>iChart.Coordinate2D&nbsp;sacle</a>时生效。<br/>
+ 2、如果<a href='ichart_coordinate2d.html#ichart_link_sacle'>iChart.Coordinate2D&nbsp;sacle</a>同时配置了上/下刻度轴，那么此配置项指定了柱形体的参照轴。<br/>
+ 可选值:<br/>
+ @Option 'top'<br/>
+ @Option 'bottom'<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_bar.html" target="main" >Bar</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_shadow'>shadow</td><td>Boolean</td><td>此组件是否启用阴影效果。启用阴影在移动客户端上可能会引起渲染速度变慢。(默认为false)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_element.html" target="main" >Element</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_shadow_blur'>shadow_blur</td><td>Number</td><td>此组件阴影的模糊程度,单位px。(默认为4)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_element.html" target="main" >Element</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_shadow_color'>shadow_color</td><td>String</td><td>此组件阴影的颜色值.(默认为'#666666')<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_element.html" target="main" >Element</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_shadow_offsetx'>shadow_offsetx</td><td>Number</td><td>此组件阴影的x轴偏移量,单位px。(默认为0)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_element.html" target="main" >Element</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_shadow_offsety'>shadow_offsety</td><td>Number</td><td>此组件阴影的y轴偏移量,单位px。(默认为0)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_element.html" target="main" >Element</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_showpercent'>showpercent</td><td>Boolean</td><td>是否显示为百分比值。(默认为false)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_strokeStyle'>strokeStyle</td><td>String</td><td>组件中context的strokeStyle属性的值。(默认为'gray')<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_sub_option'>sub_option</td><td>Array</td><td>x-坐标轴上的标签文本。一般与数据项长度一致。(默认为[])<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_barstacked2d.html" target="main" >BarStacked2D</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_subtitle'>subtitle</td><td>Object</td><td>副标题的配置项，若给出字符串，则用默认配置进行渲染标题，若给出对象，则配置为 <a href='ichart_text.html'>iChart.Text</a>对象。如果标题或者副标题的text属性为空则不显示副标题。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_text_space'>text_space</td><td>Number</td><td>指定轴文本与轴线的距离。单位px。(默认为6)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_bar.html" target="main" >Bar</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_tip'>tip</td><td>Object</td><td>提示框的配置项.详情请参考 <a href='ichart_tip.html'>iChart.Tip</a>  Note:设置为false表示禁用提示框。(默认为false)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_title'>title</td><td>Object/String</td><td>标题的配置项，若给出字符串，则用默认配置进行渲染标题，若给出对象，则配置为 <a href='ichart_text.html'>iChart.Text</a>对象。如果text属性为空则不显示标题。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_turn_off_touchmove'>turn_off_touchmove</td><td>Boolean</td><td>是否忽略touchmove事件，当设备支持touch时，默认情况下，在图表中组件区域滑动时会屏蔽浏览器本身的行为，比如:滑动页面。(默认为false)<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td id='ichart_link_width'>width</td><td>Number</td><td>图表的宽度，单位px。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td id='ichart_link_z_index'>z_index</td><td>Number</td><td>设置绘图区的组件的显示层级为999，使其在最上层显示。<br/></td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr></table></div><div class='ichartjs_p_5' id='events' name='events'><div class='ichartjs_title ichartjs_p_5'>事件</div><table class='ichartjs_table'><tr class='ichartjs_table_header'><th class='ichartjs_table_parameter'>名称</th><th class='ichartjs_table_description'>描述</th><th class='ichartjs_table_definedBy'>定义者</th></tr><tr class='ichartjs_even'><td>afterAnimation</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>动画执行完成时触发。仅当 <a href='#ichart_link_animation'>animation</a> 为 true 时生效。<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;BarStacked2D&nbsp;&nbsp;</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td>beforeAnimation</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>动画执行之前触发。仅当 <a href='#ichart_link_animation'>animation</a> 为 true 时生效。<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;BarStacked2D&nbsp;&nbsp;</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td>beforedraw</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>绘图之前触发，返回false停止绘图行为。<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;BarStacked2D&nbsp;&nbsp;</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td>click</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>点击时触发。<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;BarStacked2D&nbsp;&nbsp;</li>
+<li>e&nbsp;:&nbsp;EventObject&nbsp;&nbsp; 鼠标事件对象</li>
+<li>param&nbsp;:&nbsp;Object&nbsp;&nbsp; 额外的参数</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_even'><td>draw</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>完成绘图之后触发。<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;BarStacked2D&nbsp;&nbsp;</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td>initialize</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>初始化完成之后触发。<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;BarStacked2D&nbsp;&nbsp;</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_element.html" target="main" >Element</a></td></tr><tr class='ichartjs_even'><td>mousemove</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>鼠标移动时触发。<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;BarStacked2D&nbsp;&nbsp;</li>
+<li>e&nbsp;:&nbsp;EventObject&nbsp;&nbsp; 鼠标事件对象</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td>mouseout</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>鼠标在离开时触发。<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;BarStacked2D&nbsp;&nbsp;</li>
+<li>e&nbsp;:&nbsp;EventObject&nbsp;&nbsp; 鼠标事件对象</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_even'><td>mouseover</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>鼠标在进入时触发。<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>this&nbsp;:&nbsp;BarStacked2D&nbsp;&nbsp;</li>
+<li>e&nbsp;:&nbsp;EventObject&nbsp;&nbsp; 鼠标事件对象</li>
+</ul></div></div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr></table></div><div class='ichartjs_p_5' id='methods' name='methods'><div class='ichartjs_title ichartjs_p_5'>方法</div><table class='ichartjs_table'><tr class='ichartjs_table_header'><th class='ichartjs_table_parameter'>名称</th><th class='ichartjs_table_description'>描述</th><th class='ichartjs_table_definedBy'>定义者</th></tr><tr class='ichartjs_even'><td>draw</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>绘图方法接口，这是一个抽象模板方法。实现此方法之后定义自己的行为。目前为止,<a href='ichart_chart.html'>iChart.Chart</a> 和 <a href='ichart_component.html'>iChart.Component</a> 实现了此方法.<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>无<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>返回值<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;void</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_painter.html" target="main" >Painter</a></td></tr><tr class='ichartjs_odd'><td>eventOff</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>关闭事件监听，调用此方法后，图表将不响应事件<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>无<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>返回值<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;void</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td>eventOn</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>开启事件监听，调用此方法后，图表将继续响应事件<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>无<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>返回值<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;void</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td>getCoordinate</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>获取坐标系对象<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>无<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>返回值<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;<a href='ichart_coordinate2d.html'>iChart.Coordinate2D</a></div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_bar.html" target="main" >Bar</a></td></tr><tr class='ichartjs_even'><td>getDrawingArea</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>获取绘图区的尺寸。自定义的组件应该在绘图区进行绘制。返回对象包含以下属性：<br/>
+		 * @property x:左上方x轴坐标<br/>
+		 * @property y:左上方y轴坐标<br/>
+		 * @property width:绘图区宽度，单位:px。<br/>
+		 * @property height:绘图区高度，单位:px。<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>无<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>返回值<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;object</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td>getFootNote</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>获取脚注对象，不可用时返回undefined<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>无<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>返回值<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;<a href='ichart_text.html'>iChart.Text</a></div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td>getSubTitle</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>获取副标题对象，不可用时返回undefined<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>无<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>返回值<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;<a href='ichart_text.html'>iChart.Text</a></div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td>getTitle</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>获取主标题对象，不可用时返回undefined<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>无<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>返回值<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;<a href='ichart_text.html'>iChart.Text</a></div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td>load</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>载入指定数据<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>array&nbsp;:&nbsp;data&nbsp;&nbsp;数据</li>
+</ul></div>
+<div class='ichartjs_stress'>返回值<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;void</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td>plugin</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>注册自定义组件<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li><a href='ichart_custom.html'>iChart.Custom</a>&nbsp;:&nbsp;component&nbsp;&nbsp;要注册的组件</li>
+</ul></div>
+<div class='ichartjs_stress'>返回值<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;void</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_even'><td>resize</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>重置图表大小<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>int&nbsp;:&nbsp;width&nbsp;&nbsp;宽度  </li>
+<li>int&nbsp;:&nbsp;height&nbsp;&nbsp;高度</li>
+</ul></div>
+<div class='ichartjs_stress'>返回值<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;void</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr><tr class='ichartjs_odd'><td>setUp</td><td><div class='ichartjs_h_25 ichartjs_pl_10'>根据最新属性重新装配图表组件。一般在更新图表时调用。<br/></div>
+<div class='ichartjs_h_25 ichartjs_pl_10'><div class='ichartjs_stress'>参数<br/></div>
+<div class='ichartjs_pl_10'><ul><li>无<br/></li>
+</ul></div>
+<div class='ichartjs_stress'>返回值<br/></div>
+<div class='ichartjs_pl_10'>&nbsp;&nbsp;void</div>
+</div>
+</td><td class='ichartjs_right ichartjs_stress'><a href="ichart_chart.html" target="main" >Chart</a></td></tr></table></div><div class='ichartjs_reference'><strong>参考:</strong><span class='ichartjs_reference_item'><a href="ichart_bar.html" target="main" >Bar</a></span></div>
+</body>
+</html>

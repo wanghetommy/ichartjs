@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart.1.2.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css" />
+		<script type="text/javascript">
+		$(function(){
+			var data = [
+			         	{
+			         		name : '直营店',
+			         		value:[54841,72400,76776,83361],
+			         		color:'#338f61'
+			         	},
+			         	{
+			         		name : '加盟店',
+			         		value:[22790,33284,52148,68333],
+			         		color:'#44BF82'
+			         	}
+			         ];
+	        
+			var chart = new iChart.BarStacked2D({
+					render : 'canvasDiv',
+					data: data,
+					labels:["2004年","2005年","2006年","2007年"],
+					title : {
+						text:'全国限额以上连锁零售业情况',
+						color:'#698389',
+						textAlign:'left',
+						padding:'0 40',
+						font:'微软雅黑',
+						border:{
+							enable:true,
+							width:[0,0,4,0],
+							color:'#698389'
+						},
+						height:40
+					},
+					footnote : {
+						text:'数据来源：中华人民共和国国家统计局',
+						font:'微软雅黑',
+						padding:'0 8',
+						background_color : '#698389',
+						width:224,
+						align:'right',
+						color:'#e7eff7'
+					},
+					padding:'8 0',
+					width : 800,
+					height : 400,
+					bar_height:70,
+					//percent : true,
+					//showpercent:true,
+					gradient : true,//应用背景渐变
+					gradient_mode:'LinearGradientDownUp',//渐变类型
+					color_factor : 0.1,//渐变因子
+					background_color : '#e7eff7',
+					sub_option:{
+						label:{color:'#fefefe',fontsize:12,fontweight:600},
+						border : false
+					},
+					label:{color:'#516074',font:'微软雅黑',fontsize:12,fontweight:600},
+					legend:{
+						enable:true,
+						background_color : null,
+						line_height:25,
+						color:'#6d7b8d',
+						fontsize:12,
+						font:'微软雅黑',
+						fontweight:600,
+						border : {
+							enable : false
+						}
+					},
+					coordinate:{
+						background_color : 0,
+						grid_color:'#888888',
+						axis : {
+							color : '#c0d0e0',
+							width : 0
+						}, 
+						scale:[{
+							 position:'bottom',	
+							 scale_enable : false,
+							 start_scale:0,
+							 scale_space:20000,
+							 end_scale:160000,
+							 label:{color:'#516074',fontsize:11,fontweight:600}
+						}],
+						width:'80%',
+						height:'76%'
+					}
+			});
+			
+			chart.draw();
+		});
+	</script>
+	</head>
+	<body>
+		<div id='canvasDiv'></div>
+		<div class='ichartjs_info'>
+			<span class='ichartjs_author'>writen by <a title="示例的贡献者"
+				href="mailto:taylor@ichartjs.com">taylor</a> </span>
+			<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">预览代码</span>
+			<div class='ichartjs_sm'>
+				说明
+			</div>
+			<div class='ichartjs_details'>
+				这是一个2D堆积条形图的示例，该示例展示了从2004年至2007年全国限额以上连锁零售业情况。可以看出 加盟店的增长速度要比直营店的增加速度快。
+			</div>
+			<span class='ichartjs_sm'>备注：</span>
+			<span class='ichartjs_details'>数据来源于中华人民共和国国家统计局网站。 </span>
+		</div>
+	</body>
+</html>

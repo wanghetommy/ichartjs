@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart.1.2.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css"/>
+		<script type="text/javascript">
+				$(function(){
+					var data = [
+					        	{name : 'overall',value : 34,color:'#609fad'},
+					        	{name : '18-24',value : 33,color:'#609fad'},
+					        	{name : '25-34',value : 37,color:'#609fad'},
+					        	{name : '35-44',value : 49,color:'#609fad'},
+					        	{name : '45-54',value : 38,color:'#609fad'},
+					        	{name : '55-64',value : 28,color:'#609fad'},
+					        	{name : '65+',value : 18,color:'#609fad'}
+				        	];
+		        	
+					var chart = new iChart.Column2D({
+						id:'ichartjs2013',
+						render : 'canvasDiv',
+						data: data,
+						title : {
+							text:'US Tablet Adoption Rates in May 2013',
+							color:'#d84b45',
+							textAlign:'left',
+							padding:'0 40',
+							font:'微软雅黑',
+							border:{
+								enable:true,
+								width:[0,0,4,0],
+								color:'#609fad'
+							},
+							height:40
+						},
+						subtitle : {
+							text:'% of adults aged 18+',
+							color:'#609fad',
+							textAlign:'left',
+							padding:'0 40',
+							font:'微软雅黑',
+							height:30
+						},
+						footnote : {
+							text:'数据来源：互联网',
+							font:'微软雅黑',
+							padding:'0 8',
+							background_color : $.toRgba('#609fad',0.6),
+							width:110,
+							offsetx:-10,
+							align:'right',
+							color:'#d84b45'
+						},
+						background_color : '#f8f8f8',
+						padding:'4 0',
+						width : 800,
+						height : 400,
+						label : {
+							fontsize:12,
+							font:'微软雅黑',
+							color : '#4572a7'
+						},
+						sub_option:{
+							listeners : {
+								parseText : function(r, t) {
+									return t + "%";
+								}
+							},
+							label : {
+								fontsize:12,
+								fontweight:600,
+								font:'微软雅黑',
+								color : '#4572a7'
+							}
+						},
+						coordinate:{
+							width:'90%',
+							height:'74%',
+							axis : {
+								color : '#c0d0e0',
+								width : [0, 0, 2, 0]
+							},
+							scale:[{
+								 position:'left',	
+								 start_scale:0,
+								 end_scale:50,
+								 scale_enable : false,
+								 listeners:{
+									parseText:function(t,x,y){
+										return {text:""}
+									}
+								}
+							}]
+						}
+					});
+					chart.draw();
+			});
+				
+			function dosize(){
+				var chart = $.get('ichartjs2013');//根据ID获取图表对象
+				chart.push("column_width",null);//设置为null则每次重新计算柱子宽度
+				var w = $("width").value;
+				var h = $("height").value;
+				chart.resize(w,h);
+			}
+			</script>
+		</head>
+		<body>
+			<div id='canvasDiv'></div>
+			<div class='ichartjs_info'>
+				宽度：
+				<select id="width" onchange="dosize()">
+					<option value="800">800</option>
+					<option value="600">640</option>
+					<option value="400">560</option>
+				</select>
+				&nbsp;
+				高度：
+				<select id="height" onchange="dosize()">
+					<option value="400">400</option>
+					<option value="300">320</option>
+					<option value="200">280</option>
+				</select>
+			</div>
+			<div class='ichartjs_info'>
+				<span class='ichartjs_author'>writen by <a title="示例的贡献者" href="mailto:taylor@ichartjs.com">taylor</a></span>
+				<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">View Code</span>
+				<div class='ichartjs_sm'>说明</div>
+				<div class='ichartjs_details'>
+					这是一个柱形图的示例，该示例展示了2013年美国平板电脑拥有率情况。示例利用resize方法进行尺寸变换，以满足变换尺寸的业务需求。
+				</div>
+				<span class='ichartjs_sm'>备注：</span>
+				<span class='ichartjs_details'>
+					数据均为模拟。
+				</span>
+			</div>
+		</body>
+</html>

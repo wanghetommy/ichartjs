@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>ichartjs 示例</title>
+		<meta name="Description" content="The ichartjs's gallery center,ichartjs 示例中心" />
+		<meta name="Keywords" content="ichartjs demo,Html5 demo,ichartjs示例,ichartjs示例,Html5示例,Html5示例" />
+		<script type="text/javascript" src="../../ichart.1.2.min.js"></script>
+		<link rel="stylesheet" href="../css/demo.css" type="text/css" />
+		<script type="text/javascript">
+		$(function(){
+			var data = [
+						{
+							name : 'Jan-Sep',
+							value:[2.75,2.92,4.31,4.95,4.6,4.32,4.32,2.97],
+							color:'#ECAD55'
+						},
+			         	{
+			         		name : 'Oct-Dec',
+			         		value:[3.4,3.57,4.49,6.05,5.4,4.87,4.48,3.22],
+			         		color:'#47AAB3'
+			         	}
+			         ];
+	        
+			var chart = new iChart.BarStacked2D({
+					render : 'canvasDiv',
+					data: data,
+					labels:["2005","2006","2007","2008","2009","2010","2011","2012"],
+					title : {
+						text:'Total U.S Retail Software Revenue',
+						width:400,
+						align:'left',
+						background_color : '#495998',
+						color:'#c0c8e7'
+					},
+					subtitle : {
+						text:'Showing Jan-Sep Share,2012 Estimated',
+						width:280,
+						height:20,
+						fontsize:12,
+						align:'left',
+						color:'#c0c8e7'
+					},
+					padding:10,
+					footnote : '数据来源：互联网',
+					width : 800,
+					height : 400,
+					bar_height:20,
+					background_color : '#353757',
+					shadow : true,
+					shadow_blur : 2,
+					shadow_color : '#aaaaaa',
+					shadow_offsetx : 1,
+					shadow_offsety : 0, 
+					sub_option:{
+						label:{color:'#ffffff',fontsize:12,fontweight:600},
+						border : {
+							width : 2,
+							color : '#d3d4f0'
+						} 
+					},
+					label:{color:'#d3d4f0',fontsize:12,fontweight:600},
+					showpercent:true,
+					decimalsnum:0,
+					legend:{
+						enable:true,
+						background_color : null,
+						line_height:25,
+						color:'#d3d4f0',
+						fontsize:12,
+						fontweight:600,
+						border : {
+							enable : false
+						}
+					},
+					coordinate:{
+						background_color : 0,
+						axis : {
+							color : '#c0c8e7',
+							width : 0
+						}, 
+						scale:[{
+							 position:'bottom',	
+							 scale_enable : false,
+							 start_scale:0,
+							 scale_space:2,
+							 end_scale:12,
+							 label:{color:'#d3d4f0',fontsize:11,fontweight:600},
+							 listeners:{
+								parseText:function(t,x,y){
+									return {text:"$"+t}
+								}
+							 }
+						}],
+						width:600,
+						height:260
+					}
+			});
+
+			//利用自定义组件构造左侧说明文本
+			chart.plugin(new iChart.Custom({
+					drawFn:function(){
+						//计算位置
+						var coo = chart.getCoordinate(),
+							x = coo.get('originx'),
+							y = coo.get('originy'),
+							h = coo.height;
+						//在左下侧的位置，渲染一个单位的文字
+						chart.target.textAlign('start')
+						.textBaseline('bottom')
+						.textFont('600 11px Verdana')
+						.fillText('Billions',x-20,y+h+30,false,'#a8b2d7');
+						
+					}
+			}));
+			
+			chart.draw();
+		});
+	</script>
+	</head>
+	<body>
+		<div id='canvasDiv'></div>
+		<div class='ichartjs_info'>
+			<span class='ichartjs_author'>writen by <a title="示例的贡献者"
+				href="mailto:taylor@ichartjs.com">taylor</a> </span>
+			<span class='ichartjs_btn' onmouseover="this.style.color='#2f99ff'" onmouseout="this.style.color='#0b2946'" onclick="window.top.viewCode(document);">预览代码</span>
+			<div class='ichartjs_sm'>
+				说明
+			</div>
+			<div class='ichartjs_details'>
+				这是一个2D堆积条形图的示例，该示例说明了电子游戏零售业降到了近七年来的最低水平。
+			</div>
+			<span class='ichartjs_sm'>备注：</span>
+			<span class='ichartjs_details'>数据均为模拟。 </span>
+		</div>
+	</body>
+</html>
