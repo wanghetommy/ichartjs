@@ -1,5 +1,5 @@
 /**
- * ichartjs Library v1.1 http://www.ichartjs.com/
+ * ichartjs Library v1.2 http://www.ichartjs.com/
  * 
  * @author wanghe
  * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License"); 
@@ -366,7 +366,7 @@
 			}
 
 			// Look for rgba(255,255,255,0.3)
-			if (/^rgba\([0-9]{1,3},[0-9]{1,3},[0-9]{1,3},(0(\.[0-9])?|1(\.0)?)\)$/.exec(color)) {
+			if (/^rgba\([0-9]{1,3},[0-9]{1,3},[0-9]{1,3},(0(\.\d*)?|1(\.0)?)\)$/.exec(color)) {
 				return color;
 			}
 
@@ -682,6 +682,9 @@
 				}
 				return new _[Repository[C.type]](C);
 			},
+			remove:function(id){
+				delete Registry[id];
+			},
 			get:function(id){
 				return Registry[id];
 			},
@@ -728,6 +731,7 @@
 			emptyFn : function() {
 				return true;
 			},
+            ratio:window.devicePixelRatio || 1,
 			supportCanvas : supportCanvas,
 			isOpera : isOpera,
 			isWebKit : isWebKit,
@@ -790,35 +794,48 @@
 				 * This is mainly for FF which doesn't provide offsetX
 				 */
 				if (typeof (e.offsetX) == 'undefined') {
+
+                    var doc = document.documentElement||{},
+                        body = document.body,
+                        left=(doc.scrollLeft || body.scrollLeft || 0) - (doc.clientLeft || body.clientLeft || 0),
+                        top=(doc.scrollTop || body.scrollTop || 0) - (doc.clientTop || body.clientTop || 0),
+                        t = e.targetTouches;
+
 					/**
 					 * Fix target property, if necessary
 					 */
 					if (!e.target) {
-						E.target = e.srcElement || document;
+						E.target = e.srcElement || (t?t[0].target:doc||body);
 					}
 					
-					if(e.targetTouches){
-						E.pageX = e.targetTouches[0].pageX;
-						E.pageY = e.targetTouches[0].pageY;
+					if(t){
+						E.pageX = t[0].pageX;
+						E.pageY = t[0].pageY;
 					}
+
 					/**
 					 * Calculate pageX/Y if missing and clientX/Y available
 					 */
 					if (E.pageX == null && e.clientX != null) {
-						var doc = document.documentElement, body = document.body;
-						E.pageX = e.clientX + (doc && doc.scrollLeft || body && body.scrollLeft || 0) - (doc && doc.clientLeft || body && body.clientLeft || 0);
-						E.pageY = e.clientY + (doc && doc.scrollTop || body && body.scrollTop || 0) - (doc && doc.clientTop || body && body.clientTop || 0);
+						E.pageX = e.clientX + left;
+						E.pageY = e.clientY + top;
 					}
-					
-					/**
-					 * Browser not with offsetX and offsetY
-					 */
-					var x = 0, y = 0, obj = e.target;
-					while (obj != document.body && obj) {
-						x += obj.offsetLeft-(obj.scrollLeft||0);
-						y += obj.offsetTop;
-						obj = obj.offsetParent;
-					}
+                    /**
+                     * Browser not with offsetX and offsetY
+                     */
+                    var x = 0, y = 0, obj = E.target;
+
+                    if (obj.getBoundingClientRect) {
+                        var box = obj.getBoundingClientRect();
+                        x = box.left + (window.pageXOffset || left);
+                        y  = box.top +  (window.pageYOffset || top);
+                    } else {
+                        while (obj != document.body && obj) {
+                            x += obj.offsetLeft-(obj.scrollLeft||0);
+                            y += obj.offsetTop;
+                            obj = obj.offsetParent;
+                        }
+                    }
 					E.offsetX = E.pageX - x;
 					E.offsetY = E.pageY - y;
 				}
@@ -840,7 +857,7 @@
 		return _;
 
 	})(window);
-
+	
 	/**
 	 * Add useful method,need to optimized
 	 */
@@ -987,8 +1004,6 @@ $.Element = function(config) {
 			 */
 			'initialize');
 			
-	_.initialization = false;
-	
 	/**
 	 * inititalize configure
 	 */
@@ -1239,6 +1254,10 @@ $.Painter = $.extend($.Element, {
 	is3D : function() {
 		return this.dimension == $._3D;
 	},
+	tf:function(k){
+		var _ = this._();
+		return $.isFunction(_.get(k))?_.get(k).apply(_,[_.T,k]):_.get(k);
+	},
 	applyGradient:function(x,y,w,h){
 		var _ = this._();
 		if(_.get('gradient')&&_.get('f_color')){
@@ -1300,15 +1319,6 @@ $.Painter = $.extend($.Element, {
 			hpadding:p[1] + p[3] + b[1] + b[3],
 			vpadding:p[0] + p[2] + b[0] + b[2]
 		});	
-		
-		if (_.get('shadow')===true) {
-			_.push('shadow', {
-				color : _.get('shadow_color'),
-				blur : _.get('shadow_blur'),
-				offsetx : _.get('shadow_offsetx'),
-				offsety : _.get('shadow_offsety')
-			});
-		}
 		
 		_.push('f_color', bg);
 		_.push('f_color_', bg);
@@ -1532,7 +1542,6 @@ $.Component = $.extend($.Painter, {
 		$.DefineAbstract('doDraw', this);
 		
 		this.doConfig();
-		this.initialization = true;
 	},
 	/**
 	 * @method return the component's dimension,return hold following property
@@ -2001,10 +2010,11 @@ $.Legend = $.extend($.Component, {
 	isEventValid : function(e,_) {
 		var r = {
 			valid : false
-		};
+		},
+		h=_.get('line_height');
 		if (e.x > this.x && e.x < (_.x + _.width) && e.y > _.y && e.y < (_.y + _.height)) {
 			_.data.each(function(d, i) {
-				if (e.x > d.x && e.x < (d.x + d.width_ + _.get('signwidth')) && e.y > d.y && e.y < (d.y + _.get('line_height'))) {
+				if (e.x > d.x && e.x < (d.x + d.width_ + _.get('signwidth')) && e.y > (d.y -h/2) && e.y < (d.y + h/2)) {
 					r = {
 						valid : true,
 						index : i,
@@ -2049,7 +2059,7 @@ $.Legend = $.extend($.Component, {
 			c = _.get('column'),
 			r = _.get('row'),
 			L = _.data.length;
-		
+			c = c>L?L:c;
 		_.T.textFont(_.get('fontStyle'));
 		
 		if (_.get('line_height') < ss) {
@@ -2553,7 +2563,7 @@ $.Label = $.extend($.Component, {
 				item = [],T = 0;
 				c.each(function(d,j){
 					V = d.value[i];
-					if(!V)return;
+					if(!V&&V!=0)return;
 					d.value[i] = V =  pF(V,V);
 					T+=V;
 					if(stack){
@@ -2592,19 +2602,13 @@ $.Label = $.extend($.Component, {
 		_.push('minValue',MI); 
 		_.push('maxValue',M);
 		_.doConfig();
-		_.initialization = true;
 	};
 	
 	/**
 	 * @private support an improved API for drawing in canvas
 	 */
 	function Cans(c) {
-		if (typeof c === "string")
-			c = $(c);
-		if (!c || !c['tagName'] || c['tagName'].toLowerCase() != 'canvas')
-			throw new Error("there not a canvas element");
-
-		this.canvas = c;
+		this.canvas = typeof c === "string"?$(c):c;
 		this.c = this.canvas.getContext("2d");
 	}
 
@@ -3281,7 +3285,14 @@ $.Label = $.extend($.Component, {
 				 */
 				decimalsnum : 1,
 				/**
-				 * @cfg {Object/String} Specifies the config of Title details see <link>$.Text</link>,If given a string,it will only apply the text.note:If the text is empty,then will not display
+				 * @cfg {Object/String} Specifies the text when data is empty.details see <link>$.Text</link>,If given a string,it will only apply the text.note:If the text is empty,then will not display(text defaults to 'No data found')
+				 */
+				empty : {
+					text :'No data found',
+					fontsize : 16
+				},
+				/**
+				 * @cfg {Object/String} Specifies the config of Title details see <link>$.Text</link>,If given a string,it will only apply the text.note:If the text is empty,then will not display(text defaults to '')
 				 */
 				title : {
 					text : '',
@@ -3296,7 +3307,7 @@ $.Label = $.extend($.Component, {
 					height : 30
 				},
 				/**
-				 * @cfg {Object/String}Specifies the config of subtitle details see <link>$.Text</link>,If given a string,it will only apply the text.note:If the title or subtitle'text is empty,then will not display
+				 * @cfg {Object/String}Specifies the config of subtitle details see <link>$.Text</link>,If given a string,it will only apply the text.note:If the title or subtitle'text is empty,then will not display(text defaults to '')
 				 */
 				subtitle : {
 					text : '',
@@ -3311,7 +3322,7 @@ $.Label = $.extend($.Component, {
 					height : 20
 				},
 				/**
-				 * @cfg {Object/String}Specifies the config of footnote details see <link>$.Text</link>,If given a string,it will only apply the text.note:If the text is empty,then will not display
+				 * @cfg {Object/String}Specifies the config of footnote details see <link>$.Text</link>,If given a string,it will only apply the text.note:If the text is empty,then will not display(text defaults to '')
 				 */
 				footnote : {
 					text : '',
@@ -3489,8 +3500,6 @@ $.Label = $.extend($.Component, {
 			
 			if (!_.redraw) {
 				$.Assert.isTrue(_.Rendered, _.type + ' has not rendered');
-				$.Assert.isTrue(_.data&&_.data.length>0,_.type + '\'s data is empty');
-				$.Assert.isTrue(_.initialization, _.type + ' Failed to initialize');
 				_.doSort();
 			}
 			
@@ -3502,6 +3511,7 @@ $.Label = $.extend($.Component, {
 			}
 			_.segmentRect();
 			//order?
+			var i=0;
 			_.components.eachAll(function(c) {
 				c.draw(e);
 			});
@@ -3534,10 +3544,10 @@ $.Label = $.extend($.Component, {
 		},
 		destroy:function(_){
 			_.components.eachAll(function(C){
-				C.destroy();
+				C.destroy(C);
 			});
 			_.oneways.each(function(O){
-				O.destroy();
+				O.destroy(O);
 			});
 		},
 		/**
@@ -3585,6 +3595,7 @@ $.Label = $.extend($.Component, {
 				var w = window.innerWidth,
 			    	h = window.innerHeight,
 			    	style = $.getDoc().body.style;
+				//clientHeight
 			    style.padding = "0px";
 			    style.margin = "0px";
 			    style.overflow = "hidden";
@@ -3594,16 +3605,26 @@ $.Label = $.extend($.Component, {
 			
 			_.canvasid = $.uid(_.type);
 			_.shellid = "shell-"+_.canvasid;
-			
-			var H = [];
-			H.push("<div id='");
-			H.push(_.shellid);
-			H.push("' style='padding:0px;margin:0px;overflow:hidden;position:relative;'>");
-			H.push("<canvas id= '");
-			H.push(_.canvasid);
-			H.push("' style='-webkit-text-size-adjust: none;'>");
-			H.push("<p>Your browser does not support the canvas element</p></canvas>");
-			H.push("</div>");
+
+            var H = [];
+            H.push("<div id='");
+            H.push(_.shellid);
+            H.push("' style='padding:0px;margin:0px auto;overflow:hidden;position:relative");
+
+            /**
+             * push the background on div,fixed some android 4.2 can not render bg?
+             */
+            if(_.get('background_wrap')){
+                H.push(";background_color:");
+                H.push(_.get('f_color'));
+            }
+
+            H.push(";'>");
+            H.push("<canvas id= '");
+            H.push(_.canvasid);
+            H.push("' style='-webkit-text-size-adjust: none;'>");
+            H.push("<p>Your browser does not support the canvas element</p></canvas>");
+            H.push("</div>");
 			
 			/**
 			 * also use appendChild()
@@ -3631,7 +3652,6 @@ $.Label = $.extend($.Component, {
 			var _ = this._();
 			_.redraw = false;
 			_.T.clearRect();
-			_.initialization = false;
 			_.initialize();
 		},
 		/**
@@ -3660,7 +3680,6 @@ $.Label = $.extend($.Component, {
 				_.height = _.push(_.H, h);
 				_.size(_);
 			}
-			_.set(_.fireEvent(_,'resize',[w,h]));
 			_.setUp();
 			_.plugins.eachAll(function(P) {
 				if(P.Combination){
@@ -3670,12 +3689,19 @@ $.Label = $.extend($.Component, {
 			if(!_.Combination){
 				_.draw();
 			}
+			_.set(_.fireEvent(_,'resize',[w,h]));
 		},
 		size:function(_){
-			_.T.canvas.width = _.width = _.pushIf(_.W, 400);
-			_.T.canvas.height = _.height = _.pushIf(_.H, 300);
-			_.shell.style.width = _.width+'px';
-			_.shell.style.height = _.height+'px';
+            var r = $.ratio,w=_.pushIf(_.W, 400),h=_.pushIf(_.H, 300),c=_.T.canvas;
+
+            _.shell.style.width = c.style.width =  w+'px';
+            _.shell.style.height = c.style.height =  h+'px';
+
+            c.width = (_.width = w)*r;
+            c.height = (_.height = h)*r;
+
+            if(r>1)
+            _.T.c.scale(r, r);
 		},
 		initialize : function() {
 			var _ = this._(),d = _.get('data'),r = _.get('render');
@@ -3695,16 +3721,15 @@ $.Label = $.extend($.Component, {
 				if(r)
 				_.create(_,$(r));
 			}
-			
-			if(_.Rendered && !_.initialization){
-				if(d&&d.length>0){
-					parse.call(_,d,_);
-				}else if($.isString(_.get('url'))){
+			if(_.Rendered){
+				if($.isString(_.get('url'))&&!d){
 					_.ajax.call(_,_.get('url'),function(D){
 						_.push('data',D);
 						_.initialize();
 						_.draw();
 					});
+				}else{
+					parse.call(_,d||[],_);
 				}
 			}
 		},
@@ -3732,7 +3757,7 @@ $.Label = $.extend($.Component, {
 			}
 			_.animationArithmetic = $.getAA(_.get('animation_timing_function'));
 			
-			var E = _.variable.event,comb=_.Combination,tot=!_.get('turn_off_touchmove')&&!comb, mCSS = !$.touch&&_.get('default_mouseover_css')&&!comb, O, AO,events = $.touch?['touchstart','touchmove']:['click','mousemove'];
+			var CO = [_.components,_.oneways],E = _.variable.event,comb=_.Combination,tot=!_.get('turn_off_touchmove')&&!comb, mCSS = !$.touch&&_.get('default_mouseover_css')&&!comb, O, AO,events = $.touch?['touchstart','touchmove']:['click','mousemove'];
 			_.stopEvent = false;
 			_.A_draw = comb&&_.processAnimation;
 			
@@ -3758,7 +3783,7 @@ $.Label = $.extend($.Component, {
 			}
 			
 			_.on(events[0], function(_, e) {
-				_.components.eachAll(function(C) {
+				CO.eachAll(function(C) {
 					if(C.ICHARTJS_CHART){
 						/**
 						 * meaning this component is a Combination Chart
@@ -3790,7 +3815,7 @@ $.Label = $.extend($.Component, {
 			if(!$.touch||tot){
 				_.on(events[1], function(_, e) {
 					O = AO = false;
-					_.components.eachAll(function(C) {
+					CO.eachAll(function(C){
 						if(C.ICHARTJS_CHART){
 							/**
 							 * meaning this component is a Combination Chart
@@ -3845,10 +3870,6 @@ $.Label = $.extend($.Component, {
 					});
 				}
 			}
-			/**
-			 * clone config to sub_option
-			 */
-			$.applyIf(_.get('sub_option'), $.clone(['shadow','tip'], _.options,true));
 			
 			if(!_.Combination){
 				/**
@@ -3920,6 +3941,9 @@ $.Label = $.extend($.Component, {
 			this.components.push(c);
 			return c;
 		},
+		isE:function(){
+			return !this.data.length;
+		},
 		remove:function(_,c){
 			if(c)
 			_.components.each(function(C,i){
@@ -3928,6 +3952,15 @@ $.Label = $.extend($.Component, {
 					return false;
 				}
 			});
+		},
+		merge:function(d,f){
+			var _ = this._();
+			if ($.isString(_.get(d))) {
+				_.push(d, $.applyIf({
+					text : _.get(d)
+				}, _.default_[d]));
+			}
+			if(f&&_.get(d).text != '')f(_);
 		},
 		doConfig : function() {
 			$.Chart.superclass.doConfig.call(this);
@@ -3938,6 +3971,19 @@ $.Label = $.extend($.Component, {
 			_.oneways.length =0;
 			
 			_.oneWay(_);
+
+			if (_.get('shadow')!==false) {
+				_.push('shadow', {
+					color : _.get('shadow_color'),
+					blur : _.get('shadow_blur'),
+					offsetx : _.get('shadow_offsetx'),
+					offsety : _.get('shadow_offsety')
+				});
+			}
+			/**
+			 * clone config to sub_option
+			 */
+			$.apply(_.get('sub_option'), $.clone(['shadow','tip'], _.options,true));
 			
 			/**
 			 * for store the option of each item in chart
@@ -3951,25 +3997,12 @@ $.Label = $.extend($.Component, {
 				
 				_.applyGradient();
 				
-				if ($.isString(_.get('title'))) {
-					_.push('title', $.applyIf({
-						text : _.get('title')
-					}, _.default_.title));
-				}
-				if ($.isString(_.get('subtitle'))) {
-					_.push('subtitle', $.applyIf({
-						text : _.get('subtitle')
-					}, _.default_.subtitle));
-				}
 				
-				if ($.isString(_.get('footnote'))) {
-					_.push('footnote', $.applyIf({
-						text : _.get('footnote')
-					}, _.default_.footnote));
-				}
 				var H = 0, l = _.push('l_originx', _.get('padding_left')), t = _.push('t_originy', _.get('padding_top')), w = _.push('client_width', (_.width - _.get('hpadding'))), h;
 				
-				if (_.get('title.text') != ''){
+				_.merge('subtitle');
+				
+				_.merge('title',function(){
 					var st = _.get('subtitle.text') != '';
 					H = st ? _.get('title.height') + _.get('subtitle.height') : _.get('title.height');
 					t = _.push('t_originy', t + H);
@@ -3987,9 +4020,10 @@ $.Label = $.extend($.Component, {
 						_.subtitle = new $.Text(_.get('subtitle'), _);
 						_.oneways.push(_.subtitle);
 					}
-				}
-					
-				if (_.get('footnote.text') != '') {
+				});
+				
+				
+				_.merge('footnote',function(){
 					var g = _.get('footnote.height');
 					H += g;
 					_.push('b_originy', _.get('b_originy') - g);
@@ -3999,13 +4033,24 @@ $.Label = $.extend($.Component, {
 					_.pushIf('footnote.width', w);
 					_.footnote = new $.Text(_.get('footnote'), _);
 					_.oneways.push(_.footnote);
-				}
+				});
+				
 				h = _.push('client_height', (_.get(_.H) - _.get('vpadding') - _.pushIf('other_height',H)));
 				
 				_.push('minDistance', min(w, h));
 				_.push('maxDistance', max(w, h));
 				_.push('centerx', l + w / 2);
 				_.push('centery', t + h / 2);
+			}
+			
+			if(_.isE()){
+				_.merge('empty',function (){
+					_.push('empty.originx',_.get('centerx'));
+					_.push('empty.originy',_.get('centery'));
+					_.push('empty.textBaseline','middle');
+					_.empty = new $.Text(_.get('empty'), _);
+					_.oneways.push(_.empty);
+				});
 			}
 			
 			/**
@@ -4312,7 +4357,6 @@ $.Scale = $.extend($.Component, {
 				_.push('decimalsnum',(s_space+"").substring((s_space+"").indexOf('.')+1).length);
 			}
 		}
-		
 		/**
 		 * the real distance of each scale
 		 */
@@ -4401,7 +4445,7 @@ $.Scale = $.extend($.Component, {
  */
 $.Coordinate = {
 	coordinate_ : function(g) {
-		var _ = this._(),coo = _.get('coordinate');
+		var _ = this._(),coo = _.get('coordinate'),li=_.get('scaleAlign');
 		
 		if(coo.ICHARTJS_OBJECT){
 			_.x = _.push(_.X, coo.x);
@@ -4410,6 +4454,9 @@ $.Coordinate = {
 			 * Imply it was illusive
 			 */
 			_.ILLUSIVE_COO = true;
+			
+			coo.refresh(_.get('minValue'),_.get('maxValue'),li);
+			
 			return coo;
 		}
 		/**
@@ -4418,7 +4465,6 @@ $.Coordinate = {
 		var f = '85%',
 			parse=$.parsePercent, 
 			scale = _.get('coordinate.scale'),
-			li=_.get('scaleAlign'),
 			w = _.push('coordinate._width',parse(_.get('coordinate.width')||f,Math.floor(_.get('client_width'))));
 			h = _.push('coordinate._height',parse(_.get('coordinate.height')||f,Math.floor(_.get('client_height')))-(_.is3D()?((_.get('coordinate.pedestal_height')||22) + (_.get('coordinate.board_deep')||20)):0));
 			_.push('coordinate.valid_height_value',parse(_.get('coordinate.valid_height'),h));
@@ -4426,8 +4472,13 @@ $.Coordinate = {
 			
 		_.originXY(_,[_.get('l_originx'),_.get('r_originx') - w,_.get('centerx') - w / 2],[_.get('centery') - h / 2]);
 		
-		_.push('coordinate.originx', _.x);
-		_.push('coordinate.originy', _.y);
+		_.set({
+			coordinate : {
+				originx: _.x,
+				originy: _.y,
+				id:'coordinate'
+			}
+		});
 		
 		/**
 		 * invoke call back
@@ -4455,9 +4506,9 @@ $.Coordinate = {
 						 }
 					});
 				}
-				if(!s.start_scale||(ST&&s.start_scale>_.get('minValue')))
+				if(!s.start_scale||(ST&&!s.assign_scale&&s.start_scale>_.get('minValue')))
 					s.min_scale = _.get('minValue');
-				if(!s.end_scale||(ST&&s.end_scale<_.get('maxValue')))
+				if(!s.end_scale||(ST&&!s.assign_scale&&s.end_scale<_.get('maxValue')))
 					s.max_scale = _.get('maxValue');
 			});
 		}else{
@@ -4468,16 +4519,21 @@ $.Coordinate = {
 				min_scale : _.get('minValue')
 			});
 		}
-		
+		 
 		if (_.is3D()) {
-			_.push('coordinate.xAngle_', _.get('xAngle_'));
-			_.push('coordinate.yAngle_', _.get('yAngle_'));
-			/**
-			 * the Coordinate' Z is same as long as the column's
-			 */
-			_.push('coordinate.zHeight', _.get('zHeight') * _.get('bottom_scale'));
+			_.set({
+				coordinate : {
+					xAngle_: _.get('xAngle_'),
+					yAngle_: _.get('yAngle_'),
+					/**
+					 * the Coordinate' Z is same as long as the column's
+					 */
+					zHeight:_.get('zHeight') * _.get('bottom_scale')
+				}
+			});
 		}
 		_.remove(_,_.coo);
+		if(!_.isE())
 		return _.register(new $[_.is3D()?'Coordinate3D':'Coordinate2D'](_.get('coordinate'), _));;
 	}
 }
@@ -4633,6 +4689,25 @@ $.Coordinate2D = $.extend($.Component, {
 		this.scale = [];
 		this.gridlines = [];
 	},
+	refresh:function(n,x,p){
+		this.scale.each(function(s){
+			if(s.get('position')==p){
+				var U;
+				if (!s.get('assign_scale')||s.get('end_scale') < x) {
+					s.push('max_scale',s.push('end_scale',x));
+					U = true;
+				}
+				if (!s.get('assign_scale')||s.get('start_scale') > n) {
+					s.push('min_scale',s.push('start_scale',n));
+					U = true;
+				}
+				if(U){
+					s.doConfig();
+				}
+				return false;
+			}
+		});
+	},
 	getScale : function(p,L) {
 		var _ = this._(),r;
 		for(var i=0;i<_.scale.length;i++){
@@ -4652,7 +4727,7 @@ $.Coordinate2D = $.extend($.Component, {
 			}
 			return _.getScale(p,true);
 		}
-		throw new Error("there no valid scale");
+		throw new Error("No_Valid_Scale");
 	},
 	isEventValid : function(e,_) {
 		return {
@@ -4783,6 +4858,7 @@ $.Coordinate2D = $.extend($.Component, {
 				kd['distance'] = h;
 				kd['valid_distance'] = vh;
 			}
+			kd.label =$.applyIf(kd.label||{},_.get('label'));
 			_.scale.push(new $.Scale(kd, _.root));
 		}, _);
 
@@ -5209,7 +5285,7 @@ $.Coordinate3D = $.extend($.Coordinate2D, {
 				y = _.y  - s;
 				b = _.B;
 			}
-			
+
 			if(_.get('label')){
 				_.push('label.originx', x);
 				_.push('label.originy', y);
@@ -5294,11 +5370,11 @@ $.Coordinate3D = $.extend($.Coordinate2D, {
 			}
 			
 			if(tipAlign==_.L){
-				_.tipX = function(w,h){return _.x - _.get('value_space') -w;};
+				_.tipX = function(w){return _.x - _.get('value_space') -w;};
 			}else if(tipAlign==_.R){
-				_.tipX = function(w,h){return _.x + _.width + _.get('value_space');};
+				_.tipX = function(w){return _.x + _.width + _.get('value_space');};
 			}else if(tipAlign==_.B){
-				_.tipY = function(w,h){return _.y  +_.height+3;};
+				_.tipY = function(){return _.y  +_.height+3;};
 			}else{
 				_.tipY = function(w,h){return _.y  - h -3;};
 			}
@@ -5570,7 +5646,7 @@ $.Sector = $.extend($.Component, {
 	doConfig : function() {
 		$.Sector.superclass.doConfig.call(this);
 
-		var _ = this._(), v = _.variable.event, f = _.get('label'),event=_.get('bound_event'),g;
+		var _ = this._(), v = _.variable.event, f = _.get('label'),e=_.get('bound_event'),g;
 		
 		if(_.get('rounded')){
 			_.push('startAngle',0);
@@ -5617,15 +5693,15 @@ $.Sector = $.extend($.Component, {
 		/**
 		 *need test profile/time
 		 */
-		_.on(event, function() {
+		_.on(e, function() {
 			v.poped = true;
 			_.expanded = !_.expanded;
-			_.redraw(event);
+			_.redraw(e);
 			v.poped = false;
 		});
 		
 		_.on('beforedraw', function(a,b) {
-			if(b==event){
+			if(b==e){
 				g = false;
 				_.x = _.get(_.X);
 				_.y = _.get(_.Y);
@@ -6254,6 +6330,7 @@ $.Pie3D = $.extend($.Pie, {
 				_.T.ellipse(s.x, s.y, s.a, s.b, s.get(t), s.get(d), s.get('f_color'), s.get('border.enable'), s.get('border.width'), s.get('border.color'), false, false, true);
 			}, _);
 		}
+		_.components.push(_.proxy);
 		_.one = $.emptyFn;
 	},
 	doConfig : function() {
@@ -6270,8 +6347,6 @@ $.Pie3D = $.extend($.Pie, {
 		_.parse(_);
 		
 		_.one(_);
-		
-		_.components.push(_.proxy);
 	}
 });
 $.register('Pie3D');
@@ -6318,31 +6393,27 @@ $.Donut2D = $.extend($.Pie, {
 	doConfig : function() {
 		$.Donut2D.superclass.doConfig.call(this);
 		
-		var _ = this._(),d='donutwidth',r = _.r;
+		var _ = this._(),d='donutwidth',e = _.get(d),r = _.r;
 		/**
 		 * quick config to all rectangle
 		 */
 		_.push('sub_option.radius',r)
-		if(_.get(d)>0){
-			if(_.get(d)<1){
-				_.push(d,Math.floor(r*_.get(d)));
-			}else if(_.get(d)>=r){
-				_.push(d,0);
-			}
-			_.push('sub_option.donutwidth',_.get(d));
-		}
-		if ($.isString(_.get('center'))) {
-			_.push('center', $.applyIf({
-				text : _.get('center')
-			}, _.default_.center));
-		}
+		if(e>=r){
+			e = 0;
+		}else if(e<1){
+			e = Math.floor(r*e);
+		} 
+		_.push('sub_option.donutwidth',_.push(d,e));
+		
+		_.merge('center');
 		
 		if (_.get('center.text') != '') {
 			_.push('center.originx',_.get(_.X));
 			_.push('center.originy',_.get(_.Y));
 			_.push('center.textBaseline','middle');
 			_.center = new $.Text(_.get('center'), _);
-			_.components.push(_.center);
+			
+			_.oneways.push(_.center);
 		}
 		
 		_.parse(_);
@@ -6375,9 +6446,9 @@ $.Column = $.extend($.Chart, {
 			 */
 			coordinate : {},
 			/**
-			 * @cfg {Number} By default,if a width is not specified the chart will attempt to distribution in horizontally.(default to undefined)
+			 * @cfg {Number} By default,if a width is not specified the chart will attempt to distribution in horizontally.(default to '80%')
 			 */
-			column_width : undefined,
+			column_width : '66%',
 			/**
 			 * @cfg {Number} the space of each column.this option is readOnly.(default to undefined)
 			 */
@@ -6439,7 +6510,8 @@ $.Column = $.extend($.Chart, {
 		_.doActing(_,d,o,i);
 	},
 	engine:function(_){
-		var cw = _.get('column_width'),
+		if(_.isE())return;
+		var cw = _.get('column_width_'),
 		s = _.get('column_space'),
 		S = _.coo.getScale(_.get('scaleAlign')),
 		H = _.coo.valid_height, 
@@ -6469,39 +6541,29 @@ $.Column = $.extend($.Chart, {
 		 * use option create a coordinate
 		 */
 		_.coo = $.Coordinate.coordinate_.call(_,function(){
-			var L = _.data.length, W = _.get('coordinate.valid_width_value'),w_,hw,KL;
+			var L = _.data.length, W = _.get('coordinate.valid_width_value'),w_,KL;
 			if (_.dataType == 'complex') {
 				KL = _.get('labels').length;
 				L = KL * L + (_.is3D()?(L-1)*KL*_.get('group_fator'):0);
-				w_= Math.floor(W / (KL + 1 + L));
-				hw = _.pushIf(c,w_);
 				KL +=1;
 			}else{
 				if(_.dataType == 'stacked'){
 					L = _.get('labels').length;
 				}
-				w_= Math.floor(W*2 / (L * 3 + 1));
-				hw = _.pushIf(c, w_);
 				KL = L+1;
-			}
-			
-			if(hw * L > W){
-				hw = _.push(c, w_);
 			}
 			
 			/**
 			 * the space of two column
 			 */
-			_.push('column_space', (W - hw * L) / KL);
+			_.push('column_space', (W - _.push('sub_option.width',_.push('column_width_',$.parsePercent(_.get(c),Math.floor(W/L)))) * L) / KL);
 			
 			if (_.is3D()) {
-				_.push('zHeight', _.get(c) * _.get('zScale'));
-				_.push('sub_option.zHeight', _.get('zHeight'));
+				_.push('sub_option.zHeight', _.push('zHeight', _.get('column_width_') * _.get('zScale')));
 				_.push('sub_option.xAngle_', _.get('xAngle_'));
 				_.push('sub_option.yAngle_', _.get('yAngle_'));
 			}
 		});
-		_.push('sub_option.width', _.get(c));
 	}
 
 });
@@ -6634,7 +6696,7 @@ $.ColumnMulti2D = $.extend($.Column, {
 		_.columns.each(function(c, i) {
 			c.item.each(function(d, j) {
 				h = (d.value - S.start) * H / S.distance;
-				_.doParse(_, d, j, {
+				_.doParse(_, d, i + '_' + j, {
 					id : i + '_' + j,
 					originx : x + j * (cw + q) + i * gw,
 					originy : y - (h > 0 ? h : 0),
@@ -6755,7 +6817,7 @@ $.ColumnStacked2D = $.extend($.Column, {
 			c.item.each(function(d, j) {
 				h = (d.value*v - S.start) * H / S.distance;
 				d.total = c.total;
-				_.doParse(_, d, j, {
+				_.doParse(_, d, i + '_' + j, {
 					id : i + '_' + j,
 					originx : x + i * gw,
 					originy : y - (h > 0 ? h : 0)-h0,
@@ -6869,7 +6931,7 @@ $.Bar = $.extend($.Chart, {
 			/**
 			 * @cfg {Number} Specifies the width of each bar(default to calculate according to coordinate's height)
 			 */
-			bar_height : undefined,
+			bar_height : '66%',
 			/**
 			 * @cfg {Number} the space of each column.this option is readOnly.(default to undefined)
 			 */
@@ -6892,6 +6954,10 @@ $.Bar = $.extend($.Chart, {
 			 */
 			label : {}
 		});
+		this.rectangles = [];
+		this.labels = [];
+		this.components.push(this.labels);
+		this.components.push(this.rectangles);
 	},
 	/**
 	 * @method Returns the coordinate of this element.
@@ -6914,7 +6980,8 @@ $.Bar = $.extend($.Chart, {
 		_.doActing(_, d, o,i);
 	},
 	engine:function(_){
-		var bh = _.get('bar_height'),
+		if(_.isE())return;
+		var bh = _.get('_bar_height'),
 		s = _.get('bar_space'),
 		S = _.coo.getScale(_.get('scaleAlign')),
 		W = _.coo.valid_width,
@@ -6938,14 +7005,13 @@ $.Bar = $.extend($.Chart, {
 	doConfig : function() {
 		$.Bar.superclass.doConfig.call(this);
 
-		var _ = this._(), b = 'bar_height', z = 'z_index';
+		var _ = this._(), z = 'z_index';
 		
-		_.rectangles = [];
-		_.labels = [];
+		_.rectangles.length = 0;
+		_.labels.length = 0;
+		
 		_.rectangles.zIndex = _.get(z);
 		_.labels.zIndex = _.get(z) + 1;
-		_.components.push(_.labels);
-		_.components.push(_.rectangles);
 		
 		/**
 		 * use option create a coordinate
@@ -6956,32 +7022,22 @@ $.Bar = $.extend($.Chart, {
 			if (_.dataType == 'complex') {
 				KL = _.get('labels').length;
 				L = KL * L + (_.is3D()?(L-1)*KL*_.get('group_fator'):0);
-				h_= Math.floor(H / (KL + 1 + L));
-				bh = _.pushIf(b,h_);
 				KL +=1;
 			}else{
 				if(_.dataType == 'stacked'){
 					L = _.get('labels').length;
 				}
-				h_= Math.floor(H*2 / (L * 3 + 1));
-				bh = _.pushIf(b, h_);
 				KL = L+1;
-			}
-			
-			if (bh * L > H) {
-				bh = _.push(b, h_);
 			}
 			/**
 			 * the space of two bar
 			 */
-			_.push('bar_space', (H - bh * L) / KL);
-			
+			_.push('bar_space', (H - _.push('sub_option.height',_.push('_bar_height',$.parsePercent(_.get('bar_height'),Math.floor(H/L)))) * L) / KL);
 		});
 		
 		/**
 		 * quick config to all rectangle
 		 */
-		_.push('sub_option.height', _.get(b));
 		_.push('sub_option.valueAlign', _.R);
 		_.push('sub_option.tipAlign', _.R);
 	}
@@ -7326,7 +7382,7 @@ $.LineSegment = $.extend($.Component, {
 	},
 	PP:function(_,p,x1,y1,x2,y2){
 		if(_.get('area')){
-			_.polygons.push([_.get('area_color')||_.get('light_color2'),0,_.get('brushsize'),0,0,_.get('area_opacity'),_.get('smooth')?p:[{x:x1,y:y1}].concat(p.concat([{x:x2,y:y2}])),_.get('smooth'),_.get('smoothing') || 1.5,[{x:x1,y:y1},{x:x2,y:y2}]]);
+			_.polygons.push([_.tf('area_color')||_.get('light_color2'),0,_.get('brushsize'),0,0,_.get('area_opacity'),_.get('smooth')?p:[{x:x1,y:y1}].concat(p.concat([{x:x2,y:y2}])),_.get('smooth'),_.get('smoothing') || 1.5,[{x:x1,y:y1},{x:x2,y:y2}]]);
 		}
 	},
 	parse:function(_){
@@ -7346,7 +7402,7 @@ $.LineSegment = $.extend($.Component, {
 				j = b;
 			}
 		}
-		
+		//parseText 统一修复为返回{}
 		p.each(function(q){
 			q.x_ = q.x;
 			q.y_ = q.y;
@@ -7624,6 +7680,7 @@ $.Line = $.extend($.Chart, {
 			_.coo.push('crosshair', _.get('crosshair'));
 			_.coo.doCrosshair(_.coo);
 		}
+		if(_.isE())return;
 		
 		var vw = _.coo.valid_width,nw=vw,size=_.get('maxItemSize') - 1,M=vw / (size),ps=_.get('point_space');
 		
@@ -7731,7 +7788,7 @@ $.LineBasic2D = $.extend($.Line, {
 	doConfig : function() {
 		$.LineBasic2D.superclass.doConfig.call(this);
 		var _ = this._();
-		
+		if(_.isE())return;
 		/**
 		 * get the max/min scale of this coordinate for calculated the height
 		 */
