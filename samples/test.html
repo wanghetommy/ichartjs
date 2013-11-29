@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Canvas</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0" />
+    <style type="text/css">
+        canvas {
+            border: 1px solid black;
+            width: 150px;
+            height: 150px;
+        }
+    </style>
+    <script type="text/javascript">
+        function draw() {
+            var canvas = document.getElementById('tutorial');
+            if (canvas.getContext) {
+                // get context
+                var ctx = canvas.getContext('2d');
+
+                // scale 2x
+                if(window.devicePixelRatio == 2) {
+                    canvas.setAttribute('width', 300);
+                    canvas.setAttribute('height', 300);
+                    ctx.scale(2, 2);
+                }
+
+                // make a face
+                ctx.beginPath();
+                ctx.arc(75,75,50,0,Math.PI*2,true);
+                ctx.moveTo(110,75);
+                ctx.arc(75,75,35,0,Math.PI,false);
+                ctx.moveTo(65,65);
+                ctx.arc(60,65,5,0,Math.PI*2,true);
+                ctx.moveTo(95,65);
+                ctx.arc(90,65,5,0,Math.PI*2,true);
+                ctx.stroke();
+            }
+        }
+    </script>
+</head>
+<body onload="draw();">
+<canvas id="tutorial" width="150" height="150"></canvas>
+</body>
+</html>
