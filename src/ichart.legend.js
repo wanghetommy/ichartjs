@@ -102,10 +102,11 @@ iChart.Legend = iChart.extend(iChart.Component, {
 	isEventValid : function(e,_) {
 		var r = {
 			valid : false
-		};
+		},
+		h=_.get('line_height');
 		if (e.x > this.x && e.x < (_.x + _.width) && e.y > _.y && e.y < (_.y + _.height)) {
 			_.data.each(function(d, i) {
-				if (e.x > d.x && e.x < (d.x + d.width_ + _.get('signwidth')) && e.y > d.y && e.y < (d.y + _.get('line_height'))) {
+				if (e.x > d.x && e.x < (d.x + d.width_ + _.get('signwidth')) && e.y > (d.y -h/2) && e.y < (d.y + h/2)) {
 					r = {
 						valid : true,
 						index : i,
@@ -150,7 +151,7 @@ iChart.Legend = iChart.extend(iChart.Component, {
 			c = _.get('column'),
 			r = _.get('row'),
 			L = _.data.length;
-		
+			c = c>L?L:c;
 		_.T.textFont(_.get('fontStyle'));
 		
 		if (_.get('line_height') < ss) {
