@@ -28,32 +28,37 @@ iChart.LineBasic2D = iChart.extend(iChart.Line, {
 	doConfig : function() {
 		iChart.LineBasic2D.superclass.doConfig.call(this);
 		var _ = this._();
-		
+		if(_.isE())return;
 		/**
 		 * get the max/min scale of this coordinate for calculated the height
 		 */
 		var S, H = _.coo.valid_height, sp = _.get('point_space'), points, x, y, 
-		ox = _.get('sub_option.originx'), oy, p;
+		ox = _.get('sub_option.originx'), oy, p,N=_.get('nullToDirect');
 		
 		_.push('sub_option.tip.showType', 'follow');
 		_.push('sub_option.coordinate', _.coo);
 		_.push('sub_option.tipInvokeHeap', _.tipInvokeHeap);
 		_.push('sub_option.point_space', sp);
-		_.data.each(function(d, i) {
+
+		_.data.each(function(d, i){
 			S = _.coo.getScale(d.scaleAlign||_.get('scaleAlign'));
 			oy = _.get('sub_option.originy')- S.basic*H;
 			points = [];
-			d.value.each(function(v, j) {
-				x = sp * j;
-				y = (v - S.start) * H / S.distance;
-				p = {
-					x : ox + x,
-					y : oy - y,
-					value : v,
-					text : d.name+' '+v
-				};
-				iChart.merge(p, _.fireEvent(_, 'parsePoint', [d, v, x, y, j,S]));
-				points.push(p);
+			d.value.each(function(v, j){
+                if(v!=null){
+                    x = sp * j;
+                    y = (v - S.start) * H / S.distance;
+                    p = {
+                        x : ox + x,
+                        y : oy - y,
+                        value : v,
+                        text : d.name+' '+v
+                    };
+                    iChart.merge(p, _.fireEvent(_, 'parsePoint', [d, v, x, y, j,S]));
+                    points.push(p);
+                }else{
+                    points.push({ignored:!N,direct:N});
+                }
 			}, _);
 			/**
 			 * merge the option

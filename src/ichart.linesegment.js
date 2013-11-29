@@ -162,7 +162,7 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 	},
 	PP:function(_,p,x1,y1,x2,y2){
 		if(_.get('area')){
-			_.polygons.push([_.get('area_color')||_.get('light_color2'),0,_.get('brushsize'),0,0,_.get('area_opacity'),_.get('smooth')?p:[{x:x1,y:y1}].concat(p.concat([{x:x2,y:y2}])),_.get('smooth'),_.get('smoothing') || 1.5,[{x:x1,y:y1},{x:x2,y:y2}]]);
+			_.polygons.push([_.tf('area_color')||_.get('light_color2'),0,_.get('brushsize'),0,0,_.get('area_opacity'),_.get('smooth')?p:[{x:x1,y:y1}].concat(p.concat([{x:x2,y:y2}])),_.get('smooth'),_.get('smoothing') || 1.5,[{x:x1,y:y1},{x:x2,y:y2}]]);
 		}
 	},
 	parse:function(_){
@@ -182,11 +182,11 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 				j = b;
 			}
 		}
-		
+		//parseText 统一修复为返回{}
 		p.each(function(q){
 			q.x_ = q.x;
 			q.y_ = q.y;
-			if(!q.ignored&&L){
+			if(!q.ignored&&!q.direct&&L){
 				_.push('label.originx', q.x);
 				_.push('label.originy', q.y-ps/2-1);
 				_.push('label.text',_.fireString(_, 'parseText', [_, q.value],q.value));
@@ -201,12 +201,12 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 				_.PP(_,T,T[0].x,_.y,T[T.length-1].x,_.y);
 				T = [];
 				Q = false;
-			}else if(!q.ignored){
+			}else if(!q.ignored&& !q.direct){
 				T.push(q);
 				Q = true;
 			}
 			
-			if(I&&!q.ignored){
+			if(I&&!q.ignored&& !q.direct){
 				_.intersections.push(_.sign_plugin?[_.T,_.get('sign'),q,ps,q.color||g,q.hollow_color||j]:_.get('hollow')?[q, ps/2-h+1,q.color||g,h+1,q.hollow_color||j]:[q,ps/2,q.color||g]);
 			}
 			
@@ -248,23 +248,25 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 			_.tip = new iChart.Tip(_.get('tip'), _);
 		}
 		
-		var c = _.get('coordinate'), ly = _.get('limit_y'), k = _.get('keep_with_coordinate'), valid = function(p0, x, y) {
-			if (!p0.ignored&&Math.abs(x - (p0.x)) < rx && (!ly || (ly && Math.abs(y - (p0.y)) < ry))) {
-				return true;
-			}
-			return false;
-		}, to = function(i) {
-			return {
-				valid : true,
-				name : N,
-				value : p[i].value,
-				text : p[i].text,
-				top : p[i].y,
-				left : p[i].x,
-				i:i,
-				hit : true
-			};
-		};
+		var c = _.get('coordinate'), ly = _.get('limit_y'), k = _.get('keep_with_coordinate'),
+            valid = function(p0, x, y) {
+                if (!p0.ignored&&Math.abs(x - (p0.x)) < rx && (!ly || (ly && Math.abs(y - (p0.y)) < ry))) {
+                    return true;
+                }
+                return false;
+            },
+            to = function(i) {
+                return {
+                    valid : true,
+                    name : N,
+                    value : p[i].value,
+                    text : p[i].text,
+                    top : p[i].y,
+                    left : p[i].x,
+                    i:i,
+                    hit : true
+                };
+            };
 		
 		/**
 		 * override the default method
@@ -287,7 +289,6 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 						valid : k
 					};
 			}
-			
 			/**
 			 * calculate the pointer's position will between which two point?this function can improve location speed
 			 */

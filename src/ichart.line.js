@@ -16,6 +16,10 @@ iChart.Line = iChart.extend(iChart.Chart, {
 		this.type = 'line';
 
 		this.set({
+            /**
+             * @cfg {Boolean} if the left-right point are direct when point's value is null.false to break.(default to true)
+             */
+            nullToDirect:true,
 			/**
 			 * @cfg {Number} Specifies the default linewidth of the canvas's context in this element.(defaults to 1)
 			 */
@@ -152,9 +156,10 @@ iChart.Line = iChart.extend(iChart.Chart, {
 			_.coo.push('crosshair', _.get('crosshair'));
 			_.coo.doCrosshair(_.coo);
 		}
+		if(_.isE())return;
 		
 		var vw = _.coo.valid_width,nw=vw,size=_.get('maxItemSize') - 1,M=vw / (size),ps=_.get('point_space');
-		
+
 		if (_.get('proportional_spacing')){
 			if(ps&&ps<M){
 				nw = size*ps;
