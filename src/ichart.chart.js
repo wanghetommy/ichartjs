@@ -50,6 +50,7 @@
 					var T = 0;
 					ML = V.length>ML?V.length:ML;
 					for(var j=0;j<V.length;j++){
+                        if(V[j]==null)continue;
 						V[j] = pF(V[j]);
 						T+=V[j];
 						if(!init){
@@ -87,7 +88,7 @@
 				item = [],T = 0;
 				c.each(function(d,j){
 					V = d.value[i];
-					if(!V)return;
+					if(!V&&V!=0)return;
 					d.value[i] = V =  pF(V,V);
 					T+=V;
 					if(stack){
@@ -126,19 +127,13 @@
 		_.push('minValue',MI); 
 		_.push('maxValue',M);
 		_.doConfig();
-		_.initialization = true;
 	};
 	
 	/**
 	 * @private support an improved API for drawing in canvas
 	 */
 	function Cans(c) {
-		if (typeof c === "string")
-			c = $(c);
-		if (!c || !c['tagName'] || c['tagName'].toLowerCase() != 'canvas')
-			throw new Error("there not a canvas element");
-
-		this.canvas = c;
+		this.canvas = typeof c === "string"?$(c):c;
 		this.c = this.canvas.getContext("2d");
 	}
 
@@ -815,7 +810,14 @@
 				 */
 				decimalsnum : 1,
 				/**
-				 * @cfg {Object/String} Specifies the config of Title details see <link>iChart.Text</link>,If given a string,it will only apply the text.note:If the text is empty,then will not display
+				 * @cfg {Object/String} Specifies the text when data is empty.details see <link>iChart.Text</link>,If given a string,it will only apply the text.note:If the text is empty,then will not display(text defaults to 'No data found')
+				 */
+				empty : {
+					text :'No data found',
+					fontsize : 16
+				},
+				/**
+				 * @cfg {Object/String} Specifies the config of Title details see <link>iChart.Text</link>,If given a string,it will only apply the text.note:If the text is empty,then will not display(text defaults to '')
 				 */
 				title : {
 					text : '',
@@ -830,7 +832,7 @@
 					height : 30
 				},
 				/**
-				 * @cfg {Object/String}Specifies the config of subtitle details see <link>iChart.Text</link>,If given a string,it will only apply the text.note:If the title or subtitle'text is empty,then will not display
+				 * @cfg {Object/String}Specifies the config of subtitle details see <link>iChart.Text</link>,If given a string,it will only apply the text.note:If the title or subtitle'text is empty,then will not display(text defaults to '')
 				 */
 				subtitle : {
 					text : '',
@@ -845,7 +847,7 @@
 					height : 20
 				},
 				/**
-				 * @cfg {Object/String}Specifies the config of footnote details see <link>iChart.Text</link>,If given a string,it will only apply the text.note:If the text is empty,then will not display
+				 * @cfg {Object/String}Specifies the config of footnote details see <link>iChart.Text</link>,If given a string,it will only apply the text.note:If the text is empty,then will not display(text defaults to '')
 				 */
 				footnote : {
 					text : '',
@@ -930,7 +932,7 @@
 			this.components = [];
 			this.oneways = [];
 			this.total = 0;
-			this.ICHARTJS_CHART = true;
+			this._chart = true;
 		},
 		toDataURL : function(g) {
 			return this.T.toDataURL(g);
@@ -1023,8 +1025,6 @@
 			
 			if (!_.redraw) {
 				$.Assert.isTrue(_.Rendered, _.type + ' has not rendered');
-				$.Assert.isTrue(_.data&&_.data.length>0,_.type + '\'s data is empty');
-				$.Assert.isTrue(_.initialization, _.type + ' Failed to initialize');
 				_.doSort();
 			}
 			
@@ -1036,6 +1036,7 @@
 			}
 			_.segmentRect();
 			//order?
+			var i=0;
 			_.components.eachAll(function(c) {
 				c.draw(e);
 			});
@@ -1055,7 +1056,7 @@
 		plugin : function(c) {
 			var _ = this._();
 			c.inject(_);
-			if(c.ICHARTJS_CHART){
+			if(c._chart){
 				c.Combination = true;
 				c.setUp();
 			}
@@ -1063,15 +1064,17 @@
 				c.push('animation',false);
 			}
 			c.duration =_.duration;
-			_.register(c);
+            c._plugin =true;
+            _.register(c);
 			_.plugins.push(c);
 		},
 		destroy:function(_){
 			_.components.eachAll(function(C){
-				C.destroy();
+                if(!C._plugin)
+				C.destroy(C);
 			});
 			_.oneways.each(function(O){
-				O.destroy();
+				O.destroy(O);
 			});
 		},
 		/**
@@ -1119,6 +1122,7 @@
 				var w = window.innerWidth,
 			    	h = window.innerHeight,
 			    	style = $.getDoc().body.style;
+				//clientHeight
 			    style.padding = "0px";
 			    style.margin = "0px";
 			    style.overflow = "hidden";
@@ -1127,12 +1131,23 @@
 			}
 			
 			_.canvasid = $.uid(_.type);
-			_.shellid = "shell-"+_.canvasid;
+			_.shellid = "shell_"+_.canvasid;
 			
 			var H = [];
 			H.push("<div id='");
 			H.push(_.shellid);
-			H.push("' style='padding:0px;margin:0px;overflow:hidden;position:relative;'>");
+			H.push("' style='padding:0px;margin:0px auto;overflow:hidden;position:relative");
+
+            /**
+             * push the background on div,fixed some android 4.2 can not render bg?
+             */
+            if(_.get('background_wrap')){
+                H.push(";background-color:");
+                H.push(_.get('background_color'));
+                _.push('background_color',null);
+            }
+
+			H.push(";'>");
 			H.push("<canvas id= '");
 			H.push(_.canvasid);
 			H.push("' style='-webkit-text-size-adjust: none;'>");
@@ -1143,7 +1158,7 @@
 			 * also use appendChild()
 			 */
 			shell.innerHTML = H.join("");
-			
+
 			_.shell = $(_.shellid);
 			
 			/**
@@ -1165,7 +1180,6 @@
 			var _ = this._();
 			_.redraw = false;
 			_.T.clearRect();
-			_.initialization = false;
 			_.initialize();
 		},
 		/**
@@ -1194,7 +1208,6 @@
 				_.height = _.push(_.H, h);
 				_.size(_);
 			}
-			_.set(_.fireEvent(_,'resize',[w,h]));
 			_.setUp();
 			_.plugins.eachAll(function(P) {
 				if(P.Combination){
@@ -1204,12 +1217,19 @@
 			if(!_.Combination){
 				_.draw();
 			}
+			_.set(_.fireEvent(_,'resize',[w,h]));
 		},
 		size:function(_){
-			_.T.canvas.width = _.width = _.pushIf(_.W, 400);
-			_.T.canvas.height = _.height = _.pushIf(_.H, 300);
-			_.shell.style.width = _.width+'px';
-			_.shell.style.height = _.height+'px';
+            var r = $.ratio,w=_.pushIf(_.W, 400),h=_.pushIf(_.H, 300),c=_.T.canvas;
+
+            _.shell.style.width = c.style.width =  w+'px';
+            _.shell.style.height = c.style.height =  h+'px';
+
+            c.width = (_.width = w)*r;
+            c.height = (_.height = h)*r;
+
+            if(r>1)
+            _.T.c.scale(r, r);
 		},
 		initialize : function() {
 			var _ = this._(),d = _.get('data'),r = _.get('render');
@@ -1229,16 +1249,15 @@
 				if(r)
 				_.create(_,$(r));
 			}
-			
-			if(_.Rendered && !_.initialization){
-				if(d&&d.length>0){
-					parse.call(_,d,_);
-				}else if($.isString(_.get('url'))){
+			if(_.Rendered){
+				if($.isString(_.get('url'))&&!d){
 					_.ajax.call(_,_.get('url'),function(D){
 						_.push('data',D);
 						_.initialize();
 						_.draw();
 					});
+				}else{
+					parse.call(_,d||[],_);
 				}
 			}
 		},
@@ -1266,7 +1285,7 @@
 			}
 			_.animationArithmetic = $.getAA(_.get('animation_timing_function'));
 			
-			var E = _.variable.event,comb=_.Combination,tot=!_.get('turn_off_touchmove')&&!comb, mCSS = !$.touch&&_.get('default_mouseover_css')&&!comb, O, AO,events = $.touch?['touchstart','touchmove']:['click','mousemove'];
+			var CO = [_.components,_.oneways],E = _.variable.event,comb=_.Combination,tot=!_.get('turn_off_touchmove')&&!comb, mCSS = !$.touch&&_.get('default_mouseover_css')&&!comb, O, AO,events = $.touch?['touchstart','touchmove']:['click','mousemove'];
 			_.stopEvent = false;
 			_.A_draw = comb&&_.processAnimation;
 			
@@ -1292,8 +1311,8 @@
 			}
 			
 			_.on(events[0], function(_, e) {
-				_.components.eachAll(function(C) {
-					if(C.ICHARTJS_CHART){
+				CO.eachAll(function(C) {
+					if(C._chart){
 						/**
 						 * meaning this component is a Combination Chart
 						 */
@@ -1324,8 +1343,8 @@
 			if(!$.touch||tot){
 				_.on(events[1], function(_, e) {
 					O = AO = false;
-					_.components.eachAll(function(C) {
-						if(C.ICHARTJS_CHART){
+					CO.eachAll(function(C){
+						if(C._chart){
 							/**
 							 * meaning this component is a Combination Chart
 							 */
@@ -1379,10 +1398,6 @@
 					});
 				}
 			}
-			/**
-			 * clone config to sub_option
-			 */
-			$.applyIf(_.get('sub_option'), $.clone(['shadow','tip'], _.options,true));
 			
 			if(!_.Combination){
 				/**
@@ -1419,11 +1434,11 @@
 				y:_.y
 			}
 		},
-		getPercent:function(v,T){
+		percent:function(v,T){
 			return this.get('showpercent') ? (v / (T||this.total||1) * 100).toFixed(this.get('decimalsnum')) + '%' : v;
 		},
 		doActing:function(_,d,o,i,t){
-			var f=!!_.get('communal_acting'),v=_.getPercent(d.value,d.total);
+			var f=!!_.get('communal_acting'),v=_.percent(d.value,d.total);
 			/**
 			 * store or restore the option
 			 */
@@ -1454,6 +1469,9 @@
 			this.components.push(c);
 			return c;
 		},
+		isE:function(){
+			return !this.data.length;
+		},
 		remove:function(_,c){
 			if(c)
 			_.components.each(function(C,i){
@@ -1462,6 +1480,15 @@
 					return false;
 				}
 			});
+		},
+		merge:function(d,f){
+			var _ = this._();
+			if ($.isString(_.get(d))) {
+				_.push(d, $.applyIf({
+					text : _.get(d)
+				}, _.default_[d]));
+			}
+			if(f&&_.get(d).text != '')f(_);
 		},
 		doConfig : function() {
 			$.Chart.superclass.doConfig.call(this);
@@ -1472,6 +1499,19 @@
 			_.oneways.length =0;
 			
 			_.oneWay(_);
+
+			if (_.get('shadow')!==false) {
+				_.push('shadow', {
+					color : _.get('shadow_color'),
+					blur : _.get('shadow_blur'),
+					offsetx : _.get('shadow_offsetx'),
+					offsety : _.get('shadow_offsety')
+				});
+			}
+			/**
+			 * clone config to sub_option
+			 */
+			$.apply(_.get('sub_option'), $.clone(['shadow','tip'], _.options,true));
 			
 			/**
 			 * for store the option of each item in chart
@@ -1485,25 +1525,12 @@
 				
 				_.applyGradient();
 				
-				if ($.isString(_.get('title'))) {
-					_.push('title', $.applyIf({
-						text : _.get('title')
-					}, _.default_.title));
-				}
-				if ($.isString(_.get('subtitle'))) {
-					_.push('subtitle', $.applyIf({
-						text : _.get('subtitle')
-					}, _.default_.subtitle));
-				}
 				
-				if ($.isString(_.get('footnote'))) {
-					_.push('footnote', $.applyIf({
-						text : _.get('footnote')
-					}, _.default_.footnote));
-				}
 				var H = 0, l = _.push('l_originx', _.get('padding_left')), t = _.push('t_originy', _.get('padding_top')), w = _.push('client_width', (_.width - _.get('hpadding'))), h;
 				
-				if (_.get('title.text') != ''){
+				_.merge('subtitle');
+				
+				_.merge('title',function(){
 					var st = _.get('subtitle.text') != '';
 					H = st ? _.get('title.height') + _.get('subtitle.height') : _.get('title.height');
 					t = _.push('t_originy', t + H);
@@ -1521,9 +1548,10 @@
 						_.subtitle = new $.Text(_.get('subtitle'), _);
 						_.oneways.push(_.subtitle);
 					}
-				}
-					
-				if (_.get('footnote.text') != '') {
+				});
+				
+				
+				_.merge('footnote',function(){
 					var g = _.get('footnote.height');
 					H += g;
 					_.push('b_originy', _.get('b_originy') - g);
@@ -1533,13 +1561,24 @@
 					_.pushIf('footnote.width', w);
 					_.footnote = new $.Text(_.get('footnote'), _);
 					_.oneways.push(_.footnote);
-				}
+				});
+				
 				h = _.push('client_height', (_.get(_.H) - _.get('vpadding') - _.pushIf('other_height',H)));
 				
 				_.push('minDistance', min(w, h));
 				_.push('maxDistance', max(w, h));
 				_.push('centerx', l + w / 2);
 				_.push('centery', t + h / 2);
+			}
+			
+			if(_.isE()){
+				_.merge('empty',function (){
+					_.push('empty.originx',_.get('centerx'));
+					_.push('empty.originy',_.get('centery'));
+					_.push('empty.textBaseline','middle');
+					_.empty = new $.Text(_.get('empty'), _);
+					_.oneways.push(_.empty);
+				});
 			}
 			
 			/**
