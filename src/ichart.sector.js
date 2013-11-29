@@ -170,7 +170,7 @@ iChart.Sector = iChart.extend(iChart.Component, {
 	doConfig : function() {
 		iChart.Sector.superclass.doConfig.call(this);
 
-		var _ = this._(), v = _.variable.event, f = _.get('label'),event=_.get('bound_event'),g;
+		var _ = this._(), v = _.variable.event, f = _.get('label'),e=_.get('bound_event'),g;
 		
 		if(_.get('rounded')){
 			_.push('startAngle',0);
@@ -217,15 +217,15 @@ iChart.Sector = iChart.extend(iChart.Component, {
 		/**
 		 *need test profile/time
 		 */
-		_.on(event, function() {
+		_.on(e, function() {
 			v.poped = true;
 			_.expanded = !_.expanded;
-			_.redraw(event);
+			_.redraw(e);
 			v.poped = false;
 		});
 		
 		_.on('beforedraw', function(a,b) {
-			if(b==event){
+			if(b==e){
 				g = false;
 				_.x = _.get(_.X);
 				_.y = _.get(_.Y);
