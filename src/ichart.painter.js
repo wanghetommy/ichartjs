@@ -140,6 +140,10 @@ iChart.Painter = iChart.extend(iChart.Element, {
 	is3D : function() {
 		return this.dimension == iChart._3D;
 	},
+	tf:function(k){
+		var _ = this._();
+		return iChart.isFunction(_.get(k))?_.get(k).apply(_,[_.T,k]):_.get(k);
+	},
 	applyGradient:function(x,y,w,h){
 		var _ = this._();
 		if(_.get('gradient')&&_.get('f_color')){
@@ -201,15 +205,6 @@ iChart.Painter = iChart.extend(iChart.Element, {
 			hpadding:p[1] + p[3] + b[1] + b[3],
 			vpadding:p[0] + p[2] + b[0] + b[2]
 		});	
-		
-		if (_.get('shadow')===true) {
-			_.push('shadow', {
-				color : _.get('shadow_color'),
-				blur : _.get('shadow_blur'),
-				offsetx : _.get('shadow_offsetx'),
-				offsety : _.get('shadow_offsety')
-			});
-		}
 		
 		_.push('f_color', bg);
 		_.push('f_color_', bg);
