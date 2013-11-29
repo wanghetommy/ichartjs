@@ -1,5 +1,5 @@
 /**
- * ichartjs Library v1.1 http://www.ichartjs.com/
+ * ichartjs Library v1.2 http://www.ichartjs.com/
  * 
  * @author wanghe
  * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License"); 
@@ -366,7 +366,7 @@
 			}
 
 			// Look for rgba(255,255,255,0.3)
-			if (/^rgba\([0-9]{1,3},[0-9]{1,3},[0-9]{1,3},(0(\.[0-9])?|1(\.0)?)\)$/.exec(color)) {
+			if (/^rgba\([0-9]{1,3},[0-9]{1,3},[0-9]{1,3},(0(\.\d*)?|1(\.0)?)\)$/.exec(color)) {
 				return color;
 			}
 
@@ -654,23 +654,24 @@
 					y : y * cos(x)
 				}
 			},
-			uid : function(k) {
-				return (k || 'ichartjs') + '_' + ceil(Math.random()*10000)+new Date().getTime().toString().substring(4);
-			},
+			uid : function() {
+                var s4 = function () {
+                    return floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+                };
+                return function(k){
+                    return (k || 'ijs') + '_' +s4() + s4() + s4();
+                }
+			}(),
 			register:function(c){
 				if (_.isString(c)) {
 					Repository[c.toLowerCase()] = c;
 				}else{
 					var id = c.get('id');
 					if(!id||id==''){
-						id = _.uid(c.type);
-						while(Registry[id]){
-							id = _.uid(c.type);
-						}
-						c.push('id',id);
+						id = c.push('id',_.uid(c.type));
 					}
 					if(Registry[id]){
-						throw new Error("exist reduplicate id :"+id);
+						throw new Error("Exist Reduplicate id :"+id);
 					}
 					c.id = id;
 					Registry[id] = c;
@@ -681,6 +682,9 @@
 					throw new Error("TypeNotFoundException["+C.type+"]");
 				}
 				return new _[Repository[C.type]](C);
+			},
+			remove:function(id){
+				delete Registry[id];
 			},
 			get:function(id){
 				return Registry[id];
@@ -701,14 +705,14 @@
 				if (!_.isNumber(v)) {
 					v = pF(v);
 					if (!_.isNumber(v))
-						throw new Error("[" + d +"]=" +v + "is not a valid number.");
+						throw new Error("[" + d +"]is not a valid number.");
 				}
 				return v;
 			},
 			ceil : function(max) {
 				return factor(max,1);
 			},
-			floor : function(max, f) {
+			floor : function(max) {
 				return factor(max,-1);
 			},
 			_2D : '2d',
@@ -728,6 +732,7 @@
 			emptyFn : function() {
 				return true;
 			},
+            ratio:window.devicePixelRatio || 1,
 			supportCanvas : supportCanvas,
 			isOpera : isOpera,
 			isWebKit : isWebKit,
@@ -790,35 +795,48 @@
 				 * This is mainly for FF which doesn't provide offsetX
 				 */
 				if (typeof (e.offsetX) == 'undefined') {
+
+                    var doc = document.documentElement||{},
+                        body = document.body,
+                        left=(doc.scrollLeft || body.scrollLeft || 0) - (doc.clientLeft || body.clientLeft || 0),
+                        top=(doc.scrollTop || body.scrollTop || 0) - (doc.clientTop || body.clientTop || 0),
+                        t = e.targetTouches;
+
 					/**
 					 * Fix target property, if necessary
 					 */
 					if (!e.target) {
-						E.target = e.srcElement || document;
+						E.target = e.srcElement || (t?t[0].target:doc||body);
 					}
 					
-					if(e.targetTouches){
-						E.pageX = e.targetTouches[0].pageX;
-						E.pageY = e.targetTouches[0].pageY;
+					if(t){
+						E.pageX = t[0].pageX;
+						E.pageY = t[0].pageY;
 					}
+
 					/**
 					 * Calculate pageX/Y if missing and clientX/Y available
 					 */
 					if (E.pageX == null && e.clientX != null) {
-						var doc = document.documentElement, body = document.body;
-						E.pageX = e.clientX + (doc && doc.scrollLeft || body && body.scrollLeft || 0) - (doc && doc.clientLeft || body && body.clientLeft || 0);
-						E.pageY = e.clientY + (doc && doc.scrollTop || body && body.scrollTop || 0) - (doc && doc.clientTop || body && body.clientTop || 0);
+						E.pageX = e.clientX + left;
+						E.pageY = e.clientY + top;
 					}
-					
-					/**
-					 * Browser not with offsetX and offsetY
-					 */
-					var x = 0, y = 0, obj = e.target;
-					while (obj != document.body && obj) {
-						x += obj.offsetLeft-(obj.scrollLeft||0);
-						y += obj.offsetTop;
-						obj = obj.offsetParent;
-					}
+                    /**
+                     * Browser not with offsetX and offsetY
+                     */
+                    var x = 0, y = 0, obj = E.target;
+
+                    if (obj.getBoundingClientRect) {
+                        var box = obj.getBoundingClientRect();
+                        x = box.left + (window.pageXOffset || left);
+                        y  = box.top +  (window.pageYOffset || top);
+                    } else {
+                        while (obj != document.body && obj) {
+                            x += obj.offsetLeft-(obj.scrollLeft||0);
+                            y += obj.offsetTop;
+                            obj = obj.offsetParent;
+                        }
+                    }
 					E.offsetX = E.pageX - x;
 					E.offsetY = E.pageY - y;
 				}
@@ -840,7 +858,7 @@
 		return _;
 
 	})(window);
-
+	
 	/**
 	 * Add useful method,need to optimized
 	 */
