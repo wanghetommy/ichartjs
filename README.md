@@ -1,4 +1,5 @@
 ichartjs Library, workspace for version 1.2.1 development (since 2013-06-26)
+===========================================================================
 Licensed under the Apache License, Version 2.0 (the "License");
 --------------------------------------------------
 http://www.ichartjs.com
