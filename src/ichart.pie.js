@@ -138,7 +138,7 @@ iChart.Pie = iChart.extend(iChart.Chart, {
 		_.localizer(_);
 	},
 	doParse : function(_,d, i) {
-		var t = d.name + ' ' +_.getPercent(d.value);
+		var t = d.name + ' ' +_.percent(d.value);
 		
 		_.doActing(_,d,null,i,t);
 		
