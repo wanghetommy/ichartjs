@@ -99,8 +99,6 @@ iChart.Element = function(config) {
 			 */
 			'initialize');
 			
-	_.initialization = false;
-	
 	/**
 	 * inititalize configure
 	 */
