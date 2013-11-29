@@ -59,11 +59,11 @@
 			}
 			
 			if(tipAlign==_.L){
-				_.tipX = function(w,h){return _.x - _.get('value_space') -w;};
+				_.tipX = function(w){return _.x - _.get('value_space') -w;};
 			}else if(tipAlign==_.R){
-				_.tipX = function(w,h){return _.x + _.width + _.get('value_space');};
+				_.tipX = function(w){return _.x + _.width + _.get('value_space');};
 			}else if(tipAlign==_.B){
-				_.tipY = function(w,h){return _.y  +_.height+3;};
+				_.tipY = function(){return _.y  +_.height+3;};
 			}else{
 				_.tipY = function(w,h){return _.y  - h -3;};
 			}
