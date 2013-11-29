@@ -37,31 +37,27 @@ iChart.Donut2D = iChart.extend(iChart.Pie, {
 	doConfig : function() {
 		iChart.Donut2D.superclass.doConfig.call(this);
 		
-		var _ = this._(),d='donutwidth',r = _.r;
+		var _ = this._(),d='donutwidth',e = _.get(d),r = _.r;
 		/**
 		 * quick config to all rectangle
 		 */
 		_.push('sub_option.radius',r)
-		if(_.get(d)>0){
-			if(_.get(d)<1){
-				_.push(d,Math.floor(r*_.get(d)));
-			}else if(_.get(d)>=r){
-				_.push(d,0);
-			}
-			_.push('sub_option.donutwidth',_.get(d));
-		}
-		if ($.isString(_.get('center'))) {
-			_.push('center', $.applyIf({
-				text : _.get('center')
-			}, _.default_.center));
-		}
+		if(e>=r){
+			e = 0;
+		}else if(e<1){
+			e = Math.floor(r*e);
+		} 
+		_.push('sub_option.donutwidth',_.push(d,e));
+		
+		_.merge('center');
 		
 		if (_.get('center.text') != '') {
 			_.push('center.originx',_.get(_.X));
 			_.push('center.originy',_.get(_.Y));
 			_.push('center.textBaseline','middle');
 			_.center = new $.Text(_.get('center'), _);
-			_.components.push(_.center);
+			
+			_.oneways.push(_.center);
 		}
 		
 		_.parse(_);
