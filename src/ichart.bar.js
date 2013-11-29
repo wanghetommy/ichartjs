@@ -24,7 +24,7 @@ iChart.Bar = iChart.extend(iChart.Chart, {
 			/**
 			 * @cfg {Number} Specifies the width of each bar(default to calculate according to coordinate's height)
 			 */
-			bar_height : undefined,
+			bar_height : '66%',
 			/**
 			 * @cfg {Number} the space of each column.this option is readOnly.(default to undefined)
 			 */
@@ -47,6 +47,10 @@ iChart.Bar = iChart.extend(iChart.Chart, {
 			 */
 			label : {}
 		});
+		this.rectangles = [];
+		this.labels = [];
+		this.components.push(this.labels);
+		this.components.push(this.rectangles);
 	},
 	/**
 	 * @method Returns the coordinate of this element.
@@ -69,7 +73,8 @@ iChart.Bar = iChart.extend(iChart.Chart, {
 		_.doActing(_, d, o,i);
 	},
 	engine:function(_){
-		var bh = _.get('bar_height'),
+		if(_.isE())return;
+		var bh = _.get('_bar_height'),
 		s = _.get('bar_space'),
 		S = _.coo.getScale(_.get('scaleAlign')),
 		W = _.coo.valid_width,
@@ -93,50 +98,39 @@ iChart.Bar = iChart.extend(iChart.Chart, {
 	doConfig : function() {
 		iChart.Bar.superclass.doConfig.call(this);
 
-		var _ = this._(), b = 'bar_height', z = 'z_index';
+		var _ = this._(), z = 'z_index';
 		
-		_.rectangles = [];
-		_.labels = [];
+		_.rectangles.length = 0;
+		_.labels.length = 0;
+		
 		_.rectangles.zIndex = _.get(z);
 		_.labels.zIndex = _.get(z) + 1;
-		_.components.push(_.labels);
-		_.components.push(_.rectangles);
 		
 		/**
 		 * use option create a coordinate
 		 */
 		_.coo = iChart.Coordinate.coordinate_.call(_,function(){
-			var L = _.data.length, H = _.get('coordinate.valid_height_value'),h_,bh,KL;
+			var L = _.data.length, H = _.get('coordinate.valid_height_value'),KL;
 			
 			if (_.dataType == 'complex') {
 				KL = _.get('labels').length;
 				L = KL * L + (_.is3D()?(L-1)*KL*_.get('group_fator'):0);
-				h_= Math.floor(H / (KL + 1 + L));
-				bh = _.pushIf(b,h_);
 				KL +=1;
 			}else{
 				if(_.dataType == 'stacked'){
 					L = _.get('labels').length;
 				}
-				h_= Math.floor(H*2 / (L * 3 + 1));
-				bh = _.pushIf(b, h_);
 				KL = L+1;
-			}
-			
-			if (bh * L > H) {
-				bh = _.push(b, h_);
 			}
 			/**
 			 * the space of two bar
 			 */
-			_.push('bar_space', (H - bh * L) / KL);
-			
+			_.push('bar_space', (H - _.push('sub_option.height',_.push('_bar_height',iChart.parsePercent(_.get('bar_height'),Math.floor(H/L)))) * L) / KL);
 		});
 		
 		/**
 		 * quick config to all rectangle
 		 */
-		_.push('sub_option.height', _.get(b));
 		_.push('sub_option.valueAlign', _.R);
 		_.push('sub_option.tipAlign', _.R);
 	}
