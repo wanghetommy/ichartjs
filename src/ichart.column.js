@@ -21,9 +21,9 @@ iChart.Column = iChart.extend(iChart.Chart, {
 			 */
 			coordinate : {},
 			/**
-			 * @cfg {Number} By default,if a width is not specified the chart will attempt to distribution in horizontally.(default to undefined)
+			 * @cfg {Number} By default,if a width is not specified the chart will attempt to distribution in horizontally.(default to '80%')
 			 */
-			column_width : undefined,
+			column_width : '66%',
 			/**
 			 * @cfg {Number} the space of each column.this option is readOnly.(default to undefined)
 			 */
@@ -85,7 +85,8 @@ iChart.Column = iChart.extend(iChart.Chart, {
 		_.doActing(_,d,o,i);
 	},
 	engine:function(_){
-		var cw = _.get('column_width'),
+		if(_.isE())return;
+		var cw = _.get('column_width_'),
 		s = _.get('column_space'),
 		S = _.coo.getScale(_.get('scaleAlign')),
 		H = _.coo.valid_height, 
@@ -115,39 +116,29 @@ iChart.Column = iChart.extend(iChart.Chart, {
 		 * use option create a coordinate
 		 */
 		_.coo = iChart.Coordinate.coordinate_.call(_,function(){
-			var L = _.data.length, W = _.get('coordinate.valid_width_value'),w_,hw,KL;
+			var L = _.data.length, W = _.get('coordinate.valid_width_value'),w_,KL;
 			if (_.dataType == 'complex') {
 				KL = _.get('labels').length;
 				L = KL * L + (_.is3D()?(L-1)*KL*_.get('group_fator'):0);
-				w_= Math.floor(W / (KL + 1 + L));
-				hw = _.pushIf(c,w_);
 				KL +=1;
 			}else{
 				if(_.dataType == 'stacked'){
 					L = _.get('labels').length;
 				}
-				w_= Math.floor(W*2 / (L * 3 + 1));
-				hw = _.pushIf(c, w_);
 				KL = L+1;
-			}
-			
-			if(hw * L > W){
-				hw = _.push(c, w_);
 			}
 			
 			/**
 			 * the space of two column
 			 */
-			_.push('column_space', (W - hw * L) / KL);
+			_.push('column_space', (W - _.push('sub_option.width',_.push('column_width_',iChart.parsePercent(_.get(c),Math.floor(W/L)))) * L) / KL);
 			
 			if (_.is3D()) {
-				_.push('zHeight', _.get(c) * _.get('zScale'));
-				_.push('sub_option.zHeight', _.get('zHeight'));
+				_.push('sub_option.zHeight', _.push('zHeight', _.get('column_width_') * _.get('zScale')));
 				_.push('sub_option.xAngle_', _.get('xAngle_'));
 				_.push('sub_option.yAngle_', _.get('yAngle_'));
 			}
 		});
-		_.push('sub_option.width', _.get(c));
 	}
 
 });
