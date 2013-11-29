@@ -43,7 +43,7 @@ iChart.ColumnStacked2D = iChart.extend(iChart.Column, {
 			c.item.each(function(d, j) {
 				h = (d.value*v - S.start) * H / S.distance;
 				d.total = c.total;
-				_.doParse(_, d, j, {
+				_.doParse(_, d, i + '_' + j, {
 					id : i + '_' + j,
 					originx : x + i * gw,
 					originy : y - (h > 0 ? h : 0)-h0,

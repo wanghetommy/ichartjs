@@ -29,7 +29,7 @@ iChart.ColumnMulti2D = iChart.extend(iChart.Column, {
 		_.columns.each(function(c, i) {
 			c.item.each(function(d, j) {
 				h = (d.value - S.start) * H / S.distance;
-				_.doParse(_, d, j, {
+				_.doParse(_, d, i + '_' + j, {
 					id : i + '_' + j,
 					originx : x + j * (cw + q) + i * gw,
 					originy : y - (h > 0 ? h : 0),
