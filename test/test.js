@@ -65,7 +65,7 @@ function start(){
 				str.push("&nbsp;,Fail:");
 				str.push(fail);
 				str.push("&nbsp;<button onclick='test();'>Test Again</button>&nbsp;&nbsp;");
-				str.push("<a href='../examples/index.html'>Example</a>&nbsp;&nbsp;");
+				str.push("<a href='../samples/index.html'>Example</a>&nbsp;&nbsp;");
 				str.push("<a href='http://www.ichartjs.com'>Home</a>");
 				str.push("</div>");
 				panel.innerHTML = str.join("");
@@ -74,12 +74,12 @@ function start(){
 			
 			chart = unit.shift()();
 			
-			chart.on('beforedraw',function(e){
+			chart.on('beforedraw',function(){
 				chart.START_RUN_TIME = new Date().getTime();
 				return true;
 			});
 			
-			chart.on('draw',function(e){
+			chart.on('draw',function(){
 				chart.END_RUN_TIME = new Date().getTime();
 				chart.RUN_TIME_COST = chart.END_RUN_TIME - chart.START_RUN_TIME;
 			});
@@ -350,7 +350,7 @@ function test(){
 			shadow:true,
 			labels:lineLabels,
 			listeners:{
-				parsePoint:function(d,v,x,y){
+				parsePoint:function(d,v){
 					return {value:v+"℃"}
 				}
 			}
@@ -391,7 +391,7 @@ function test(){
 					 scale_line_enable:false,
 					 scale:4,
 					 listeners:{
-						parseText:function(t,x,y){
+						parseText:function(t){
 							return {text:t+"℃"}
 						}
 					}
@@ -407,7 +407,7 @@ function test(){
 				}]
 			},
 			listeners:{
-				parsePoint:function(d,v,x,y){
+				parsePoint:function(d,v){
 					return {value:v+"℃"}
 				}
 			}
@@ -427,7 +427,7 @@ function test(){
 			height : 400,
 			labels:lineLabels,
 			listeners:{
-				parsePoint:function(d,v,x,y){
+				parsePoint:function(d,v){
 					return {value:v+"℃"}
 				}
 			}
@@ -445,7 +445,7 @@ function test(){
 			height : 400,
 			labels:lineLabels,
 			listeners:{
-				parsePoint:function(d,v,x,y){
+				parsePoint:function(d,v){
 					return {value:v+"℃"}
 				}
 			}
@@ -508,7 +508,7 @@ function test(){
 					 start_scale:0,
 					 scale_space:20,
 					 label:{color:'#254d70',fontsize:11,fontweight:600}
-				}],
+				}]
 			}
 		});
 	});
@@ -534,7 +534,7 @@ function test(){
 					 start_scale:0,
 					 scale_space:20,
 					 label:{color:'#254d70',fontsize:11,fontweight:600}
-				}],
+				}]
 			}
 		});
 	});
@@ -559,7 +559,7 @@ function test(){
 					 start_scale:0,
 					 scale_space:20,
 					 label:{color:'#254d70',fontsize:11,fontweight:600}
-				}],
+				}]
 			}
 		});
 	});
@@ -585,7 +585,7 @@ function test(){
 					 start_scale:0,
 					 scale_space:20,
 					 label:{color:'#254d70',fontsize:11,fontweight:600}
-				}],
+				}]
 			}
 		});
 	});
@@ -609,7 +609,7 @@ function test(){
 					 start_scale:0,
 					 scale_space:20,
 					 label:{color:'#254d70',fontsize:11,fontweight:600}
-				}],
+				}]
 			}
 		});
 	});
@@ -635,7 +635,7 @@ function test(){
 					 start_scale:0,
 					 scale_space:20,
 					 label:{color:'#254d70',fontsize:11,fontweight:600}
-				}],
+				}]
 			}
 		});
 	});
