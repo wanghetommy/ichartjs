@@ -140,17 +140,17 @@ iChart.Element.prototype = {
 			this.events[arguments[i]] = [];
 		}
 	},
-	fireString : function(socpe, name, args, s) {
-		var t = this.fireEvent(socpe, name, args);
+	fireString : function(scope, name, args, s) {
+		var t = this.fireEvent(scope, name, args);
 		return iChart.isString(t) ? t : (t!==true&&iChart.isDefined(t)?t.toString():s);
 	},
-	fireEvent : function(socpe, name, args) {
+	fireEvent : function(scope, name, args) {
 		var L = this.events[name].length;
 		if (L == 1)
-			return this.events[name][0].apply(socpe, args);
+			return this.events[name][0].apply(scope, args);
 		var r = true;
 		for ( var i = 0; i < L; i++) {
-			if(!this.events[name][i].apply(socpe, args))
+			if(!this.events[name][i].apply(scope, args))
 				r  = false;
 		}
 		return r;
