@@ -1,13 +1,4 @@
-/**
- * ichartjs Library v1.2 http://www.ichartjs.com/
- * 
- * @author wanghe
- * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License"); 
- * you may not use this file except in compliance with the License. 
- * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
- */
-;
-(function(window) {
+;(function(window) {
 	var ua = navigator.userAgent.toLowerCase(), mc = function(e) {
 		return e.test(ua)
 	}, ts = Object.prototype.toString, isOpera = mc(/opera/), isChrome = mc(/\bchrome\b/), isWebKit = mc(/webkit/), isSafari = !isChrome && mc(/safari/), isIE = !isOpera && mc(/msie/), supportCanvas = !!document.createElement('canvas').getContext, isGecko = !isWebKit
