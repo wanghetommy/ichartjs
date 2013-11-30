@@ -122,16 +122,13 @@
 		};
 
 		_.apply(_, {
-			version : "1.0",
+			version : "1.2.1",
 			email : 'taylor@ichartjs.com',
 			isEmpty : function(C, e) {
 				return C === null || C === undefined || ((_.isArray(C) && !C.length)) || (!e ? C === "" : false)
 			},
 			isArray : function(e) {
 				return ts.apply(e) === "[object Array]"
-			},
-			isDate : function(e) {
-				return ts.apply(e) === "[object Date]"
 			},
 			isObject : function(e) {
 				return !!e && ts.apply(e) === "[object Object]"
@@ -145,14 +142,8 @@
 			isString : function(e) {
 				return typeof e === "string"
 			},
-			isBoolean : function(e) {
-				return typeof e === "boolean"
-			},
 			isFalse : function(e) {
 				return typeof e === "boolean" && !e;
-			},
-			isElement : function(e) {
-				return e ? !!e.tagName : false
 			},
 			isDefined : function(e) {
 				return typeof e !== "undefined"
@@ -276,8 +267,8 @@
 			}
 		}();
 
-		var sin = Math.sin, cos = Math.cos, atan = Math.atan, tan = Math.tan, acos = Math.acos, sqrt = Math.sqrt, abs = Math.abs, pi = Math.PI, pi2 = 2 * pi, ceil = Math.ceil, round = Math.round, floor = Math.floor, max = Math.max, min = Math.min, pF = parseFloat,
-		Registry={},Repository={},
+		var sin = Math.sin, cos = Math.cos, atan = Math.atan, sqrt = Math.sqrt, abs = Math.abs, PI = Math.PI, PI2 = 2 * PI, ceil = Math.ceil, round = Math.round, floor = Math.floor, max = Math.max, min = Math.min, pF = parseFloat,
+		_Reg={},_Rep={},
 		factor = function(v, w) {
 			if (v == 0)
 				return v;
@@ -296,22 +287,9 @@
 				}
 				return round(v*f+w)/f;
 			}
-		}, colors = {
-			white : 'rgb(255,255,255)',
-			green : 'rgb(0,128,0)',
-			gray : 'rgb(80,80,80)',
-			red : 'rgb(255,0,0)',
-			blue : 'rgb(0,0,255)',
-			yellow : 'rgb(255,255,0)',
-			black : 'rgb(0,0,0)'
-		}, hex2Rgb = function(hex) {
+		},hex2Rgb = function(hex) {
 			hex = hex.replace(/#/g, "").replace(/^(\w)(\w)(\w)$/, "$1$1$2$2$3$3");
 			return  (hex.length==7?'rgba(':'rgb(') + parseInt(hex.substring(0, 2), 16) + ',' + parseInt(hex.substring(2, 4), 16) + ',' + parseInt(hex.substring(4, 6), 16) + (hex.length==7?',0.'+hex.substring(6,7)+')':')');
-		}, i2hex = function(N) {
-			return ('0' + parseInt(N).toString(16)).slice(-2);
-		}, rgb2Hex = function(rgb) {
-			var m = rgb.match(/rgb\((\d+),(\d+),(\d+)\)/);
-			return m ? ('#' + i2hex(m[1]) + i2hex(m[2]) + i2hex(m[3])).toUpperCase() : null;
 		}, c2a = function(rgb) {
 			var result = /rgb\((\w*),(\w*),(\w*)\)/.exec(rgb);
 			if (result) {
@@ -364,9 +342,6 @@
 			// Look for #a0b1c2 or #fff
 			if (/^#(([a-fA-F0-9]{6,7})|([a-fA-F0-9]{3}))$/.exec(color))
 				return hex2Rgb(color);
-			// Look a string for green
-			if (colors[color])
-				return colors[color];
 			throw new Error("invalid colors value '" + color + "'");
 		}, hsv2Rgb = function(h, s, v, a) {
 			if (_.isArray(h)) {
@@ -453,11 +428,6 @@
 				hsv[2] = _.upTo(hsv[2], 1);
 			}
 			return hsv2Rgb(hsv, rgb[3]);
-		},
-		topi = function(v){
-			if(v==0)return 0;
-			if(v%pi2==0)return pi2;
-			return v%pi2;
 		};
 
 		_.apply(_, {
@@ -528,25 +498,25 @@
 			atan2Radian : function(ox, oy, x, y) {
 				if (ox == x) {
 					if (y > oy)
-						return pi / 2;
-					return pi * 3 / 2;
+						return PI / 2;
+					return PI * 3 / 2;
 				}
 				if (oy == y) {
 					if (x > ox)
 						return 0;
-					return pi;
+					return PI;
 				}
 				
 				var q = _.quadrant(ox, oy, x, y),
 					r = atan(abs((oy - y) / (ox - x)));
 				
-				return q?(q == 3?pi2:pi)+(q == 2?r:-r):r;
+				return q?(q == 3?PI2:PI)+(q == 2?r:-r):r;
 			},
 			angle2Radian : function(a) {
-				return a * pi / 180;
+				return a * PI / 180;
 			},
 			radian2Angle : function(r) {
-				return r * 180 / pi;
+				return r * 180 / PI;
 			},
 			/**
 			 * indicate angle in which quadrant,and it different from concept of Math.this will return 0 if it in first quadrant(other eg.0,1,2,3)
@@ -568,30 +538,30 @@
 			},
 			toPI2 : function(a) {
 				while(a<0)
-					a+=pi2;
+					a+=PI2;
 				return a;
 			},
 			visible:function(s, e, f){
 				if(s>=e)return [];
 				var q1 = _.quadrantd(s),q2 = _.quadrantd(e);
-				if((q1==2||q1==3)&&(q2==2||q2==3)&&((e-s)<pi))return[];
+				if((q1==2||q1==3)&&(q2==2||q2==3)&&((e-s)<PI))return[];
 				s = _.toPI2(s);
 				e = _.toPI2(e);
-				if(e<=s){e+=pi2;}
-				if(s > pi){s = pi2;}
-				else if(e>pi2){
-					return [{s:s,e:pi,f:f},{s:pi2,e:e,f:f}]
-				}else if(e>pi){
-					e = pi;
+				if(e<=s){e+=PI2;}
+				if(s > PI){s = PI2;}
+				else if(e>PI2){
+					return [{s:s,e:PI,f:f},{s:PI2,e:e,f:f}]
+				}else if(e>PI){
+					e = PI;
 				}
 				return {s:s,e:e,f:f};
 			},
 			quadrantd : function(a) {
 				if(a==0)return 0;
-				if(a % pi2==0)return 3;
+				if(a % PI2==0)return 3;
 				while(a<0)
-					a+=pi2;
-				return ceil(2 * (a % pi2) / pi)-1;
+					a+=PI2;
+				return ceil(2 * (a % PI2) / PI)-1;
 			},
 			upTo : function(u, v) {
 				return v > u ? u : v;
@@ -607,8 +577,8 @@
 			},
 			angleInRange : function(l, u, v) {
 				v = (v -l);
-				v = v<0?v+pi2:v;
-				v = v %pi2;
+				v = v<0?v+PI2:v;
+				v = v %PI2;
 				return (u -l) > v;
 			},
 			angleZInRange : function(l, u, v) {
@@ -655,30 +625,30 @@
 			}(),
 			register:function(c){
 				if (_.isString(c)) {
-					Repository[c.toLowerCase()] = c;
+					_Rep[c.toLowerCase()] = c;
 				}else{
 					var id = c.get('id');
 					if(!id||id==''){
 						id = c.push('id',_.uid(c.type));
 					}
-					if(Registry[id]){
+					if(_Reg[id]){
 						throw new Error("Exist Reduplicate id :"+id);
 					}
 					c.id = id;
-					Registry[id] = c;
+					_Reg[id] = c;
 				}
 			},
 			create:function(C){
-				if(!C.type||!Repository[C.type]){
+				if(!C.type||!_Rep[C.type]){
 					throw new Error("TypeNotFoundException["+C.type+"]");
 				}
-				return new _[Repository[C.type]](C);
+				return new _[_Rep[C.type]](C);
 			},
 			remove:function(id){
-				delete Registry[id];
+				delete _Reg[id];
 			},
 			get:function(id){
-				return Registry[id];
+				return _Reg[id];
 			},
 			isPercent:function(v){
 				return _.isString(v)&&v.match(/(.*)%/);

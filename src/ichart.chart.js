@@ -199,7 +199,7 @@
 			return this.arc(x, y, r, dw, s, e, c, b, bw, bc, false, ccw, !a2a);
 		},
 		sector3D : function() {
-			var x0, y0,sPaint = function(x, y, a, b, s, e, ccw, h, c) {
+			var sPaint = function(x, y, a, b, s, e, ccw, h, c) {
 				var Lo = function(A, h) {
 					this.lineTo(x + a * cos(A), y + (h || 0) + (b * sin(A)));
 				},

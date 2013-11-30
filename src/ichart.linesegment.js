@@ -219,11 +219,11 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 	},
 	doConfig : function() {
 		iChart.LineSegment.superclass.doConfig.call(this);
-		iChart.Assert.isTrue(this.get('point_space')>0,'point_space');
-
 		var _ = this._(), ps = _.get('point_size') * 3 / 2, sp = _.get('point_space'), ry = _.get('event_range_y'), rx = _
 				.get('event_range_x'), heap = _.get('tipInvokeHeap'), p = _.get('points'), N = _.get('name');
-		
+
+        iChart.Assert.isTrue(sp>0,'point_space');
+
 		_.parse(_);
 		
 		if (rx <= 0||rx > sp / 2) {
