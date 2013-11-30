@@ -105,6 +105,9 @@ iChart.Line = iChart.extend(iChart.Chart, {
 
 		this.lines = [];
 		this.components.push(this.lines);
+        this.on('resize', function(){
+             this.push('point_space',0);
+        });
 	},
 	/**
 	 * @method Returns the coordinate of this element.
@@ -167,12 +170,13 @@ iChart.Line = iChart.extend(iChart.Chart, {
 				_.push('point_space',M);
 			}
 		}
-		
 		_.push('sub_option.width', nw);
 		_.push('sub_option.height', _.coo.valid_height);
 		
 		_.push('sub_option.originx', _.coo.get('x_start')+(vw-nw)/2);
 		_.push('sub_option.originy', _.coo.get('y_end'));
+
+
 		
 		if (_.get('tip.enable')){
 			if(!_.mocker&&iChart.isFunction(_.get('tipMocker'))){

@@ -1,5 +1,4 @@
-;
-(function($) {
+;(function($) {
 
 	var PI = Math.PI, inc = PI / 90,inc2 = inc/2, ceil = Math.ceil, floor = Math.floor, PI2 = 2 * PI, max = Math.max, min = Math.min, sin = Math.sin, cos = Math.cos, fd = function(w, c) {
 		return w == 1 ? (floor(c) + 0.5) : Math.round(c);
@@ -1208,6 +1207,7 @@
 				_.height = _.push(_.H, h);
 				_.size(_);
 			}
+            _.fireEvent(_,'resize',[w,h])
 			_.setUp();
 			_.plugins.eachAll(function(P) {
 				if(P.Combination){
@@ -1217,7 +1217,7 @@
 			if(!_.Combination){
 				_.draw();
 			}
-			_.set(_.fireEvent(_,'resize',[w,h]));
+
 		},
 		size:function(_){
             var r = $.ratio,w=_.pushIf(_.W, 400),h=_.pushIf(_.H, 300),c=_.T.canvas;
