@@ -182,14 +182,13 @@ iChart.Scale = iChart.extend(iChart.Component, {
 	doConfig : function() {
 		iChart.Scale.superclass.doConfig.call(this);
 		
-		var _ = this._(),abs = Math.abs,customL = _.get('labels').length, min_s = _.get('min_scale'), max_s = _.get('max_scale'), s_space = _.get('scale_space'), e_scale = _.get('end_scale'), start_scale = _.get('start_scale');
+		var _ = this._(),abs = Math.abs,k='scale_share',L = _.get('labels').length, min_s = _.get('min_scale'), max_s = _.get('max_scale'), s_space = _.get('scale_space'), e_scale = _.get('end_scale'), start_scale = _.get('start_scale');
 
 		_.items = [];
 		_.labels = [];
-		_.number = 0;
 
-		if (customL > 0) {
-			_.number = customL - 1;
+		if (L > 0) {
+			_.push(k,L - 1);
 		} else {
 			/**
 			 * startScale must less than minScale
@@ -206,20 +205,26 @@ iChart.Scale = iChart.extend(iChart.Component, {
 				e_scale = _.push('end_scale', (!e_scale&&!start_scale)?1:e_scale);
 			}
 			
+			var total = e_scale - start_scale;
 			
-			if (s_space && abs(s_space) < abs(e_scale - start_scale)) {
-				_.push('scale_share', (e_scale - start_scale) / s_space);
+			if (s_space && abs(s_space) < abs(total)) {
+				_.push(k, Math.ceil((total) / s_space));
 			}
 			
-			_.number = _.push('scale_share', abs(_.get('scale_share')));
-			
+			_.push(k, abs(_.get(k)));
 			/**
 			 * value of each scale
 			 */
-			if (!s_space || s_space >( e_scale - start_scale)) {
-				var W = ((e_scale - start_scale)+"").indexOf('.')+1,M=1;
-				while(W>0){W--;M*=10;}
-				s_space = _.push('scale', (e_scale - start_scale)*M / _.get('scale_share')/M);
+			if (!s_space || s_space >( total)) {
+				var t = total.toString(),s=t.length,W = t.indexOf('.')+1,M=10;
+				while(W>0){
+					t = parseFloat((total*M).toFixed(s));
+					if(/^\d$/.test((t).toString())){
+						_.push(k, t);
+					}
+					W--;M*=10;
+				}
+				s_space = _.push('scale', (total)*M / _.get(k)/M);
 			}
 			
 			if (parseInt(s_space)!=s_space && _.get('decimalsnum') == 0) {
@@ -229,7 +234,7 @@ iChart.Scale = iChart.extend(iChart.Component, {
 		/**
 		 * the real distance of each scale
 		 */
-		_.push('distanceOne', _.get('valid_distance') / _.number);
+		_.push('distanceOne', _.get('valid_distance') / _.get(k));
 		
 		var text, x, y, x1 = 0, y1 = 0, x0 = 0, y0 = 0, tx = 0, ty = 0, w = _.get('scale_width'), w2 = w / 2, sa = _.get('scaleAlign'), ta = _.get('position'), ts = _.get('text_space'), tbl = '',aw = _.get('coo').get('axis.width');
 		
@@ -274,8 +279,8 @@ iChart.Scale = iChart.extend(iChart.Component, {
 		/**
 		 * valid width only applies when there is h,then valid_height only applies when there is v
 		 */
-		for ( var i = 0; i <= _.number; i++) {
-			text = customL ? _.get('labels')[i] : (s_space * i + start_scale).toFixed(_.get('decimalsnum'));
+		for ( var i = 0; i <= _.get(k); i++) {
+			text = L ? _.get('labels')[i] : (s_space * i + start_scale).toFixed(_.get('decimalsnum'));
 			x = _.isH ? _.get('valid_x') + i * _.get('distanceOne') : _.x;
 			y = _.isH ? _.y : _.get('valid_y') + _.get('valid_distance') - i * _.get('distanceOne');
 			
@@ -297,7 +302,7 @@ iChart.Scale = iChart.extend(iChart.Component, {
 				y : y,
 				originx : x + tx,
 				originy : y + ty
-			}, _.fireEvent(_, 'parseText', [text, x + tx, y + ty, i, _.number == i]))), {
+			}, _.fireEvent(_, 'parseText', [text, x + tx, y + ty, i, _.get(k) == i]))), {
 				textAlign : ta,
 				textBaseline : tbl
 			}), _));
