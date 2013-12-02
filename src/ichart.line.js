@@ -19,7 +19,7 @@ iChart.Line = iChart.extend(iChart.Chart, {
             /**
              * @cfg {Boolean} if the left-right point are direct when point's value is null.false to break.(default to true)
              */
-            nullToDirect:true,
+            nullToDirect: true,
 			/**
 			 * @cfg {Number} Specifies the default linewidth of the canvas's context in this element.(defaults to 1)
 			 */
@@ -46,7 +46,7 @@ iChart.Line = iChart.extend(iChart.Chart, {
 			 */
 			tipMocker:null,
 			/**
-			 * @cfg {Number(0.0~1.0)} If null,the position there will follow the points.If given a number,there has a fixed postion,0 is top,and 1 to bottom.(default to null)
+			 * @cfg {Number(0.0~1.0)} If null,the position there will follow the points.If given a number,there has a fixed position,0 is top,and 1 to bottom.(default to null)
 			 */
 			tipMockerOffset:null,
 			/**
@@ -126,7 +126,7 @@ iChart.Line = iChart.extend(iChart.Chart, {
 		var k = _.pushIf('sub_option.keep_with_coordinate',s);
 		if (_.get('crosshair.enable')) {
 			_.pushIf('crosshair.hcross', s);
-			_.push('crosshair.invokeOffset', function(e, m) {
+			_.push('crosshair.invokeOffset', function(e) {
 				/**
 				 * TODO how fire muti line?now fire by first line
 				 */

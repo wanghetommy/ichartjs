@@ -42,7 +42,7 @@
 		_.data = c;
 		if(_.dataType=='simple'){
 			_.total = 0;
-			c.each(function(d,i){
+			c.each(function(d){
 				d.background_color = d.color;
 				V  = d.value||0;
 				if($.isArray(V)){
