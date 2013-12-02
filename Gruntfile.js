@@ -13,7 +13,7 @@ module.exports = function(grunt){
     var minFile =  'ichart.<%= pkg.version %>.min.js';
 
 
-    grunt.file.defaultEncoding = 'utf8'
+    grunt.file.defaultEncoding = 'utf8';
 
     grunt.initConfig({
         pkg: grunt.file.readJSON('package.json'),
