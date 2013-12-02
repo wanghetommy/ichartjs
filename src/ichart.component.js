@@ -55,8 +55,8 @@ iChart.Component = iChart.extend(iChart.Painter, {
 		this.inject(c);
 	},
 	initialize : function() {
-		iChart.DefineAbstract('isEventValid', this);
-		iChart.DefineAbstract('doDraw', this);
+		iChart.abstract('isEventValid', this);
+		iChart.abstract('doDraw', this);
 		
 		this.doConfig();
 	},

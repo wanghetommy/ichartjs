@@ -443,9 +443,9 @@
 			/**
 			 * define the interface,the subclass must implement it
 			 */
-			DefineAbstract : function(M, H) {
+			abstract : function(M, H) {
 				if (!H[M])
-					throw new Error("Cannot instantiate the type '" + H.type + "'.you must implements it with method '" + M + "'.");
+					throw new Error("You must implements method '" + M + "' in " + H.type);
 			},
 			getAA : function(tf) {
 				if (tf == 'linear')
