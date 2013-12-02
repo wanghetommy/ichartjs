@@ -16,8 +16,8 @@ iChart.Painter = iChart.extend(iChart.Element, {
 		/**
 		 * define abstract method
 		 */
-		iChart.abstract('commonDraw', this);
-		iChart.abstract('initialize', this);
+		iChart._Abstract('commonDraw', this);
+		iChart._Abstract('initialize', this);
 
 		this.set({
 			/**

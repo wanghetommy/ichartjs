@@ -443,7 +443,7 @@
 			/**
 			 * define the interface,the subclass must implement it
 			 */
-			abstract : function(M, H) {
+			_Abstract : function(M, H) {
 				if (!H[M])
 					throw new Error("You must implements method '" + M + "' in " + H.type);
 			},

@@ -1231,7 +1231,7 @@
             if(r>1)
             _.T.c.scale(r, r);
 		},
-		initialize1 : function() {
+		initialize : function() {
 			var _ = this._(),d = _.get('data'),r = _.get('render');
 			
 			_.push(_.X, null);

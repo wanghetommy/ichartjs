@@ -18,7 +18,7 @@ iChart.Html = iChart.extend(iChart.Element,{
 		/**
 		 * define abstract method
 		 */
-		iChart.abstract('beforeshow',this);
+		iChart._Abstract('beforeshow',this);
 		
 		this.set({
 			 animation:true,

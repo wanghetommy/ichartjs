@@ -16,8 +16,8 @@ iChart.Element = function(config) {
 	/**
 	 * define abstract method
 	 */
-	iChart.abstract('configure', _);
-	iChart.abstract('afterConfiguration', _);
+	iChart._Abstract('configure', _);
+	iChart._Abstract('afterConfiguration', _);
 
 	/**
 	 * All of the configuration will in this property
