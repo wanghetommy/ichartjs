@@ -126,7 +126,7 @@ iChart.Line = iChart.extend(iChart.Chart, {
 		var k = _.pushIf('sub_option.keep_with_coordinate',s);
 		if (_.get('crosshair.enable')) {
 			_.pushIf('crosshair.hcross', s);
-			_.push('crosshair.invokeOffset', function(e) {
+			_.pushIf('crosshair.invokeOffset', function(e) {
 				/**
 				 * TODO how fire muti line?now fire by first line
 				 */
