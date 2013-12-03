@@ -582,26 +582,30 @@ iChart.Coordinate2D = iChart.extend(iChart.Component, {
 			}
 		});
 	},
+    getScaleObj : function(p,L) {
+        var _ = this._();
+        for(var i=0;i<_.scale.length;i++){
+            if(_.scale[i].get('position')==p){
+                return _.scale[i];
+            }
+        }
+        if(!L){
+            if(p==_.L){
+                p = _.R;
+            }else if(p==_.R){
+                p = _.L;
+            }else if(p==_.O){
+                p = _.B;
+            }else{
+                p = _.O;
+            }
+            return _.getScaleObj(p,true);
+        }
+        throw new Error("InValidScale");
+    },
 	getScale : function(p,L) {
-		var _ = this._(),r;
-		for(var i=0;i<_.scale.length;i++){
-			if(_.scale[i].get('position')==p){
-				return _.scale[i].getScale(_.scale[i]);
-			}
-		}
-		if(!L){
-			if(p==_.L){
-				p = _.R;
-			}else if(p==_.R){
-				p = _.L;
-			}else if(p==_.O){
-				p = _.B;
-			}else{
-				p = _.O;
-			}
-			return _.getScale(p,true);
-		}
-		throw new Error("No_Valid_Scale");
+        var s = this.getScaleObj(p,L);
+        return s.getScale(s);
 	},
 	isEventValid : function(e,_) {
 		return {
