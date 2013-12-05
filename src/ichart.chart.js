@@ -1444,14 +1444,9 @@
 			 */
 			_.push(f?'sub_option':'communal_acting',$.clone(_.get(f?'communal_acting':'sub_option'),true));
 			/**
-			 * merge the option
+			 * merge the option and specific option
 			 */
-			$.merge(_.get('sub_option'),d);
-			
-			/**
-			 * merge specific option
-			 */
-			$.merge(_.get('sub_option'),o);
+			$.merge(_.get('sub_option'),d,o);
 			
 			_.push('sub_option.value',v);
 			_.push('sub_option.value_',d.value);
