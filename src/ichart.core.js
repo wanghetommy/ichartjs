@@ -168,7 +168,7 @@
 		/**
 		 * there will apply a deep clone
 		 */
-		_.merge = function(d, e, f) {
+		_.merge = function(d, e, f, g) {
 			if (d && _.isObject(e)) {
 				for ( var a in e) {
 					if (_.isDefined(e[a])) {
@@ -183,9 +183,7 @@
 						}
 					}
 				}
-				if (_.isObject(f)) {
-					return _.merge(d, f);
-				}
+                return _.merge(d, f, g);
 			}
 			return d;
 		};
