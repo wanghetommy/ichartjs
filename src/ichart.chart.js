@@ -1300,7 +1300,7 @@
 			if(!comb){
 				events.each(function(it) {
 					_.T.addEvent(it, function(e) {
-						if (_.processAnimation||_.stopEvent)
+						if (_.processAnimation||_.stopEvent|| !_.show)
 							return;
 						if(e.targetTouches&&e.targetTouches.length!=1){
 							return;
