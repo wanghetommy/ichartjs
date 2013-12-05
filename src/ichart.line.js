@@ -219,9 +219,9 @@ iChart.Line = iChart.extend(iChart.Chart, {
 									r.minTop = Math.min(r.minTop,r1.top);
 									r.maxTop = Math.max(r.maxTop,r1.top);
 								}
-								U.push(p?p(null,r1.name,r1.value,r1.text,r1.i):(r1.name+' '+r1.value));
+								U.push(p?p(l,r1.name,r1.value,r1.text,r1.i):(r1.name+' '+r1.value));
 							});
-							r.text = _.get('tipMocker').call(_,U,r.i)||'tipMocker not return';
+							r.text = _.get('tipMocker').call(_,U,r.i);
 						}
 						return r.valid ? r : false;
 					}
