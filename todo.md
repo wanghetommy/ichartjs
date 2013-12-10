@@ -15,19 +15,17 @@ ichartjs需求收集与优化建议
         11.制作一个自定义动画的示例
         12.destroy里加入remove方法，不加参数即为removeAll操作
         13.increment增加一个配置项控制线
-        14.小数点坐标运算异常
+        14.小数点坐标运算异常*
         15.加了scale后，labels应该设置在scale里的bottom里了
         16.对于折线图，我打算如果传递的“值”，不是数字，或者不能被转化为数字，则与ignore的效果一样，这样就不用ignore了~同18
         17、补文档--background_color:null
         18、折线图、比如六月份那个33不要。直接从5月连到7月
-        可能实现方式、设置2个配置项：
-        nullToDirect:true表示数据为null时，直接连线
-        nullToBreak:true表示数据为null时，忽略连线
-        默认均为false~~
+        实现方式、设置1个配置项：
+        nullToDirect:true表示数据为null时，直接连线,false表示数据为null时，忽略连线.默认为false*
         19、3D饼图官网示例中图例的百分比多了一个%
         20、不均匀刻度-用于值差别比较大的情况
         21、1.2.1版本的饼图扇区块分离组合的反应速度明显比1.2版本时慢?
         22、自适应的功能。自适应渲染的div即可
         23、Pie看来有必要新增一个api。move(x,y)
-        24、1.2.1 resize有问题?
+        24、1.2.1 resize有问题?*
         25、折线图中上行、下行的颜色能否设置为不同
