@@ -50,153 +50,122 @@ body {
 	text-align: center;
 	background-repeat: repeat;
 }
-#some_shell{
-	width:700px;
-	height:400px;
-	padding:10px;
-	background-color: #666666;
-	position:relative;
-}
-#console{
-	width:180px;
-	height:300px;
-	color: #ffffff;
-	font-size: 13px;
-	padding-left:10px;
-	text-align:left;
-	position:absolute;
-	right:0px;
-	top:0px;
-}
 #canvasDiv {
 	margin: 0px auto;
 	text-align: center;
 }
 </style>
 		<script type="text/javascript">
-		$(function() {
-            var flow=[];
-            for(var i=0;i<25;i++){
-                if(i==12||i==16){
-                    flow.push(null);
-                }else{
-                flow.push(Math.floor(Math.random()*(10+((i%16)*5)))+10);
-
+            $(function(){
+                var pv=[],ip=[],t;
+                //创建随机数据
+                for(var i=0;i<61;i++){
+                    t = Math.floor(Math.random()*(30+((i%12)*5)))+10;
+                    pv.push(t);
+                    t = Math.floor(t*0.5);
+                    t = t-Math.floor((Math.random()*t)/2);
+                    ip.push(t);
                 }
-            }
 
-            var data = [
-                {
-                    name : 'PV',
-                    value:flow,
-                    color:'#ec4646',
-                    line_width:2
-                }
-            ];
-
-            var labels = ["00","01","02","03","04","05","06","07","08","09","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24"];
-
-            var chart = new iChart.LineBasic2D({
-                render : 'canvasDiv',
-                data: data,
-                align:'center',
-                title : {
-                    text:'ichartjs官方网站上一日PV流量',
-                    font : '微软雅黑',
-                    fontsize:24,
-                    color:'#b4b4b4'
-                },
-                subtitle : {
-                    text:'14:00-16:00访问量达到最大值',
-                    font : '微软雅黑',
-                    color:'#b4b4b4'
-                },
-                footnote : {
-                    text:'ichartjs.com',
-                    font : '微软雅黑',
-                    fontsize:11,
-                    fontweight:600,
-                    padding:'0 28',
-                    color:'#b4b4b4'
-                },
-                width : 800,
-                height : 400,
-                shadow:true,
-                shadow_color : '#202020',
-                shadow_blur : 8,
-                shadow_offsetx : 0,
-                shadow_offsety : 0,
-                background_color:'#2e2e2e',
-                tip:{
-                    enable:true,
-                    shadow:true,
-                    listeners:{
-                        //tip:提示框对象、name:数据名称、value:数据值、text:当前文本、i:数据点的索引
-                        parseText:function(tip,name,value,text,i){
-                            return "<span style='color:#005268;font-size:12px;'>"+labels[i]+":00访问量约:<br/>"+
-                                    "</span><span style='color:#005268;font-size:20px;'>"+value+"万</span>";
-                        }
-                    }
-                },
-                crosshair:{
-                    enable:true,
-                    line_color:'#ec4646'
-                },
-                sub_option : {
-                    smooth : true,
-                    label:false,
-                    hollow:false,
-                    hollow_inside:false,
-                    point_size:8
-                },
-                coordinate:{
-                    width:640,
-                    height:260,
-                    striped_factor : 0.18,
-                    grid_color:'#4e4e4e',
-                    axis:{
-                        color:'#252525',
-                        width:[0,0,4,4]
+                var data = [
+                    {
+                        name : 'PV',
+                        value:pv,
+                        color:'#aad0db',
+                        line_width:2
                     },
-                    scale:[{
-                        position:'left',
-                        start_scale:0,
-                        end_scale:100,
-                        scale_space:10,
-                        scale_size:2,
-                        scale_enable : false,
-                        label : {color:'#9d987a',font : '微软雅黑',fontsize:11,fontweight:600},
-                        scale_color:'#9f9f9f'
-                    },{
-                        position:'bottom',
-                        label : {color:'#9d987a',font : '微软雅黑',fontsize:11,fontweight:600},
-                        scale_enable : false,
-                        labels:labels
-                    }]
-                }
-            });
-            //利用自定义组件构造左侧说明文本
-            chart.plugin(new iChart.Custom({
-                drawFn:function(){
-                    //计算位置
-                    var coo = chart.getCoordinate(),
-                            x = coo.get('originx'),
-                            y = coo.get('originy'),
-                            w = coo.width,
-                            h = coo.height;
-                    //在左上侧的位置，渲染一个单位的文字
-                    chart.target.textAlign('start')
-                            .textBaseline('bottom')
-                            .textFont('600 11px 微软雅黑')
-                            .fillText('访问量(万)',x-40,y-12,false,'#9d987a')
-                            .textBaseline('top')
-                            .fillText('(时间)',x+w+12,y+h+10,false,'#9d987a');
+                    {
+                        name : 'IP',
+                        value:ip,
+                        color:'#f68f70',
+                        line_width:2
+                    }
+                ];
 
+                //创建x轴标签文本
+                var date = new Date()
+                date.setDate(date.getDate()-6);
+                var labels = [];
+                for(var i=0;i<6;i++){
+                    date.setDate(date.getDate()+1);
+                    labels.push(date.getFullYear()+"-"+(date.getMonth()+1)+"-"+date.getDate());
                 }
-            }));
-            //开始画图
-            chart.draw();
-		});
+
+                var chart = new iChart.LineBasic2D({
+                    render : 'canvasDiv',
+                    data: data,
+                    align:'center',
+                    title : 'A网站近5天流量趋势,按每2小时分组统计',
+                    subtitle : '平均每个人访问2-3个页面(访问量单位：万)',
+                    footnote : '数据来源：模拟数据',
+                    width : 800,
+                    height : 400,
+                    background_color:'#FEFEFE',
+                    tip:{
+                        enable:true,
+                        shadow:true,
+                        move_duration:400,
+                        border:{
+                            enable:true,
+                            radius : 5,
+                            width:2,
+                            color:'#3f8695'
+                        },
+                        listeners:{
+                            //tip:提示框对象、name:数据名称、value:数据值、text:当前文本、i:数据点的索引
+                            parseText:function(tip,name,value,text,i){
+                                return name+"访问量:"+value+"万";
+                            }
+                        }
+                    },
+                    tipMocker:function(tips,i){
+                        return "<div style='font-weight:600'>"+
+                                labels[Math.floor(i/12)]+" "+//日期
+                                (((i%12)*2<10?"0":"")+(i%12)*2)+":00"+//时间
+                                "</div>"+tips.join("<br/>");
+                    },
+                    legend : {
+                        enable : true,
+                        row:1,//设置在一行上显示，与column配合使用
+                        column : 'max',
+                        valign:'top',
+                        sign:'bar',
+                        background_color:null,//设置透明背景
+                        offsetx:-80,//设置x轴偏移，满足位置需要
+                        border : true
+                    },
+                    crosshair:{
+                        enable:true,
+                        line_color:'#62bce9'//十字线的颜色
+                    },
+                    sub_option : {
+                        label:false,
+                        point_size:10
+                    },
+                    coordinate:{
+                        width:640,
+                        height:240,
+                        axis:{
+                            color:'#dcdcdc',
+                            width:1
+                        },
+                        scale:[{
+                            position:'left',
+                            start_scale:0,
+                            end_scale:100,
+                            scale_space:10,
+                            scale_size:2,
+                            scale_color:'#9f9f9f'
+                        },{
+                            position:'bottom',
+                            labels:labels
+                        }]
+                    }
+                });
+
+                //开始画图
+                chart.draw();
+            });
 	</script>
 	</head>
 	<body>

@@ -1,13 +1,12 @@
 /**
- * ichartjs Library v1.2 http://www.ichartjs.com/
- * 
- * @author wanghe
- * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License"); 
- * you may not use this file except in compliance with the License. 
- * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
- */
-;
-(function(window) {
+* ichartjs Library v1.2.1 http://www.ichartjs.com/
+* @date 2013-12-06 05:56
+* @author taylor wong
+* @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+*/;
+;(function(window) {
 	var ua = navigator.userAgent.toLowerCase(), mc = function(e) {
 		return e.test(ua)
 	}, ts = Object.prototype.toString, isOpera = mc(/opera/), isChrome = mc(/\bchrome\b/), isWebKit = mc(/webkit/), isSafari = !isChrome && mc(/safari/), isIE = !isOpera && mc(/msie/), supportCanvas = !!document.createElement('canvas').getContext, isGecko = !isWebKit
@@ -131,16 +130,13 @@
 		};
 
 		_.apply(_, {
-			version : "1.0",
+			version : "1.2.1",
 			email : 'taylor@ichartjs.com',
 			isEmpty : function(C, e) {
 				return C === null || C === undefined || ((_.isArray(C) && !C.length)) || (!e ? C === "" : false)
 			},
 			isArray : function(e) {
 				return ts.apply(e) === "[object Array]"
-			},
-			isDate : function(e) {
-				return ts.apply(e) === "[object Date]"
 			},
 			isObject : function(e) {
 				return !!e && ts.apply(e) === "[object Object]"
@@ -154,14 +150,8 @@
 			isString : function(e) {
 				return typeof e === "string"
 			},
-			isBoolean : function(e) {
-				return typeof e === "boolean"
-			},
 			isFalse : function(e) {
 				return typeof e === "boolean" && !e;
-			},
-			isElement : function(e) {
-				return e ? !!e.tagName : false
 			},
 			isDefined : function(e) {
 				return typeof e !== "undefined"
@@ -186,7 +176,7 @@
 		/**
 		 * there will apply a deep clone
 		 */
-		_.merge = function(d, e, f) {
+		_.merge = function(d, e, f, g) {
 			if (d && _.isObject(e)) {
 				for ( var a in e) {
 					if (_.isDefined(e[a])) {
@@ -201,9 +191,7 @@
 						}
 					}
 				}
-				if (_.isObject(f)) {
-					return _.merge(d, f);
-				}
+                return _.merge(d, f, g);
 			}
 			return d;
 		};
@@ -285,8 +273,8 @@
 			}
 		}();
 
-		var sin = Math.sin, cos = Math.cos, atan = Math.atan, tan = Math.tan, acos = Math.acos, sqrt = Math.sqrt, abs = Math.abs, pi = Math.PI, pi2 = 2 * pi, ceil = Math.ceil, round = Math.round, floor = Math.floor, max = Math.max, min = Math.min, pF = parseFloat,
-		Registry={},Repository={},
+		var sin = Math.sin, cos = Math.cos, atan = Math.atan, sqrt = Math.sqrt, abs = Math.abs, PI = Math.PI, PI2 = 2 * PI, ceil = Math.ceil, round = Math.round, floor = Math.floor, max = Math.max, min = Math.min, pF = parseFloat,
+		_Reg={},_Rep={},
 		factor = function(v, w) {
 			if (v == 0)
 				return v;
@@ -305,22 +293,9 @@
 				}
 				return round(v*f+w)/f;
 			}
-		}, colors = {
-			white : 'rgb(255,255,255)',
-			green : 'rgb(0,128,0)',
-			gray : 'rgb(80,80,80)',
-			red : 'rgb(255,0,0)',
-			blue : 'rgb(0,0,255)',
-			yellow : 'rgb(255,255,0)',
-			black : 'rgb(0,0,0)'
-		}, hex2Rgb = function(hex) {
+		},hex2Rgb = function(hex) {
 			hex = hex.replace(/#/g, "").replace(/^(\w)(\w)(\w)$/, "$1$1$2$2$3$3");
 			return  (hex.length==7?'rgba(':'rgb(') + parseInt(hex.substring(0, 2), 16) + ',' + parseInt(hex.substring(2, 4), 16) + ',' + parseInt(hex.substring(4, 6), 16) + (hex.length==7?',0.'+hex.substring(6,7)+')':')');
-		}, i2hex = function(N) {
-			return ('0' + parseInt(N).toString(16)).slice(-2);
-		}, rgb2Hex = function(rgb) {
-			var m = rgb.match(/rgb\((\d+),(\d+),(\d+)\)/);
-			return m ? ('#' + i2hex(m[1]) + i2hex(m[2]) + i2hex(m[3])).toUpperCase() : null;
 		}, c2a = function(rgb) {
 			var result = /rgb\((\w*),(\w*),(\w*)\)/.exec(rgb);
 			if (result) {
@@ -373,9 +348,6 @@
 			// Look for #a0b1c2 or #fff
 			if (/^#(([a-fA-F0-9]{6,7})|([a-fA-F0-9]{3}))$/.exec(color))
 				return hex2Rgb(color);
-			// Look a string for green
-			if (colors[color])
-				return colors[color];
 			throw new Error("invalid colors value '" + color + "'");
 		}, hsv2Rgb = function(h, s, v, a) {
 			if (_.isArray(h)) {
@@ -462,11 +434,6 @@
 				hsv[2] = _.upTo(hsv[2], 1);
 			}
 			return hsv2Rgb(hsv, rgb[3]);
-		},
-		topi = function(v){
-			if(v==0)return 0;
-			if(v%pi2==0)return pi2;
-			return v%pi2;
 		};
 
 		_.apply(_, {
@@ -482,9 +449,9 @@
 			/**
 			 * define the interface,the subclass must implement it
 			 */
-			DefineAbstract : function(M, H) {
+			_Abstract : function(M, H) {
 				if (!H[M])
-					throw new Error("Cannot instantiate the type '" + H.type + "'.you must implements it with method '" + M + "'.");
+					throw new Error("You must implements method '" + M + "' in " + H.type);
 			},
 			getAA : function(tf) {
 				if (tf == 'linear')
@@ -537,25 +504,25 @@
 			atan2Radian : function(ox, oy, x, y) {
 				if (ox == x) {
 					if (y > oy)
-						return pi / 2;
-					return pi * 3 / 2;
+						return PI / 2;
+					return PI * 3 / 2;
 				}
 				if (oy == y) {
 					if (x > ox)
 						return 0;
-					return pi;
+					return PI;
 				}
 				
 				var q = _.quadrant(ox, oy, x, y),
 					r = atan(abs((oy - y) / (ox - x)));
 				
-				return q?(q == 3?pi2:pi)+(q == 2?r:-r):r;
+				return q?(q == 3?PI2:PI)+(q == 2?r:-r):r;
 			},
 			angle2Radian : function(a) {
-				return a * pi / 180;
+				return a * PI / 180;
 			},
 			radian2Angle : function(r) {
-				return r * 180 / pi;
+				return r * 180 / PI;
 			},
 			/**
 			 * indicate angle in which quadrant,and it different from concept of Math.this will return 0 if it in first quadrant(other eg.0,1,2,3)
@@ -577,30 +544,30 @@
 			},
 			toPI2 : function(a) {
 				while(a<0)
-					a+=pi2;
+					a+=PI2;
 				return a;
 			},
 			visible:function(s, e, f){
 				if(s>=e)return [];
 				var q1 = _.quadrantd(s),q2 = _.quadrantd(e);
-				if((q1==2||q1==3)&&(q2==2||q2==3)&&((e-s)<pi))return[];
+				if((q1==2||q1==3)&&(q2==2||q2==3)&&((e-s)<PI))return[];
 				s = _.toPI2(s);
 				e = _.toPI2(e);
-				if(e<=s){e+=pi2;}
-				if(s > pi){s = pi2;}
-				else if(e>pi2){
-					return [{s:s,e:pi,f:f},{s:pi2,e:e,f:f}]
-				}else if(e>pi){
-					e = pi;
+				if(e<=s){e+=PI2;}
+				if(s > PI){s = PI2;}
+				else if(e>PI2){
+					return [{s:s,e:PI,f:f},{s:PI2,e:e,f:f}]
+				}else if(e>PI){
+					e = PI;
 				}
 				return {s:s,e:e,f:f};
 			},
 			quadrantd : function(a) {
 				if(a==0)return 0;
-				if(a % pi2==0)return 3;
+				if(a % PI2==0)return 3;
 				while(a<0)
-					a+=pi2;
-				return ceil(2 * (a % pi2) / pi)-1;
+					a+=PI2;
+				return ceil(2 * (a % PI2) / PI)-1;
 			},
 			upTo : function(u, v) {
 				return v > u ? u : v;
@@ -616,8 +583,8 @@
 			},
 			angleInRange : function(l, u, v) {
 				v = (v -l);
-				v = v<0?v+pi2:v;
-				v = v %pi2;
+				v = v<0?v+PI2:v;
+				v = v %PI2;
 				return (u -l) > v;
 			},
 			angleZInRange : function(l, u, v) {
@@ -654,39 +621,40 @@
 					y : y * cos(x)
 				}
 			},
-			uid : function(k) {
-				return (k || 'ichartjs') + '_' + ceil(Math.random()*10000)+new Date().getTime().toString().substring(4);
-			},
+			uid : function() {
+                var s4 = function () {
+                    return floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+                };
+                return function(k){
+                    return (k || 'ijs') + '_' +s4() + s4() + s4();
+                }
+			}(),
 			register:function(c){
 				if (_.isString(c)) {
-					Repository[c.toLowerCase()] = c;
+					_Rep[c.toLowerCase()] = c;
 				}else{
 					var id = c.get('id');
 					if(!id||id==''){
-						id = _.uid(c.type);
-						while(Registry[id]){
-							id = _.uid(c.type);
-						}
-						c.push('id',id);
+						id = c.push('id',_.uid(c.type));
 					}
-					if(Registry[id]){
-						throw new Error("exist reduplicate id :"+id);
+					if(_Reg[id]){
+						throw new Error("Exist Reduplicate id :"+id);
 					}
 					c.id = id;
-					Registry[id] = c;
+					_Reg[id] = c;
 				}
 			},
 			create:function(C){
-				if(!C.type||!Repository[C.type]){
+				if(!C.type||!_Rep[C.type]){
 					throw new Error("TypeNotFoundException["+C.type+"]");
 				}
-				return new _[Repository[C.type]](C);
+				return new _[_Rep[C.type]](C);
 			},
 			remove:function(id){
-				delete Registry[id];
+				delete _Reg[id];
 			},
 			get:function(id){
-				return Registry[id];
+				return _Reg[id];
 			},
 			isPercent:function(v){
 				return _.isString(v)&&v.match(/(.*)%/);
@@ -704,14 +672,14 @@
 				if (!_.isNumber(v)) {
 					v = pF(v);
 					if (!_.isNumber(v))
-						throw new Error("[" + d +"]=" +v + "is not a valid number.");
+						throw new Error("[" + d +"]is not a valid number.");
 				}
 				return v;
 			},
 			ceil : function(max) {
 				return factor(max,1);
 			},
-			floor : function(max, f) {
+			floor : function(max) {
 				return factor(max,-1);
 			},
 			_2D : '2d',
@@ -902,7 +870,7 @@
 	}
 })(window);
 
-;(function($){
+(function($){
 /**
  * @overview This is base class of all element.All must extend this so that has ability for configuration and event
  * this class include some base attribute
@@ -921,8 +889,8 @@ $.Element = function(config) {
 	/**
 	 * define abstract method
 	 */
-	$.DefineAbstract('configure', _);
-	$.DefineAbstract('afterConfiguration', _);
+	$._Abstract('configure', _);
+	$._Abstract('afterConfiguration', _);
 
 	/**
 	 * All of the configuration will in this property
@@ -1045,17 +1013,17 @@ $.Element.prototype = {
 			this.events[arguments[i]] = [];
 		}
 	},
-	fireString : function(socpe, name, args, s) {
-		var t = this.fireEvent(socpe, name, args);
+	fireString : function(scope, name, args, s) {
+		var t = this.fireEvent(scope, name, args);
 		return $.isString(t) ? t : (t!==true&&$.isDefined(t)?t.toString():s);
 	},
-	fireEvent : function(socpe, name, args) {
+	fireEvent : function(scope, name, args) {
 		var L = this.events[name].length;
 		if (L == 1)
-			return this.events[name][0].apply(socpe, args);
+			return this.events[name][0].apply(scope, args);
 		var r = true;
 		for ( var i = 0; i < L; i++) {
-			if(!this.events[name][i].apply(socpe, args))
+			if(!this.events[name][i].apply(scope, args))
 				r  = false;
 		}
 		return r;
@@ -1112,6 +1080,151 @@ $.Element.prototype = {
  */
 
 
+
+/**
+ * 
+ * @overview the base class use for Html componment
+ * @component#$.Html
+ * @extend#$.Element
+ */
+$.Html = $.extend($.Element,{
+	configure : function(T) {
+		
+		/**
+		 * indicate the element's type
+		 */
+		this.type = 'html';
+		
+		this.T = T;
+		
+		/**
+		 * define abstract method
+		 */
+		$._Abstract('beforeshow',this);
+		
+		this.set({
+			 animation:true,
+			 /**
+			  * @cfg If true the component will has defalut action when event fired.(default to true)
+			  */
+			 default_action:true,
+			 /**
+			  * @inner Specifies the width of this element in pixels.
+			  */
+			 width:0,
+			 /**
+			  * @inner Specifies the height of this element in pixels.
+			  */
+			 height:0,
+			 /**
+			 * @cfg {String} Custom style specification to be applied to this element.(default to '')
+			 * like this:'padding:10px;font-size:12px'
+			 */
+			 style:'',
+			 /**
+			  * @inner The z-index of this element.(default to 999)
+			  */
+			 index:999,
+			 /**
+			  * @inner The top of this element.(default to 0)
+			  */
+			 offset_top:0,
+			 /**
+			  * @inner The left of this element.(default to 0)
+			  */
+			 offset_left:0
+		});
+		
+		
+		this.transitions = "";
+	},
+	initialize:function(){
+		var _ = this._();
+		_.wrap = _.get('wrap');
+		_.dom = document.createElement("div");
+		
+		if(_.get('shadow')){
+			_.css('boxShadow',_.get('shadow_offsetx')+'px '+_.get('shadow_offsety')+'px '+_.get('shadow_blur')+'px '+_.get('shadow_color'));
+		}
+		if(_.get('border.enable')){
+			_.css('border',_.get('border.width')+"px "+_.get('border.style')+" "+_.get('border.color'));
+			_.css('borderRadius',_.get('border.radius')+"px");
+		}
+		
+		_.css('position','absolute');
+		_.css('zIndex',_.get('index'));
+		
+		_.applyStyle();
+		
+		_.wrap.appendChild(_.dom);
+		
+		_.style = _.dom.style;
+		
+		if(_.get('default_action')){
+			_.doAction(_);
+		}
+	},
+	width:function(){
+		return this.dom.offsetWidth;
+	},
+	height:function(){
+		return this.dom.offsetHeight;
+	},
+	onTransitionEnd:function(fn,useCapture){
+		var type = 'transitionend';
+		if($.isWebKit){
+			type = 'webkitTransitionEnd';
+		}else if($.isOpera){
+			type = 'oTransitionEnd';
+		}
+		$.Event.addEvent(this.dom,type,fn,useCapture);
+	},
+	destroy:function(){
+		this.wrap.removeChild(this.dom);
+		this.dom = null;
+	},
+	transition:function(v){
+		this.transitions = this.transitions==''?v:this.transitions+','+v;
+		if($.isWebKit){
+			this.css('WebkitTransition',this.transitions);
+		}else if($.isGecko){
+			this.css('MozTransition',this.transitions);
+		}else if($.isOpera){
+			this.css('OTransition',this.transitions);
+		}else{
+			this.css('transition',this.transitions);
+		}
+	},
+	beforeshow:function(e,m,_){
+		_.follow(e,m,_);
+	},
+	show:function(e,m){
+		this.beforeshow(e,m,this);
+		this.css('visibility','visible');
+		if(this.get('animation')){
+			this.css('opacity',1);
+		}
+	},
+	hidden:function(e){
+		this.css('visibility','hidden');
+	},
+	getDom:function(){
+		return this.dom;
+	},
+	css:function(k,v){
+		if($.isString(k))if($.isDefined(v))this.dom.style[k]=v;else return this.dom.style[k];
+	},
+	applyStyle:function(){
+		var styles  = this.get('style').split(";"),style;
+		for(var i = 0;i< styles.length;i++){
+			style = styles[i].split(":");
+			if(style.length>1)this.css(style[0],style[1]);
+		}
+	}
+});
+/**
+ * @end
+ */
 /**
  * @overview The interface this class defined d,so the sub class has must capability to draw and aware of event. this class is a abstract class,so you should not try to initialize it.
  * @component#$.Painter
@@ -1130,8 +1243,8 @@ $.Painter = $.extend($.Element, {
 		/**
 		 * define abstract method
 		 */
-		$.DefineAbstract('commonDraw', this);
-		$.DefineAbstract('initialize', this);
+		$._Abstract('commonDraw', this);
+		$._Abstract('initialize', this);
 
 		this.set({
 			/**
@@ -1336,151 +1449,6 @@ $.Painter = $.extend($.Element, {
 /**
  * @end
  */
-
-/**
- * 
- * @overview the base class use for Html componment
- * @component#$.Html
- * @extend#$.Element
- */
-$.Html = $.extend($.Element,{
-	configure : function(T) {
-		
-		/**
-		 * indicate the element's type
-		 */
-		this.type = 'html';
-		
-		this.T = T;
-		
-		/**
-		 * define abstract method
-		 */
-		$.DefineAbstract('beforeshow',this);
-		
-		this.set({
-			 animation:true,
-			 /**
-			  * @cfg If true the component will has defalut action when event fired.(default to true)
-			  */
-			 default_action:true,
-			 /**
-			  * @inner Specifies the width of this element in pixels.
-			  */
-			 width:0,
-			 /**
-			  * @inner Specifies the height of this element in pixels.
-			  */
-			 height:0,
-			 /**
-			 * @cfg {String} Custom style specification to be applied to this element.(default to '')
-			 * like this:'padding:10px;font-size:12px'
-			 */
-			 style:'',
-			 /**
-			  * @inner The z-index of this element.(default to 999)
-			  */
-			 index:999,
-			 /**
-			  * @inner The top of this element.(default to 0)
-			  */
-			 offset_top:0,
-			 /**
-			  * @inner The left of this element.(default to 0)
-			  */
-			 offset_left:0
-		});
-		
-		
-		this.transitions = "";
-	},
-	initialize:function(){
-		var _ = this._();
-		_.wrap = _.get('wrap');
-		_.dom = document.createElement("div");
-		
-		if(_.get('shadow')){
-			_.css('boxShadow',_.get('shadow_offsetx')+'px '+_.get('shadow_offsety')+'px '+_.get('shadow_blur')+'px '+_.get('shadow_color'));
-		}
-		if(_.get('border.enable')){
-			_.css('border',_.get('border.width')+"px "+_.get('border.style')+" "+_.get('border.color'));
-			_.css('borderRadius',_.get('border.radius')+"px");
-		}
-		
-		_.css('position','absolute');
-		_.css('zIndex',_.get('index'));
-		
-		_.applyStyle();
-		
-		_.wrap.appendChild(_.dom);
-		
-		_.style = _.dom.style;
-		
-		if(_.get('default_action')){
-			_.doAction(_);
-		}
-	},
-	width:function(){
-		return this.dom.offsetWidth;
-	},
-	height:function(){
-		return this.dom.offsetHeight;
-	},
-	onTransitionEnd:function(fn,useCapture){
-		var type = 'transitionend';
-		if($.isWebKit){
-			type = 'webkitTransitionEnd';
-		}else if($.isOpera){
-			type = 'oTransitionEnd';
-		}
-		$.Event.addEvent(this.dom,type,fn,useCapture);
-	},
-	destroy:function(){
-		this.wrap.removeChild(this.dom);
-		this.dom = null;
-	},
-	transition:function(v){
-		this.transitions = this.transitions==''?v:this.transitions+','+v;
-		if($.isWebKit){
-			this.css('WebkitTransition',this.transitions);
-		}else if($.isGecko){
-			this.css('MozTransition',this.transitions);
-		}else if($.isOpera){
-			this.css('OTransition',this.transitions);
-		}else{
-			this.css('transition',this.transitions);
-		}
-	},
-	beforeshow:function(e,m,_){
-		_.follow(e,m,_);
-	},
-	show:function(e,m){
-		this.beforeshow(e,m,this);
-		this.css('visibility','visible');
-		if(this.get('animation')){
-			this.css('opacity',1);
-		}
-	},
-	hidden:function(e){
-		this.css('visibility','hidden');
-	},
-	getDom:function(){
-		return this.dom;
-	},
-	css:function(k,v){
-		if($.isString(k))if($.isDefined(v))this.dom.style[k]=v;else return this.dom.style[k];
-	},
-	applyStyle:function(){
-		var styles  = this.get('style').split(";"),style;
-		for(var i = 0;i< styles.length;i++){
-			style = styles[i].split(":");
-			if(style.length>1)this.css(style[0],style[1]);
-		}
-	}
-});
-/**
- * @end
- */
 /**
  * @overview this a abstract component of all concrete chart
  * @component#$.Component
@@ -1534,12 +1502,12 @@ $.Component = $.extend($.Painter, {
 		 * If method draw be proxy.(default to false)
 		 */
 		this.proxy = false;
-		this.ICHARTJS_CHART = false;
+		this._chart = false;
 		this.inject(c);
 	},
 	initialize : function() {
-		$.DefineAbstract('isEventValid', this);
-		$.DefineAbstract('doDraw', this);
+		$._Abstract('isEventValid', this);
+		$._Abstract('doDraw', this);
 		
 		this.doConfig();
 	},
@@ -1626,286 +1594,6 @@ $.Component = $.extend($.Painter, {
  * @end
  */
 
- 	/**
-	 * @overview the tip component.
-	 * @component#$.Tip
-	 * @extend#$.Element
-	 */
-	$.Tip = $.extend($.Html,{
-		configure:function(){
-			
-			/**
-			 * invoked the super class's configuration
-			 */
-			$.Tip.superclass.configure.apply(this,arguments);
-			
-			/**
-			 * indicate the legend's type
-			 */
-			this.type = 'tip';
-			
-			this.set({
-				name:'',
-				index:0,
-				value:'',
-				/**
-				 * @cfg {String} Specifies the text want to disply.(default to '')
-				 */
-				 text:'',
-				 /**
-					 * @cfg {String} Specifies the tip's type.(default to 'follow') Available value are:
-					 * @Option follow
-					 * @Option fixed
-					 */
-				 showType:'follow',
-				 /**
-					 * @cfg {Function} Specifies Function to calculate the position.(default to null)
-					 */
-				 invokeOffset:null,
-				 /**
-					 * @cfg {Number} Specifies the duration when fadeIn/fadeOut in millisecond.(default to 300)
-					 */
-				 fade_duration:300,
-				 /**
-					 * @cfg {Number} Specifies the duration when move in millisecond.(default to 100)
-					 */
-				 move_duration:100,
-				 /**
-				  * ease
-				  * linear
-				  * ease-in
-				  * ease-out
-				  * ease-in-out
-				  */
-				 timing_function:'ease-out',
-				 /**
-					 * @cfg {Boolean} if calculate the position every time (default to false)
-					 */
-				 invokeOffsetDynamic:false,
-				 /**
-					 * @cfg {String} Specifies the css of this Dom.
-					 */
-				 style:'textAlign:left;padding:4px 5px;cursor:pointer;backgroundColor:rgba(239,239,239,.85);fontSize:12px;color:black;',
-				 /**
-					 * @cfg {Object} Override the default as enable = true,radius = 5
-					 */
-				 border:{
-					enable:true,
-					radius : 5
-				 },
-				 delay:200
-			});
-			this.registerEvent(
-					/**
-					 * @event Fires when parse this tip's text.Return value will override existing.
-					 * @paramter <link>$.Tip</link>#tip
-					 * @paramter string#name the current tip's name
-					 * @paramter string#value the current tip's value
-					 * @paramter string#text the current tip's text
-					 * @paramter int#index index of data,if there was a line
-					 */
-					'parseText');
-		},
-		position:function(t,l,_){
-			_.style.top =  (t<0?0:t)+"px";
-			_.style.left = (l<0?0:l)+"px";
-		},
-		follow:function(e,m,_){
-			//_.style.width = "";
-			if(_.get('invokeOffsetDynamic')){
-				if(m.hit){
-					if($.isString(m.text)||$.isNumber(m.text)){
-						_.text(m.name,m.value,m.text,m.i,_);
-					}
-					var o = _.get('invokeOffset')(_.width(),_.height(),m);
-					_.position(o.top,o.left,_);
-				}
-			}else{
-				if(_.get('showType')!='follow'&&$.isFunction(_.get('invokeOffset'))){
-					var o = _.get('invokeOffset')(_.width(),_.height(),m);
-					_.position(o.top,o.left,_);
-				}else{
-					_.position((e.y-_.height()*1.1-2),e.x+2,_);
-				}
-			}
-		},
-		text:function(n,v,t,i,_){
-			_.dom.innerHTML = _.fireString(_, 'parseText', [_,n,v,t,i],t);
-		},
-		hidden:function(e){
-			if(this.get('animation')){
-				this.css('opacity',0);
-			}else{
-				this.css('visibility','hidden');
-			}
-		},
-		doAction:function(_){
-			_.T.on('mouseover',function(c,e,m){
-				_.show(e,m);	
-			}).on('mouseout',function(c,e,m){
-				_.hidden(e);
-			});
-			
-			if(_.get('showType')=='follow'){
-				_.T.on('mousemove',function(c,e,m){
-					if(_.T.variable.event.mouseover){
-						setTimeout(function(){
-							if(_.T.variable.event.mouseover)
-								_.follow(e,m,_);
-						},_.get('delay'));
-					}
-				});
-			}
-		},
-		initialize:function(){
-			$.Tip.superclass.initialize.call(this);
-			
-			var _ = this._();
-			
-			_.text(_.get('name'),_.get('value'),_.get('text'),_.get('index'),_);
-			_.hidden();
-			
-			if(_.get('animation')){
-				var m =  _.get('move_duration')/1000+'s '+_.get('timing_function')+' 0s';
-				_.transition('opacity '+_.get('fade_duration')/1000+'s '+_.get('timing_function')+' 0s');
-				_.transition('top '+m);
-				_.transition('left '+m);
-				_.onTransitionEnd(function(e){
-					if(_.css('opacity')==0){
-						_.css('visibility','hidden');
-					}
-				},false);
-			}
-			
-		}
-});
-/**
- * @end
- */
-
-
-	/**
-	 * @overview this element simulate the crosshair on the coordinate.actually this composed of some div of html. 
-	 * @component#$.CrossHair
-	 * @extend#$.Html
-	 */
-	$.CrossHair = $.extend($.Html,{
-		configure:function(){
-		
-			/**
-			 * invoked the super class's configuration
-			 */
-			$.CrossHair.superclass.configure.apply(this,arguments);
-			
-			/**
-			 * indicate the component's type
-			 */
-			this.type = 'crosshair';
-			
-			this.set({
-				/**
-				 * @inner {Number} Specifies the position top,normally this will given by chart.(default to 0)
-				 */
-				 top:0,
-				 /**
-				 * @inner {Number} Specifies the position left,normally this will given by chart.(default to 0)
-				 */
-				 left:0,
-				 /**
-				 * @inner {Boolean} private use
-				 */
-				 hcross:true,
-				  /**
-				 * @inner {Boolean} private use
-				 */
-				 vcross:true,
-				 /**
-				 * @inner {Function} private use
-				 */
-				 invokeOffset:null,
-				 /**
-				 * @cfg {Number} Specifies the linewidth of the crosshair.(default to 1)
-				 */
-				 line_width:1,
-				 /**
-				 * @cfg {Number} Specifies the linewidth of the crosshair.(default to 1)
-				 */
-				 line_color:'#1A1A1A',
-				 delay:200
-			});
-		},
-		/**
-		 * this function will implement at every target object,and this just default effect
-		 */
-		follow:function(e,m,_){
-			if(_.get('invokeOffset')){
-				var o = _.get('invokeOffset')(e,m);
-				if(o&&o.hit){
-					_.o_valid = true;
-					_.position(o.top-_.top,o.left-_.left,_);
-				}else if(!o||!_.o_valid){
-					_.position(_.owidth,_.oheight,_);
-				}
-			}else{
-				/**
-				 * set the 1px offset will make the line at the top left all the time
-				 */
-				_.position(e.y-_.top-1,e.x-_.left-1,_);
-			}
-		},
-		position:function(t,l,_){
-			_.horizontal.style.top = (t-_.size)+"px";
-			_.vertical.style.left = (l-_.size)+"px";
-		},
-		doCreate:function(_,w,h){
-			var d = document.createElement("div");
-			d.style.width= $.toPixel(w);
-			d.style.height= $.toPixel(h);
-			d.style.backgroundColor = _.get('line_color');
-			d.style.position="absolute";
-			_.dom.appendChild(d);
-			return d;
-		},
-		doAction:function(_){
-			_.T.on('mouseover',function(c,e,m){
-				_.show(e,m);	
-			}).on('mouseout',function(c,e,m){
-				_.hidden(e,m);	
-			}).on('mousemove',function(c,e,m){
-				_.follow(e,m,_);
-			});
-		},
-		initialize:function(){
-			$.CrossHair.superclass.initialize.call(this);
-			
-			var _ = this._(),L = $.toPixel(_.get('line_width'));
-			
-			_.size = _.get('line_width')/2;
-			
-			_.top = $.fixPixel(_.get(_.O));
-			_.left = $.fixPixel(_.get(_.L));
-			_.owidth = -_.T.root.width;
-			_.oheight = -_.T.root.height;
-			_.o_valid = false;
-			/**
-			 * set size zero make integration with vertical and horizontal
-			 */
-			_.css('width','0px');
-			_.css('height','0px');
-			_.css('top',_.top+'px');
-			_.css('left',_.left+'px');
-			_.css('visibility','hidden');
-			
-			_.horizontal = _.doCreate(_,_.get('hcross')?$.toPixel(_.get(_.W)):"0px",L);
-			_.vertical = _.doCreate(_,L,_.get('vcross')?$.toPixel(_.get(_.H)):"0px");
-			
-			
-			
-		}
-});
-/**
- * @end
- */
 /**
  * @overview the legend componment
  * @component#$.Legend
@@ -2347,135 +2035,7 @@ $.Label = $.extend($.Component, {
  * @end
  */
 
-	/**
-	 * @overview the text componment
-	 * @component#$.Text
-	 * @extend#$.Component
-	 */
-	$.Text = $.extend($.Component,{
-		configure:function(){
-			/**
-			 * invoked the super class's  configuration
-			 */
-			$.Text.superclass.configure.apply(this,arguments);
-			
-			/**
-			 * indicate the component's type
-			 */
-			this.type = 'text';
-			
-			this.set({
-				/**
-				 * @cfg {String} Specifies the text want to disply.(default to '')
-				 */
-				text:'',
-				/**
-				 * @cfg {String} there has two layers of meaning,when width is 0,Specifies the textAlign of html5.else this is the alignment of box.(default to 'center')
-				 * when width is 0,Available value are:
-				 * @Option start
-				 * @Option end
-				 * @Option left
-				 * @Option right
-				 * @Option center
-				 * when width is not 0,Available value are:
-				 * @Option left
-				 * @Option right
-				 * @Option center
-				 */
-				textAlign:'center',
-				/**
-				 * @cfg {String} Specifies the alignment in box.(default to 'center')
-				 * @Option left
-				 * @Option right
-				 * @Option center
-				 */
-				align:'center',
-				/**
-				 * @cfg {String} Here,specify as false to make background transparent.(default to null)
-				 */
-				background_color : 0,
-				/**
-				 * @cfg {String} Specifies the textBaseline of html5.(default to 'top')
-				 * Available value are:
-				 * @Option top
-				 * @Option hanging
-				 * @Option middle
-				 * @Option alphabetic
-				 * @Option ideographic
-				 * @Option bottom
-				 */
-				textBaseline:'top',
-				/**
-				 * @cfg {Object} Here,specify as false by default
-				 * @see <link>$.Element#border</link>
-				 */
-				border : {
-					enable : false
-				},
-				/**
-				 * @cfg {Number} Specifies the maxwidth of text in pixels,if given 0 will not be limited.(default to 0)
-				 */
-				width:0,
-				/**
-				 * @cfg {Number} Specifies the maxheight of text in pixels,if given 0 will not be limited(default to 0)
-				 */
-				height:0,
-				/**
-				 * @cfg {Number} Here,specify as 0 by default
-				 */
-				padding:0,
-				/**
-				 * @cfg {String} Specifies the writing-mode of text.(default to 'lr') .
-				 * Available value are:
-				 * @Option 'lr'
-				 */
-				writingmode : 'lr',
-				/**
-				 * @cfg {Number} Specifies the lineheight when text display multiline.(default to 16).
-				 */
-				line_height : 16,
-				/**
-				 * @cfg {Number} Specifies the angle that text writed.0 to horizontal,clockwise.(default to 0).
-				 */
-				rotate:0
-			});
-			
-			this.registerEvent();
-			
-		},
-		doDraw:function(_){
-			if(_.get('box_feature'))
-			_.T.box(_.x,_.y,_.get(_.W),_.get(_.H),_.get('border'),_.get('f_color'));
-			_.T.text(_.get('text'),_.get('textx'),_.get('texty'),_.get(_.W)-_.get('hpadding'),_.get('color'),_.get('textAlign'),_.get('textBaseline'),_.get('fontStyle'),_.get('writingmode'),_.get('line_height'),_.get('shadow'),_.get('rotate'));
-		},
-		isEventValid:function(){
-			return {valid:false};
-		},
-		doLayout:function(x,y,n,_){
-			_.x = _.push(_.X,_.x+x);
-			_.y = _.push(_.Y,_.y+y);
-			_.push('textx',_.get('textx')+x);
-			_.push('texty',_.get('texty')+y);
-		},
-		doConfig:function(){
-			$.Text.superclass.doConfig.call(this);
-			var _ = this._(),x = _.x,y=_.y+_.get('padding_top'),w=_.get(_.W),h=_.get(_.H),a=_.get('textAlign');
-			x+=(a==_.C?w/2:(a==_.R?w-_.get('padding_right'):_.get('padding_left')));
-			if(h){
-				y+=h/2;
-				_.push('textBaseline','middle');
-			}
-			_.push('textx',x);
-			_.push('texty',y);
-			_.push('box_feature',w&&h);
-			_.applyGradient();
-		}
-});
-/**
- * @end
- */
-;
-(function($) {
+;(function($) {
 
 	var PI = Math.PI, inc = PI / 90,inc2 = inc/2, ceil = Math.ceil, floor = Math.floor, PI2 = 2 * PI, max = Math.max, min = Math.min, sin = Math.sin, cos = Math.cos, fd = function(w, c) {
 		return w == 1 ? (floor(c) + 0.5) : Math.round(c);
@@ -2519,13 +2079,14 @@ $.Label = $.extend($.Component, {
 		_.data = c;
 		if(_.dataType=='simple'){
 			_.total = 0;
-			c.each(function(d,i){
+			c.each(function(d){
 				d.background_color = d.color;
 				V  = d.value||0;
 				if($.isArray(V)){
 					var T = 0;
 					ML = V.length>ML?V.length:ML;
 					for(var j=0;j<V.length;j++){
+                        if(V[j]==null)continue;
 						V[j] = pF(V[j]);
 						T+=V[j];
 						if(!init){
@@ -2675,7 +2236,7 @@ $.Label = $.extend($.Component, {
 			return this.arc(x, y, r, dw, s, e, c, b, bw, bc, false, ccw, !a2a);
 		},
 		sector3D : function() {
-			var x0, y0,sPaint = function(x, y, a, b, s, e, ccw, h, c) {
+			var sPaint = function(x, y, a, b, s, e, ccw, h, c) {
 				var Lo = function(A, h) {
 					this.lineTo(x + a * cos(A), y + (h || 0) + (b * sin(A)));
 				},
@@ -3407,7 +2968,7 @@ $.Label = $.extend($.Component, {
 			this.components = [];
 			this.oneways = [];
 			this.total = 0;
-			this.ICHARTJS_CHART = true;
+			this._chart = true;
 		},
 		toDataURL : function(g) {
 			return this.T.toDataURL(g);
@@ -3531,7 +3092,7 @@ $.Label = $.extend($.Component, {
 		plugin : function(c) {
 			var _ = this._();
 			c.inject(_);
-			if(c.ICHARTJS_CHART){
+			if(c._chart){
 				c.Combination = true;
 				c.setUp();
 			}
@@ -3539,11 +3100,13 @@ $.Label = $.extend($.Component, {
 				c.push('animation',false);
 			}
 			c.duration =_.duration;
-			_.register(c);
+            c._plugin =true;
+            _.register(c);
 			_.plugins.push(c);
 		},
 		destroy:function(_){
 			_.components.eachAll(function(C){
+                if(!C._plugin)
 				C.destroy(C);
 			});
 			_.oneways.each(function(O){
@@ -3604,33 +3167,34 @@ $.Label = $.extend($.Component, {
 			}
 			
 			_.canvasid = $.uid(_.type);
-			_.shellid = "shell-"+_.canvasid;
-
-            var H = [];
-            H.push("<div id='");
-            H.push(_.shellid);
-            H.push("' style='padding:0px;margin:0px auto;overflow:hidden;position:relative");
+			_.shellid = "shell_"+_.canvasid;
+			
+			var H = [];
+			H.push("<div id='");
+			H.push(_.shellid);
+			H.push("' style='padding:0px;margin:0px auto;overflow:hidden;position:relative");
 
             /**
              * push the background on div,fixed some android 4.2 can not render bg?
              */
             if(_.get('background_wrap')){
-                H.push(";background_color:");
-                H.push(_.get('f_color'));
+                H.push(";background-color:");
+                H.push(_.get('background_color'));
+                _.push('background_color',null);
             }
 
-            H.push(";'>");
-            H.push("<canvas id= '");
-            H.push(_.canvasid);
-            H.push("' style='-webkit-text-size-adjust: none;'>");
-            H.push("<p>Your browser does not support the canvas element</p></canvas>");
-            H.push("</div>");
+			H.push(";'>");
+			H.push("<canvas id= '");
+			H.push(_.canvasid);
+			H.push("' style='-webkit-text-size-adjust: none;'>");
+			H.push("<p>Your browser does not support the canvas element</p></canvas>");
+			H.push("</div>");
 			
 			/**
 			 * also use appendChild()
 			 */
 			shell.innerHTML = H.join("");
-			
+
 			_.shell = $(_.shellid);
 			
 			/**
@@ -3680,6 +3244,7 @@ $.Label = $.extend($.Component, {
 				_.height = _.push(_.H, h);
 				_.size(_);
 			}
+            _.fireEvent(_,'resize',[w,h])
 			_.setUp();
 			_.plugins.eachAll(function(P) {
 				if(P.Combination){
@@ -3689,7 +3254,7 @@ $.Label = $.extend($.Component, {
 			if(!_.Combination){
 				_.draw();
 			}
-			_.set(_.fireEvent(_,'resize',[w,h]));
+
 		},
 		size:function(_){
             var r = $.ratio,w=_.pushIf(_.W, 400),h=_.pushIf(_.H, 300),c=_.T.canvas;
@@ -3772,7 +3337,7 @@ $.Label = $.extend($.Component, {
 			if(!comb){
 				events.each(function(it) {
 					_.T.addEvent(it, function(e) {
-						if (_.processAnimation||_.stopEvent)
+						if (_.processAnimation||_.stopEvent|| !_.show)
 							return;
 						if(e.targetTouches&&e.targetTouches.length!=1){
 							return;
@@ -3784,7 +3349,7 @@ $.Label = $.extend($.Component, {
 			
 			_.on(events[0], function(_, e) {
 				CO.eachAll(function(C) {
-					if(C.ICHARTJS_CHART){
+					if(C._chart){
 						/**
 						 * meaning this component is a Combination Chart
 						 */
@@ -3816,7 +3381,7 @@ $.Label = $.extend($.Component, {
 				_.on(events[1], function(_, e) {
 					O = AO = false;
 					CO.eachAll(function(C){
-						if(C.ICHARTJS_CHART){
+						if(C._chart){
 							/**
 							 * meaning this component is a Combination Chart
 							 */
@@ -3906,24 +3471,19 @@ $.Label = $.extend($.Component, {
 				y:_.y
 			}
 		},
-		getPercent:function(v,T){
+		percent:function(v,T){
 			return this.get('showpercent') ? (v / (T||this.total||1) * 100).toFixed(this.get('decimalsnum')) + '%' : v;
 		},
 		doActing:function(_,d,o,i,t){
-			var f=!!_.get('communal_acting'),v=_.getPercent(d.value,d.total);
+			var f=!!_.get('communal_acting'),v=_.percent(d.value,d.total);
 			/**
 			 * store or restore the option
 			 */
 			_.push(f?'sub_option':'communal_acting',$.clone(_.get(f?'communal_acting':'sub_option'),true));
 			/**
-			 * merge the option
+			 * merge the option and specific option
 			 */
-			$.merge(_.get('sub_option'),d);
-			
-			/**
-			 * merge specific option
-			 */
-			$.merge(_.get('sub_option'),o);
+			$.merge(_.get('sub_option'),d,o);
 			
 			_.push('sub_option.value',v);
 			_.push('sub_option.value_',d.value);
@@ -4129,1351 +3689,6 @@ $.Label = $.extend($.Component, {
 /**
  * @end
  */
-/**
- * @overview this is inner use for axis
- * @component#$.Scale
- * @extend#$.Component
- */
-$.Scale = $.extend($.Component, {
-	configure : function() {
-
-		/**
-		 * invoked the super class's configuration
-		 */
-		$.Scale.superclass.configure.apply(this, arguments);
-
-		/**
-		 * indicate the component's type
-		 */
-		this.type = 'scale';
-
-		this.set({
-			/**
-			 * @cfg {String} Specifies alignment of this scale.(default to 'left')
-			 */
-			position : 'left',
-			/**
-			 * @cfg {String} the axis's type(default to 'h') Available value are:
-			 * @Option 'h' :horizontal
-			 * @Option 'v' :vertical
-			 */
-			which : 'h',
-			/**
-			 * @cfg {Number} Specifies value of Baseline Coordinate.(default to 0)
-			 */
-			basic_value:0,
-			/**
-			 * @cfg {Boolean} indicate whether the grid is accord with scale.(default to true)
-			 */
-			scale2grid : true,
-			/**
-			 * @inner {Number}
-			 */
-			distance : undefined,
-			/**
-			 * @cfg {Number} Specifies the start coordinate scale value.(default to 0)
-			 */
-			start_scale : 0,
-			/**
-			 * @cfg {Number} Specifies the end coordinate scale value.Note either this or property of max_scale must be has the given value.(default to undefined)
-			 */
-			end_scale : undefined,
-			/**
-			 * @cfg {Number} Specifies the chart's minimal value
-			 */
-			min_scale : undefined,
-			/**
-			 * @cfg {Number} Specifies the chart's maximal value
-			 */
-			max_scale : undefined,
-			/**
-			 * @cfg {Number} Specifies the space of two scale.Note either this or property of scale_share must be has the given value.(default to undefined)
-			 */
-			scale_space : undefined,
-			/**
-			 * @cfg {Number} Specifies the number of scale on axis.(default to 5)
-			 */
-			scale_share : 5,
-			/**
-			 * @cfg {Boolean} True to display the scale line.(default to true)
-			 */
-			scale_enable : true,
-			/**
-			 * @cfg {Number} Specifies the size of brush(context.linewidth).(default to 1)
-			 */
-			scale_size : 1,
-			/**
-			 * @cfg {Number} Specifies the width(length) of scale.(default to 4)
-			 */
-			scale_width : 4,
-			/**
-			 * @cfg {String} Specifies the color of scale.(default to 4)
-			 */
-			scale_color : '#333333',
-			/**
-			 * @cfg {String} Specifies the align against axis.(default to 'center') When the property of which set to 'h',Available value are:
-			 * @Option 'left'
-			 * @Option 'center'
-			 * @Option 'right' 
-			 * When the property of which set to 'v', Available value are:
-			 * @Option 'top'
-			 * @Option 'center'
-			 * @Option 'bottom'
-			 */
-			scaleAlign : 'center',
-			/**
-			 * @cfg {Array} the customize labels
-			 */
-			labels : [],
-			/**
-			 * @cfg {<link>$.Text</link>} Specifies label's option.
-			 */
-			label : {},
-			/**
-			 * @cfg {Number} Specifies the distance to scale.(default to 6)
-			 */
-			text_space : 6,
-			/**
-			 * @cfg {String} Specifies the align against axis.(default to 'left' or 'bottom' in v mode) When the property of which set to 'h',Available value are:
-			 * @Option 'left'
-			 * @Option 'right' When the property of which set to 'v', Available value are:
-			 * @Option 'top'
-			 * @Option 'bottom'
-			 */
-			textAlign : 'left',
-			/**
-			 * @cfg {Number} Specifies the number of decimal.this will change along with scale.(default to 0)
-			 */
-			decimalsnum : 0,
-			/**
-			 * @inner {String} the style of overlapping(default to 'none') Available value are:
-			 * @Option 'square'
-			 * @Option 'round'
-			 * @Option 'none'
-			 */
-			join_style : 'none',
-			/**
-			 * @inner {Number}
-			 */
-			join_size : 2
-		});
-
-		this.registerEvent(
-		/**
-		 * @event Fires the event when parse text,you can return a object like this:{text:'',originx:100,originy:100} to override the given.
-		 * @paramter string#text item's text
-		 * @paramter int#originx coordinate-x of item's text
-		 * @paramter int#originy coordinate-y of item's text
-		 * @paramter int#index item's index
-		 * @paramter boolean#last If last item
-		 */
-		'parseText');
-
-	},
-	isEventValid : function() {
-		return {
-			valid : false
-		};
-	},
-	getScale:function(_){
-		var u = [_.get('basic_value'),_.get('start_scale'),_.get('end_scale'),_.get('end_scale') - _.get('start_scale'),0];
-		u[4] = $.inRange(u[1],u[2]+1,u[0])||$.inRange(u[2]-1,u[1],u[0]);
-		return {
-			range:u[4],
-			basic:u[4]?(u[0]-u[1]) / u[3]:0,
-			start : u[4]?u[0]:u[1],
-			end : u[2],
-			distance : u[3]
-		}
-	},
-	/**
-	 * from left to right,top to bottom
-	 */
-	doDraw : function(_) {
-		if (_.get('scale_enable'))
-			_.items.each(function(item) {
-				_.T.line(item.x0, item.y0, item.x1, item.y1, _.get('scale_size'), _.get('scale_color'), false);
-			});
-		_.labels.each(function(l) {
-			l.draw();
-		});
-	},
-	doLayout:function(x,y,_){
-		if (_.get('scale_enable'))
-			_.items.each(function(item) {
-				item.x0+=x;
-				item.y0+=y;
-				item.x1+=x;
-				item.y1+=y;
-			});
-		_.labels.each(function(l) {
-			l.doLayout(x,y,0,l);
-		});
-	},
-	doConfig : function() {
-		$.Scale.superclass.doConfig.call(this);
-		
-		var _ = this._(),abs = Math.abs,customL = _.get('labels').length, min_s = _.get('min_scale'), max_s = _.get('max_scale'), s_space = _.get('scale_space'), e_scale = _.get('end_scale'), start_scale = _.get('start_scale');
-
-		_.items = [];
-		_.labels = [];
-		_.number = 0;
-
-		if (customL > 0) {
-			_.number = customL - 1;
-		} else {
-			/**
-			 * startScale must less than minScale
-			 */
-			if (start_scale > min_s) {
-				start_scale = _.push('start_scale', $.floor(min_s));
-			}
-			
-			/**
-			 * end_scale must greater than maxScale
-			 */
-			if (!$.isNumber(e_scale) || e_scale < max_s) {
-				e_scale = $.ceil(max_s);
-				e_scale = _.push('end_scale', (!e_scale&&!start_scale)?1:e_scale);
-			}
-			
-			
-			if (s_space && abs(s_space) < abs(e_scale - start_scale)) {
-				_.push('scale_share', (e_scale - start_scale) / s_space);
-			}
-			
-			_.number = _.push('scale_share', abs(_.get('scale_share')));
-			
-			/**
-			 * value of each scale
-			 */
-			if (!s_space || s_space >( e_scale - start_scale)) {
-				var W = ((e_scale - start_scale)+"").indexOf('.')+1,M=1;
-				while(W>0){W--;M*=10;}
-				s_space = _.push('scale', (e_scale - start_scale)*M / _.get('scale_share')/M);
-			}
-			
-			if (parseInt(s_space)!=s_space && _.get('decimalsnum') == 0) {
-				_.push('decimalsnum',(s_space+"").substring((s_space+"").indexOf('.')+1).length);
-			}
-		}
-		/**
-		 * the real distance of each scale
-		 */
-		_.push('distanceOne', _.get('valid_distance') / _.number);
-		
-		var text, x, y, x1 = 0, y1 = 0, x0 = 0, y0 = 0, tx = 0, ty = 0, w = _.get('scale_width'), w2 = w / 2, sa = _.get('scaleAlign'), ta = _.get('position'), ts = _.get('text_space'), tbl = '',aw = _.get('coo').get('axis.width');
-		
-		_.push('which', _.get('which').toLowerCase());
-		_.isH = _.get('which') == 'h';
-		if (_.isH) {
-			if (sa == _.O) {
-				y0 = -w;
-			} else if (sa == _.C) {
-				y0 = -w2;
-				y1 = w2;
-			} else {
-				y1 = w;
-			}
-
-			if (ta == _.O) {
-				ty = -ts-aw[0];
-				tbl = _.B;
-			} else {
-				ty = ts+aw[2];
-				tbl = _.O;
-			}
-			ta = _.C;
-		} else {
-			if (sa == _.L) {
-				x0 = -w;
-			} else if (sa == _.C) {
-				x0 = -w2;
-				x1 = w2;
-			} else {
-				x1 = w;
-			}
-			tbl = 'middle';
-			if (ta == _.R) {
-				ta = _.L;
-				tx = ts+aw[1];
-			} else {
-				ta = _.R;
-				tx = -ts-aw[3];
-			}
-		}
-		/**
-		 * valid width only applies when there is h,then valid_height only applies when there is v
-		 */
-		for ( var i = 0; i <= _.number; i++) {
-			text = customL ? _.get('labels')[i] : (s_space * i + start_scale).toFixed(_.get('decimalsnum'));
-			x = _.isH ? _.get('valid_x') + i * _.get('distanceOne') : _.x;
-			y = _.isH ? _.y : _.get('valid_y') + _.get('valid_distance') - i * _.get('distanceOne');
-			
-			_.items.push({
-				x : x,
-				y : y,
-				x0 : x + x0,
-				y0 : y + y0,
-				x1 : x + x1,
-				y1 : y + y1
-			});
-			/**
-			 * put the label into a Text?
-			 */
-			if(_.get('label'))
-			_.labels.push(new $.Text($.applyIf($.apply(_.get('label'), $.merge({
-				text : text,
-				x : x,
-				y : y,
-				originx : x + tx,
-				originy : y + ty
-			}, _.fireEvent(_, 'parseText', [text, x + tx, y + ty, i, _.number == i]))), {
-				textAlign : ta,
-				textBaseline : tbl
-			}), _));
-
-			/**
-			 * maxwidth = Math.max(maxwidth, _.T.measureText(text));
-			 */
-		}
-	}
-});
-
-/**
- * @end
- */
-$.Coordinate = {
-	coordinate_ : function(g) {
-		var _ = this._(),coo = _.get('coordinate'),li=_.get('scaleAlign');
-		
-		if(coo.ICHARTJS_OBJECT){
-			_.x = _.push(_.X, coo.x);
-			_.y = _.push(_.Y, coo.y);
-			/**
-			 * Imply it was illusive
-			 */
-			_.ILLUSIVE_COO = true;
-			
-			coo.refresh(_.get('minValue'),_.get('maxValue'),li);
-			
-			return coo;
-		}
-		/**
-		 * Apply the coordinate feature
-		 */
-		var f = '85%',
-			parse=$.parsePercent, 
-			scale = _.get('coordinate.scale'),
-			w = _.push('coordinate._width',parse(_.get('coordinate.width')||f,Math.floor(_.get('client_width'))));
-			h = _.push('coordinate._height',parse(_.get('coordinate.height')||f,Math.floor(_.get('client_height')))-(_.is3D()?((_.get('coordinate.pedestal_height')||22) + (_.get('coordinate.board_deep')||20)):0));
-			_.push('coordinate.valid_height_value',parse(_.get('coordinate.valid_height'),h));
-			_.push('coordinate.valid_width_value',parse(_.get('coordinate.valid_width'),w));
-			
-		_.originXY(_,[_.get('l_originx'),_.get('r_originx') - w,_.get('centerx') - w / 2],[_.get('centery') - h / 2]);
-		
-		_.set({
-			coordinate : {
-				originx: _.x,
-				originy: _.y,
-				id:'coordinate'
-			}
-		});
-		
-		/**
-		 * invoke call back
-		 */
-		if(g)g();
-		
-		if($.isObject(scale)){
-			scale = [scale];
-		}
-		if($.isArray(scale)){
-			var ST = _.dataType != 'stacked';
-			scale.each(function(s){
-				/**
-				 * applies the percent shower
-				 */
-				if(_.get('percent')&&s.position==li){
-					s = $.apply(s,{
-						start_scale : 0,
-						end_scale : 100,
-						scale_space : 10,
-						listeners:{
-							parseText:function(t,x,y){
-								return {text:t+'%'}
-							}
-						 }
-					});
-				}
-				if(!s.start_scale||(ST&&!s.assign_scale&&s.start_scale>_.get('minValue')))
-					s.min_scale = _.get('minValue');
-				if(!s.end_scale||(ST&&!s.assign_scale&&s.end_scale<_.get('maxValue')))
-					s.max_scale = _.get('maxValue');
-			});
-		}else{
-			_.push('coordinate.scale',{
-				position : li,
-				scaleAlign : li,
-				max_scale : _.get('maxValue'),
-				min_scale : _.get('minValue')
-			});
-		}
-		 
-		if (_.is3D()) {
-			_.set({
-				coordinate : {
-					xAngle_: _.get('xAngle_'),
-					yAngle_: _.get('yAngle_'),
-					/**
-					 * the Coordinate' Z is same as long as the column's
-					 */
-					zHeight:_.get('zHeight') * _.get('bottom_scale')
-				}
-			});
-		}
-		_.remove(_,_.coo);
-		if(!_.isE())
-		return _.register(new $[_.is3D()?'Coordinate3D':'Coordinate2D'](_.get('coordinate'), _));;
-	}
-}
-/**
- * @overview the coordinate2d componment
- * @component#$.Coordinate2D
- * @extend#$.Component
- */
-$.Coordinate2D = $.extend($.Component, {
-	configure : function() {
-		/**
-		 * invoked the super class's configurationuration
-		 */
-		$.Coordinate2D.superclass.configure.apply(this, arguments);
-
-		/**
-		 * indicate the component's type
-		 */
-		this.type = 'coordinate2d';
-
-		this.set({
-			/**
-			 * @inner {Number}
-			 */
-			sign_size : 12,
-			/**
-			 * @inner {Number}
-			 */
-			sign_space : 5,
-			/**
-			 * @cfg {Array} the option for scale.For details see <link>$.Scale</link>
-			 */
-			scale : [],
-			/**
-			 * @cfg {String/Number} Here,specify as '85%' relative to client width.(default to '85%')
-			 */
-			width:'85%',
-			/**
-			 * @cfg {String/Number} Here,specify as '85%' relative to client height.(default to '85%')
-			 */
-			height:'85%',
-			/**
-			 * @cfg {String/Number} Specifies the valid width,less than the width of coordinate.you can applies a percent value relative to width.(default to '100%')
-			 */
-			valid_width : '100%',
-			/**
-			 * @cfg {String/Number} Specifies the valid height,less than the height of coordinate.you can applies a percent value relative to width.(default to '100%')
-			 */
-			valid_height : '100%',
-			/**
-			 * @cfg {Number} Specifies the linewidth of the grid.(default to 1)
-			 */
-			grid_line_width : 1,
-			/**
-			 * @cfg {String} Specifies the color of the grid.(default to '#dbe1e1')
-			 */
-			grid_color : '#dbe1e1',
-			/**
-			 * @cfg {Object} Specifies the stlye of horizontal grid.(default to empty object).Available property are:
-			 * @Option solid {Boolean} True to draw a solid line.else draw a dotted line.(default to true)
-			 * @Option size {Number} Specifies size of line segment when solid is false.(default to 10)
-			 * @Option fator {Number} Specifies the times to size(default to 1)
-			 * @Option width {Number} Specifies the width of grid line.(default to 1)
-			 * @Option color {String} Specifies the color of grid line.(default to '#dbe1e1')
-			 */
-			gridHStyle : {},
-			/**
-			 * @cfg {Object} Specifies the stlye of horizontal grid.(default to empty object).Available property are:
-			 * @Option solid {Boolean} True to draw a solid line.else draw a dotted line.(default to true)
-			 * @Option size {Number} Specifies size of line segment when solid is false.(default to 10)
-			 * @Option fator {Number} Specifies the times to size(default to 1)
-			 * @Option width {Number} Specifies the width of grid line.(default to 1)
-			 * @Option color {String} Specifies the color of grid line.(default to '#dbe1e1')
-			 */
-			gridVStyle : {},
-			/**
-			 * @cfg {Boolean} True to display grid line.(default to true)
-			 */
-			gridlinesVisible : true,
-			/**
-			 * @cfg {Boolean} indicate whether the grid is accord with scale,on the premise of grids is not specify. this just give a convenient way bulid grid for default.and actual value depend on scale's scale2grid
-			 */
-			scale2grid : true,
-			/**
-			 * @cfg {Object} this is grid config for custom.there has two valid property horizontal and vertical.the property's sub property is: way:the manner calculate grid-line (default to 'share_alike') Available property are:
-			 * @Option share_alike
-			 * @Option given_value value: when property way apply to 'share_alike' this property mean to the number of grid's line.
-			 *  when apply to 'given_value' this property mean to the distance each grid line(unit:pixel) . 
-			 *  code will like: 
-			 *  { 
-			 *   horizontal: {way:'share_alike',value:10},
-			 *   vertical: { way:'given_value', value:40 }
-			 *   }
-			 */
-			grids : undefined,
-			/**
-			 * @cfg {Boolean} If True the grid line will be ignored when gird and axis overlap.(default to true)
-			 */
-			ignoreOverlap : true,
-			/**
-			 * @cfg {Boolean} If True the grid line will be ignored when gird and coordinate's edge overlap.(default to false)
-			 */
-			ignoreEdge : false,
-			/**
-			 * @inner {String} Specifies the label on x-axis
-			 */
-			xlabel : '',
-			/**
-			 * @inner {String} Specifies the label on y-axis
-			 */
-			ylabel : '',
-			/**
-			 * @cfg {String} Here,specify as false to make background transparent.(default to null)
-			 */
-			background_color : 0,
-			/**
-			 * @cfg {Boolean} True to stripe the axis.(default to true)
-			 */
-			striped : true,
-			/**
-			 * @cfg {String} Specifies the direction apply striped color.(default to 'v')Available value are:
-			 * @Option 'h' horizontal
-			 * @Option 'v' vertical
-			 */
-			striped_direction : 'v',
-			/**
-			 * @cfg {float(0.01 - 0.5)} Specifies the factor make color dark striped,relative to background-color,the bigger the value you set,the larger the color changed.(defaults to '0.01')
-			 */
-			striped_factor : 0.01,
-			/**
-			 * @cfg {Object} Specifies config crosshair.(default enable to false).For details see <link>$.CrossHair</link> Note:this has a extra property named 'enable',indicate whether crosshair available(default to false)
-			 */
-			crosshair : {
-				enable : false
-			},
-			/**
-			 * @cfg {Number}Override the default as -1 to make sure it at the bottom.(default to -1)
-			 */
-			z_index : -1,
-			/**
-			 * @cfg {Object} Specifies style for axis of this coordinate. Available property are:
-			 * @Option enable {Boolean} True to display the axis.(default to true)
-			 * @Option color {String} Specifies the color of each axis.(default to '#666666')
-			 * @Option width {Number/Array} Specifies the width of each axis, If given the a array,there must be have have 4 element, like this:[1,0,0,1](top-right-bottom-left).(default to 1)
-			 */
-			axis : {
-				enable : true,
-				color : '#666666',
-				width : 1
-			}
-		});
-		
-		this.scale = [];
-		this.gridlines = [];
-	},
-	refresh:function(n,x,p){
-		this.scale.each(function(s){
-			if(s.get('position')==p){
-				var U;
-				if (!s.get('assign_scale')||s.get('end_scale') < x) {
-					s.push('max_scale',s.push('end_scale',x));
-					U = true;
-				}
-				if (!s.get('assign_scale')||s.get('start_scale') > n) {
-					s.push('min_scale',s.push('start_scale',n));
-					U = true;
-				}
-				if(U){
-					s.doConfig();
-				}
-				return false;
-			}
-		});
-	},
-	getScale : function(p,L) {
-		var _ = this._(),r;
-		for(var i=0;i<_.scale.length;i++){
-			if(_.scale[i].get('position')==p){
-				return _.scale[i].getScale(_.scale[i]);
-			}
-		}
-		if(!L){
-			if(p==_.L){
-				p = _.R;
-			}else if(p==_.R){
-				p = _.L;
-			}else if(p==_.O){
-				p = _.B;
-			}else{
-				p = _.O;
-			}
-			return _.getScale(p,true);
-		}
-		throw new Error("No_Valid_Scale");
-	},
-	isEventValid : function(e,_) {
-		return {
-			valid : e.x > _.x && e.x < (_.x + _.width) && e.y < _.y + _.height && e.y > _.y
-		};
-	},
-	doDraw : function(_) {
-		_.T.box(_.x, _.y, _.width, _.height, 0, _.get('f_color'));
-		if (_.get('striped')) {
-			var x, y, f = false, axis = _.get('axis.width'), c = $.dark(_.get('background_color'), _.get('striped_factor'),0);
-		}
-		var v = (_.get('striped_direction') == 'v');
-		_.gridlines.each(function(g,i) {
-			if (_.get('striped')) {
-				if (f) {
-					if (v)
-						_.T.box(g.x1, g.y1 + g.width, g.x2 - g.x1, y - g.y1 - g.width, 0, c);
-					else
-						_.T.box(x + g.width, g.y2, g.x1 - x, g.y1 - g.y2, 0, c);
-				}
-				x = g.x1;
-				y = g.y1;
-				f = !f;
-			}
-		}).each(function(g) {
-			if(!g.overlap){
-				if(g.solid){
-					_.T.line(g.x1, g.y1, g.x2, g.y2, g.width, g.color);
-				}else{
-					_.T.dotted(g.x1, g.y1, g.x2, g.y2, g.width, g.color,g.size,g.fator);
-				}
-			}
-		});
-		_.T.box(_.x, _.y, _.width, _.height, _.get('axis'), false, _.get('shadow'),true);
-		_.scale.each(function(s) {
-			s.draw()
-		});
-	},
-	destroy:function(){
-		if(this.crosshair){
-			this.crosshair.destroy();
-		}
-	},
-	doCrosshair:function(_){
-		if (_.get('crosshair.enable')&&!_.crosshair) {
-			_.push('crosshair.wrap', _.root.shell);
-			_.push('crosshair.height', _.height);
-			_.push('crosshair.width', _.width);
-			_.push('crosshair.top', _.y);
-			_.push('crosshair.left', _.x);
-			_.crosshair = new $.CrossHair(_.get('crosshair'), _);
-		}
-	},
-	doConfig : function() {
-		$.Coordinate2D.superclass.doConfig.call(this);
-
-		var _ = this._();
-		
-		/**
-		 * this element not atomic because it is a container,so this is a particular case.
-		 */
-		_.atomic = false;
-
-		_.width = _.get('_width');
-		_.height = _.get('_height');
-		_.valid_width = _.get('valid_width_value');
-		_.valid_height = _.get('valid_height_value');
-		/**
-		 * apply the gradient color to f_color
-		 */
-		if (_.get('gradient') && $.isString(_.get('f_color'))) {
-			_.push('f_color', _.T.avgLinearGradient(_.x, _.y, _.x, _.y + _.height, [_.get('dark_color'), _.get('light_color')]));
-		}
-		
-		if (_.get('axis.enable')) {
-			var aw = _.get('axis.width');
-			if (!$.isArray(aw))
-				_.push('axis.width', [aw, aw, aw, aw]);
-		}else{
-			_.push('axis.width', [0, 0, 0, 0]);
-		}
-
-		_.doCrosshair(_);
-		var jp, cg = !!(_.get('gridlinesVisible') && _.get('grids')), hg = cg && !!_.get('grids.horizontal'), vg = cg && !!_.get('grids.vertical'), h = _.height, w = _.width, vw = _.valid_width, vh = _.valid_height, k2g = _.get('gridlinesVisible')
-				&& _.get('scale2grid') && !(hg && vg), sw = _.push('x_start', _.x+(w - vw) / 2), sh = _.push('y_start', _.y+(h - vh) / 2), axis = _.get('axis.width');
-		
-		_.push('x_end', _.x + (w + vw) / 2);
-		_.push('y_end', _.y + (h + vh) / 2);
-		
-		if (!$.isArray(_.get('scale'))) {
-			if ($.isObject(_.get('scale')))
-				_.push('scale', [_.get('scale')]);
-			else
-				_.push('scale', []);
-		}
-		
-		_.get('scale').each(function(kd, i) {
-			jp = kd['position'];
-			jp = jp || _.L;
-			jp = jp.toLowerCase();
-			kd[_.X] = _.x;
-			kd['coo'] = _;
-			kd[_.Y] = _.y;
-			kd['valid_x'] = sw;
-			kd['valid_y'] = sh;
-			kd['position'] = jp;
-			/**
-			 * calculate coordinate,direction,distance
-			 */
-			if (jp == _.O) {
-				kd['which'] = 'h';
-				kd['distance'] = w;
-				kd['valid_distance'] = vw;
-			} else if (jp == _.R) {
-				kd['which'] = 'v';
-				kd['distance'] = h;
-				kd['valid_distance'] = vh;
-				kd[_.X] += w;
-				kd['valid_x'] += vw;
-			} else if (jp == _.B) {
-				kd['which'] = 'h';
-				kd['distance'] = w;
-				kd['valid_distance'] = vw;
-				kd[_.Y] += h;
-				kd['valid_y'] += vh;
-			} else {
-				kd['which'] = 'v';
-				kd['distance'] = h;
-				kd['valid_distance'] = vh;
-			}
-			kd.label =$.applyIf(kd.label||{},_.get('label'));
-			_.scale.push(new $.Scale(kd, _.root));
-		}, _);
-
-		var iol = _.push('ignoreOverlap', _.get('ignoreOverlap') && _.get('axis.enable') || _.get('ignoreEdge'));
-
-		if (iol) {
-			if (_.get('ignoreEdge')) {
-				var ignoreOverlap = function(w, x, y) {
-					return w == 'v' ? (y == _.y) || (y == _.y + h) : (x == _.x) || (x == _.x + w);
-				}
-			} else {
-				var ignoreOverlap = function(wh, x, y) {
-					return wh == 'v' ? (y == _.y && axis[0] > 0) || (y == (_.y + h) && axis[2] > 0) : (x == _.x && axis[3] > 0) || (x == (_.x + w) && axis[1] > 0);
-				}
-			}
-		}
-		var g = {
-				solid : true,
-				size : 10,
-				fator : 1,
-				width : _.get('grid_line_width'),
-				color : _.get('grid_color')
-			},
-			ghs = $.applyIf(_.get('gridHStyle'),g),
-			gvs = $.applyIf(_.get('gridVStyle'),g);
-		
-		if (k2g) {
-			var scale, x, y, p;
-			_.scale.each(function(scale) {
-				p = scale.get('position');
-				/**
-				 * disable,given specfiy grid will ignore scale2grid
-				 */
-				if ($.isFalse(scale.get('scale2grid')) || hg && scale.get('which') == 'v' || vg && scale.get('which') == 'h') {
-					return;
-				}
-				x = y = 0;
-				if (p == _.O) {
-					y = h;
-				} else if (p == _.R) {
-					x = -w;
-				} else if (p == _.B) {
-					y = -h;
-				} else {
-					x = w;
-				}
-				
-				scale.items.each(function(e) {
-					if (iol)
-					_.gridlines.push($.applyIf({
-						overlap:ignoreOverlap.call(_, scale.get('which'), e.x, e.y),
-						x1 : e.x,
-						y1 : e.y,
-						x2 : e.x + x,
-						y2 : e.y + y
-					},scale.isH?gvs:ghs));
-				});
-			});
-		}
-		if (vg) {
-			var gv = _.get('grids.vertical');
-			$.Assert.isTrue(gv['value']>0, 'vertical value');
-			var d = w / gv['value'], n = gv['value'];
-			if (gv['way'] == 'given_value') {
-				n = d;
-				d = gv['value'];
-				d = d > w ? w : d;
-			}
-
-			for ( var i = 0; i <= n; i++) {
-				if (iol)
-				_.gridlines.push($.applyIf({
-					overlap:ignoreOverlap.call(_, 'h', _.x + i * d, _.y),
-					x1 : _.x + i * d,
-					y1 : _.y,
-					x2 : _.x + i * d,
-					y2 : _.y + h,
-					H : false,
-					width : gvs.width,
-					color : gvs.color
-				},gvs));
-			}
-		}
-		if (hg) {
-			var gh = _.get('grids.horizontal');
-			$.Assert.isTrue(gh['value']>0,'horizontal value');
-			var d = h / gh['value'], n = gh['value'];
-			if (gh['way'] == 'given_value') {
-				n = d;
-				d = gh['value'];
-				d = d > h ? h : d;
-			}
-
-			for ( var i = 0; i <= n; i++) {
-				if (iol)
-				_.gridlines.push($.applyIf({
-					overlap:ignoreOverlap.call(_, 'v', _.x, _.y + i * d),
-					x1 : _.x,
-					y1 : _.y + i * d,
-					x2 : _.x + w,
-					y2 : _.y + i * d,
-					H : true,
-					width : ghs.width,
-					color : ghs.color
-				},ghs));
-			}
-		}
-	}
-});
-/**
- * @end
- */
-/**
- * @overview the coordinate3d componment
- * @component#$.Coordinate3D
- * @extend#$.Coordinate2D
- */
-$.Coordinate3D = $.extend($.Coordinate2D, {
-	configure : function() {
-		/**
-		 * invoked the super class's configurationuration
-		 */
-		$.Coordinate3D.superclass.configure.apply(this, arguments);
-
-		/**
-		 * indicate the component's type
-		 */
-		this.type = 'coordinate3d';
-		this.dimension = $._3D;
-
-		this.set({
-			/**
-			 * @cfg {Number} Three-dimensional rotation X in degree(angle).socpe{0-90},Normally, this will accord with the chart.(default to 60)
-			 */
-			xAngle : 60,
-			/**
-			 * @cfg {Number} Three-dimensional rotation Y in degree(angle).socpe{0-90},Normally, this will accord with the chart.(default to 20)
-			 */
-			yAngle : 20,
-			xAngle_ : undefined,
-			yAngle_ : undefined,
-			/**
-			 * @cfg {Number} Required,Specifies the z-axis deep of this coordinate,Normally, this will given by chart.(default to 0)
-			 */
-			zHeight : 0,
-			/**
-			 * @cfg {Number} Specifies pedestal height of this coordinate.(default to 22)
-			 */
-			pedestal_height : 22,
-			/**
-			 * @cfg {Number} Specifies board deep of this coordinate.(default to 20)
-			 */
-			board_deep : 20,
-			/**
-			 * @cfg {Boolean} If true display the left board.(default to true)
-			 */
-			left_board:true,
-			/**
-			 * @cfg {Boolean} Override the default as true
-			 */
-			gradient : true,
-			/**
-			 * @cfg {float} Override the default as 0.18.
-			 */
-			color_factor : 0.18,
-			/**
-			 * @cfg {Boolean} Override the default as true.
-			 */
-			ignoreEdge : true,
-			/**
-			 * @cfg {Boolean} Override the default as false.
-			 */
-			striped : false,
-			/**
-			 * @cfg {String} Override the default as '#a4ad96'.
-			 */
-			grid_color : '#a4ad96',
-			/**
-			 * @cfg {String} Override the default as '#d6dbd2'.
-			 */
-			background_color : '#d6dbd2',
-			/**
-			 * @cfg {Number} Override the default as 4.
-			 */
-			shadow_offsetx : 4,
-			/**
-			 * @cfg {Number} Override the default as 2.
-			 */
-			shadow_offsety : 2,
-			/**
-			 * @cfg {Array} Specifies the style of board(wall) of this coordinate. 
-			 * the length of array will be 6,if less than 6,it will instead of <link>background_color</link>.and each object option has two property. Available property are:
-			 * @Option color the color of wall
-			 * @Option alpha the opacity of wall
-			 */
-			wall_style : [],
-			/**
-			 * @cfg {Boolean} Override the default as axis.enable = false.
-			 */
-			axis : {
-				enable : false
-			}
-		});
-	},
-	doDraw : function(_) {
-		var w = _.width, h = _.height, xa = _.get('xAngle_'), ya = _.get('yAngle_'), zh = _.get('zHeight'), offx = _.get('z_offx'), offy = _.get('z_offy');
-		/**
-		 * bottom
-		 */
-		if(_.get('pedestal_height'))
-		_.T.cube3D(_.x, _.y + h + _.get('pedestal_height'), xa, ya, false, w, _.get('pedestal_height'), zh * 3 / 2, _.get('axis.enable'), _.get('axis.width'), _.get('axis.color'), _.get('bottom_style'));
-		/**
-		 * board_style
-		 */
-		if(_.get('board_deep'))
-		_.T.cube3D(_.x +offx, _.y+h - offy, xa, ya, false, w, h, _.get('board_deep'), _.get('axis.enable'), _.get('axis.width'), _.get('axis.color'), _.get('board_style'));
-		
-		_.T.cube3D(_.x, _.y + h, xa, ya, false, w, h, zh, _.get('axis.enable'), _.get('axis.width'), _.get('axis.color'), _.get('wall_style'));
-		
-		_.gridlines.each(function(g) {
-			if(g.solid){
-				if(_.get('left_board'))
-				_.T.line(g.x1, g.y1, g.x1 + offx, g.y1 - offy,g.width, g.color);
-				_.T.line(g.x1 + offx, g.y1 - offy, g.x2 + offx, g.y2 - offy, g.width, g.color);
-			}else{
-				if(_.get('left_board'))
-				_.T.dotted(g.x1, g.y1, g.x1 + offx, g.y1 - offy,g.width, g.color,g.size,g.fator);
-				_.T.dotted(g.x1 + offx, g.y1 - offy, g.x2 + offx, g.y2 - offy, g.width, g.color,g.size,g.fator);
-			}
-		});
-		_.scale.each(function(s) {
-			s.draw();
-		});
-	},
-	doConfig : function() {
-		$.Coordinate3D.superclass.doConfig.call(this);
-
-		var _ = this._(),
-			ws = _.get('wall_style'),
-			bg = _.get('background_color')||'#d6dbd2',
-			h = _.height,
-			w = _.width,
-			f = _.get('color_factor'),
-			offx = _.push('z_offx',_.get('xAngle_') * _.get('zHeight')),
-			offy = _.push('z_offy',_.get('yAngle_') * _.get('zHeight'));
-			/**
-			 * bottom-lower bottom-left
-			 */
-			while(ws.length < 6){
-				ws.push({color : bg});
-			}
-			if(!_.get('left_board')){
-				ws[2] = false;
-				_.scale.each(function(s){
-					s.doLayout(offx,-offy,s);
-				});
-			}
-			
-			/**
-			 * right-front
-			 */
-			_.push('bottom_style', [{
-				color : _.get('shadow_color'),
-				shadow : _.get('shadow')
-			}, false, false, {
-				color : ws[3].color
-			},false, {
-				color : ws[3].color
-			}]);
-			
-			/**
-			 * right-top
-			 */
-			_.push('board_style', [false, false, false,{
-				color : ws[4].color
-			},{
-				color : ws[5].color
-			}, false]);
-			
-			/**
-			 * lowerBottom-bottom-left-right-top-front
-			 */
-			if (_.get('gradient')) {
-				if ($.isString(ws[0].color)) {
-					ws[0].color = _.T.avgLinearGradient(_.x, _.y + h, _.x + w, _.y + h, [$.dark(ws[0].color,f/2+0.06),$.dark(ws[0].color,f/2+0.06)]);
-				}
-				if ($.isString(ws[1].color)) {
-					ws[1].color = _.T.avgLinearGradient(_.x + offx, _.y - offy, _.x + offx, _.y + h - offy, [$.dark(ws[1].color,f),$.light(ws[1].color,f)]);
-				}
-				if ($.isString(ws[2].color)) {
-					ws[2].color = _.T.avgLinearGradient(_.x, _.y, _.x, _.y + h, [$.light(ws[2].color,f/3),$.dark(ws[2].color,f)]);
-				}
-				_.get('bottom_style')[5].color = _.T.avgLinearGradient(_.x, _.y + h, _.x, _.y + h + _.get('pedestal_height'), [$.light(ws[3].color,f/2+0.06),$.dark(ws[3].color,f/2,0)]);
-			}
-			_.push('wall_style', [ws[0],ws[1],ws[2]]);
-			
-	}
-});
-/*
- * @end
- */
-
-
-	/**
-	 * @overview the base class of rectangle
-	 * @component#$.Rectangle
-	 * @extend#$.Component
-	 */
-	$.Rectangle = $.extend($.Component,{
-		configure:function(){
-			/**
-			 * invoked the super class's  configuration
-			 */
-			$.Rectangle.superclass.configure.apply(this,arguments);
-			
-			/**
-			 * indicate the component's type
-			 */
-			this.type = 'rectangle';
-			
-			this.set({
-				/**
-				 * @cfg {Number} Specifies the width of this element in pixels,Normally,this will given by chart.(default to 0)
-				 */
-				width:0,
-				/**
-				 * @cfg {Number} Specifies the height of this element in pixels,Normally,this will given by chart.(default to 0)
-				 */
-				height:0,
-				/**
-				 * @cfg {Number} the distance of column's edge and value in pixels.(default to 4)
-				 */
-				value_space:4,
-				/**
-				 * @cfg {String} Specifies the text of this element,Normally,this will given by chart.(default to '')
-				 */
-				value:'',
-				/**
-				 * @cfg {<link>$.Text</link>} Specifies the config of label,set false to make label disabled.
-				 */
-				label : {},
-				/**
-				 * @cfg {String} Specifies the name of this element,Normally,this will given by chart.(default to '')
-				 */
-				name:'',
-				/**
-				 * @cfg {String} Specifies the tip alignment of chart(defaults to 'top').Available value are:
-				 * @Option 'left'
-				 * @Option 'right'
-				 * @Option 'top'
-				 * @Option 'bottom'
-				 */
-				tipAlign:'top',
-				/**
-				 * @cfg {String} Specifies the value's text alignment of chart(defaults to 'top') Available value are:
-				 * @Option 'left'
-				 * @Option 'right'
-				 * @Option 'middle'
-				 * @Option 'top'
-				 * @Option 'bottom'
-				 */
-				valueAlign:'top',
-				/**
-				 * @cfg {Number} Override the default as 3
-				 */
-				shadow_blur:3,
-				/**
-				 * @cfg {Number} Override the default as -1
-				 */
-				shadow_offsety:-1
-			});
-			
-			/**
-			 * this element support boxMode
-			 */
-			this.atomic = true;
-			
-			this.registerEvent(
-					/**
-					 * @event Fires when parse this label's data.Return value will override existing.
-					 * @paramter <link>$.Rectangle</link>#rect
-					 * @paramter string#text the current label's text
-					 */
-					'parseText');
-			
-			this.label = null;
-		},
-		last:function(_){
-			if(_.label)
-				_.label.draw();
-		},
-		doDraw:function(_){
-			_.drawRectangle();
-		},
-		doConfig:function(){
-			$.Rectangle.superclass.doConfig.call(this);
-			var _ = this._(),v = _.variable.event,vA=_.get('valueAlign');
-			
-			/**
-			 * mouseover light
-			 */
-			$.taylor.light(_,v);
-			
-			_.width = _.get(_.W);
-			_.height = _.get(_.H);
-			
-			var x = _.push('centerx',_.x + _.width/2),
-				y = _.push('centery',_.y + _.height/2),
-				a = _.C,
-				b = 'middle',
-				s=_.get('value_space');
-			
-			
-			if(vA==_.L){
-				a = _.R;
-				x = _.x - s;
-			}else if(vA==_.R){
-				a = _.L;
-				x =_.x + _.width + s;
-			}else if(vA==_.B){
-				y = _.y  + _.height + s;
-				b = _.O;
-			}else if(vA==_.O){
-				y = _.y  - s;
-				b = _.B;
-			}
-
-			if(_.get('label')){
-				_.push('label.originx', x);
-				_.push('label.originy', y);
-				_.push('label.text',_.push('value',_.fireString(_, 'parseText', [_, _.get('value')], _.get('value'))));
-				$.applyIf(_.get('label'),{
-					textAlign : a,
-					textBaseline : b,
-					color:_.get('color')
-				});
-				_.label = new $.Text(_.get('label'), _);
-			}
-			
-			if(_.get('tip.enable')){
-				if(_.get('tip.showType')!='follow'){
-					_.push('tip.invokeOffsetDynamic',false);
-				}
-				_.tip = new $.Tip(_.get('tip'),_);
-			}
-		}
-});
-/**
- *@end
- */	
-	/**
-	 * @overview the rectangle2d componment
-	 * @component#$.Rectangle2D
-	 * @extend#$.Rectangle
-	 */
-	$.Rectangle2D = $.extend($.Rectangle,{
-		configure:function(){
-			/**
-			 * invoked the super class's  configuration
-			 */
-			$.Rectangle2D.superclass.configure.apply(this,arguments);
-			
-			/**
-			 * indicate the component's type
-			 */
-			this.type = 'rectangle2d';
-			
-			this.set({
-				/**
-				 * @cfg {Number} Override the default as -2
-				 */
-				shadow_offsety:-2
-			});
-			
-		},
-		drawRectangle:function(){
-			var _ = this._();
-			_.T.box(
-				_.get(_.X),
-				_.get(_.Y),
-				_.get(_.W),
-				_.get(_.H),
-				_.get('border'),
-				_.get('f_color'),
-				_.get('shadow'));
-		},
-		isEventValid:function(e,_){
-			return {valid:e.x>_.x&&e.x<(_.x+_.width)&&e.y<(_.y+_.height)&&e.y>(_.y)};
-		},
-		tipInvoke:function(){
-			var _ = this._();
-			/**
-			 * base on event?
-			 */
-			return function(w,h){
-				return {
-					left:_.tipX(w,h),
-					top:_.tipY(w,h)
-				}
-			}
-		},
-		doConfig:function(){
-			$.Rectangle2D.superclass.doConfig.call(this);
-			var _ = this._(),tipAlign = _.get('tipAlign');
-			if(tipAlign==_.L||tipAlign==_.R){
-				_.tipY = function(w,h){return _.get('centery') - h/2;};
-			}else{
-				_.tipX = function(w,h){return _.get('centerx') -w/2;};
-			}
-			
-			if(tipAlign==_.L){
-				_.tipX = function(w){return _.x - _.get('value_space') -w;};
-			}else if(tipAlign==_.R){
-				_.tipX = function(w){return _.x + _.width + _.get('value_space');};
-			}else if(tipAlign==_.B){
-				_.tipY = function(){return _.y  +_.height+3;};
-			}else{
-				_.tipY = function(w,h){return _.y  - h -3;};
-			}
-			
-			_.applyGradient();
-			
-			
-		}
-});
-/**
- *@end
- */	
-	/**
-	 * @overview the rectangle3d componment
-	 * @component#$.Rectangle3D
-	 * @extend#$.Rectangle
-	 */
-	$.Rectangle3D = $.extend($.Rectangle,{
-		configure:function(){
-			/**
-			 * invoked the super class's  configuration
-			 */
-			$.Rectangle3D.superclass.configure.apply(this,arguments);
-			
-			/**
-			 * indicate the component's type
-			 */
-			this.type = 'rectangle3d';
-			this.dimension = $._3D;
-			
-			this.set({
-				/**
-				 * @cfg {Number} Specifies Three-dimensional z-axis deep in pixels.Normally,this will given by chart.(default to undefined)
-				 */
-				zHeight:undefined,
-				/**
-				 * @cfg {Number} Three-dimensional rotation X in degree(angle).socpe{0-90}.Normally,this will given by chart.(default to 60)
-				 */
-				xAngle:60,
-				/**
-				 * @cfg {Number} Three-dimensional rotation Y in degree(angle).socpe{0-90}.Normally,this will given by chart.(default to 20)
-				 */
-				yAngle:20,
-				xAngle_:undefined,
-				yAngle_:undefined,
-				/**
-				 * @cfg {Number} Override the default as 2
-				 */
-				shadow_offsetx:2
-			});
-			
-		},
-		drawRectangle:function(){
-			var _ = this._();
-			_.T.cube(
-				_.get(_.X),
-				_.get(_.Y),
-				_.get('xAngle_'),
-				_.get('yAngle_'),
-				_.get(_.W),
-				_.get(_.H),
-				_.get('zHeight'),
-				_.get('f_color'),
-				_.get('border.enable'),
-				_.get('border.width'),
-				_.get('light_color'),
-				_.get('shadow')
-			);
-		},
-		isEventValid:function(e,_){
-			return {valid:e.x>_.x&&e.x<(_.x+_.get(_.W))&&e.y<_.y+_.get(_.H)&&e.y>_.y};
-		},
-		tipInvoke:function(){
-			var _ = this._();
-			return function(w,h){
-				return {
-					left:_.topCenterX - w/2,
-					top:_.topCenterY - h
-				}
-			}
-		},
-		doConfig:function(){
-			$.Rectangle3D.superclass.doConfig.call(this);
-			var _ = this._();
-			_.pushIf("zHeight",_.get(_.W));
-			
-			_.topCenterX=_.x+(_.get(_.W)+_.get(_.W)*_.get('xAngle_'))/2;
-			_.topCenterY=_.y-_.get(_.W)*_.get('yAngle_')/2-_.get('value_space');
-			
-			if(_.get('valueAlign')==_.O&&_.label){
-				_.label.push('textx',_.topCenterX);
-				_.label.push('texty',_.topCenterY);
-			}
-			
-		}
-});
-/**
- *@end
- */	
 /**
  * @overview this component use for config sector,this is a abstract class.
  * @component#$.Sector
@@ -5933,496 +4148,318 @@ $.Sector = $.extend($.Component, {
 /**
  *@end
  */	
-/**
- * @overview the base class of pie chart
- * @component#$.Pie
- * @extend#$.Chart
- */
-$.Pie = $.extend($.Chart, {
 	/**
-	 * initialize the context for the pie
+	 * @overview the base class of rectangle
+	 * @component#$.Rectangle
+	 * @extend#$.Component
 	 */
-	configure : function() {
-		/**
-		 * invoked the super class's configuration
-		 */
-		$.Pie.superclass.configure.call(this);
-		
-		this.type = 'pie';
-
-		this.set({
+	$.Rectangle = $.extend($.Component,{
+		configure:function(){
 			/**
-			 * @cfg {Float/String} Specifies the pie's radius.If given a percentage,it will relative to minDistance.(default to '100%')
+			 * invoked the super class's  configuration
 			 */
-			radius : '100%',
-			/**
-			 * @cfg {Number} initial angle for first sector.(default to 0)
-			 */
-			offset_angle : 0,
-			/**
-			 * @cfg {Number(0~90)} separate angle of all sector.(default to 0)
-			 */
-			separate_angle:0,
-			/**
-			 * @cfg {String} the event's name trigger pie pop(default to 'click')
-			 */
-			bound_event : 'click',
-			/**
-			 * @inner {Boolean} True to make sector counterclockwise.(default to false)
-			 */
-			counterclockwise : false,
-			/**
-			 * @cfg {Boolean} when label's position in conflict.auto layout.(default to true).
-			 */
-			intellectLayout : true,
-			/**
-			 * @cfg {Number} Specifies the distance in pixels when two label is incompatible with each other.(default 4),
-			 */
-			layout_distance : 4,
-			/**
-			 * @inner {Boolean} if it has animate when a piece popd (default to false)
-			 */
-			pop_animate : false,
-			/**
-			 * @cfg {Boolean} Specifies as true it means just one piece could pop (default to false)
-			 */
-			mutex : false,
-			/**
-			 * @cfg {Number} Specifies the length when sector bounded.(default to 1/8 radius,and minimum is 5),
-			 */
-			increment : undefined,
-			/**
-			 * @cfg {<link>$.Sector</link>} option of sector.Note,Pie2d depend on Sector2d and pie3d depend on Sector3d.For details see <link>$.Sector</link>
-			 */
-			sub_option : {
-				label : {}
-			}
-		});
-
-		this.registerEvent(
-		/**
-		 * @event Fires when this element' sector bounded
-		 * @paramter <link>$.Sector2d</link>#sector
-		 * @paramter string#name
-		 * @paramter int#index
-		 */
-		'bound',
-		/**
-		 * @event Fires when this element' sector rebounded
-		 * @paramter <link>$.Sector2d</link>#sector
-		 * @paramter string#name
-		 * @paramter int#index
-		 */
-		'rebound');
-		this.sectors = [];
-		this.components.push(this.sectors);
-		this.ILLUSIVE_COO = true;
-	},
-	/**
-	 * @method Toggle sector bound or rebound by a specific index.
-	 * @paramter int#i the index of sector
-	 * @return void
-	 */
-	toggle : function(i) {
-		this.sectors[i || 0].toggle();
-	},
-	/**
-	 * @method bound sector by a specific index.
-	 * @paramter int#i the index of sector
-	 * @return void
-	 */
-	bound : function(i) {
-		this.sectors[i || 0].bound();
-	},
-	/**
-	 * @method rebound sector by a specific index.
-	 * @paramter int#i the index of sector
-	 * @return void
-	 */
-	rebound : function(i) {
-		this.sectors[i || 0].rebound();
-	},
-	/**
-	 * @method Returns an array containing all sectors of this pie
-	 * @return Array#the collection of sectors
-	 */
-	getSectors : function() {
-		return this.sectors;
-	},
-	doAnimation : function(t, d,_) {
-		var si = 0, cs = _.oA;
-		_.sectors.each(function(s, i) {
-			si = _.animationArithmetic(t, 0, s.get('totalAngle'), d);
-			s.push('startAngle', cs);
-			s.push('endAngle', cs+=si);
-			if (!_.is3D())
-				s.drawSector();
-		});
-		
-		if (_.is3D()) {
-			_.proxy.drawSector();
-		}
-	},
-	parse : function(_) {
-		_.data.each(function(d,i){
-			_.doParse(_,d,i);
-		},_);
-		/**
-		 * layout the label
-		 */
-		_.localizer(_);
-	},
-	doParse : function(_,d, i) {
-		var t = d.name + ' ' +_.getPercent(d.value);
-		
-		_.doActing(_,d,null,i,t);
-		
-		_.push('sub_option.id', i);
-		
-		if(_.get('sub_option.label'))
-		_.push('sub_option.label.text', t);
-		
-		_.push('sub_option.listeners.changed', function(se, st, i) {
-			_.fireEvent(_, st ? 'bound' : 'rebound', [_, se.get('name')]);
-		});
-		
-		_.sectors.push(_.doSector(_,d));
-	},
-	doSector:function(_){
-		return  new $[_.sub](_.get('sub_option'), _);
-	},
-	dolayout : function(_,x,y,l,d,Q) {
-		if(_.is3D()?$.inEllipse(_.get(_.X) - x,_.topY-y,_.a,_.b):$.distanceP2P(_.get(_.X),_.topY,x,y)<_.r){
-			y=_.topY-y;
-			l.push('labelx',_.get(_.X)+(Math.sqrt(_.r*_.r-y*y)*2+d)*(Q==0||Q==3?1:-1));
-			l.localizer(l);
-		}
-	},
-	localizer:function(_){
-		if (_.get('intellectLayout')) {
-			var unlayout = [],layouted = [],d = _.get('layout_distance'),Q,x,y;
-			
-			_.sectors.each(function(f, i) {
-				if(f.isLabel())
-				unlayout.push(f.label);
-			});
-			
-			unlayout.sor(function(p, q) {
-				return Math.abs(Math.sin(p.get('angle'))) - Math.abs(Math.sin(q.get('angle')))>0;
-			});
-			
-			unlayout.each(function(la) {
-				layouted.each(function(l) {
-					x = l.labelx, y = l.labely;
-					if ((la.labely <= y && (y - la.labely-1) < la.get(_.H)) || (la.labely > y && (la.labely - y-1) < l.get(_.H))) {
-						if ((la.labelx <= x && (x - la.labelx) < la.get(_.W)) || (la.labelx > x && (la.labelx - x) < l.get(_.W))) {
-							Q = la.get('quadrantd');
-							la.push('labely', (la.get('labely')+ y - la.labely) + (la.get(_.H)  + d)*(Q>1?-1:1));
-							la.localizer(la);
-							_.dolayout(_,la.get('labelx'),la.get('labely')+la.get(_.H)/2*(Q<2?-1:1),la,d,Q);
-						}
-					}
-				}, _);
-				layouted.push(la);
-			});
-		}
-	},
-	doConfig : function() {
-		$.Pie.superclass.doConfig.call(this);
-		var _ = this._(),V,r = _.get('radius'), f = _.get('sub_option.label') ? 0.35 : 0.44,pi2=Math.PI*2;
-		_.sub = _.is3D()?'Sector3D':'Sector2D';
-		_.sectors.zIndex = _.get('z_index');
-		_.sectors.length = 0;
-		
-		_.oA = $.angle2Radian(_.get('offset_angle'))%pi2;
-		//If 3D,let it bigger
-		if (_.is3D())
-			f += 0.06;
-		
-		var L = _.data.length,sepa = $.angle2Radian($.between(0,90,_.get('separate_angle'))),PI = pi2-sepa,sepa=sepa/L,eA = _.oA+sepa, sA = eA;
-		if(_.total==0){
-			V  = 1/L;
-		}
-		_.data.each(function(d, i) {
-			eA += (V||(d.value / _.total)) * PI;
-			if (i == (L - 1)) {
-				eA = pi2 + _.oA;
-			}
-			d.startAngle = sA;
-			d.endAngle = eA;
-			d.totalAngle = eA - sA;
-			d.middleAngle = (sA + eA) / 2;
-			sA = eA+sepa;
-		}, _);
-		
-		_.r = r = $.parsePercent(r,Math.floor(_.get('minDistance') * f));
-		
-		_.topY = _.originXY(_,[r + _.get('l_originx'),_.get('r_originx') - r,_.get('centerx')],[_.get('centery')]).y;
-		
-		$.apply(_.get('sub_option'),$.clone([_.X, _.Y, 'bound_event','mutex','increment'], _.options));
-		
-	}
-});
-/** @end */
-
-/**
- * @overview the pie2d componment
- * @component#@chart#$.Pie2D
- * @extend#$.Pie
- */
-$.Pie2D = $.extend($.Pie, {
-	/**
-	 * initialize the context for the pie2d
-	 */
-	configure : function() {
-		/**
-		 * invoked the super class's configuration
-		 */
-		$.Pie2D.superclass.configure.call(this);
-
-		this.type = 'pie2d';
-
-	},
-	doConfig : function() {
-		$.Pie2D.superclass.doConfig.call(this);
-		var _ = this._();
-		/**
-		 * quick config to all rectangle
-		 */
-		_.push('sub_option.radius',_.r)
-		_.parse(_);
-		
-		
-	}
-});
-$.register('Pie2D');
-/**
- * @end
- */
-/**
- * @overview the pie3d componment
- * @component#@chart#$.Pie3D
- * @extend#$.Pie
- */
-$.Pie3D = $.extend($.Pie, {
-	configure : function() {
-		/**
-		 * invoked the super class's configuration
-		 */
-		$.Pie3D.superclass.configure.apply(this, arguments);
-
-		this.type = 'pie3d';
-		this.dimension = $._3D;
-
-		this.set({
-			/**
-			 * @cfg {Number} Three-dimensional rotation Z in degree(angle).socpe{0-90}.(default to 45)
-			 */
-			zRotate : 45,
-			/**
-			 * @cfg {Number} Specifies the pie's thickness in pixels.(default to 30)
-			 */
-			yHeight : 30
-		});
-		this.positive = true;
-	},
-	doSector : function(_,d) {
-		_.push('sub_option.cylinder_height', (d.cylinder_height ? d.cylinder_height * _.get('zRotate_') : _.get('cylinder_height')));
-		return new $[_.sub](_.get('sub_option'), _);
-	},
-	one:function(_){
-		var layer,spaint,L = [],c = _.get('counterclockwise'), abs = function(n,M) {
-			/**
-			 * If M,close to pi/2,else pi*3/2
-			 */
-			return 1 + Math.sin(M?(n+Math.PI):n);
-		}, t = 'startAngle', d = 'endAngle',Q,s,e
-		/**
-		 * If the inside layer visibile
-		 */
-		lay =function(C,g,z,f){
-			Q = $.quadrantd(g);
-			if (C &&(Q ==0 || Q ==3) || (!C && (Q ==2 || Q ==1))) {
-				layer.push({
-					g : g,
-					z : g==z,
-					x : f.x,
-					y : f.y,
-					a : f.a,
-					b : f.b,
-					color : $.dark(f.get('background_color')),
-					h : f.h,
-					F : f
-				});
-			}
-		};
-
-		_.proxy = new $.Custom({
-			z_index : _.get('z_index') + 1,
-			drawFn : function() {
-				this.drawSector();
-				L = [];
-				_.sectors.each(function(s) {
-					if (s.get('label')) {
-						if (s.expanded)
-							L.push(s.label);
-						else
-							s.label.draw();
-					}
-				});
-				L.each(function(l) {
-					l.draw()
-				});
-			}
-		});
-		_.proxy.drawSector = function() {
-			/**
-			 * paint bottom layer
-			 */
-			_.sectors.each(function(s, i) {
-				_.T.ellipse(s.x, s.y + s.h, s.a, s.b, s.get(t), s.get(d), 0, s.get('border.enable'), s.get('border.width'), s.get('border.color'), s.get('shadow'), c, true);
-			}, _);
-			layer = [];
-			spaint = [];
-			/**
-			 * sort layer
-			 */
-			_.sectors.each(function(f) {
-				lay(c,f.get(t),f.get(d),f);
-				lay(!c,f.get(d),f.get(t),f);
-				spaint = spaint.concat($.visible(f.get(t),f.get(d),f));
-			}, _);
+			$.Rectangle.superclass.configure.apply(this,arguments);
 			
 			/**
-			 * realtime sort
+			 * indicate the component's type
 			 */
-			layer.sor(function(p, q) {
-				var r = abs(p.g) - abs(q.g);
-				return r==0?p.z:r > 0;
-			});
-
-			/**
-			 * paint inside layer
-			 */
-			layer.each(function(f, i) {
-				_.T.sector3D.layerDraw.call(_.T, f.x, f.y, f.a + 0.5, f.b + 0.5, c, f.h, f.g, f.color);
-			}, _);
+			this.type = 'rectangle';
 			
-			if(!_.processAnimation){	
+			this.set({
 				/**
-				 * realtime sort
+				 * @cfg {Number} Specifies the width of this element in pixels,Normally,this will given by chart.(default to 0)
 				 */
-				spaint.sor(function(p, q) {
-					return abs((p.s+p.e)/2,1) - abs((q.s+q.e)/2,1)<0;
-				});
-			}
-			/**
-			 * paint outside layer
-			 */
-			spaint.each(function(s, i) {
-				_.T.sector3D.sPaint.call(_.T, s.f.x, s.f.y, s.f.a, s.f.b, s.s, s.e, c, s.f.h, s.f.get('f_color'));
-			}, _);
-
-			/**
-			 * paint top layer
-			 */
-			_.sectors.each(function(s, i) {
-				_.T.ellipse(s.x, s.y, s.a, s.b, s.get(t), s.get(d), s.get('f_color'), s.get('border.enable'), s.get('border.width'), s.get('border.color'), false, false, true);
-			}, _);
-		}
-		_.components.push(_.proxy);
-		_.one = $.emptyFn;
-	},
-	doConfig : function() {
-		$.Pie3D.superclass.doConfig.call(this);
-		var _ = this._(), z = $.angle2Radian(_.get('zRotate'));
-		
-		_.push('cylinder_height', _.get('yHeight') * _.push('zRotate_',Math.abs(Math.cos(z))));
-		
-		_.a = _.push('sub_option.semi_major_axis', _.r);
-		_.b = _.push('sub_option.semi_minor_axis', _.r * Math.abs(Math.sin(z)));
-		
-		_.topY = _.push('sub_option.originy', _.get(_.Y) - _.get('yHeight') / 2);
-		
-		_.parse(_);
-		
-		_.one(_);
-	}
-});
-$.register('Pie3D');
-/**
- * @end
- */
-
-/**
- * @overview this component use for show a donut chart
- * @component#@chart#$.Donut2D
- * @extend#$.Pie
- */
-$.Donut2D = $.extend($.Pie, {
-	/**
-	 * initialize the context for the pie2d
-	 */
-	configure : function() {
-		/**
-		 * invoked the super class's configuration
-		 */
-		$.Donut2D.superclass.configure.call(this);
-		
-		this.type = 'donut2d';
-		
-		this.set({
-			/**
-			 * @cfg {Number} Specifies the width when show a donut.If the value lt 1,It will be as a percentage,value will be radius*donutwidth.only applies when it not 0.(default to 0.3)
-			 */
-			donutwidth : 0.3,
-			/**
-			 * @cfg {Object/String} Specifies the config of Center Text details see <link>$.Text</link>,If given a string,it will only apply the text.note:If the text is empty,then will not display
-			 */
-			center : {
-				text:'',
-				line_height:24,
-				fontweight : 'bold',
+				width:0,
 				/**
-				 * Specifies the font-size in pixels of center text.(default to 24)
+				 * @cfg {Number} Specifies the height of this element in pixels,Normally,this will given by chart.(default to 0)
 				 */
-				fontsize : 24
-			}
-		});
-	},
-	doConfig : function() {
-		$.Donut2D.superclass.doConfig.call(this);
-		
-		var _ = this._(),d='donutwidth',e = _.get(d),r = _.r;
-		/**
-		 * quick config to all rectangle
-		 */
-		_.push('sub_option.radius',r)
-		if(e>=r){
-			e = 0;
-		}else if(e<1){
-			e = Math.floor(r*e);
-		} 
-		_.push('sub_option.donutwidth',_.push(d,e));
-		
-		_.merge('center');
-		
-		if (_.get('center.text') != '') {
-			_.push('center.originx',_.get(_.X));
-			_.push('center.originy',_.get(_.Y));
-			_.push('center.textBaseline','middle');
-			_.center = new $.Text(_.get('center'), _);
+				height:0,
+				/**
+				 * @cfg {Number} the distance of column's edge and value in pixels.(default to 4)
+				 */
+				value_space:4,
+				/**
+				 * @cfg {String} Specifies the text of this element,Normally,this will given by chart.(default to '')
+				 */
+				value:'',
+				/**
+				 * @cfg {<link>$.Text</link>} Specifies the config of label,set false to make label disabled.
+				 */
+				label : {},
+				/**
+				 * @cfg {String} Specifies the name of this element,Normally,this will given by chart.(default to '')
+				 */
+				name:'',
+				/**
+				 * @cfg {String} Specifies the tip alignment of chart(defaults to 'top').Available value are:
+				 * @Option 'left'
+				 * @Option 'right'
+				 * @Option 'top'
+				 * @Option 'bottom'
+				 */
+				tipAlign:'top',
+				/**
+				 * @cfg {String} Specifies the value's text alignment of chart(defaults to 'top') Available value are:
+				 * @Option 'left'
+				 * @Option 'right'
+				 * @Option 'middle'
+				 * @Option 'top'
+				 * @Option 'bottom'
+				 */
+				valueAlign:'top',
+				/**
+				 * @cfg {Number} Override the default as 3
+				 */
+				shadow_blur:3,
+				/**
+				 * @cfg {Number} Override the default as -1
+				 */
+				shadow_offsety:-1
+			});
 			
-			_.oneways.push(_.center);
+			/**
+			 * this element support boxMode
+			 */
+			this.atomic = true;
+			
+			this.registerEvent(
+					/**
+					 * @event Fires when parse this label's data.Return value will override existing.
+					 * @paramter <link>$.Rectangle</link>#rect
+					 * @paramter string#text the current label's text
+					 */
+					'parseText');
+			
+			this.label = null;
+		},
+		last:function(_){
+			if(_.label)
+				_.label.draw();
+		},
+		doDraw:function(_){
+			_.drawRectangle();
+		},
+		doConfig:function(){
+			$.Rectangle.superclass.doConfig.call(this);
+			var _ = this._(),v = _.variable.event,vA=_.get('valueAlign');
+			
+			/**
+			 * mouseover light
+			 */
+			$.taylor.light(_,v);
+			
+			_.width = _.get(_.W);
+			_.height = _.get(_.H);
+			
+			var x = _.push('centerx',_.x + _.width/2),
+				y = _.push('centery',_.y + _.height/2),
+				a = _.C,
+				b = 'middle',
+				s=_.get('value_space');
+			
+			
+			if(vA==_.L){
+				a = _.R;
+				x = _.x - s;
+			}else if(vA==_.R){
+				a = _.L;
+				x =_.x + _.width + s;
+			}else if(vA==_.B){
+				y = _.y  + _.height + s;
+				b = _.O;
+			}else if(vA==_.O){
+				y = _.y  - s;
+				b = _.B;
+			}
+			
+			if(_.get('label')){
+				_.push('label.originx', x);
+				_.push('label.originy', y);
+				_.push('label.text',_.push('value',_.fireString(_, 'parseText', [_, _.get('value')], _.get('value'))));
+				$.applyIf(_.get('label'),{
+					textAlign : a,
+					textBaseline : b,
+					color:_.get('color')
+				});
+				_.label = new $.Text(_.get('label'), _);
+			}
+			
+			if(_.get('tip.enable')){
+				if(_.get('tip.showType')!='follow'){
+					_.push('tip.invokeOffsetDynamic',false);
+				}
+				_.tip = new $.Tip(_.get('tip'),_);
+			}
 		}
-		
-		_.parse(_);
-	}
 });
-$.register('Donut2D');
 /**
- * @end
- */
+ *@end
+ */	
+	/**
+	 * @overview the rectangle2d componment
+	 * @component#$.Rectangle2D
+	 * @extend#$.Rectangle
+	 */
+	$.Rectangle2D = $.extend($.Rectangle,{
+		configure:function(){
+			/**
+			 * invoked the super class's  configuration
+			 */
+			$.Rectangle2D.superclass.configure.apply(this,arguments);
+			
+			/**
+			 * indicate the component's type
+			 */
+			this.type = 'rectangle2d';
+			
+			this.set({
+				/**
+				 * @cfg {Number} Override the default as -2
+				 */
+				shadow_offsety:-2
+			});
+			
+		},
+		drawRectangle:function(){
+			var _ = this._();
+			_.T.box(
+				_.get(_.X),
+				_.get(_.Y),
+				_.get(_.W),
+				_.get(_.H),
+				_.get('border'),
+				_.get('f_color'),
+				_.get('shadow'));
+		},
+		isEventValid:function(e,_){
+			return {valid:e.x>_.x&&e.x<(_.x+_.width)&&e.y<(_.y+_.height)&&e.y>(_.y)};
+		},
+		tipInvoke:function(){
+			var _ = this._();
+			/**
+			 * base on event?
+			 */
+			return function(w,h){
+				return {
+					left:_.tipX(w,h),
+					top:_.tipY(w,h)
+				}
+			}
+		},
+		doConfig:function(){
+			$.Rectangle2D.superclass.doConfig.call(this);
+			var _ = this._(),tipAlign = _.get('tipAlign');
+			if(tipAlign==_.L||tipAlign==_.R){
+				_.tipY = function(w,h){return _.get('centery') - h/2;};
+			}else{
+				_.tipX = function(w,h){return _.get('centerx') -w/2;};
+			}
+			
+			if(tipAlign==_.L){
+				_.tipX = function(w){return _.x - _.get('value_space') -w;};
+			}else if(tipAlign==_.R){
+				_.tipX = function(w){return _.x + _.width + _.get('value_space');};
+			}else if(tipAlign==_.B){
+				_.tipY = function(){return _.y  +_.height+3;};
+			}else{
+				_.tipY = function(w,h){return _.y  - h -3;};
+			}
+			
+			_.applyGradient();
+			
+			
+		}
+});
+/**
+ *@end
+ */	
+	/**
+	 * @overview the rectangle3d componment
+	 * @component#$.Rectangle3D
+	 * @extend#$.Rectangle
+	 */
+	$.Rectangle3D = $.extend($.Rectangle,{
+		configure:function(){
+			/**
+			 * invoked the super class's  configuration
+			 */
+			$.Rectangle3D.superclass.configure.apply(this,arguments);
+			
+			/**
+			 * indicate the component's type
+			 */
+			this.type = 'rectangle3d';
+			this.dimension = $._3D;
+			
+			this.set({
+				/**
+				 * @cfg {Number} Specifies Three-dimensional z-axis deep in pixels.Normally,this will given by chart.(default to undefined)
+				 */
+				zHeight:undefined,
+				/**
+				 * @cfg {Number} Three-dimensional rotation X in degree(angle).socpe{0-90}.Normally,this will given by chart.(default to 60)
+				 */
+				xAngle:60,
+				/**
+				 * @cfg {Number} Three-dimensional rotation Y in degree(angle).socpe{0-90}.Normally,this will given by chart.(default to 20)
+				 */
+				yAngle:20,
+				xAngle_:undefined,
+				yAngle_:undefined,
+				/**
+				 * @cfg {Number} Override the default as 2
+				 */
+				shadow_offsetx:2
+			});
+			
+		},
+		drawRectangle:function(){
+			var _ = this._();
+			_.T.cube(
+				_.get(_.X),
+				_.get(_.Y),
+				_.get('xAngle_'),
+				_.get('yAngle_'),
+				_.get(_.W),
+				_.get(_.H),
+				_.get('zHeight'),
+				_.get('f_color'),
+				_.get('border.enable'),
+				_.get('border.width'),
+				_.get('light_color'),
+				_.get('shadow')
+			);
+		},
+		isEventValid:function(e,_){
+			return {valid:e.x>_.x&&e.x<(_.x+_.get(_.W))&&e.y<_.y+_.get(_.H)&&e.y>_.y};
+		},
+		tipInvoke:function(){
+			var _ = this._();
+			return function(w,h){
+				return {
+					left:_.topCenterX - w/2,
+					top:_.topCenterY - h
+				}
+			}
+		},
+		doConfig:function(){
+			$.Rectangle3D.superclass.doConfig.call(this);
+			var _ = this._();
+			_.pushIf("zHeight",_.get(_.W));
+			
+			_.topCenterX=_.x+(_.get(_.W)+_.get(_.W)*_.get('xAngle_'))/2;
+			_.topCenterY=_.y-_.get(_.W)*_.get('yAngle_')/2-_.get('value_space');
+			
+			if(_.get('valueAlign')==_.O&&_.label){
+				_.label.push('textx',_.topCenterX);
+				_.label.push('texty',_.topCenterY);
+			}
+			
+		}
+});
+/**
+ *@end
+ */	
 /**
  * @overview this class is abstract,use for config column
  * @component#$.Column
@@ -7017,7 +5054,7 @@ $.Bar = $.extend($.Chart, {
 		 * use option create a coordinate
 		 */
 		_.coo = $.Coordinate.coordinate_.call(_,function(){
-			var L = _.data.length, H = _.get('coordinate.valid_height_value'),h_,bh,KL;
+			var L = _.data.length, H = _.get('coordinate.valid_height_value'),KL;
 			
 			if (_.dataType == 'complex') {
 				KL = _.get('labels').length;
@@ -7094,60 +5131,6 @@ $.register('Bar2D');
  */
 
 /**
- * @overview this component will draw a cluster bar2d chart.
- * @component#@chart#$.BarMulti2D
- * @extend#$.Bar
- */
-$.BarMulti2D = $.extend($.Bar, {
-	/**
-	 * initialize the context for the BarMulti2D
-	 */
-	configure : function() {
-		/**
-		 * invoked the super class's configuration
-		 */
-		$.BarMulti2D.superclass.configure.call(this);
-
-		this.type = 'barmulti2d';
-		this.dataType = 'complex';
-
-		this.set({
-			/**
-			 * @cfg {Array} the array of labels close to the axis
-			 */
-			labels : []
-		});
-	},
-	doEngine:function(_,bh,s,S,W,h2,gw,x,x0,y0){
-		var w;
-		_.columns.each(function(c, i) {
-			c.item.each(function(d, j) {
-				w = (d.value - S.start) * W / S.distance;
-				_.doParse(_, d, j, {
-					id : i + '_' + j,
-					originy : y0 + j * bh + i * gw,
-					width : Math.abs(w),
-					originx: x+(w>0?0:-Math.abs(w))
-				});
-				_.rectangles.push(new $.Rectangle2D(_.get('sub_option'), _));
-			}, _);
-			_.doLabel(_,i, c.name, x0, y0 - s * 0.5 + (i + 0.5) * gw);
-		}, _);
-	},
-	doConfig : function() {
-		$.BarMulti2D.superclass.doConfig.call(this);
-		/**
-		 * start up engine
-		 */
-		this.engine(this);
-	}
-});
-$.register('BarMulti2D');
-/**
- * @end
- */
-
-/**
  * @overview the stacked bar2d componment
  * @component#@chart#$.BarStacked2D
  * @extend#$.Bar
@@ -7217,6 +5200,1997 @@ $.BarStacked2D = $.extend($.Bar, {
 $.register('BarStacked2D');
 /**
  *@end 
+ */
+/**
+ * @overview this component will draw a cluster bar2d chart.
+ * @component#@chart#$.BarMulti2D
+ * @extend#$.Bar
+ */
+$.BarMulti2D = $.extend($.Bar, {
+	/**
+	 * initialize the context for the BarMulti2D
+	 */
+	configure : function() {
+		/**
+		 * invoked the super class's configuration
+		 */
+		$.BarMulti2D.superclass.configure.call(this);
+
+		this.type = 'barmulti2d';
+		this.dataType = 'complex';
+
+		this.set({
+			/**
+			 * @cfg {Array} the array of labels close to the axis
+			 */
+			labels : []
+		});
+	},
+	doEngine:function(_,bh,s,S,W,h2,gw,x,x0,y0){
+		var w;
+		_.columns.each(function(c, i) {
+			c.item.each(function(d, j) {
+				w = (d.value - S.start) * W / S.distance;
+				_.doParse(_, d, j, {
+					id : i + '_' + j,
+					originy : y0 + j * bh + i * gw,
+					width : Math.abs(w),
+					originx: x+(w>0?0:-Math.abs(w))
+				});
+				_.rectangles.push(new $.Rectangle2D(_.get('sub_option'), _));
+			}, _);
+			_.doLabel(_,i, c.name, x0, y0 - s * 0.5 + (i + 0.5) * gw);
+		}, _);
+	},
+	doConfig : function() {
+		$.BarMulti2D.superclass.doConfig.call(this);
+		/**
+		 * start up engine
+		 */
+		this.engine(this);
+	}
+});
+$.register('BarMulti2D');
+/**
+ * @end
+ */
+
+ 	/**
+	 * @overview the tip component.
+	 * @component#$.Tip
+	 * @extend#$.Element
+	 */
+	$.Tip = $.extend($.Html,{
+		configure:function(){
+			
+			/**
+			 * invoked the super class's configuration
+			 */
+			$.Tip.superclass.configure.apply(this,arguments);
+			
+			/**
+			 * indicate the legend's type
+			 */
+			this.type = 'tip';
+			
+			this.set({
+				name:'',
+				index:0,
+				value:'',
+				/**
+				 * @cfg {String} Specifies the text want to disply.(default to '')
+				 */
+				 text:'',
+				 /**
+					 * @cfg {String} Specifies the tip's type.(default to 'follow') Available value are:
+					 * @Option follow
+					 * @Option fixed
+					 */
+				 showType:'follow',
+				 /**
+					 * @cfg {Function} Specifies Function to calculate the position.(default to null)
+					 */
+				 invokeOffset:null,
+				 /**
+					 * @cfg {Number} Specifies the duration when fadeIn/fadeOut in millisecond.(default to 300)
+					 */
+				 fade_duration:300,
+				 /**
+					 * @cfg {Number} Specifies the duration when move in millisecond.(default to 100)
+					 */
+				 move_duration:100,
+				 /**
+				  * ease
+				  * linear
+				  * ease-in
+				  * ease-out
+				  * ease-in-out
+				  */
+				 timing_function:'ease-out',
+				 /**
+					 * @cfg {Boolean} if calculate the position every time (default to false)
+					 */
+				 invokeOffsetDynamic:false,
+				 /**
+					 * @cfg {String} Specifies the css of this Dom.
+					 */
+				 style:'textAlign:left;padding:4px 5px;cursor:pointer;backgroundColor:rgba(239,239,239,.85);fontSize:12px;color:black;',
+				 /**
+					 * @cfg {Object} Override the default as enable = true,radius = 5
+					 */
+				 border:{
+					enable:true,
+					radius : 5
+				 },
+				 delay:200
+			});
+			this.registerEvent(
+					/**
+					 * @event Fires when parse this tip's text.Return value will override existing.
+					 * @paramter <link>$.Tip</link>#tip
+					 * @paramter string#name the current tip's name
+					 * @paramter string#value the current tip's value
+					 * @paramter string#text the current tip's text
+					 * @paramter int#index index of data,if there was a line
+					 */
+					'parseText');
+		},
+		position:function(t,l,_){
+			_.style.top =  (t<0?0:t)+"px";
+			_.style.left = (l<0?0:l)+"px";
+		},
+		follow:function(e,m,_){
+			//_.style.width = "";
+			if(_.get('invokeOffsetDynamic')){
+				if(m.hit){
+					if($.isString(m.text)||$.isNumber(m.text)){
+						_.text(m.name,m.value,m.text,m.i,_);
+					}
+					var o = _.get('invokeOffset')(_.width(),_.height(),m);
+					_.position(o.top,o.left,_);
+				}
+			}else{
+				if(_.get('showType')!='follow'&&$.isFunction(_.get('invokeOffset'))){
+					var o = _.get('invokeOffset')(_.width(),_.height(),m);
+					_.position(o.top,o.left,_);
+				}else{
+					_.position((e.y-_.height()*1.1-2),e.x+2,_);
+				}
+			}
+		},
+		text:function(n,v,t,i,_){
+			_.dom.innerHTML = _.fireString(_, 'parseText', [_,n,v,t,i],t);
+		},
+		hidden:function(e){
+			if(this.get('animation')){
+				this.css('opacity',0);
+			}else{
+				this.css('visibility','hidden');
+			}
+		},
+		doAction:function(_){
+			_.T.on('mouseover',function(c,e,m){
+				_.show(e,m);	
+			}).on('mouseout',function(c,e,m){
+				_.hidden(e);
+			});
+			
+			if(_.get('showType')=='follow'){
+				_.T.on('mousemove',function(c,e,m){
+					if(_.T.variable.event.mouseover){
+						setTimeout(function(){
+							if(_.T.variable.event.mouseover)
+								_.follow(e,m,_);
+						},_.get('delay'));
+					}
+				});
+			}
+		},
+		initialize:function(){
+			$.Tip.superclass.initialize.call(this);
+			
+			var _ = this._();
+			
+			_.text(_.get('name'),_.get('value'),_.get('text'),_.get('index'),_);
+			_.hidden();
+			
+			if(_.get('animation')){
+				var m =  _.get('move_duration')/1000+'s '+_.get('timing_function')+' 0s';
+				_.transition('opacity '+_.get('fade_duration')/1000+'s '+_.get('timing_function')+' 0s');
+				_.transition('top '+m);
+				_.transition('left '+m);
+				_.onTransitionEnd(function(e){
+					if(_.css('opacity')==0){
+						_.css('visibility','hidden');
+					}
+				},false);
+			}
+			
+		}
+});
+/**
+ * @end
+ */
+
+	/**
+	 * @overview the text componment
+	 * @component#$.Text
+	 * @extend#$.Component
+	 */
+	$.Text = $.extend($.Component,{
+		configure:function(){
+			/**
+			 * invoked the super class's  configuration
+			 */
+			$.Text.superclass.configure.apply(this,arguments);
+			
+			/**
+			 * indicate the component's type
+			 */
+			this.type = 'text';
+			
+			this.set({
+				/**
+				 * @cfg {String} Specifies the text want to disply.(default to '')
+				 */
+				text:'',
+				/**
+				 * @cfg {String} there has two layers of meaning,when width is 0,Specifies the textAlign of html5.else this is the alignment of box.(default to 'center')
+				 * when width is 0,Available value are:
+				 * @Option start
+				 * @Option end
+				 * @Option left
+				 * @Option right
+				 * @Option center
+				 * when width is not 0,Available value are:
+				 * @Option left
+				 * @Option right
+				 * @Option center
+				 */
+				textAlign:'center',
+				/**
+				 * @cfg {String} Specifies the alignment in box.(default to 'center')
+				 * @Option left
+				 * @Option right
+				 * @Option center
+				 */
+				align:'center',
+				/**
+				 * @cfg {String} Here,specify as false to make background transparent.(default to null)
+				 */
+				background_color : 0,
+				/**
+				 * @cfg {String} Specifies the textBaseline of html5.(default to 'top')
+				 * Available value are:
+				 * @Option top
+				 * @Option hanging
+				 * @Option middle
+				 * @Option alphabetic
+				 * @Option ideographic
+				 * @Option bottom
+				 */
+				textBaseline:'top',
+				/**
+				 * @cfg {Object} Here,specify as false by default
+				 * @see <link>$.Element#border</link>
+				 */
+				border : {
+					enable : false
+				},
+				/**
+				 * @cfg {Number} Specifies the maxwidth of text in pixels,if given 0 will not be limited.(default to 0)
+				 */
+				width:0,
+				/**
+				 * @cfg {Number} Specifies the maxheight of text in pixels,if given 0 will not be limited(default to 0)
+				 */
+				height:0,
+				/**
+				 * @cfg {Number} Here,specify as 0 by default
+				 */
+				padding:0,
+				/**
+				 * @cfg {String} Specifies the writing-mode of text.(default to 'lr') .
+				 * Available value are:
+				 * @Option 'lr'
+				 */
+				writingmode : 'lr',
+				/**
+				 * @cfg {Number} Specifies the lineheight when text display multiline.(default to 16).
+				 */
+				line_height : 16,
+				/**
+				 * @cfg {Number} Specifies the angle that text writed.0 to horizontal,clockwise.(default to 0).
+				 */
+				rotate:0
+			});
+			
+			this.registerEvent();
+			
+		},
+		doDraw:function(_){
+			if(_.get('box_feature'))
+			_.T.box(_.x,_.y,_.get(_.W),_.get(_.H),_.get('border'),_.get('f_color'));
+			_.T.text(_.get('text'),_.get('textx'),_.get('texty'),_.get(_.W)-_.get('hpadding'),_.get('color'),_.get('textAlign'),_.get('textBaseline'),_.get('fontStyle'),_.get('writingmode'),_.get('line_height'),_.get('shadow'),_.get('rotate'));
+		},
+		isEventValid:function(){
+			return {valid:false};
+		},
+		doLayout:function(x,y,n,_){
+			_.x = _.push(_.X,_.x+x);
+			_.y = _.push(_.Y,_.y+y);
+			_.push('textx',_.get('textx')+x);
+			_.push('texty',_.get('texty')+y);
+		},
+		doConfig:function(){
+			$.Text.superclass.doConfig.call(this);
+			var _ = this._(),x = _.x,y=_.y+_.get('padding_top'),w=_.get(_.W),h=_.get(_.H),a=_.get('textAlign');
+			x+=(a==_.C?w/2:(a==_.R?w-_.get('padding_right'):_.get('padding_left')));
+			if(h){
+				y+=h/2;
+				_.push('textBaseline','middle');
+			}
+			_.push('textx',x);
+			_.push('texty',y);
+			_.push('box_feature',w&&h);
+			_.applyGradient();
+		}
+});
+/**
+ * @end
+ */
+/**
+ * @overview the base class of pie chart
+ * @component#$.Pie
+ * @extend#$.Chart
+ */
+$.Pie = $.extend($.Chart, {
+	/**
+	 * initialize the context for the pie
+	 */
+	configure : function() {
+		/**
+		 * invoked the super class's configuration
+		 */
+		$.Pie.superclass.configure.call(this);
+		
+		this.type = 'pie';
+
+		this.set({
+			/**
+			 * @cfg {Float/String} Specifies the pie's radius.If given a percentage,it will relative to minDistance.(default to '100%')
+			 */
+			radius : '100%',
+			/**
+			 * @cfg {Number} initial angle for first sector.(default to 0)
+			 */
+			offset_angle : 0,
+			/**
+			 * @cfg {Number(0~90)} separate angle of all sector.(default to 0)
+			 */
+			separate_angle:0,
+			/**
+			 * @cfg {String} the event's name trigger pie pop(default to 'click')
+			 */
+			bound_event : 'click',
+			/**
+			 * @inner {Boolean} True to make sector counterclockwise.(default to false)
+			 */
+			counterclockwise : false,
+			/**
+			 * @cfg {Boolean} when label's position in conflict.auto layout.(default to true).
+			 */
+			intellectLayout : true,
+			/**
+			 * @cfg {Number} Specifies the distance in pixels when two label is incompatible with each other.(default 4),
+			 */
+			layout_distance : 4,
+			/**
+			 * @inner {Boolean} if it has animate when a piece popd (default to false)
+			 */
+			pop_animate : false,
+			/**
+			 * @cfg {Boolean} Specifies as true it means just one piece could pop (default to false)
+			 */
+			mutex : false,
+			/**
+			 * @cfg {Number} Specifies the length when sector bounded.(default to 1/8 radius,and minimum is 5),
+			 */
+			increment : undefined,
+			/**
+			 * @cfg {<link>$.Sector</link>} option of sector.Note,Pie2d depend on Sector2d and pie3d depend on Sector3d.For details see <link>$.Sector</link>
+			 */
+			sub_option : {
+				label : {}
+			}
+		});
+
+		this.registerEvent(
+		/**
+		 * @event Fires when this element' sector bounded
+		 * @paramter <link>$.Sector2d</link>#sector
+		 * @paramter string#name
+		 * @paramter int#index
+		 */
+		'bound',
+		/**
+		 * @event Fires when this element' sector rebounded
+		 * @paramter <link>$.Sector2d</link>#sector
+		 * @paramter string#name
+		 * @paramter int#index
+		 */
+		'rebound');
+		this.sectors = [];
+		this.components.push(this.sectors);
+		this.ILLUSIVE_COO = true;
+	},
+	/**
+	 * @method Toggle sector bound or rebound by a specific index.
+	 * @paramter int#i the index of sector
+	 * @return void
+	 */
+	toggle : function(i) {
+		this.sectors[i || 0].toggle();
+	},
+	/**
+	 * @method bound sector by a specific index.
+	 * @paramter int#i the index of sector
+	 * @return void
+	 */
+	bound : function(i) {
+		this.sectors[i || 0].bound();
+	},
+	/**
+	 * @method rebound sector by a specific index.
+	 * @paramter int#i the index of sector
+	 * @return void
+	 */
+	rebound : function(i) {
+		this.sectors[i || 0].rebound();
+	},
+	/**
+	 * @method Returns an array containing all sectors of this pie
+	 * @return Array#the collection of sectors
+	 */
+	getSectors : function() {
+		return this.sectors;
+	},
+	doAnimation : function(t, d,_) {
+		var si = 0, cs = _.oA;
+		_.sectors.each(function(s, i) {
+			si = _.animationArithmetic(t, 0, s.get('totalAngle'), d);
+			s.push('startAngle', cs);
+			s.push('endAngle', cs+=si);
+			if (!_.is3D())
+				s.drawSector();
+		});
+		
+		if (_.is3D()) {
+			_.proxy.drawSector();
+		}
+	},
+	parse : function(_) {
+		_.data.each(function(d,i){
+			_.doParse(_,d,i);
+		},_);
+		/**
+		 * layout the label
+		 */
+		_.localizer(_);
+	},
+	doParse : function(_,d, i) {
+		var t = d.name + ' ' +_.percent(d.value);
+		
+		_.doActing(_,d,null,i,t);
+		
+		_.push('sub_option.id', i);
+		
+		if(_.get('sub_option.label'))
+		_.push('sub_option.label.text', t);
+		
+		_.push('sub_option.listeners.changed', function(se, st, i) {
+			_.fireEvent(_, st ? 'bound' : 'rebound', [_, se.get('name')]);
+		});
+		
+		_.sectors.push(_.doSector(_,d));
+	},
+	doSector:function(_){
+		return  new $[_.sub](_.get('sub_option'), _);
+	},
+	dolayout : function(_,x,y,l,d,Q) {
+		if(_.is3D()?$.inEllipse(_.get(_.X) - x,_.topY-y,_.a,_.b):$.distanceP2P(_.get(_.X),_.topY,x,y)<_.r){
+			y=_.topY-y;
+			l.push('labelx',_.get(_.X)+(Math.sqrt(_.r*_.r-y*y)*2+d)*(Q==0||Q==3?1:-1));
+			l.localizer(l);
+		}
+	},
+	localizer:function(_){
+		if (_.get('intellectLayout')) {
+			var unlayout = [],layouted = [],d = _.get('layout_distance'),Q,x,y;
+			
+			_.sectors.each(function(f, i) {
+				if(f.isLabel())
+				unlayout.push(f.label);
+			});
+			
+			unlayout.sor(function(p, q) {
+				return Math.abs(Math.sin(p.get('angle'))) - Math.abs(Math.sin(q.get('angle')))>0;
+			});
+			
+			unlayout.each(function(la) {
+				layouted.each(function(l) {
+					x = l.labelx, y = l.labely;
+					if ((la.labely <= y && (y - la.labely-1) < la.get(_.H)) || (la.labely > y && (la.labely - y-1) < l.get(_.H))) {
+						if ((la.labelx <= x && (x - la.labelx) < la.get(_.W)) || (la.labelx > x && (la.labelx - x) < l.get(_.W))) {
+							Q = la.get('quadrantd');
+							la.push('labely', (la.get('labely')+ y - la.labely) + (la.get(_.H)  + d)*(Q>1?-1:1));
+							la.localizer(la);
+							_.dolayout(_,la.get('labelx'),la.get('labely')+la.get(_.H)/2*(Q<2?-1:1),la,d,Q);
+						}
+					}
+				}, _);
+				layouted.push(la);
+			});
+		}
+	},
+	doConfig : function() {
+		$.Pie.superclass.doConfig.call(this);
+		var _ = this._(),V,r = _.get('radius'), f = _.get('sub_option.label') ? 0.35 : 0.44,pi2=Math.PI*2;
+		_.sub = _.is3D()?'Sector3D':'Sector2D';
+		_.sectors.zIndex = _.get('z_index');
+		_.sectors.length = 0;
+		
+		_.oA = $.angle2Radian(_.get('offset_angle'))%pi2;
+		//If 3D,let it bigger
+		if (_.is3D())
+			f += 0.06;
+		
+		var L = _.data.length,sepa = $.angle2Radian($.between(0,90,_.get('separate_angle'))),PI = pi2-sepa,sepa=sepa/L,eA = _.oA+sepa, sA = eA;
+		if(_.total==0){
+			V  = 1/L;
+		}
+		_.data.each(function(d, i) {
+			eA += (V||(d.value / _.total)) * PI;
+			if (i == (L - 1)) {
+				eA = pi2 + _.oA;
+			}
+			d.startAngle = sA;
+			d.endAngle = eA;
+			d.totalAngle = eA - sA;
+			d.middleAngle = (sA + eA) / 2;
+			sA = eA+sepa;
+		}, _);
+		
+		_.r = r = $.parsePercent(r,Math.floor(_.get('minDistance') * f));
+		
+		_.topY = _.originXY(_,[r + _.get('l_originx'),_.get('r_originx') - r,_.get('centerx')],[_.get('centery')]).y;
+		
+		$.apply(_.get('sub_option'),$.clone([_.X, _.Y, 'bound_event','mutex','increment'], _.options));
+		
+	}
+});
+/** @end */
+
+/**
+ * @overview the pie2d componment
+ * @component#@chart#$.Pie2D
+ * @extend#$.Pie
+ */
+$.Pie2D = $.extend($.Pie, {
+	/**
+	 * initialize the context for the pie2d
+	 */
+	configure : function() {
+		/**
+		 * invoked the super class's configuration
+		 */
+		$.Pie2D.superclass.configure.call(this);
+
+		this.type = 'pie2d';
+
+	},
+	doConfig : function() {
+		$.Pie2D.superclass.doConfig.call(this);
+		var _ = this._();
+		/**
+		 * quick config to all rectangle
+		 */
+		_.push('sub_option.radius',_.r)
+		_.parse(_);
+		
+		
+	}
+});
+$.register('Pie2D');
+/**
+ * @end
+ */
+/**
+ * @overview the pie3d componment
+ * @component#@chart#$.Pie3D
+ * @extend#$.Pie
+ */
+$.Pie3D = $.extend($.Pie, {
+	configure : function() {
+		/**
+		 * invoked the super class's configuration
+		 */
+		$.Pie3D.superclass.configure.apply(this, arguments);
+
+		this.type = 'pie3d';
+		this.dimension = $._3D;
+
+		this.set({
+			/**
+			 * @cfg {Number} Three-dimensional rotation Z in degree(angle).socpe{0-90}.(default to 45)
+			 */
+			zRotate : 45,
+			/**
+			 * @cfg {Number} Specifies the pie's thickness in pixels.(default to 30)
+			 */
+			yHeight : 30
+		});
+		this.positive = true;
+	},
+	doSector : function(_,d) {
+		_.push('sub_option.cylinder_height', (d.cylinder_height ? d.cylinder_height * _.get('zRotate_') : _.get('cylinder_height')));
+		return new $[_.sub](_.get('sub_option'), _);
+	},
+	one:function(_){
+		var layer,spaint,L = [],c = _.get('counterclockwise'), abs = function(n,M) {
+			/**
+			 * If M,close to pi/2,else pi*3/2
+			 */
+			return 1 + Math.sin(M?(n+Math.PI):n);
+		}, t = 'startAngle', d = 'endAngle',Q,s,e
+		/**
+		 * If the inside layer visibile
+		 */
+		lay =function(C,g,z,f){
+			Q = $.quadrantd(g);
+			if (C &&(Q ==0 || Q ==3) || (!C && (Q ==2 || Q ==1))) {
+				layer.push({
+					g : g,
+					z : g==z,
+					x : f.x,
+					y : f.y,
+					a : f.a,
+					b : f.b,
+					color : $.dark(f.get('background_color')),
+					h : f.h,
+					F : f
+				});
+			}
+		};
+
+		_.proxy = new $.Custom({
+			z_index : _.get('z_index') + 1,
+			drawFn : function() {
+				this.drawSector();
+				L = [];
+				_.sectors.each(function(s) {
+					if (s.get('label')) {
+						if (s.expanded)
+							L.push(s.label);
+						else
+							s.label.draw();
+					}
+				});
+				L.each(function(l) {
+					l.draw()
+				});
+			}
+		});
+		_.proxy.drawSector = function() {
+			/**
+			 * paint bottom layer
+			 */
+			_.sectors.each(function(s, i) {
+				_.T.ellipse(s.x, s.y + s.h, s.a, s.b, s.get(t), s.get(d), 0, s.get('border.enable'), s.get('border.width'), s.get('border.color'), s.get('shadow'), c, true);
+			}, _);
+			layer = [];
+			spaint = [];
+			/**
+			 * sort layer
+			 */
+			_.sectors.each(function(f) {
+				lay(c,f.get(t),f.get(d),f);
+				lay(!c,f.get(d),f.get(t),f);
+				spaint = spaint.concat($.visible(f.get(t),f.get(d),f));
+			}, _);
+			
+			/**
+			 * realtime sort
+			 */
+			layer.sor(function(p, q) {
+				var r = abs(p.g) - abs(q.g);
+				return r==0?p.z:r > 0;
+			});
+
+			/**
+			 * paint inside layer
+			 */
+			layer.each(function(f, i) {
+				_.T.sector3D.layerDraw.call(_.T, f.x, f.y, f.a + 0.5, f.b + 0.5, c, f.h, f.g, f.color);
+			}, _);
+			
+			if(!_.processAnimation){	
+				/**
+				 * realtime sort
+				 */
+				spaint.sor(function(p, q) {
+					return abs((p.s+p.e)/2,1) - abs((q.s+q.e)/2,1)<0;
+				});
+			}
+			/**
+			 * paint outside layer
+			 */
+			spaint.each(function(s, i) {
+				_.T.sector3D.sPaint.call(_.T, s.f.x, s.f.y, s.f.a, s.f.b, s.s, s.e, c, s.f.h, s.f.get('f_color'));
+			}, _);
+
+			/**
+			 * paint top layer
+			 */
+			_.sectors.each(function(s, i) {
+				_.T.ellipse(s.x, s.y, s.a, s.b, s.get(t), s.get(d), s.get('f_color'), s.get('border.enable'), s.get('border.width'), s.get('border.color'), false, false, true);
+			}, _);
+		}
+		_.components.push(_.proxy);
+		_.one = $.emptyFn;
+	},
+	doConfig : function() {
+		$.Pie3D.superclass.doConfig.call(this);
+		var _ = this._(), z = $.angle2Radian(_.get('zRotate'));
+		
+		_.push('cylinder_height', _.get('yHeight') * _.push('zRotate_',Math.abs(Math.cos(z))));
+		
+		_.a = _.push('sub_option.semi_major_axis', _.r);
+		_.b = _.push('sub_option.semi_minor_axis', _.r * Math.abs(Math.sin(z)));
+		
+		_.topY = _.push('sub_option.originy', _.get(_.Y) - _.get('yHeight') / 2);
+		
+		_.parse(_);
+		
+		_.one(_);
+	}
+});
+$.register('Pie3D');
+/**
+ * @end
+ */
+
+/**
+ * @overview this component use for show a donut chart
+ * @component#@chart#$.Donut2D
+ * @extend#$.Pie
+ */
+$.Donut2D = $.extend($.Pie, {
+	/**
+	 * initialize the context for the pie2d
+	 */
+	configure : function() {
+		/**
+		 * invoked the super class's configuration
+		 */
+		$.Donut2D.superclass.configure.call(this);
+		
+		this.type = 'donut2d';
+		
+		this.set({
+			/**
+			 * @cfg {Number} Specifies the width when show a donut.If the value lt 1,It will be as a percentage,value will be radius*donutwidth.only applies when it not 0.(default to 0.3)
+			 */
+			donutwidth : 0.3,
+			/**
+			 * @cfg {Object/String} Specifies the config of Center Text details see <link>$.Text</link>,If given a string,it will only apply the text.note:If the text is empty,then will not display
+			 */
+			center : {
+				text:'',
+				line_height:24,
+				fontweight : 'bold',
+				/**
+				 * Specifies the font-size in pixels of center text.(default to 24)
+				 */
+				fontsize : 24
+			}
+		});
+	},
+	doConfig : function() {
+		$.Donut2D.superclass.doConfig.call(this);
+		
+		var _ = this._(),d='donutwidth',e = _.get(d),r = _.r;
+		/**
+		 * quick config to all rectangle
+		 */
+		_.push('sub_option.radius',r)
+		if(e>=r){
+			e = 0;
+		}else if(e<1){
+			e = Math.floor(r*e);
+		} 
+		_.push('sub_option.donutwidth',_.push(d,e));
+		
+		_.merge('center');
+		
+		if (_.get('center.text') != '') {
+			_.push('center.originx',_.get(_.X));
+			_.push('center.originy',_.get(_.Y));
+			_.push('center.textBaseline','middle');
+			_.center = new $.Text(_.get('center'), _);
+			
+			_.oneways.push(_.center);
+		}
+		
+		_.parse(_);
+	}
+});
+$.register('Donut2D');
+/**
+ * @end
+ */
+/**
+ * @overview this is inner use for axis
+ * @component#$.Scale
+ * @extend#$.Component
+ */
+$.Scale = $.extend($.Component, {
+	configure : function() {
+
+		/**
+		 * invoked the super class's configuration
+		 */
+		$.Scale.superclass.configure.apply(this, arguments);
+
+		/**
+		 * indicate the component's type
+		 */
+		this.type = 'scale';
+
+		this.set({
+			/**
+			 * @cfg {String} Specifies alignment of this scale.(default to 'left')
+			 */
+			position : 'left',
+			/**
+			 * @cfg {String} the axis's type(default to 'h') Available value are:
+			 * @Option 'h' :horizontal
+			 * @Option 'v' :vertical
+			 */
+			which : 'h',
+			/**
+			 * @cfg {Number} Specifies value of Baseline Coordinate.(default to 0)
+			 */
+			basic_value:0,
+			/**
+			 * @cfg {Boolean} indicate whether the grid is accord with scale.(default to true)
+			 */
+			scale2grid : true,
+			/**
+			 * @inner {Number}
+			 */
+			distance : undefined,
+			/**
+			 * @cfg {Number} Specifies the start coordinate scale value.(default to 0)
+			 */
+			start_scale : 0,
+			/**
+			 * @cfg {Number} Specifies the end coordinate scale value.Note either this or property of max_scale must be has the given value.(default to undefined)
+			 */
+			end_scale : undefined,
+			/**
+			 * @cfg {Number} Specifies the chart's minimal value
+			 */
+			min_scale : undefined,
+			/**
+			 * @cfg {Number} Specifies the chart's maximal value
+			 */
+			max_scale : undefined,
+			/**
+			 * @cfg {Number} Specifies the space of two scale.Note either this or property of scale_share must be has the given value.(default to undefined)
+			 */
+			scale_space : undefined,
+			/**
+			 * @cfg {Number} Specifies the number of scale on axis.(default to 5)
+			 */
+			scale_share : 5,
+			/**
+			 * @cfg {Boolean} True to display the scale line.(default to true)
+			 */
+			scale_enable : true,
+			/**
+			 * @cfg {Number} Specifies the size of brush(context.linewidth).(default to 1)
+			 */
+			scale_size : 1,
+			/**
+			 * @cfg {Number} Specifies the width(length) of scale.(default to 4)
+			 */
+			scale_width : 4,
+			/**
+			 * @cfg {String} Specifies the color of scale.(default to 4)
+			 */
+			scale_color : '#333333',
+			/**
+			 * @cfg {String} Specifies the align against axis.(default to 'center') When the property of which set to 'h',Available value are:
+			 * @Option 'left'
+			 * @Option 'center'
+			 * @Option 'right' 
+			 * When the property of which set to 'v', Available value are:
+			 * @Option 'top'
+			 * @Option 'center'
+			 * @Option 'bottom'
+			 */
+			scaleAlign : 'center',
+			/**
+			 * @cfg {Array} the customize labels
+			 */
+			labels : [],
+			/**
+			 * @cfg {<link>$.Text</link>} Specifies label's option.
+			 */
+			label : {},
+			/**
+			 * @cfg {Number} Specifies the distance to scale.(default to 6)
+			 */
+			text_space : 6,
+			/**
+			 * @cfg {String} Specifies the align against axis.(default to 'left' or 'bottom' in v mode) When the property of which set to 'h',Available value are:
+			 * @Option 'left'
+			 * @Option 'right' When the property of which set to 'v', Available value are:
+			 * @Option 'top'
+			 * @Option 'bottom'
+			 */
+			textAlign : 'left',
+			/**
+			 * @cfg {Number} Specifies the number of decimal.this will change along with scale.(default to 0)
+			 */
+			decimalsnum : 0,
+			/**
+			 * @inner {String} the style of overlapping(default to 'none') Available value are:
+			 * @Option 'square'
+			 * @Option 'round'
+			 * @Option 'none'
+			 */
+			join_style : 'none',
+			/**
+			 * @inner {Number}
+			 */
+			join_size : 2
+		});
+
+		this.registerEvent(
+		/**
+		 * @event Fires the event when parse text,you can return a object like this:{text:'',originx:100,originy:100} to override the given.
+		 * @paramter string#text item's text
+		 * @paramter int#originx coordinate-x of item's text
+		 * @paramter int#originy coordinate-y of item's text
+		 * @paramter int#index item's index
+		 * @paramter boolean#last If last item
+		 */
+		'parseText');
+
+	},
+	isEventValid : function() {
+		return {
+			valid : false
+		};
+	},
+	getScale:function(_){
+		var u = [_.get('basic_value'),_.get('start_scale'),_.get('end_scale'),_.get('end_scale') - _.get('start_scale'),0];
+		u[4] = $.inRange(u[1],u[2]+1,u[0])||$.inRange(u[2]-1,u[1],u[0]);
+		return {
+			range:u[4],
+			basic:u[4]?(u[0]-u[1]) / u[3]:0,
+			start : u[4]?u[0]:u[1],
+			end : u[2],
+			distance : u[3]
+		}
+	},
+	/**
+	 * from left to right,top to bottom
+	 */
+	doDraw : function(_) {
+		if (_.get('scale_enable'))
+			_.items.each(function(item) {
+				_.T.line(item.x0, item.y0, item.x1, item.y1, _.get('scale_size'), _.get('scale_color'), false);
+			});
+		_.labels.each(function(l) {
+			l.draw();
+		});
+	},
+	doLayout:function(x,y,_){
+		if (_.get('scale_enable'))
+			_.items.each(function(item) {
+				item.x0+=x;
+				item.y0+=y;
+				item.x1+=x;
+				item.y1+=y;
+			});
+		_.labels.each(function(l) {
+			l.doLayout(x,y,0,l);
+		});
+	},
+	doConfig : function() {
+		$.Scale.superclass.doConfig.call(this);
+		
+		var _ = this._(),abs = Math.abs,L = _.get('labels').length,K=L - 1, min_s = _.get('min_scale'), max_s = _.get('max_scale'), s_space = _.get('scale_space'), e_scale = _.get('end_scale'), start_scale = _.get('start_scale');
+
+		_.items = [];
+		_.labels = [];
+
+		if (L == 0) {
+            /**
+             * default to 5
+             * @type {number}
+             */
+            K = 5;
+			/**
+			 * startScale must less than minScale
+			 */
+			if (start_scale > min_s) {
+				start_scale = _.push('start_scale', $.floor(min_s));
+			}
+
+			/**
+			 * end_scale must greater than maxScale
+			 */
+			if (!$.isNumber(e_scale) || e_scale < max_s) {
+				e_scale = $.ceil(max_s);
+				e_scale = _.push('end_scale', (!e_scale&&!start_scale)?1:e_scale);
+			}
+
+            var total = abs(e_scale - start_scale);
+            if (s_space && abs(s_space) < abs(total)) {
+                K = abs(Math.ceil((total) / s_space));
+            } else {
+                var t = total.toString(), W = t.indexOf('.') + 1, M = 10, R = (W > 0 ? /^0\.0*([1-9])$/ : /^([1-9])0*$/).exec(t);
+                while (W > 0) {
+                    W--;
+                    M *= 10;
+                }
+                if (R && R[1]) {
+                    K = parseInt(R[1]);
+                }
+                K = K == 1 ? 5 : K;
+                K = (K == 8 || K == 2) ? 4 : K;
+                K = K == 9 ? 3 : K;
+                s_space = _.push('scale', (total) * M / K / M);
+			}
+
+			if (parseInt(s_space)!=s_space && _.get('decimalsnum') == 0) {
+				_.push('decimalsnum',(s_space+"").substring((s_space+"").indexOf('.')+1).length);
+			}
+		}
+
+		/**
+		 * the real distance of each scale
+		 */
+		_.push('distanceOne', _.get('valid_distance') / _.push('scale_share',K));
+		
+		var text, x, y, x1 = 0, y1 = 0, x0 = 0, y0 = 0, tx = 0, ty = 0, w = _.get('scale_width'), w2 = w / 2, sa = _.get('scaleAlign'), ta = _.get('position'), ts = _.get('text_space'), tbl = '',aw = _.get('coo').get('axis.width');
+		
+		_.push('which', _.get('which').toLowerCase());
+		_.isH = _.get('which') == 'h';
+		if (_.isH) {
+			if (sa == _.O) {
+				y0 = -w;
+			} else if (sa == _.C) {
+				y0 = -w2;
+				y1 = w2;
+			} else {
+				y1 = w;
+			}
+
+			if (ta == _.O) {
+				ty = -ts-aw[0];
+				tbl = _.B;
+			} else {
+				ty = ts+aw[2];
+				tbl = _.O;
+			}
+			ta = _.C;
+		} else {
+			if (sa == _.L) {
+				x0 = -w;
+			} else if (sa == _.C) {
+				x0 = -w2;
+				x1 = w2;
+			} else {
+				x1 = w;
+			}
+			tbl = 'middle';
+			if (ta == _.R) {
+				ta = _.L;
+				tx = ts+aw[1];
+			} else {
+				ta = _.R;
+				tx = -ts-aw[3];
+			}
+		}
+		/**
+		 * valid width only applies when there is h,then valid_height only applies when there is v
+		 */
+		for ( var i = 0; i <= K; i++) {
+			text = L ? _.get('labels')[i] : (s_space * i + start_scale).toFixed(_.get('decimalsnum'));
+			x = _.isH ? _.get('valid_x') + i * _.get('distanceOne') : _.x;
+			y = _.isH ? _.y : _.get('valid_y') + _.get('valid_distance') - i * _.get('distanceOne');
+			
+			_.items.push({
+				x : x,
+				y : y,
+				x0 : x + x0,
+				y0 : y + y0,
+				x1 : x + x1,
+				y1 : y + y1
+			});
+			/**
+			 * put the label into a Text?
+			 */
+			if(_.get('label'))
+			_.labels.push(new $.Text($.applyIf($.apply(_.get('label'), $.merge({
+				text : text,
+				x : x,
+				y : y,
+				originx : x + tx,
+				originy : y + ty
+			}, _.fireEvent(_, 'parseText', [text, x + tx, y + ty, i, K == i]))), {
+				textAlign : ta,
+				textBaseline : tbl
+			}), _));
+
+			/**
+			 * maxwidth = Math.max(maxwidth, _.T.measureText(text));
+			 */
+		}
+	}
+});
+
+/**
+ * @end
+ */
+$.Coordinate = {
+	coordinate_ : function(g) {
+		var _ = this._(),coo = _.get('coordinate'),li=_.get('scaleAlign');
+		
+		if(coo.ICHARTJS_OBJECT){
+			_.x = _.push(_.X, coo.x);
+			_.y = _.push(_.Y, coo.y);
+			/**
+			 * Imply it was illusive
+			 */
+			_.ILLUSIVE_COO = true;
+			
+			coo.refresh(_.get('minValue'),_.get('maxValue'),li);
+			
+			return coo;
+		}
+		/**
+		 * Apply the coordinate feature
+		 */
+		var f = '85%',
+			parse=$.parsePercent, 
+			scale = _.get('coordinate.scale'),
+			w = _.push('coordinate._width',parse(_.get('coordinate.width')||f,Math.floor(_.get('client_width'))));
+			h = _.push('coordinate._height',parse(_.get('coordinate.height')||f,Math.floor(_.get('client_height')))-(_.is3D()?((_.get('coordinate.pedestal_height')||22) + (_.get('coordinate.board_deep')||20)):0));
+			_.push('coordinate.valid_height_value',parse(_.get('coordinate.valid_height'),h));
+			_.push('coordinate.valid_width_value',parse(_.get('coordinate.valid_width'),w));
+			
+		_.originXY(_,[_.get('l_originx'),_.get('r_originx') - w,_.get('centerx') - w / 2],[_.get('centery') - h / 2]);
+		
+		_.set({
+			coordinate : {
+				originx: _.x,
+				originy: _.y,
+				id:'coordinate'
+			}
+		});
+		
+		/**
+		 * invoke call back
+		 */
+		if(g)g();
+		
+		if($.isObject(scale)){
+			scale = [scale];
+		}
+		if($.isArray(scale)){
+			var ST = _.dataType != 'stacked';
+			scale.each(function(s){
+				/**
+				 * applies the percent shower
+				 */
+				if(_.get('percent')&&s.position==li){
+					s = $.apply(s,{
+						start_scale : 0,
+						end_scale : 100,
+						scale_space : 10,
+						listeners:{
+							parseText:function(t){
+								return {text:t+'%'}
+							}
+						 }
+					});
+				}
+				if(!s.start_scale||(ST&&!s.assign_scale&&s.start_scale>_.get('minValue')))
+					s.min_scale = _.get('minValue');
+				if(!s.end_scale||(ST&&!s.assign_scale&&s.end_scale<_.get('maxValue')))
+					s.max_scale = _.get('maxValue');
+			});
+		}else{
+			_.push('coordinate.scale',{
+				position : li,
+				scaleAlign : li,
+				max_scale : _.get('maxValue'),
+				min_scale : _.get('minValue')
+			});
+		}
+		 
+		if (_.is3D()) {
+			_.set({
+				coordinate : {
+					xAngle_: _.get('xAngle_'),
+					yAngle_: _.get('yAngle_'),
+					/**
+					 * the Coordinate' Z is same as long as the column's
+					 */
+					zHeight:_.get('zHeight') * _.get('bottom_scale')
+				}
+			});
+		}
+		_.remove(_,_.coo);
+		if(!_.isE())
+		return _.register(new $[_.is3D()?'Coordinate3D':'Coordinate2D'](_.get('coordinate'), _));;
+	}
+}
+/**
+ * @overview the coordinate2d componment
+ * @component#$.Coordinate2D
+ * @extend#$.Component
+ */
+$.Coordinate2D = $.extend($.Component, {
+	configure : function() {
+		/**
+		 * invoked the super class's configurationuration
+		 */
+		$.Coordinate2D.superclass.configure.apply(this, arguments);
+
+		/**
+		 * indicate the component's type
+		 */
+		this.type = 'coordinate2d';
+
+		this.set({
+			/**
+			 * @inner {Number}
+			 */
+			sign_size : 12,
+			/**
+			 * @inner {Number}
+			 */
+			sign_space : 5,
+			/**
+			 * @cfg {Array} the option for scale.For details see <link>$.Scale</link>
+			 */
+			scale : [],
+			/**
+			 * @cfg {String/Number} Here,specify as '85%' relative to client width.(default to '85%')
+			 */
+			width:'85%',
+			/**
+			 * @cfg {String/Number} Here,specify as '85%' relative to client height.(default to '85%')
+			 */
+			height:'85%',
+			/**
+			 * @cfg {String/Number} Specifies the valid width,less than the width of coordinate.you can applies a percent value relative to width.(default to '100%')
+			 */
+			valid_width : '100%',
+			/**
+			 * @cfg {String/Number} Specifies the valid height,less than the height of coordinate.you can applies a percent value relative to width.(default to '100%')
+			 */
+			valid_height : '100%',
+			/**
+			 * @cfg {Number} Specifies the linewidth of the grid.(default to 1)
+			 */
+			grid_line_width : 1,
+			/**
+			 * @cfg {String} Specifies the color of the grid.(default to '#dbe1e1')
+			 */
+			grid_color : '#dbe1e1',
+			/**
+			 * @cfg {Object} Specifies the stlye of horizontal grid.(default to empty object).Available property are:
+			 * @Option solid {Boolean} True to draw a solid line.else draw a dotted line.(default to true)
+			 * @Option size {Number} Specifies size of line segment when solid is false.(default to 10)
+			 * @Option fator {Number} Specifies the times to size(default to 1)
+			 * @Option width {Number} Specifies the width of grid line.(default to 1)
+			 * @Option color {String} Specifies the color of grid line.(default to '#dbe1e1')
+			 */
+			gridHStyle : {},
+			/**
+			 * @cfg {Object} Specifies the stlye of horizontal grid.(default to empty object).Available property are:
+			 * @Option solid {Boolean} True to draw a solid line.else draw a dotted line.(default to true)
+			 * @Option size {Number} Specifies size of line segment when solid is false.(default to 10)
+			 * @Option fator {Number} Specifies the times to size(default to 1)
+			 * @Option width {Number} Specifies the width of grid line.(default to 1)
+			 * @Option color {String} Specifies the color of grid line.(default to '#dbe1e1')
+			 */
+			gridVStyle : {},
+			/**
+			 * @cfg {Boolean} True to display grid line.(default to true)
+			 */
+			gridlinesVisible : true,
+			/**
+			 * @cfg {Boolean} indicate whether the grid is accord with scale,on the premise of grids is not specify. this just give a convenient way bulid grid for default.and actual value depend on scale's scale2grid
+			 */
+			scale2grid : true,
+			/**
+			 * @cfg {Object} this is grid config for custom.there has two valid property horizontal and vertical.the property's sub property is: way:the manner calculate grid-line (default to 'share_alike') Available property are:
+			 * @Option share_alike
+			 * @Option given_value value: when property way apply to 'share_alike' this property mean to the number of grid's line.
+			 *  when apply to 'given_value' this property mean to the distance each grid line(unit:pixel) . 
+			 *  code will like: 
+			 *  { 
+			 *   horizontal: {way:'share_alike',value:10},
+			 *   vertical: { way:'given_value', value:40 }
+			 *   }
+			 */
+			grids : undefined,
+			/**
+			 * @cfg {Boolean} If True the grid line will be ignored when gird and axis overlap.(default to true)
+			 */
+			ignoreOverlap : true,
+			/**
+			 * @cfg {Boolean} If True the grid line will be ignored when gird and coordinate's edge overlap.(default to false)
+			 */
+			ignoreEdge : false,
+			/**
+			 * @inner {String} Specifies the label on x-axis
+			 */
+			xlabel : '',
+			/**
+			 * @inner {String} Specifies the label on y-axis
+			 */
+			ylabel : '',
+			/**
+			 * @cfg {String} Here,specify as false to make background transparent.(default to null)
+			 */
+			background_color : 0,
+			/**
+			 * @cfg {Boolean} True to stripe the axis.(default to true)
+			 */
+			striped : true,
+			/**
+			 * @cfg {String} Specifies the direction apply striped color.(default to 'v')Available value are:
+			 * @Option 'h' horizontal
+			 * @Option 'v' vertical
+			 */
+			striped_direction : 'v',
+			/**
+			 * @cfg {float(0.01 - 0.5)} Specifies the factor make color dark striped,relative to background-color,the bigger the value you set,the larger the color changed.(defaults to '0.01')
+			 */
+			striped_factor : 0.01,
+			/**
+			 * @cfg {Object} Specifies config crosshair.(default enable to false).For details see <link>$.CrossHair</link> Note:this has a extra property named 'enable',indicate whether crosshair available(default to false)
+			 */
+			crosshair : {
+				enable : false
+			},
+			/**
+			 * @cfg {Number}Override the default as -1 to make sure it at the bottom.(default to -1)
+			 */
+			z_index : -1,
+			/**
+			 * @cfg {Object} Specifies style for axis of this coordinate. Available property are:
+			 * @Option enable {Boolean} True to display the axis.(default to true)
+			 * @Option color {String} Specifies the color of each axis.(default to '#666666')
+			 * @Option width {Number/Array} Specifies the width of each axis, If given the a array,there must be have have 4 element, like this:[1,0,0,1](top-right-bottom-left).(default to 1)
+			 */
+			axis : {
+				enable : true,
+				color : '#666666',
+				width : 1
+			}
+		});
+		
+		this.scale = [];
+		this.gridlines = [];
+	},
+	refresh:function(n,x,p){
+		this.scale.each(function(s){
+			if(s.get('position')==p){
+				var U;
+				if (!s.get('assign_scale')||s.get('end_scale') < x) {
+					s.push('max_scale',s.push('end_scale',x));
+					U = true;
+				}
+				if (!s.get('assign_scale')||s.get('start_scale') > n) {
+					s.push('min_scale',s.push('start_scale',n));
+					U = true;
+				}
+				if(U){
+					s.doConfig();
+				}
+				return false;
+			}
+		});
+	},
+    getScaleObj : function(p,L) {
+        var _ = this._();
+        for(var i=0;i<_.scale.length;i++){
+            if(_.scale[i].get('position')==p){
+                return _.scale[i];
+            }
+        }
+        if(!L){
+            if(p==_.L){
+                p = _.R;
+            }else if(p==_.R){
+                p = _.L;
+            }else if(p==_.O){
+                p = _.B;
+            }else{
+                p = _.O;
+            }
+            return _.getScaleObj(p,true);
+        }
+        throw new Error("InValidScale");
+    },
+	getScale : function(p,L) {
+        var s = this.getScaleObj(p,L);
+        return s.getScale(s);
+	},
+	isEventValid : function(e,_) {
+		return {
+			valid : e.x > _.x && e.x < (_.x + _.width) && e.y < _.y + _.height && e.y > _.y
+		};
+	},
+	doDraw : function(_) {
+		_.T.box(_.x, _.y, _.width, _.height, 0, _.get('f_color'));
+		if (_.get('striped')) {
+			var x, y, f = false, axis = _.get('axis.width'), c = $.dark(_.get('background_color'), _.get('striped_factor'),0);
+		}
+		var v = (_.get('striped_direction') == 'v');
+		_.gridlines.each(function(g,i) {
+			if (_.get('striped')) {
+				if (f) {
+					if (v)
+						_.T.box(g.x1, g.y1 + g.width, g.x2 - g.x1, y - g.y1 - g.width, 0, c);
+					else
+						_.T.box(x + g.width, g.y2, g.x1 - x, g.y1 - g.y2, 0, c);
+				}
+				x = g.x1;
+				y = g.y1;
+				f = !f;
+			}
+		}).each(function(g) {
+			if(!g.overlap){
+				if(g.solid){
+					_.T.line(g.x1, g.y1, g.x2, g.y2, g.width, g.color);
+				}else{
+					_.T.dotted(g.x1, g.y1, g.x2, g.y2, g.width, g.color,g.size,g.fator);
+				}
+			}
+		});
+		_.T.box(_.x, _.y, _.width, _.height, _.get('axis'), false, _.get('shadow'),true);
+		_.scale.each(function(s) {
+			s.draw()
+		});
+	},
+	destroy:function(){
+		if(this.crosshair){
+			this.crosshair.destroy();
+		}
+	},
+	doCrosshair:function(_){
+		if (_.get('crosshair.enable')&&!_.crosshair) {
+			_.push('crosshair.wrap', _.root.shell);
+			_.push('crosshair.height', _.height);
+			_.push('crosshair.width', _.width);
+			_.push('crosshair.top', _.y);
+			_.push('crosshair.left', _.x);
+			_.crosshair = new $.CrossHair(_.get('crosshair'), _);
+		}
+	},
+	doConfig : function() {
+		$.Coordinate2D.superclass.doConfig.call(this);
+
+		var _ = this._();
+		
+		/**
+		 * this element not atomic because it is a container,so this is a particular case.
+		 */
+		_.atomic = false;
+
+		_.width = _.get('_width');
+		_.height = _.get('_height');
+		_.valid_width = _.get('valid_width_value');
+		_.valid_height = _.get('valid_height_value');
+		/**
+		 * apply the gradient color to f_color
+		 */
+		if (_.get('gradient') && $.isString(_.get('f_color'))) {
+			_.push('f_color', _.T.avgLinearGradient(_.x, _.y, _.x, _.y + _.height, [_.get('dark_color'), _.get('light_color')]));
+		}
+		
+		if (_.get('axis.enable')) {
+			var aw = _.get('axis.width');
+			if (!$.isArray(aw))
+				_.push('axis.width', [aw, aw, aw, aw]);
+		}else{
+			_.push('axis.width', [0, 0, 0, 0]);
+		}
+
+		_.doCrosshair(_);
+		var jp, cg = !!(_.get('gridlinesVisible') && _.get('grids')), hg = cg && !!_.get('grids.horizontal'), vg = cg && !!_.get('grids.vertical'), h = _.height, w = _.width, vw = _.valid_width, vh = _.valid_height, k2g = _.get('gridlinesVisible')
+				&& _.get('scale2grid') && !(hg && vg), sw = _.push('x_start', _.x+(w - vw) / 2), sh = _.push('y_start', _.y+(h - vh) / 2), axis = _.get('axis.width');
+		
+		_.push('x_end', _.x + (w + vw) / 2);
+		_.push('y_end', _.y + (h + vh) / 2);
+		
+		if (!$.isArray(_.get('scale'))) {
+			if ($.isObject(_.get('scale')))
+				_.push('scale', [_.get('scale')]);
+			else
+				_.push('scale', []);
+		}
+		
+		_.get('scale').each(function(kd, i) {
+			jp = kd['position'];
+			jp = jp || _.L;
+			jp = jp.toLowerCase();
+			kd[_.X] = _.x;
+			kd['coo'] = _;
+			kd[_.Y] = _.y;
+			kd['valid_x'] = sw;
+			kd['valid_y'] = sh;
+			kd['position'] = jp;
+			/**
+			 * calculate coordinate,direction,distance
+			 */
+			if (jp == _.O) {
+				kd['which'] = 'h';
+				kd['distance'] = w;
+				kd['valid_distance'] = vw;
+			} else if (jp == _.R) {
+				kd['which'] = 'v';
+				kd['distance'] = h;
+				kd['valid_distance'] = vh;
+				kd[_.X] += w;
+				kd['valid_x'] += vw;
+			} else if (jp == _.B) {
+				kd['which'] = 'h';
+				kd['distance'] = w;
+				kd['valid_distance'] = vw;
+				kd[_.Y] += h;
+				kd['valid_y'] += vh;
+			} else {
+				kd['which'] = 'v';
+				kd['distance'] = h;
+				kd['valid_distance'] = vh;
+			}
+			kd.label =$.applyIf(kd.label||{},_.get('label'));
+			_.scale.push(new $.Scale(kd, _.root));
+		}, _);
+
+		var iol = _.push('ignoreOverlap', _.get('ignoreOverlap') && _.get('axis.enable') || _.get('ignoreEdge'));
+
+		if (iol) {
+			if (_.get('ignoreEdge')) {
+				var ignoreOverlap = function(w, x, y) {
+					return w == 'v' ? (y == _.y) || (y == _.y + h) : (x == _.x) || (x == _.x + w);
+				}
+			} else {
+				var ignoreOverlap = function(wh, x, y) {
+					return wh == 'v' ? (y == _.y && axis[0] > 0) || (y == (_.y + h) && axis[2] > 0) : (x == _.x && axis[3] > 0) || (x == (_.x + w) && axis[1] > 0);
+				}
+			}
+		}
+		var g = {
+				solid : true,
+				size : 10,
+				fator : 1,
+				width : _.get('grid_line_width'),
+				color : _.get('grid_color')
+			},
+			ghs = $.applyIf(_.get('gridHStyle'),g),
+			gvs = $.applyIf(_.get('gridVStyle'),g);
+		
+		if (k2g) {
+			var scale, x, y, p;
+			_.scale.each(function(scale) {
+				p = scale.get('position');
+				/**
+				 * disable,given specfiy grid will ignore scale2grid
+				 */
+				if ($.isFalse(scale.get('scale2grid')) || hg && scale.get('which') == 'v' || vg && scale.get('which') == 'h') {
+					return;
+				}
+				x = y = 0;
+				if (p == _.O) {
+					y = h;
+				} else if (p == _.R) {
+					x = -w;
+				} else if (p == _.B) {
+					y = -h;
+				} else {
+					x = w;
+				}
+				
+				scale.items.each(function(e) {
+					if (iol)
+					_.gridlines.push($.applyIf({
+						overlap:ignoreOverlap.call(_, scale.get('which'), e.x, e.y),
+						x1 : e.x,
+						y1 : e.y,
+						x2 : e.x + x,
+						y2 : e.y + y
+					},scale.isH?gvs:ghs));
+				});
+			});
+		}
+		if (vg) {
+			var gv = _.get('grids.vertical');
+			var d = w / gv['value'], n = gv['value'];
+			if (gv['way'] == 'given_value') {
+				n = d;
+				d = gv['value'];
+				d = d > w ? w : d;
+			}
+
+			for ( var i = 0; i <= n; i++) {
+				if (iol)
+				_.gridlines.push($.applyIf({
+					overlap:ignoreOverlap.call(_, 'h', _.x + i * d, _.y),
+					x1 : _.x + i * d,
+					y1 : _.y,
+					x2 : _.x + i * d,
+					y2 : _.y + h,
+					H : false,
+					width : gvs.width,
+					color : gvs.color
+				},gvs));
+			}
+		}
+		if (hg) {
+			var gh = _.get('grids.horizontal');
+			var d = h / gh['value'], n = gh['value'];
+			if (gh['way'] == 'given_value') {
+				n = d;
+				d = gh['value'];
+				d = d > h ? h : d;
+			}
+
+			for ( var i = 0; i <= n; i++) {
+				if (iol)
+				_.gridlines.push($.applyIf({
+					overlap:ignoreOverlap.call(_, 'v', _.x, _.y + i * d),
+					x1 : _.x,
+					y1 : _.y + i * d,
+					x2 : _.x + w,
+					y2 : _.y + i * d,
+					H : true,
+					width : ghs.width,
+					color : ghs.color
+				},ghs));
+			}
+		}
+	}
+});
+/**
+ * @end
+ */
+/**
+ * @overview the coordinate3d componment
+ * @component#$.Coordinate3D
+ * @extend#$.Coordinate2D
+ */
+$.Coordinate3D = $.extend($.Coordinate2D, {
+	configure : function() {
+		/**
+		 * invoked the super class's configurationuration
+		 */
+		$.Coordinate3D.superclass.configure.apply(this, arguments);
+
+		/**
+		 * indicate the component's type
+		 */
+		this.type = 'coordinate3d';
+		this.dimension = $._3D;
+
+		this.set({
+			/**
+			 * @cfg {Number} Three-dimensional rotation X in degree(angle).socpe{0-90},Normally, this will accord with the chart.(default to 60)
+			 */
+			xAngle : 60,
+			/**
+			 * @cfg {Number} Three-dimensional rotation Y in degree(angle).socpe{0-90},Normally, this will accord with the chart.(default to 20)
+			 */
+			yAngle : 20,
+			xAngle_ : undefined,
+			yAngle_ : undefined,
+			/**
+			 * @cfg {Number} Required,Specifies the z-axis deep of this coordinate,Normally, this will given by chart.(default to 0)
+			 */
+			zHeight : 0,
+			/**
+			 * @cfg {Number} Specifies pedestal height of this coordinate.(default to 22)
+			 */
+			pedestal_height : 22,
+			/**
+			 * @cfg {Number} Specifies board deep of this coordinate.(default to 20)
+			 */
+			board_deep : 20,
+			/**
+			 * @cfg {Boolean} If true display the left board.(default to true)
+			 */
+			left_board:true,
+			/**
+			 * @cfg {Boolean} Override the default as true
+			 */
+			gradient : true,
+			/**
+			 * @cfg {float} Override the default as 0.18.
+			 */
+			color_factor : 0.18,
+			/**
+			 * @cfg {Boolean} Override the default as true.
+			 */
+			ignoreEdge : true,
+			/**
+			 * @cfg {Boolean} Override the default as false.
+			 */
+			striped : false,
+			/**
+			 * @cfg {String} Override the default as '#a4ad96'.
+			 */
+			grid_color : '#a4ad96',
+			/**
+			 * @cfg {String} Override the default as '#d6dbd2'.
+			 */
+			background_color : '#d6dbd2',
+			/**
+			 * @cfg {Number} Override the default as 4.
+			 */
+			shadow_offsetx : 4,
+			/**
+			 * @cfg {Number} Override the default as 2.
+			 */
+			shadow_offsety : 2,
+			/**
+			 * @cfg {Array} Specifies the style of board(wall) of this coordinate. 
+			 * the length of array will be 6,if less than 6,it will instead of <link>background_color</link>.and each object option has two property. Available property are:
+			 * @Option color the color of wall
+			 * @Option alpha the opacity of wall
+			 */
+			wall_style : [],
+			/**
+			 * @cfg {Boolean} Override the default as axis.enable = false.
+			 */
+			axis : {
+				enable : false
+			}
+		});
+	},
+	doDraw : function(_) {
+		var w = _.width, h = _.height, xa = _.get('xAngle_'), ya = _.get('yAngle_'), zh = _.get('zHeight'), offx = _.get('z_offx'), offy = _.get('z_offy');
+		/**
+		 * bottom
+		 */
+		if(_.get('pedestal_height'))
+		_.T.cube3D(_.x, _.y + h + _.get('pedestal_height'), xa, ya, false, w, _.get('pedestal_height'), zh * 3 / 2, _.get('axis.enable'), _.get('axis.width'), _.get('axis.color'), _.get('bottom_style'));
+		/**
+		 * board_style
+		 */
+		if(_.get('board_deep'))
+		_.T.cube3D(_.x +offx, _.y+h - offy, xa, ya, false, w, h, _.get('board_deep'), _.get('axis.enable'), _.get('axis.width'), _.get('axis.color'), _.get('board_style'));
+		
+		_.T.cube3D(_.x, _.y + h, xa, ya, false, w, h, zh, _.get('axis.enable'), _.get('axis.width'), _.get('axis.color'), _.get('wall_style'));
+		
+		_.gridlines.each(function(g) {
+			if(g.solid){
+				if(_.get('left_board'))
+				_.T.line(g.x1, g.y1, g.x1 + offx, g.y1 - offy,g.width, g.color);
+				_.T.line(g.x1 + offx, g.y1 - offy, g.x2 + offx, g.y2 - offy, g.width, g.color);
+			}else{
+				if(_.get('left_board'))
+				_.T.dotted(g.x1, g.y1, g.x1 + offx, g.y1 - offy,g.width, g.color,g.size,g.fator);
+				_.T.dotted(g.x1 + offx, g.y1 - offy, g.x2 + offx, g.y2 - offy, g.width, g.color,g.size,g.fator);
+			}
+		});
+		_.scale.each(function(s) {
+			s.draw();
+		});
+	},
+	doConfig : function() {
+		$.Coordinate3D.superclass.doConfig.call(this);
+
+		var _ = this._(),
+			ws = _.get('wall_style'),
+			bg = _.get('background_color')||'#d6dbd2',
+			h = _.height,
+			w = _.width,
+			f = _.get('color_factor'),
+			offx = _.push('z_offx',_.get('xAngle_') * _.get('zHeight')),
+			offy = _.push('z_offy',_.get('yAngle_') * _.get('zHeight'));
+			/**
+			 * bottom-lower bottom-left
+			 */
+			while(ws.length < 6){
+				ws.push({color : bg});
+			}
+			if(!_.get('left_board')){
+				ws[2] = false;
+				_.scale.each(function(s){
+					s.doLayout(offx,-offy,s);
+				});
+			}
+			
+			/**
+			 * right-front
+			 */
+			_.push('bottom_style', [{
+				color : _.get('shadow_color'),
+				shadow : _.get('shadow')
+			}, false, false, {
+				color : ws[3].color
+			},false, {
+				color : ws[3].color
+			}]);
+			
+			/**
+			 * right-top
+			 */
+			_.push('board_style', [false, false, false,{
+				color : ws[4].color
+			},{
+				color : ws[5].color
+			}, false]);
+			
+			/**
+			 * lowerBottom-bottom-left-right-top-front
+			 */
+			if (_.get('gradient')) {
+				if ($.isString(ws[0].color)) {
+					ws[0].color = _.T.avgLinearGradient(_.x, _.y + h, _.x + w, _.y + h, [$.dark(ws[0].color,f/2+0.06),$.dark(ws[0].color,f/2+0.06)]);
+				}
+				if ($.isString(ws[1].color)) {
+					ws[1].color = _.T.avgLinearGradient(_.x + offx, _.y - offy, _.x + offx, _.y + h - offy, [$.dark(ws[1].color,f),$.light(ws[1].color,f)]);
+				}
+				if ($.isString(ws[2].color)) {
+					ws[2].color = _.T.avgLinearGradient(_.x, _.y, _.x, _.y + h, [$.light(ws[2].color,f/3),$.dark(ws[2].color,f)]);
+				}
+				_.get('bottom_style')[5].color = _.T.avgLinearGradient(_.x, _.y + h, _.x, _.y + h + _.get('pedestal_height'), [$.light(ws[3].color,f/2+0.06),$.dark(ws[3].color,f/2,0)]);
+			}
+			_.push('wall_style', [ws[0],ws[1],ws[2]]);
+			
+	}
+});
+/*
+ * @end
+ */
+
+
+
+	/**
+	 * @overview this element simulate the crosshair on the coordinate.actually this composed of some div of html. 
+	 * @component#$.CrossHair
+	 * @extend#$.Html
+	 */
+	$.CrossHair = $.extend($.Html,{
+		configure:function(){
+		
+			/**
+			 * invoked the super class's configuration
+			 */
+			$.CrossHair.superclass.configure.apply(this,arguments);
+			
+			/**
+			 * indicate the component's type
+			 */
+			this.type = 'crosshair';
+			
+			this.set({
+				/**
+				 * @inner {Number} Specifies the position top,normally this will given by chart.(default to 0)
+				 */
+				 top:0,
+				 /**
+				 * @inner {Number} Specifies the position left,normally this will given by chart.(default to 0)
+				 */
+				 left:0,
+				 /**
+				 * @inner {Boolean} private use
+				 */
+				 hcross:true,
+				  /**
+				 * @inner {Boolean} private use
+				 */
+				 vcross:true,
+				 /**
+				 * @inner {Function} private use
+				 */
+				 invokeOffset:null,
+				 /**
+				 * @cfg {Number} Specifies the linewidth of the crosshair.(default to 1)
+				 */
+				 line_width:1,
+				 /**
+				 * @cfg {Number} Specifies the linewidth of the crosshair.(default to 1)
+				 */
+				 line_color:'#1A1A1A',
+				 delay:200
+			});
+		},
+		/**
+		 * this function will implement at every target object,and this just default effect
+		 */
+		follow:function(e,m,_){
+			if(_.get('invokeOffset')){
+				var o = _.get('invokeOffset')(e,m);
+				if(o&&o.hit){
+					_.o_valid = true;
+					_.position(o.top-_.top,o.left-_.left,_);
+				}else if(!o||!_.o_valid){
+					_.position(_.owidth,_.oheight,_);
+				}
+			}else{
+				/**
+				 * set the 1px offset will make the line at the top left all the time
+				 */
+				_.position(e.y-_.top-1,e.x-_.left-1,_);
+			}
+		},
+		position:function(t,l,_){
+			_.horizontal.style.top = (t-_.size)+"px";
+			_.vertical.style.left = (l-_.size)+"px";
+		},
+		doCreate:function(_,w,h){
+			var d = document.createElement("div");
+			d.style.width= $.toPixel(w);
+			d.style.height= $.toPixel(h);
+			d.style.backgroundColor = _.get('line_color');
+			d.style.position="absolute";
+			_.dom.appendChild(d);
+			return d;
+		},
+		doAction:function(_){
+			_.T.on('mouseover',function(c,e,m){
+				_.show(e,m);	
+			}).on('mouseout',function(c,e,m){
+				_.hidden(e,m);	
+			}).on('mousemove',function(c,e,m){
+				_.follow(e,m,_);
+			});
+		},
+		initialize:function(){
+			$.CrossHair.superclass.initialize.call(this);
+			
+			var _ = this._(),L = $.toPixel(_.get('line_width'));
+			
+			_.size = _.get('line_width')/2;
+			
+			_.top = $.fixPixel(_.get(_.O));
+			_.left = $.fixPixel(_.get(_.L));
+			_.owidth = -_.T.root.width;
+			_.oheight = -_.T.root.height;
+			_.o_valid = false;
+			/**
+			 * set size zero make integration with vertical and horizontal
+			 */
+			_.css('width','0px');
+			_.css('height','0px');
+			_.css('top',_.top+'px');
+			_.css('left',_.left+'px');
+			_.css('visibility','hidden');
+			
+			_.horizontal = _.doCreate(_,_.get('hcross')?$.toPixel(_.get(_.W)):"0px",L);
+			_.vertical = _.doCreate(_,L,_.get('vcross')?$.toPixel(_.get(_.H)):"0px");
+			
+			
+			
+		}
+});
+/**
+ * @end
  */
 /**
  * @overview the line segment componment
@@ -7406,7 +7380,7 @@ $.LineSegment = $.extend($.Component, {
 		p.each(function(q){
 			q.x_ = q.x;
 			q.y_ = q.y;
-			if(!q.ignored&&L){
+			if(!q.ignored&&!q.direct&&L){
 				_.push('label.originx', q.x);
 				_.push('label.originy', q.y-ps/2-1);
 				_.push('label.text',_.fireString(_, 'parseText', [_, q.value],q.value));
@@ -7421,12 +7395,12 @@ $.LineSegment = $.extend($.Component, {
 				_.PP(_,T,T[0].x,_.y,T[T.length-1].x,_.y);
 				T = [];
 				Q = false;
-			}else if(!q.ignored){
+			}else if(!q.ignored&& !q.direct){
 				T.push(q);
 				Q = true;
 			}
 			
-			if(I&&!q.ignored){
+			if(I&&!q.ignored&& !q.direct){
 				_.intersections.push(_.sign_plugin?[_.T,_.get('sign'),q,ps,q.color||g,q.hollow_color||j]:_.get('hollow')?[q, ps/2-h+1,q.color||g,h+1,q.hollow_color||j]:[q,ps/2,q.color||g]);
 			}
 			
@@ -7439,11 +7413,11 @@ $.LineSegment = $.extend($.Component, {
 	},
 	doConfig : function() {
 		$.LineSegment.superclass.doConfig.call(this);
-		$.Assert.isTrue(this.get('point_space')>0,'point_space');
-
 		var _ = this._(), ps = _.get('point_size') * 3 / 2, sp = _.get('point_space'), ry = _.get('event_range_y'), rx = _
 				.get('event_range_x'), heap = _.get('tipInvokeHeap'), p = _.get('points'), N = _.get('name');
-		
+
+        $.Assert.isTrue(sp>0,'point_space');
+
 		_.parse(_);
 		
 		if (rx <= 0||rx > sp / 2) {
@@ -7468,23 +7442,25 @@ $.LineSegment = $.extend($.Component, {
 			_.tip = new $.Tip(_.get('tip'), _);
 		}
 		
-		var c = _.get('coordinate'), ly = _.get('limit_y'), k = _.get('keep_with_coordinate'), valid = function(p0, x, y) {
-			if (!p0.ignored&&Math.abs(x - (p0.x)) < rx && (!ly || (ly && Math.abs(y - (p0.y)) < ry))) {
-				return true;
-			}
-			return false;
-		}, to = function(i) {
-			return {
-				valid : true,
-				name : N,
-				value : p[i].value,
-				text : p[i].text,
-				top : p[i].y,
-				left : p[i].x,
-				i:i,
-				hit : true
-			};
-		};
+		var c = _.get('coordinate'), ly = _.get('limit_y'), k = _.get('keep_with_coordinate'),
+            valid = function(p0, x, y) {
+                if (!p0.ignored&&Math.abs(x - (p0.x)) < rx && (!ly || (ly && Math.abs(y - (p0.y)) < ry))) {
+                    return true;
+                }
+                return false;
+            },
+            to = function(i) {
+                return {
+                    valid : true,
+                    name : N,
+                    value : p[i].value,
+                    text : p[i].text,
+                    top : p[i].y,
+                    left : p[i].x,
+                    i:i,
+                    hit : true
+                };
+            };
 		
 		/**
 		 * override the default method
@@ -7507,7 +7483,6 @@ $.LineSegment = $.extend($.Component, {
 						valid : k
 					};
 			}
-			
 			/**
 			 * calculate the pointer's position will between which two point?this function can improve location speed
 			 */
@@ -7544,6 +7519,10 @@ $.Line = $.extend($.Chart, {
 		this.type = 'line';
 
 		this.set({
+            /**
+             * @cfg {Boolean} if the left-right point are direct when point's value is null.false to break.(default to true)
+             */
+            nullToDirect: true,
 			/**
 			 * @cfg {Number} Specifies the default linewidth of the canvas's context in this element.(defaults to 1)
 			 */
@@ -7570,7 +7549,7 @@ $.Line = $.extend($.Chart, {
 			 */
 			tipMocker:null,
 			/**
-			 * @cfg {Number(0.0~1.0)} If null,the position there will follow the points.If given a number,there has a fixed postion,0 is top,and 1 to bottom.(default to null)
+			 * @cfg {Number(0.0~1.0)} If null,the position there will follow the points.If given a number,there has a fixed position,0 is top,and 1 to bottom.(default to null)
 			 */
 			tipMockerOffset:null,
 			/**
@@ -7629,6 +7608,9 @@ $.Line = $.extend($.Chart, {
 
 		this.lines = [];
 		this.components.push(this.lines);
+        this.on('resize', function(){
+             this.push('point_space',0);
+        });
 	},
 	/**
 	 * @method Returns the coordinate of this element.
@@ -7647,7 +7629,7 @@ $.Line = $.extend($.Chart, {
 		var k = _.pushIf('sub_option.keep_with_coordinate',s);
 		if (_.get('crosshair.enable')) {
 			_.pushIf('crosshair.hcross', s);
-			_.push('crosshair.invokeOffset', function(e, m) {
+			_.pushIf('crosshair.invokeOffset', function(e) {
 				/**
 				 * TODO how fire muti line?now fire by first line
 				 */
@@ -7683,7 +7665,7 @@ $.Line = $.extend($.Chart, {
 		if(_.isE())return;
 		
 		var vw = _.coo.valid_width,nw=vw,size=_.get('maxItemSize') - 1,M=vw / (size),ps=_.get('point_space');
-		
+
 		if (_.get('proportional_spacing')){
 			if(ps&&ps<M){
 				nw = size*ps;
@@ -7691,12 +7673,13 @@ $.Line = $.extend($.Chart, {
 				_.push('point_space',M);
 			}
 		}
-		
 		_.push('sub_option.width', nw);
 		_.push('sub_option.height', _.coo.valid_height);
 		
 		_.push('sub_option.originx', _.coo.get('x_start')+(vw-nw)/2);
 		_.push('sub_option.originy', _.coo.get('y_end'));
+
+
 		
 		if (_.get('tip.enable')){
 			if(!_.mocker&&$.isFunction(_.get('tipMocker'))){
@@ -7739,9 +7722,9 @@ $.Line = $.extend($.Chart, {
 									r.minTop = Math.min(r.minTop,r1.top);
 									r.maxTop = Math.max(r.maxTop,r1.top);
 								}
-								U.push(p?p(null,r1.name,r1.value,r1.text,r1.i):(r1.name+' '+r1.value));
+								U.push(p?p(l,r1.name,r1.value,r1.text,r1.i):(r1.name+' '+r1.value));
 							});
-							r.text = _.get('tipMocker').call(_,U,r.i)||'tipMocker not return';
+							r.text = _.get('tipMocker').call(_,U,r.i);
 						}
 						return r.valid ? r : false;
 					}
@@ -7793,27 +7776,32 @@ $.LineBasic2D = $.extend($.Line, {
 		 * get the max/min scale of this coordinate for calculated the height
 		 */
 		var S, H = _.coo.valid_height, sp = _.get('point_space'), points, x, y, 
-		ox = _.get('sub_option.originx'), oy, p;
+		ox = _.get('sub_option.originx'), oy, p,N=_.get('nullToDirect');
 		
 		_.push('sub_option.tip.showType', 'follow');
 		_.push('sub_option.coordinate', _.coo);
 		_.push('sub_option.tipInvokeHeap', _.tipInvokeHeap);
 		_.push('sub_option.point_space', sp);
-		_.data.each(function(d, i) {
+
+		_.data.each(function(d, i){
 			S = _.coo.getScale(d.scaleAlign||_.get('scaleAlign'));
 			oy = _.get('sub_option.originy')- S.basic*H;
 			points = [];
-			d.value.each(function(v, j) {
-				x = sp * j;
-				y = (v - S.start) * H / S.distance;
-				p = {
-					x : ox + x,
-					y : oy - y,
-					value : v,
-					text : d.name+' '+v
-				};
-				$.merge(p, _.fireEvent(_, 'parsePoint', [d, v, x, y, j,S]));
-				points.push(p);
+			d.value.each(function(v, j){
+                if(v!=null){
+                    x = sp * j;
+                    y = (v - S.start) * H / S.distance;
+                    p = {
+                        x : ox + x,
+                        y : oy - y,
+                        value : v,
+                        text : d.name+' '+v
+                    };
+                    $.merge(p, _.fireEvent(_, 'parsePoint', [d, v, x, y, j,S]));
+                    points.push(p);
+                }else{
+                    points.push({ignored:!N,direct:N});
+                }
 			}, _);
 			/**
 			 * merge the option

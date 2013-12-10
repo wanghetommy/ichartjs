@@ -374,7 +374,7 @@ iChart.Coordinate = {
 						end_scale : 100,
 						scale_space : 10,
 						listeners:{
-							parseText:function(t,x,y){
+							parseText:function(t){
 								return {text:t+'%'}
 							}
 						 }
