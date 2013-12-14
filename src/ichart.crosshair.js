@@ -34,6 +34,14 @@
 				 * @inner {Boolean} private use
 				 */
 				 vcross:true,
+                /**
+                 * @inner {Boolean} private use
+                 */
+                 point:{
+                    enable:true,
+                    color:null,
+                    size:12
+                 },
 				 /**
 				 * @inner {Function} private use
 				 */
@@ -71,12 +79,16 @@
 		position:function(t,l,_){
 			_.horizontal.style.top = (t-_.size)+"px";
 			_.vertical.style.left = (l-_.size)+"px";
+            if(_.point){
+                _.point.style.top = (t-_.point.size/2)+"px";
+                _.point.style.left = (l-_.point.size/2)+"px";
+            }
 		},
-		doCreate:function(_,w,h){
+		doCreate:function(_,w,h,c){
 			var d = document.createElement("div");
 			d.style.width= iChart.toPixel(w);
 			d.style.height= iChart.toPixel(h);
-			d.style.backgroundColor = _.get('line_color');
+			d.style.backgroundColor = c;
 			d.style.position="absolute";
 			_.dom.appendChild(d);
 			return d;
@@ -93,9 +105,9 @@
 		initialize:function(){
 			iChart.CrossHair.superclass.initialize.call(this);
 			
-			var _ = this._(),L = iChart.toPixel(_.get('line_width'));
+			var _ = this._(),L = _.get('line_width'),h=_.get('hcross'),v=_.get('vcross'),c=_.get('line_color'),s=_.get('point.size');
 			
-			_.size = _.get('line_width')/2;
+			_.size = L/2;
 			
 			_.top = iChart.fixPixel(_.get(_.O));
 			_.left = iChart.fixPixel(_.get(_.L));
@@ -111,9 +123,17 @@
 			_.css('left',_.left+'px');
 			_.css('visibility','hidden');
 			
-			_.horizontal = _.doCreate(_,_.get('hcross')?iChart.toPixel(_.get(_.W)):"0px",L);
-			_.vertical = _.doCreate(_,L,_.get('vcross')?iChart.toPixel(_.get(_.H)):"0px");
-			
+			_.horizontal = _.doCreate(_,h?_.get(_.W):0,L,c);
+			_.vertical = _.doCreate(_,L,v?_.get(_.H):0,c);
+
+            /**
+             * there must be has a cross so can be make a point
+             */
+			if(h&&v&&_.get('point.enable')){
+                _.point = _.doCreate(_,s,s,_.get('point.color')||c);
+                _.point.style.borderRadius = '100%';
+                _.point.size = s;
+            }
 			
 			
 		}
