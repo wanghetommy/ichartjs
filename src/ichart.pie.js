@@ -116,7 +116,7 @@ iChart.Pie = iChart.extend(iChart.Chart, {
 	},
 	doAnimation : function(t, d,_) {
 		var si = 0, cs = _.oA;
-		_.sectors.each(function(s, i) {
+		iChart.each(_.sectors,function(s, i) {
 			si = _.animationArithmetic(t, 0, s.get('totalAngle'), d);
 			s.push('startAngle', cs);
 			s.push('endAngle', cs+=si);
@@ -129,7 +129,7 @@ iChart.Pie = iChart.extend(iChart.Chart, {
 		}
 	},
 	parse : function(_) {
-		_.data.each(function(d,i){
+		iChart.each(_.data,function(d,i){
 			_.doParse(_,d,i);
 		},_);
 		/**
@@ -167,17 +167,17 @@ iChart.Pie = iChart.extend(iChart.Chart, {
 		if (_.get('intellectLayout')) {
 			var unlayout = [],layouted = [],d = _.get('layout_distance'),Q,x,y;
 			
-			_.sectors.each(function(f, i) {
+			iChart.each(_.sectors,function(f, i) {
 				if(f.isLabel())
 				unlayout.push(f.label);
 			});
-			
-			unlayout.sor(function(p, q) {
+
+            iChart.sor(unlayout,function(p, q) {
 				return Math.abs(Math.sin(p.get('angle'))) - Math.abs(Math.sin(q.get('angle')))>0;
 			});
-			
-			unlayout.each(function(la) {
-				layouted.each(function(l) {
+
+            iChart.each(unlayout,function(la) {
+                iChart.each(layouted,function(l) {
 					x = l.labelx, y = l.labely;
 					if ((la.labely <= y && (y - la.labely-1) < la.get(_.H)) || (la.labely > y && (la.labely - y-1) < l.get(_.H))) {
 						if ((la.labelx <= x && (x - la.labelx) < la.get(_.W)) || (la.labelx > x && (la.labelx - x) < l.get(_.W))) {
@@ -208,7 +208,7 @@ iChart.Pie = iChart.extend(iChart.Chart, {
 		if(_.total==0){
 			V  = 1/L;
 		}
-		_.data.each(function(d, i) {
+		iChart.each(_.data,function(d, i) {
 			eA += (V||(d.value / _.total)) * PI;
 			if (i == (L - 1)) {
 				eA = pi2 + _.oA;

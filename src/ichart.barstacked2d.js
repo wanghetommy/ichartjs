@@ -37,10 +37,10 @@ iChart.BarStacked2D = iChart.extend(iChart.Bar, {
 	},
 	doEngine:function(_,bh,s,S,W,h2,gw,x,x0,y0){
 		var w0,w,v,p = _.get('percent');
-		_.columns.each(function(c, i) {
+		iChart.each(_.columns,function(c, i) {
 			w0 = 0;
 			v = p?100/c.total:1;
-			c.item.each(function(d, j) {
+			iChart.each(c.item,function(d, j) {
 				w = (d.value*v - S.start) * W / S.distance;
 				d.total = c.total;
 				_.doParse(_, d, j, {

@@ -56,10 +56,10 @@ iChart.Column = iChart.extend(iChart.Chart, {
 	},
 	doAnimation : function(t, d,_) {
 		var h;
-		_.labels.each(function(l){
+		iChart.each(_.labels,function(l){
 			l.draw();
 		});
-		_.rectangles.each(function(r){
+        iChart.each(_.rectangles,function(r){
 			h = Math.ceil(_.animationArithmetic(t, 0, r.height, d));
 			r.push(_.Y, r.y + (r.height - h));
 			r.push(_.H, h);

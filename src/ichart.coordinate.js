@@ -160,22 +160,22 @@ iChart.Scale = iChart.extend(iChart.Component, {
 	 */
 	doDraw : function(_) {
 		if (_.get('scale_enable'))
-			_.items.each(function(item) {
+			iChart.each(_.items,function(item) {
 				_.T.line(item.x0, item.y0, item.x1, item.y1, _.get('scale_size'), _.get('scale_color'), false);
 			});
-		_.labels.each(function(l) {
+		iChart.each(_.labels,function(l) {
 			l.draw();
 		});
 	},
 	doLayout:function(x,y,_){
 		if (_.get('scale_enable'))
-			_.items.each(function(item) {
+			iChart.each(_.items,function(item) {
 				item.x0+=x;
 				item.y0+=y;
 				item.x1+=x;
 				item.y1+=y;
 			});
-		_.labels.each(function(l) {
+		iChart.each(_.labels,function(l) {
 			l.doLayout(x,y,0,l);
 		});
 	},
@@ -364,7 +364,7 @@ iChart.Coordinate = {
 		}
 		if(iChart.isArray(scale)){
 			var ST = _.dataType != 'stacked';
-			scale.each(function(s){
+			iChart.each(scale,function(s){
 				/**
 				 * applies the percent shower
 				 */
@@ -564,7 +564,7 @@ iChart.Coordinate2D = iChart.extend(iChart.Component, {
 		this.gridlines = [];
 	},
 	refresh:function(n,x,p){
-		this.scale.each(function(s){
+		iChart.each(this.scale,function(s){
 			if(s.get('position')==p){
 				var U;
 				if (!s.get('assign_scale')||s.get('end_scale') < x) {
@@ -618,7 +618,7 @@ iChart.Coordinate2D = iChart.extend(iChart.Component, {
 			var x, y, f = false, axis = _.get('axis.width'), c = iChart.dark(_.get('background_color'), _.get('striped_factor'),0);
 		}
 		var v = (_.get('striped_direction') == 'v');
-		_.gridlines.each(function(g,i) {
+		iChart.each(_.gridlines,function(g) {
 			if (_.get('striped')) {
 				if (f) {
 					if (v)
@@ -630,7 +630,8 @@ iChart.Coordinate2D = iChart.extend(iChart.Component, {
 				y = g.y1;
 				f = !f;
 			}
-		}).each(function(g) {
+		});
+        iChart.each(_.gridlines,function(g) {
 			if(!g.overlap){
 				if(g.solid){
 					_.T.line(g.x1, g.y1, g.x2, g.y2, g.width, g.color);
@@ -640,7 +641,7 @@ iChart.Coordinate2D = iChart.extend(iChart.Component, {
 			}
 		});
 		_.T.box(_.x, _.y, _.width, _.height, _.get('axis'), false, _.get('shadow'),true);
-		_.scale.each(function(s) {
+		iChart.each(_.scale,function(s) {
 			s.draw()
 		});
 	},
@@ -702,7 +703,7 @@ iChart.Coordinate2D = iChart.extend(iChart.Component, {
 				_.push('scale', []);
 		}
 		
-		_.get('scale').each(function(kd, i) {
+		iChart.each(_.get('scale'),function(kd, i) {
 			jp = kd['position'];
 			jp = jp || _.L;
 			jp = jp.toLowerCase();
@@ -765,7 +766,7 @@ iChart.Coordinate2D = iChart.extend(iChart.Component, {
 		
 		if (k2g) {
 			var scale, x, y, p;
-			_.scale.each(function(scale) {
+			iChart.each(_.scale,function(scale) {
 				p = scale.get('position');
 				/**
 				 * disable,given specfiy grid will ignore scale2grid
@@ -784,7 +785,7 @@ iChart.Coordinate2D = iChart.extend(iChart.Component, {
 					x = w;
 				}
 				
-				scale.items.each(function(e) {
+				iChart.each(scale.items,function(e) {
 					if (iol)
 					_.gridlines.push(iChart.applyIf({
 						overlap:ignoreOverlap.call(_, scale.get('which'), e.x, e.y),
@@ -954,7 +955,7 @@ iChart.Coordinate3D = iChart.extend(iChart.Coordinate2D, {
 		
 		_.T.cube3D(_.x, _.y + h, xa, ya, false, w, h, zh, _.get('axis.enable'), _.get('axis.width'), _.get('axis.color'), _.get('wall_style'));
 		
-		_.gridlines.each(function(g) {
+		iChart.each(_.gridlines,function(g) {
 			if(g.solid){
 				if(_.get('left_board'))
 				_.T.line(g.x1, g.y1, g.x1 + offx, g.y1 - offy,g.width, g.color);
@@ -965,7 +966,7 @@ iChart.Coordinate3D = iChart.extend(iChart.Coordinate2D, {
 				_.T.dotted(g.x1 + offx, g.y1 - offy, g.x2 + offx, g.y2 - offy, g.width, g.color,g.size,g.fator);
 			}
 		});
-		_.scale.each(function(s) {
+		iChart.each(_.scale,function(s) {
 			s.draw();
 		});
 	},
@@ -988,7 +989,7 @@ iChart.Coordinate3D = iChart.extend(iChart.Coordinate2D, {
 			}
 			if(!_.get('left_board')){
 				ws[2] = false;
-				_.scale.each(function(s){
+				iChart.each(_.scale,function(s){
 					s.doLayout(offx,-offy,s);
 				});
 			}

@@ -211,7 +211,7 @@ iChart.Line = iChart.extend(iChart.Chart, {
 						if(r.valid){
 							r0 = r.i;
 							U = [];
-							_.lines.each(function(l,i){
+							iChart.each(_.lines,function(l,i){
 								r1 = l.isEventValid(e);
 								if(i==0){
 									r.minTop = r.maxTop = r1.top;

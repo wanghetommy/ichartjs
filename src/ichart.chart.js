@@ -42,7 +42,7 @@
 		_.data = c;
 		if(_.dataType=='simple'){
 			_.total = 0;
-			c.each(function(d){
+			$.each(c,function(d){
 				d.background_color = d.color;
 				V  = d.value||0;
 				if($.isArray(V)){
@@ -85,7 +85,7 @@
 			_.columns = [];
 			for(var i=0;i<L;i++){
 				item = [],T = 0;
-				c.each(function(d,j){
+                $.each(c,function(d,j){
 					V = d.value[i];
 					if(!V&&V!=0)return;
 					d.value[i] = V =  pF(V,V);
@@ -379,23 +379,22 @@
 				}
 			}
 			this.save().fillStyle(color).translate(x,y).rotate(inc2*ro).shadowOn(sw);
-			T.each(function(t,i) {
-				try {
-					if (max&&max>0)
-						this.c.fillText(t, 0,i*h, max);
-					else
-						this.c.fillText(t, 0, i*h);
-				} catch (e) {
-					console.log(e.message + '[' + t + ',' + x + ',' + y + ']');
-				}
-			}, this);
-			
+		    try {
+                $.each(T,function(t,i) {
+                        if (max&&max>0)
+                            this.c.fillText(t, 0,i*h, max);
+                        else
+                            this.c.fillText(t, 0, i*h);
+                }, this);
+            } catch (e) {
+                console.log(e.message + '[' + t + ',' + x + ',' + y + ']');
+            }
+
 			return this.restore();
 		},
 		measureText : function(t){
-			t = t.split("\n");
 			var m=0;
-			t.each(function(o){
+            $.each(t.split("\n"),function(o){
 				m = max(this.measureText(o).width,m);
 			},this.c);
 			return m;
@@ -531,7 +530,7 @@
 					points : [{x:x, y:y}, {x:x, y:y - h}, {x:x + w, y:y - h}, {x:x + w, y:y}]
 				}, styles[5]));
 			
-			side.each(function(s) {
+			$.each(side,function(s) {
 				this.polygon(s.color, b, bw, bc, s.shadow, s.alpha, s.points);
 			}, this);
 			
@@ -738,8 +737,8 @@
 	
 	/**
 	 * @overview this component is a super class of all chart
-	 * @component#iChart.Chart
-	 * @extend#iChart.Painter
+	 * @component#$.Chart
+	 * @extend#$.Painter
 	 */
 	$.Chart = $.extend($.Painter, {
 		/**
@@ -809,14 +808,14 @@
 				 */
 				decimalsnum : 1,
 				/**
-				 * @cfg {Object/String} Specifies the text when data is empty.details see <link>iChart.Text</link>,If given a string,it will only apply the text.note:If the text is empty,then will not display(text defaults to 'No data found')
+				 * @cfg {Object/String} Specifies the text when data is empty.details see <link>$.Text</link>,If given a string,it will only apply the text.note:If the text is empty,then will not display(text defaults to 'No data found')
 				 */
 				empty : {
 					text :'No data found',
 					fontsize : 16
 				},
 				/**
-				 * @cfg {Object/String} Specifies the config of Title details see <link>iChart.Text</link>,If given a string,it will only apply the text.note:If the text is empty,then will not display(text defaults to '')
+				 * @cfg {Object/String} Specifies the config of Title details see <link>$.Text</link>,If given a string,it will only apply the text.note:If the text is empty,then will not display(text defaults to '')
 				 */
 				title : {
 					text : '',
@@ -831,7 +830,7 @@
 					height : 30
 				},
 				/**
-				 * @cfg {Object/String}Specifies the config of subtitle details see <link>iChart.Text</link>,If given a string,it will only apply the text.note:If the title or subtitle'text is empty,then will not display(text defaults to '')
+				 * @cfg {Object/String}Specifies the config of subtitle details see <link>$.Text</link>,If given a string,it will only apply the text.note:If the title or subtitle'text is empty,then will not display(text defaults to '')
 				 */
 				subtitle : {
 					text : '',
@@ -846,7 +845,7 @@
 					height : 20
 				},
 				/**
-				 * @cfg {Object/String}Specifies the config of footnote details see <link>iChart.Text</link>,If given a string,it will only apply the text.note:If the text is empty,then will not display(text defaults to '')
+				 * @cfg {Object/String}Specifies the config of footnote details see <link>$.Text</link>,If given a string,it will only apply the text.note:If the text is empty,then will not display(text defaults to '')
 				 */
 				footnote : {
 					text : '',
@@ -885,13 +884,13 @@
 				 */
 				z_index:999,
 				/**
-				 * @cfg {Object}Specifies the config of Legend.For details see <link>iChart.Legend</link> Note:this has a extra property named 'enable',indicate whether legend available(default to false)
+				 * @cfg {Object}Specifies the config of Legend.For details see <link>$.Legend</link> Note:this has a extra property named 'enable',indicate whether legend available(default to false)
 				 */
 				legend : {
 					enable : false
 				},
 				/**
-				 * @cfg {Object} Specifies the config of Tip.For details see <link>iChart.Tip</link> Note:this has a extra property named 'enable',indicate whether tip available(default to false)
+				 * @cfg {Object} Specifies the config of Tip.For details see <link>$.Tip</link> Note:this has a extra property named 'enable',indicate whether tip available(default to false)
 				 */
 				tip : {
 					enable : false
@@ -904,12 +903,12 @@
 			this.registerEvent(
 			/**
 			 * @event Fires before this element Animation.Only valid when <link>animation</link> is true
-			 * @paramter iChart.Chart#this
+			 * @paramter $.Chart#this
 			 */
 			'beforeAnimation',
 			/**
 			 * @event Fires when this element Animation finished.Only valid when <link>animation</link> is true
-			 * @paramter iChart.Chart#this
+			 * @paramter $.Chart#this
 			 */
 			'afterAnimation',
 			/**
@@ -964,7 +963,7 @@
 			/**
 			 * draw plugins
 			 */
-			_.plugins.each(function(p){
+            $.each(_.plugins,function(p){
 				if(p.A_draw){
 					p.variable.animation.animating =true;
 					p.variable.animation.time =_.variable.animation.time;
@@ -976,8 +975,8 @@
 			if(_.Combination){
 				return;
 			}
-			
-			_.oneways.each(function(o) {o.draw()});
+
+			$.each(_.oneways,function(o) {o.draw()});
 			
 			if (_.variable.animation.time < _.duration) {
 				_.variable.animation.time++;
@@ -991,12 +990,13 @@
 					/**
 					 * make plugins's status is the same as chart
 					 */
-					_.plugins.each(function(p){
+					$.each(_.plugins,function(p){
 						p.Animationed = true;
 					});
 					_.processAnimation = false;
 					_.draw();
-					_.plugins.each(function(p){
+
+                    $.each(_.plugins,function(p){
 						p.processAnimation = false;
 					});
 					_.fireEvent(_, 'afterAnimation', [_]);
@@ -1016,8 +1016,8 @@
 		},
 		doSort:function(){
 			var f = function(p, q){return ($.isArray(p)?(p.zIndex||0):p.get('z_index'))>($.isArray(q)?(q.zIndex||0):q.get('z_index'))};
-			this.components.sor(f);
-			this.oneways.sor(f);
+            $.sor(this.components,f);
+            $.sor(this.oneways,f);
 		},
 		commonDraw : function(_,e) {
 			_.show = false;
@@ -1036,20 +1036,20 @@
 			_.segmentRect();
 			//order?
 			var i=0;
-			_.components.eachAll(function(c) {
+			$.eachAll(_.components,function(c) {
 				c.draw(e);
 			});
-			_.components.eachAll(function(c) {
+            $.eachAll(_.components,function(c) {
 				if(c.last)c.last(c);
 			});
 			//order?
-			_.oneways.each(function(o) {o.draw()});
+            $.each(_.oneways,function(o) {o.draw()});
 			
 			_.show = true;
 		},
 		/**
 		 * @method register the customize component or combinate with other charts
-		 * @paramter <link>iChart.Custom</link><link>iChart.Chart</link>#object 
+		 * @paramter <link>$.Custom</link><link>$.Chart</link>#object 
 		 * @return void
 		 */
 		plugin : function(c) {
@@ -1068,31 +1068,31 @@
 			_.plugins.push(c);
 		},
 		destroy:function(_){
-			_.components.eachAll(function(C){
+			$.eachAll(_.components,function(C){
                 if(!C._plugin)
 				C.destroy(C);
 			});
-			_.oneways.each(function(O){
+			$.each(_.oneways,function(O){
 				O.destroy(O);
 			});
 		},
 		/**
 		 * @method return the title,return undefined if unavailable
-		 * @return <link>iChart.Text</link>#the title object
+		 * @return <link>$.Text</link>#the title object
 		 */
 		getTitle:function(){
 			return this.title;
 		},
 		/**
 		 * @method return the subtitle,return undefined if unavailable
-		 * @return <link>iChart.Text</link>#the subtitle object
+		 * @return <link>$.Text</link>#the subtitle object
 		 */
 		getSubTitle:function(){
 			return this.subtitle;
 		},
 		/**
 		 * @method return the footnote,return undefined if unavailable
-		 * @return <link>iChart.Text</link>#the footnote object
+		 * @return <link>$.Text</link>#the footnote object
 		 */
 		getFootNote:function(){
 			return this.footnote;
@@ -1209,7 +1209,7 @@
 			}
             _.fireEvent(_,'resize',[w,h])
 			_.setUp();
-			_.plugins.eachAll(function(P) {
+			$.eachAll(_.plugins,function(P) {
 				if(P.Combination){
 					P.resize(w,h);
 				}
@@ -1298,7 +1298,7 @@
 			 * If Combination,ignore binding event because of root have been do this.
 			 */
 			if(!comb){
-				events.each(function(it) {
+				$.each(events,function(it) {
 					_.T.addEvent(it, function(e) {
 						if (_.processAnimation||_.stopEvent|| !_.show)
 							return;
@@ -1311,7 +1311,7 @@
 			}
 			
 			_.on(events[0], function(_, e) {
-				CO.eachAll(function(C) {
+				$.eachAll(CO,function(C) {
 					if(C._chart){
 						/**
 						 * meaning this component is a Combination Chart
@@ -1343,7 +1343,7 @@
 			if(!$.touch||tot){
 				_.on(events[1], function(_, e) {
 					O = AO = false;
-					CO.eachAll(function(C){
+					$.eachAll(CO,function(C){
 						if(C._chart){
 							/**
 							 * meaning this component is a Combination Chart
@@ -1469,7 +1469,7 @@
 		},
 		remove:function(_,c){
 			if(c)
-			_.components.each(function(C,i){
+                $.each(_.components,function(C,i){
 				if(c.id==C.id){
 					_.components.splice(i,1);
 					return false;

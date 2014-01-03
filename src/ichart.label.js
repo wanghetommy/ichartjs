@@ -89,7 +89,7 @@ iChart.Label = iChart.extend(iChart.Component, {
 		_.push('labelx', _.get('labelx') + x/n);
 		_.push('labely', _.get('labely') + y/n);
 		
-		_.get('line_points').each(function(p,i) {
+		iChart.each(_.get('line_points'),function(p,i) {
 			p.x += x;
 			p.y += y;
 			return i==1;

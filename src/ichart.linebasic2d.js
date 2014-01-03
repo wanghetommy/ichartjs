@@ -18,8 +18,8 @@ iChart.LineBasic2D = iChart.extend(iChart.Line, {
 		this.tipInvokeHeap = [];
 	},
 	doAnimation : function(t, d,_) {
-		_.lines.each(function(l){
-			l.get('points').each(function(p){
+		iChart.each(_.lines,function(l){
+			iChart.each(l.get('points'),function(p){
 				p.y = l.y - Math.ceil(_.animationArithmetic(t, 0, l.y - p.y_, d));
 			});
 			l.drawSegment();
@@ -40,11 +40,11 @@ iChart.LineBasic2D = iChart.extend(iChart.Line, {
 		_.push('sub_option.tipInvokeHeap', _.tipInvokeHeap);
 		_.push('sub_option.point_space', sp);
 
-		_.data.each(function(d, i){
+		iChart.each(_.data,function(d, i){
 			S = _.coo.getScale(d.scaleAlign||_.get('scaleAlign'));
 			oy = _.get('sub_option.originy')- S.basic*H;
 			points = [];
-			d.value.each(function(v, j){
+			iChart.each(d.value,function(v, j){
                 if(v!=null){
                     x = sp * j;
                     y = (v - S.start) * H / S.distance;

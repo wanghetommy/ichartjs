@@ -37,10 +37,10 @@ iChart.ColumnStacked2D = iChart.extend(iChart.Column, {
 	},
 	doEngine:function(_,cw,s,S,H,w2,q,gw,x,y,y0){
 		var h0,h,v,p = _.get('percent');
-		_.columns.each(function(c, i) {
+		iChart.each(_.columns,function(c, i) {
 			h0 = 0;
 			v = p?100/c.total:1;
-			c.item.each(function(d, j) {
+            iChart.each(c.item,function(d, j) {
 				h = (d.value*v - S.start) * H / S.distance;
 				d.total = c.total;
 				_.doParse(_, d, i + '_' + j, {

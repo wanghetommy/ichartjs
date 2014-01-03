@@ -25,8 +25,8 @@ iChart.BarMulti2D = iChart.extend(iChart.Bar, {
 	},
 	doEngine:function(_,bh,s,S,W,h2,gw,x,x0,y0){
 		var w;
-		_.columns.each(function(c, i) {
-			c.item.each(function(d, j) {
+        iChart.each(_.columns,function(c, i) {
+            iChart.each(c.item,function(d, j) {
 				w = (d.value - S.start) * W / S.distance;
 				_.doParse(_, d, j, {
 					id : i + '_' + j,

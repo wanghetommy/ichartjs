@@ -20,7 +20,7 @@
 			}
 		}
 	};
-	var iChart_ = (function(window) {
+	var _ = (function(window) {
 		/**
 		 * spirit from jquery
 		 */
@@ -123,7 +123,6 @@
 
 		_.apply(_, {
 			version : "1.2.1",
-			email : 'taylor@ichartjs.com',
 			isEmpty : function(C, e) {
 				return C === null || C === undefined || ((_.isArray(C) && !C.length)) || (!e ? C === "" : false)
 			},
@@ -147,7 +146,34 @@
 			},
 			isDefined : function(e) {
 				return typeof e !== "undefined"
-			}
+			},
+            each : function(t,f,s,d) {
+                var j = t.length;
+                for ( var i = 0; i < j; i++) {
+                    if (d&& _.isArray(t[i])) {
+                        _.each(t[i],f, s,d);
+                    } else {
+                        if (_.isFalse(f.call(s||t, t[i],i))) {
+                            break;
+                        }
+                    }
+                }
+            },
+            eachAll : function(t,f,s) {
+                _.each(t,f,s,true);
+            },
+            sor : function(t,f) {
+                var L = t.length-1,T;
+                for(var i = 0; i < L; i++){
+                    for (var j = L; j > i;j--) {
+                        if (f ? !f(t[j], t[j - 1]) : (t[j] < t[j - 1])) {
+                            T = t[j];
+                            t[j] = t[j - 1];
+                            t[j - 1] = T;
+                        }
+                    }
+                }
+            }
 		});
 
 		/**
@@ -456,7 +482,7 @@
 			 * simple noConflict implements
 			 */
 			noConflict : function() {
-				return iChart_;
+				return _;
 			},
 			plugin : function(t, m, f) {
 				if (_.isFunction(t))
@@ -817,47 +843,10 @@
 		return _;
 
 	})(window);
-	
-	/**
-	 * Add useful method,need to optimized
-	 */
-	Array.prototype.each = function(f, s) {
-		var j = this.length, r;
-		for ( var i = 0; i < j; i++) {
-			r = s ? f.call(s, this[i], i) : f(this[i], i);
-			if (typeof r === "boolean" && !r) {
-				break
-			}
-		};
-		return this;
-	};
 
-	Array.prototype.eachAll = function(f, s) {
-		this.each(function(d, i) {
-			if (iChart_.isArray(d)) {
-				return d.eachAll(f, s);
-			} else {
-				return s ? f.call(s, d, i) : f(d, i);
-			}
-		}, s);
-	};
-	
-	Array.prototype.sor = function(f) {
-		var _=this,L = _.length-1,T; 
-		for(var i = 0; i < L; i++){
-			for (var j = L; j > i;j--) {
-				if (f ? !f(_[j], _[j - 1]) : (_[j] < _[j - 1])) {
-					T = _[j];
-					_[j] = _[j - 1];
-					_[j - 1] = T;
-				} 
-			} 
-		} 
-	};
-	
-	
-	window.iChart = iChart_;
+	window.iChart = _;
+
 	if (!window.$) {
-		window.$ = window.iChart;
+		window.$ = _;
 	}
 })(window);

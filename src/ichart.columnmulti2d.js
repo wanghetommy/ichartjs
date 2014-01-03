@@ -26,8 +26,8 @@ iChart.ColumnMulti2D = iChart.extend(iChart.Column, {
 	},
 	doEngine:function(_,cw,s,S,H,w2,q,gw,x,y,y0){
 		var h;
-		_.columns.each(function(c, i) {
-			c.item.each(function(d, j) {
+		iChart.each(_.columns,function(c, i) {
+            iChart.each(c.item,function(d, j) {
 				h = (d.value - S.start) * H / S.distance;
 				_.doParse(_, d, i + '_' + j, {
 					id : i + '_' + j,

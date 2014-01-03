@@ -17,7 +17,7 @@ iChart.Column2D = iChart.extend(iChart.Column, {
 	},
 	doEngine:function(_,cw,s,S,H,w2,q,gw,x,y,y0){
 		var h;
-		_.data.each(function(d, i) {
+		iChart.each(_.data,function(d, i) {
 			h = (d.value - S.start) * H / S.distance;
 			_.doParse(_,d, i, {
 				id : i,

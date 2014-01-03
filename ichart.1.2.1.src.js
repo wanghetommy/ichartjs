@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2013-12-06 05:56
+* @date 2014-01-03 06:50
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@
 			}
 		}
 	};
-	var iChart_ = (function(window) {
+	var _ = (function(window) {
 		/**
 		 * spirit from jquery
 		 */
@@ -131,7 +131,6 @@
 
 		_.apply(_, {
 			version : "1.2.1",
-			email : 'taylor@ichartjs.com',
 			isEmpty : function(C, e) {
 				return C === null || C === undefined || ((_.isArray(C) && !C.length)) || (!e ? C === "" : false)
 			},
@@ -155,7 +154,34 @@
 			},
 			isDefined : function(e) {
 				return typeof e !== "undefined"
-			}
+			},
+            each : function(t,f,s,d) {
+                var j = t.length;
+                for ( var i = 0; i < j; i++) {
+                    if (d&& _.isArray(t[i])) {
+                        _.each(t[i],f, s,d);
+                    } else {
+                        if (_.isFalse(f.call(s||t, t[i],i))) {
+                            break;
+                        }
+                    }
+                }
+            },
+            eachAll : function(t,f,s) {
+                _.each(t,f,s,true);
+            },
+            sor : function(t,f) {
+                var L = t.length-1,T;
+                for(var i = 0; i < L; i++){
+                    for (var j = L; j > i;j--) {
+                        if (f ? !f(t[j], t[j - 1]) : (t[j] < t[j - 1])) {
+                            T = t[j];
+                            t[j] = t[j - 1];
+                            t[j - 1] = T;
+                        }
+                    }
+                }
+            }
 		});
 
 		/**
@@ -464,7 +490,7 @@
 			 * simple noConflict implements
 			 */
 			noConflict : function() {
-				return iChart_;
+				return _;
 			},
 			plugin : function(t, m, f) {
 				if (_.isFunction(t))
@@ -825,48 +851,11 @@
 		return _;
 
 	})(window);
-	
-	/**
-	 * Add useful method,need to optimized
-	 */
-	Array.prototype.each = function(f, s) {
-		var j = this.length, r;
-		for ( var i = 0; i < j; i++) {
-			r = s ? f.call(s, this[i], i) : f(this[i], i);
-			if (typeof r === "boolean" && !r) {
-				break
-			}
-		};
-		return this;
-	};
 
-	Array.prototype.eachAll = function(f, s) {
-		this.each(function(d, i) {
-			if (iChart_.isArray(d)) {
-				return d.eachAll(f, s);
-			} else {
-				return s ? f.call(s, d, i) : f(d, i);
-			}
-		}, s);
-	};
-	
-	Array.prototype.sor = function(f) {
-		var _=this,L = _.length-1,T; 
-		for(var i = 0; i < L; i++){
-			for (var j = L; j > i;j--) {
-				if (f ? !f(_[j], _[j - 1]) : (_[j] < _[j - 1])) {
-					T = _[j];
-					_[j] = _[j - 1];
-					_[j - 1] = T;
-				} 
-			} 
-		} 
-	};
-	
-	
-	window.iChart = iChart_;
+	window.iChart = _;
+
 	if (!window.$) {
-		window.$ = window.iChart;
+		window.$ = _;
 	}
 })(window);
 
@@ -1032,7 +1021,7 @@ $.Element.prototype = {
 		if($.isString(n)&&$.isArray(this.events[n])){
 			this.events[n].push(fn);
 		}else if($.isArray(n)){
-			n.each(function(c){this.on(c, fn)},this);
+			$.each(n,function(c){this.on(c, fn)},this);
 		}
 		return this;
 	},
@@ -1701,7 +1690,7 @@ $.Legend = $.extend($.Component, {
 		},
 		h=_.get('line_height');
 		if (e.x > this.x && e.x < (_.x + _.width) && e.y > _.y && e.y < (_.y + _.height)) {
-			_.data.each(function(d, i) {
+			$.each(_.data,function(d, i) {
 				if (e.x > d.x && e.x < (d.x + d.width_ + _.get('signwidth')) && e.y > (d.y -h/2) && e.y < (d.y + h/2)) {
 					r = {
 						valid : true,
@@ -1735,7 +1724,7 @@ $.Legend = $.extend($.Component, {
 	doDraw : function(_) {
 		_.T.box(_.x, _.y, _.width, _.height, _.get('border'), _.get('f_color'), false, _.get('shadow'));
 		_.T.textStyle(_.L, 'middle', $.getFont(_.get('fontweight'), _.get('fontsize'), _.get('font')));
-		_.data.each(function(d) {
+		$.each(_.data,function(d) {
 			_.drawCell(d.x, d.y, d.text, d.color,d.sign,_);
 		});
 	},
@@ -1757,7 +1746,7 @@ $.Legend = $.extend($.Component, {
 		/**
 		 * calculate the width each item will used
 		 */
-		_.data.each(function(d) {
+		$.each(_.data,function(d) {
 			d.width_ = _.T.measureText(d.text);
 		}, _);
 		
@@ -1864,7 +1853,7 @@ $.Legend = $.extend($.Component, {
 		/**
 		 * calculate the width each item will used
 		 */
-		_.data.each(function(d, i) {
+		$.each(_.data,function(d, i) {
 			$.merge(d, _.fireEvent(_, 'parse', [_, d.name, i]));
 			d.text = d.text || d.name ||'';
 			d.sign = d.sign || _.get('sign')
@@ -1983,7 +1972,7 @@ $.Label = $.extend($.Component, {
 		_.push('labelx', _.get('labelx') + x/n);
 		_.push('labely', _.get('labely') + y/n);
 		
-		_.get('line_points').each(function(p,i) {
+		$.each(_.get('line_points'),function(p,i) {
 			p.x += x;
 			p.y += y;
 			return i==1;
@@ -2079,7 +2068,7 @@ $.Label = $.extend($.Component, {
 		_.data = c;
 		if(_.dataType=='simple'){
 			_.total = 0;
-			c.each(function(d){
+			$.each(c,function(d){
 				d.background_color = d.color;
 				V  = d.value||0;
 				if($.isArray(V)){
@@ -2122,7 +2111,7 @@ $.Label = $.extend($.Component, {
 			_.columns = [];
 			for(var i=0;i<L;i++){
 				item = [],T = 0;
-				c.each(function(d,j){
+                $.each(c,function(d,j){
 					V = d.value[i];
 					if(!V&&V!=0)return;
 					d.value[i] = V =  pF(V,V);
@@ -2416,23 +2405,22 @@ $.Label = $.extend($.Component, {
 				}
 			}
 			this.save().fillStyle(color).translate(x,y).rotate(inc2*ro).shadowOn(sw);
-			T.each(function(t,i) {
-				try {
-					if (max&&max>0)
-						this.c.fillText(t, 0,i*h, max);
-					else
-						this.c.fillText(t, 0, i*h);
-				} catch (e) {
-					console.log(e.message + '[' + t + ',' + x + ',' + y + ']');
-				}
-			}, this);
-			
+		    try {
+                $.each(T,function(t,i) {
+                        if (max&&max>0)
+                            this.c.fillText(t, 0,i*h, max);
+                        else
+                            this.c.fillText(t, 0, i*h);
+                }, this);
+            } catch (e) {
+                console.log(e.message + '[' + t + ',' + x + ',' + y + ']');
+            }
+
 			return this.restore();
 		},
 		measureText : function(t){
-			t = t.split("\n");
 			var m=0;
-			t.each(function(o){
+            $.each(t.split("\n"),function(o){
 				m = max(this.measureText(o).width,m);
 			},this.c);
 			return m;
@@ -2568,7 +2556,7 @@ $.Label = $.extend($.Component, {
 					points : [{x:x, y:y}, {x:x, y:y - h}, {x:x + w, y:y - h}, {x:x + w, y:y}]
 				}, styles[5]));
 			
-			side.each(function(s) {
+			$.each(side,function(s) {
 				this.polygon(s.color, b, bw, bc, s.shadow, s.alpha, s.points);
 			}, this);
 			
@@ -3001,7 +2989,7 @@ $.Label = $.extend($.Component, {
 			/**
 			 * draw plugins
 			 */
-			_.plugins.each(function(p){
+            $.each(_.plugins,function(p){
 				if(p.A_draw){
 					p.variable.animation.animating =true;
 					p.variable.animation.time =_.variable.animation.time;
@@ -3013,8 +3001,8 @@ $.Label = $.extend($.Component, {
 			if(_.Combination){
 				return;
 			}
-			
-			_.oneways.each(function(o) {o.draw()});
+
+			$.each(_.oneways,function(o) {o.draw()});
 			
 			if (_.variable.animation.time < _.duration) {
 				_.variable.animation.time++;
@@ -3028,12 +3016,13 @@ $.Label = $.extend($.Component, {
 					/**
 					 * make plugins's status is the same as chart
 					 */
-					_.plugins.each(function(p){
+					$.each(_.plugins,function(p){
 						p.Animationed = true;
 					});
 					_.processAnimation = false;
 					_.draw();
-					_.plugins.each(function(p){
+
+                    $.each(_.plugins,function(p){
 						p.processAnimation = false;
 					});
 					_.fireEvent(_, 'afterAnimation', [_]);
@@ -3053,8 +3042,8 @@ $.Label = $.extend($.Component, {
 		},
 		doSort:function(){
 			var f = function(p, q){return ($.isArray(p)?(p.zIndex||0):p.get('z_index'))>($.isArray(q)?(q.zIndex||0):q.get('z_index'))};
-			this.components.sor(f);
-			this.oneways.sor(f);
+            $.sor(this.components,f);
+            $.sor(this.oneways,f);
 		},
 		commonDraw : function(_,e) {
 			_.show = false;
@@ -3073,14 +3062,14 @@ $.Label = $.extend($.Component, {
 			_.segmentRect();
 			//order?
 			var i=0;
-			_.components.eachAll(function(c) {
+			$.eachAll(_.components,function(c) {
 				c.draw(e);
 			});
-			_.components.eachAll(function(c) {
+            $.eachAll(_.components,function(c) {
 				if(c.last)c.last(c);
 			});
 			//order?
-			_.oneways.each(function(o) {o.draw()});
+            $.each(_.oneways,function(o) {o.draw()});
 			
 			_.show = true;
 		},
@@ -3105,11 +3094,11 @@ $.Label = $.extend($.Component, {
 			_.plugins.push(c);
 		},
 		destroy:function(_){
-			_.components.eachAll(function(C){
+			$.eachAll(_.components,function(C){
                 if(!C._plugin)
 				C.destroy(C);
 			});
-			_.oneways.each(function(O){
+			$.each(_.oneways,function(O){
 				O.destroy(O);
 			});
 		},
@@ -3246,7 +3235,7 @@ $.Label = $.extend($.Component, {
 			}
             _.fireEvent(_,'resize',[w,h])
 			_.setUp();
-			_.plugins.eachAll(function(P) {
+			$.eachAll(_.plugins,function(P) {
 				if(P.Combination){
 					P.resize(w,h);
 				}
@@ -3335,7 +3324,7 @@ $.Label = $.extend($.Component, {
 			 * If Combination,ignore binding event because of root have been do this.
 			 */
 			if(!comb){
-				events.each(function(it) {
+				$.each(events,function(it) {
 					_.T.addEvent(it, function(e) {
 						if (_.processAnimation||_.stopEvent|| !_.show)
 							return;
@@ -3348,7 +3337,7 @@ $.Label = $.extend($.Component, {
 			}
 			
 			_.on(events[0], function(_, e) {
-				CO.eachAll(function(C) {
+				$.eachAll(CO,function(C) {
 					if(C._chart){
 						/**
 						 * meaning this component is a Combination Chart
@@ -3380,7 +3369,7 @@ $.Label = $.extend($.Component, {
 			if(!$.touch||tot){
 				_.on(events[1], function(_, e) {
 					O = AO = false;
-					CO.eachAll(function(C){
+					$.eachAll(CO,function(C){
 						if(C._chart){
 							/**
 							 * meaning this component is a Combination Chart
@@ -3506,7 +3495,7 @@ $.Label = $.extend($.Component, {
 		},
 		remove:function(_,c){
 			if(c)
-			_.components.each(function(C,i){
+                $.each(_.components,function(C,i){
 				if(c.id==C.id){
 					_.components.splice(i,1);
 					return false;
@@ -4518,10 +4507,10 @@ $.Column = $.extend($.Chart, {
 	},
 	doAnimation : function(t, d,_) {
 		var h;
-		_.labels.each(function(l){
+		$.each(_.labels,function(l){
 			l.draw();
 		});
-		_.rectangles.each(function(r){
+        $.each(_.rectangles,function(r){
 			h = Math.ceil(_.animationArithmetic(t, 0, r.height, d));
 			r.push(_.Y, r.y + (r.height - h));
 			r.push(_.H, h);
@@ -4626,7 +4615,7 @@ $.Column2D = $.extend($.Column, {
 	},
 	doEngine:function(_,cw,s,S,H,w2,q,gw,x,y,y0){
 		var h;
-		_.data.each(function(d, i) {
+		$.each(_.data,function(d, i) {
 			h = (d.value - S.start) * H / S.distance;
 			_.doParse(_,d, i, {
 				id : i,
@@ -4730,8 +4719,8 @@ $.ColumnMulti2D = $.extend($.Column, {
 	},
 	doEngine:function(_,cw,s,S,H,w2,q,gw,x,y,y0){
 		var h;
-		_.columns.each(function(c, i) {
-			c.item.each(function(d, j) {
+		$.each(_.columns,function(c, i) {
+            $.each(c.item,function(d, j) {
 				h = (d.value - S.start) * H / S.distance;
 				_.doParse(_, d, i + '_' + j, {
 					id : i + '_' + j,
@@ -4848,10 +4837,10 @@ $.ColumnStacked2D = $.extend($.Column, {
 	},
 	doEngine:function(_,cw,s,S,H,w2,q,gw,x,y,y0){
 		var h0,h,v,p = _.get('percent');
-		_.columns.each(function(c, i) {
+		$.each(_.columns,function(c, i) {
 			h0 = 0;
 			v = p?100/c.total:1;
-			c.item.each(function(d, j) {
+            $.each(c.item,function(d, j) {
 				h = (d.value*v - S.start) * H / S.distance;
 				d.total = c.total;
 				_.doParse(_, d, i + '_' + j, {
@@ -5031,10 +5020,10 @@ $.Bar = $.extend($.Chart, {
 		_.doEngine(_,bh,s,S,W,h2,gw,x,x0,y0);
 	},
 	doAnimation : function(t, d,_) {
-		_.labels.each(function(l) {
+        $.each(_.labels,function(l) {
 			l.draw();
 		});
-		_.rectangles.each(function(r) {
+        $.each(_.rectangles,function(r) {
 			r.push(_.W, Math.ceil(_.animationArithmetic(t, 0, r.width, d)));
 			r.drawRectangle();
 		});
@@ -5104,7 +5093,7 @@ $.Bar2D = $.extend($.Bar, {
 	},
 	doEngine:function(_,bh,s,S,W,h2,gw,x,x0,y0){
 		var w;
-		_.data.each(function(d, i) {
+		$.each(_.data,function(d, i) {
 			w = (d.value - S.start) * W / S.distance;
 			_.doParse(_, d, i, {
 				id : i,
@@ -5169,10 +5158,10 @@ $.BarStacked2D = $.extend($.Bar, {
 	},
 	doEngine:function(_,bh,s,S,W,h2,gw,x,x0,y0){
 		var w0,w,v,p = _.get('percent');
-		_.columns.each(function(c, i) {
+		$.each(_.columns,function(c, i) {
 			w0 = 0;
 			v = p?100/c.total:1;
-			c.item.each(function(d, j) {
+			$.each(c.item,function(d, j) {
 				w = (d.value*v - S.start) * W / S.distance;
 				d.total = c.total;
 				_.doParse(_, d, j, {
@@ -5228,8 +5217,8 @@ $.BarMulti2D = $.extend($.Bar, {
 	},
 	doEngine:function(_,bh,s,S,W,h2,gw,x,x0,y0){
 		var w;
-		_.columns.each(function(c, i) {
-			c.item.each(function(d, j) {
+        $.each(_.columns,function(c, i) {
+            $.each(c.item,function(d, j) {
 				w = (d.value - S.start) * W / S.distance;
 				_.doParse(_, d, j, {
 					id : i + '_' + j,
@@ -5657,7 +5646,7 @@ $.Pie = $.extend($.Chart, {
 	},
 	doAnimation : function(t, d,_) {
 		var si = 0, cs = _.oA;
-		_.sectors.each(function(s, i) {
+		$.each(_.sectors,function(s, i) {
 			si = _.animationArithmetic(t, 0, s.get('totalAngle'), d);
 			s.push('startAngle', cs);
 			s.push('endAngle', cs+=si);
@@ -5670,7 +5659,7 @@ $.Pie = $.extend($.Chart, {
 		}
 	},
 	parse : function(_) {
-		_.data.each(function(d,i){
+		$.each(_.data,function(d,i){
 			_.doParse(_,d,i);
 		},_);
 		/**
@@ -5708,17 +5697,17 @@ $.Pie = $.extend($.Chart, {
 		if (_.get('intellectLayout')) {
 			var unlayout = [],layouted = [],d = _.get('layout_distance'),Q,x,y;
 			
-			_.sectors.each(function(f, i) {
+			$.each(_.sectors,function(f, i) {
 				if(f.isLabel())
 				unlayout.push(f.label);
 			});
-			
-			unlayout.sor(function(p, q) {
+
+            $.sor(unlayout,function(p, q) {
 				return Math.abs(Math.sin(p.get('angle'))) - Math.abs(Math.sin(q.get('angle')))>0;
 			});
-			
-			unlayout.each(function(la) {
-				layouted.each(function(l) {
+
+            $.each(unlayout,function(la) {
+                $.each(layouted,function(l) {
 					x = l.labelx, y = l.labely;
 					if ((la.labely <= y && (y - la.labely-1) < la.get(_.H)) || (la.labely > y && (la.labely - y-1) < l.get(_.H))) {
 						if ((la.labelx <= x && (x - la.labelx) < la.get(_.W)) || (la.labelx > x && (la.labelx - x) < l.get(_.W))) {
@@ -5749,7 +5738,7 @@ $.Pie = $.extend($.Chart, {
 		if(_.total==0){
 			V  = 1/L;
 		}
-		_.data.each(function(d, i) {
+		$.each(_.data,function(d, i) {
 			eA += (V||(d.value / _.total)) * PI;
 			if (i == (L - 1)) {
 				eA = pi2 + _.oA;
@@ -5868,7 +5857,7 @@ $.Pie3D = $.extend($.Pie, {
 			drawFn : function() {
 				this.drawSector();
 				L = [];
-				_.sectors.each(function(s) {
+				$.each(_.sectors,function(s) {
 					if (s.get('label')) {
 						if (s.expanded)
 							L.push(s.label);
@@ -5876,16 +5865,17 @@ $.Pie3D = $.extend($.Pie, {
 							s.label.draw();
 					}
 				});
-				L.each(function(l) {
+				$.each(L,function(l) {
 					l.draw()
 				});
 			}
 		});
+
 		_.proxy.drawSector = function() {
 			/**
 			 * paint bottom layer
 			 */
-			_.sectors.each(function(s, i) {
+			$.each(_.sectors,function(s, i) {
 				_.T.ellipse(s.x, s.y + s.h, s.a, s.b, s.get(t), s.get(d), 0, s.get('border.enable'), s.get('border.width'), s.get('border.color'), s.get('shadow'), c, true);
 			}, _);
 			layer = [];
@@ -5893,7 +5883,7 @@ $.Pie3D = $.extend($.Pie, {
 			/**
 			 * sort layer
 			 */
-			_.sectors.each(function(f) {
+			$.each(_.sectors,function(f) {
 				lay(c,f.get(t),f.get(d),f);
 				lay(!c,f.get(d),f.get(t),f);
 				spaint = spaint.concat($.visible(f.get(t),f.get(d),f));
@@ -5902,7 +5892,7 @@ $.Pie3D = $.extend($.Pie, {
 			/**
 			 * realtime sort
 			 */
-			layer.sor(function(p, q) {
+			$.sor(layer,function(p, q) {
 				var r = abs(p.g) - abs(q.g);
 				return r==0?p.z:r > 0;
 			});
@@ -5910,7 +5900,7 @@ $.Pie3D = $.extend($.Pie, {
 			/**
 			 * paint inside layer
 			 */
-			layer.each(function(f, i) {
+			$.each(layer,function(f) {
 				_.T.sector3D.layerDraw.call(_.T, f.x, f.y, f.a + 0.5, f.b + 0.5, c, f.h, f.g, f.color);
 			}, _);
 			
@@ -5918,21 +5908,21 @@ $.Pie3D = $.extend($.Pie, {
 				/**
 				 * realtime sort
 				 */
-				spaint.sor(function(p, q) {
+                $.sor(spaint,function(p, q) {
 					return abs((p.s+p.e)/2,1) - abs((q.s+q.e)/2,1)<0;
 				});
 			}
 			/**
 			 * paint outside layer
 			 */
-			spaint.each(function(s, i) {
+			$.each(spaint,function(s, i) {
 				_.T.sector3D.sPaint.call(_.T, s.f.x, s.f.y, s.f.a, s.f.b, s.s, s.e, c, s.f.h, s.f.get('f_color'));
 			}, _);
 
 			/**
 			 * paint top layer
 			 */
-			_.sectors.each(function(s, i) {
+			$.each(_.sectors,function(s, i) {
 				_.T.ellipse(s.x, s.y, s.a, s.b, s.get(t), s.get(d), s.get('f_color'), s.get('border.enable'), s.get('border.width'), s.get('border.color'), false, false, true);
 			}, _);
 		}
@@ -6191,22 +6181,22 @@ $.Scale = $.extend($.Component, {
 	 */
 	doDraw : function(_) {
 		if (_.get('scale_enable'))
-			_.items.each(function(item) {
+			$.each(_.items,function(item) {
 				_.T.line(item.x0, item.y0, item.x1, item.y1, _.get('scale_size'), _.get('scale_color'), false);
 			});
-		_.labels.each(function(l) {
+		$.each(_.labels,function(l) {
 			l.draw();
 		});
 	},
 	doLayout:function(x,y,_){
 		if (_.get('scale_enable'))
-			_.items.each(function(item) {
+			$.each(_.items,function(item) {
 				item.x0+=x;
 				item.y0+=y;
 				item.x1+=x;
 				item.y1+=y;
 			});
-		_.labels.each(function(l) {
+		$.each(_.labels,function(l) {
 			l.doLayout(x,y,0,l);
 		});
 	},
@@ -6395,7 +6385,7 @@ $.Coordinate = {
 		}
 		if($.isArray(scale)){
 			var ST = _.dataType != 'stacked';
-			scale.each(function(s){
+			$.each(scale,function(s){
 				/**
 				 * applies the percent shower
 				 */
@@ -6595,7 +6585,7 @@ $.Coordinate2D = $.extend($.Component, {
 		this.gridlines = [];
 	},
 	refresh:function(n,x,p){
-		this.scale.each(function(s){
+		$.each(this.scale,function(s){
 			if(s.get('position')==p){
 				var U;
 				if (!s.get('assign_scale')||s.get('end_scale') < x) {
@@ -6649,7 +6639,7 @@ $.Coordinate2D = $.extend($.Component, {
 			var x, y, f = false, axis = _.get('axis.width'), c = $.dark(_.get('background_color'), _.get('striped_factor'),0);
 		}
 		var v = (_.get('striped_direction') == 'v');
-		_.gridlines.each(function(g,i) {
+		$.each(_.gridlines,function(g) {
 			if (_.get('striped')) {
 				if (f) {
 					if (v)
@@ -6661,7 +6651,8 @@ $.Coordinate2D = $.extend($.Component, {
 				y = g.y1;
 				f = !f;
 			}
-		}).each(function(g) {
+		});
+        $.each(_.gridlines,function(g) {
 			if(!g.overlap){
 				if(g.solid){
 					_.T.line(g.x1, g.y1, g.x2, g.y2, g.width, g.color);
@@ -6671,7 +6662,7 @@ $.Coordinate2D = $.extend($.Component, {
 			}
 		});
 		_.T.box(_.x, _.y, _.width, _.height, _.get('axis'), false, _.get('shadow'),true);
-		_.scale.each(function(s) {
+		$.each(_.scale,function(s) {
 			s.draw()
 		});
 	},
@@ -6733,7 +6724,7 @@ $.Coordinate2D = $.extend($.Component, {
 				_.push('scale', []);
 		}
 		
-		_.get('scale').each(function(kd, i) {
+		$.each(_.get('scale'),function(kd, i) {
 			jp = kd['position'];
 			jp = jp || _.L;
 			jp = jp.toLowerCase();
@@ -6796,7 +6787,7 @@ $.Coordinate2D = $.extend($.Component, {
 		
 		if (k2g) {
 			var scale, x, y, p;
-			_.scale.each(function(scale) {
+			$.each(_.scale,function(scale) {
 				p = scale.get('position');
 				/**
 				 * disable,given specfiy grid will ignore scale2grid
@@ -6815,7 +6806,7 @@ $.Coordinate2D = $.extend($.Component, {
 					x = w;
 				}
 				
-				scale.items.each(function(e) {
+				$.each(scale.items,function(e) {
 					if (iol)
 					_.gridlines.push($.applyIf({
 						overlap:ignoreOverlap.call(_, scale.get('which'), e.x, e.y),
@@ -6985,7 +6976,7 @@ $.Coordinate3D = $.extend($.Coordinate2D, {
 		
 		_.T.cube3D(_.x, _.y + h, xa, ya, false, w, h, zh, _.get('axis.enable'), _.get('axis.width'), _.get('axis.color'), _.get('wall_style'));
 		
-		_.gridlines.each(function(g) {
+		$.each(_.gridlines,function(g) {
 			if(g.solid){
 				if(_.get('left_board'))
 				_.T.line(g.x1, g.y1, g.x1 + offx, g.y1 - offy,g.width, g.color);
@@ -6996,7 +6987,7 @@ $.Coordinate3D = $.extend($.Coordinate2D, {
 				_.T.dotted(g.x1 + offx, g.y1 - offy, g.x2 + offx, g.y2 - offy, g.width, g.color,g.size,g.fator);
 			}
 		});
-		_.scale.each(function(s) {
+		$.each(_.scale,function(s) {
 			s.draw();
 		});
 	},
@@ -7019,7 +7010,7 @@ $.Coordinate3D = $.extend($.Coordinate2D, {
 			}
 			if(!_.get('left_board')){
 				ws[2] = false;
-				_.scale.each(function(s){
+				$.each(_.scale,function(s){
 					s.doLayout(offx,-offy,s);
 				});
 			}
@@ -7105,6 +7096,14 @@ $.Coordinate3D = $.extend($.Coordinate2D, {
 				 * @inner {Boolean} private use
 				 */
 				 vcross:true,
+                /**
+                 * @inner {Boolean} private use
+                 */
+                 point:{
+                    enable:true,
+                    color:null,
+                    size:12
+                 },
 				 /**
 				 * @inner {Function} private use
 				 */
@@ -7142,12 +7141,16 @@ $.Coordinate3D = $.extend($.Coordinate2D, {
 		position:function(t,l,_){
 			_.horizontal.style.top = (t-_.size)+"px";
 			_.vertical.style.left = (l-_.size)+"px";
+            if(_.point){
+                _.point.style.top = (t-_.point.size/2)+"px";
+                _.point.style.left = (l-_.point.size/2)+"px";
+            }
 		},
-		doCreate:function(_,w,h){
+		doCreate:function(_,w,h,c){
 			var d = document.createElement("div");
 			d.style.width= $.toPixel(w);
 			d.style.height= $.toPixel(h);
-			d.style.backgroundColor = _.get('line_color');
+			d.style.backgroundColor = c;
 			d.style.position="absolute";
 			_.dom.appendChild(d);
 			return d;
@@ -7164,9 +7167,9 @@ $.Coordinate3D = $.extend($.Coordinate2D, {
 		initialize:function(){
 			$.CrossHair.superclass.initialize.call(this);
 			
-			var _ = this._(),L = $.toPixel(_.get('line_width'));
+			var _ = this._(),L = _.get('line_width'),h=_.get('hcross'),v=_.get('vcross'),c=_.get('line_color'),s=_.get('point.size');
 			
-			_.size = _.get('line_width')/2;
+			_.size = L/2;
 			
 			_.top = $.fixPixel(_.get(_.O));
 			_.left = $.fixPixel(_.get(_.L));
@@ -7182,9 +7185,17 @@ $.Coordinate3D = $.extend($.Coordinate2D, {
 			_.css('left',_.left+'px');
 			_.css('visibility','hidden');
 			
-			_.horizontal = _.doCreate(_,_.get('hcross')?$.toPixel(_.get(_.W)):"0px",L);
-			_.vertical = _.doCreate(_,L,_.get('vcross')?$.toPixel(_.get(_.H)):"0px");
-			
+			_.horizontal = _.doCreate(_,h?_.get(_.W):0,L,c);
+			_.vertical = _.doCreate(_,L,v?_.get(_.H):0,c);
+
+            /**
+             * there must be has a cross so can be make a point
+             */
+			if(h&&v&&_.get('point.enable')){
+                _.point = _.doCreate(_,s,s,_.get('point.color')||c);
+                _.point.style.borderRadius = '100%';
+                _.point.size = s;
+            }
 			
 			
 		}
@@ -7311,17 +7322,17 @@ $.LineSegment = $.extend($.Component, {
 	drawSegment : function() {
 		var _ = this._();
 		
-		_.polygons.each(function(P){
+		$.each(_.polygons,function(P){
 			_.T.polygon.apply(_.T,P);
 		});
 		
 		_.T.shadowOn(_.get('shadow'));
 		
-		_.lines.each(function(L){
+		$.each(_.lines,function(L){
 			_.T.lineArray.apply(_.T,L);
 		});
 		
-		_.intersections.each(function(I){
+		$.each(_.intersections,function(I){
 			if(_.sign_plugin){
 				_.sign_plugin_fn.apply(_,I);
 			}else{
@@ -7336,7 +7347,7 @@ $.LineSegment = $.extend($.Component, {
 	doDraw : function(_) {
 		_.drawSegment();
 		if (_.get('label')) {
-			_.labels.each(function(l){
+			$.each(_.labels,function(l){
 				l.draw();
 			});
 		}
@@ -7377,7 +7388,7 @@ $.LineSegment = $.extend($.Component, {
 			}
 		}
 		//parseText 统一修复为返回{}
-		p.each(function(q){
+		$.each(p,function(q){
 			q.x_ = q.x;
 			q.y_ = q.y;
 			if(!q.ignored&&!q.direct&&L){
@@ -7461,7 +7472,7 @@ $.LineSegment = $.extend($.Component, {
                     hit : true
                 };
             };
-		
+
 		/**
 		 * override the default method
 		 */
@@ -7714,7 +7725,7 @@ $.Line = $.extend($.Chart, {
 						if(r.valid){
 							r0 = r.i;
 							U = [];
-							_.lines.each(function(l,i){
+							$.each(_.lines,function(l,i){
 								r1 = l.isEventValid(e);
 								if(i==0){
 									r.minTop = r.maxTop = r1.top;
@@ -7761,8 +7772,8 @@ $.LineBasic2D = $.extend($.Line, {
 		this.tipInvokeHeap = [];
 	},
 	doAnimation : function(t, d,_) {
-		_.lines.each(function(l){
-			l.get('points').each(function(p){
+		$.each(_.lines,function(l){
+			$.each(l.get('points'),function(p){
 				p.y = l.y - Math.ceil(_.animationArithmetic(t, 0, l.y - p.y_, d));
 			});
 			l.drawSegment();
@@ -7783,11 +7794,11 @@ $.LineBasic2D = $.extend($.Line, {
 		_.push('sub_option.tipInvokeHeap', _.tipInvokeHeap);
 		_.push('sub_option.point_space', sp);
 
-		_.data.each(function(d, i){
+		$.each(_.data,function(d, i){
 			S = _.coo.getScale(d.scaleAlign||_.get('scaleAlign'));
 			oy = _.get('sub_option.originy')- S.basic*H;
 			points = [];
-			d.value.each(function(v, j){
+			$.each(d.value,function(v, j){
                 if(v!=null){
                     x = sp * j;
                     y = (v - S.start) * H / S.distance;

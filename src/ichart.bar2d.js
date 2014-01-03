@@ -18,7 +18,7 @@ iChart.Bar2D = iChart.extend(iChart.Bar, {
 	},
 	doEngine:function(_,bh,s,S,W,h2,gw,x,x0,y0){
 		var w;
-		_.data.each(function(d, i) {
+		iChart.each(_.data,function(d, i) {
 			w = (d.value - S.start) * W / S.distance;
 			_.doParse(_, d, i, {
 				id : i,

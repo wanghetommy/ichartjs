@@ -117,17 +117,17 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 	drawSegment : function() {
 		var _ = this._();
 		
-		_.polygons.each(function(P){
+		iChart.each(_.polygons,function(P){
 			_.T.polygon.apply(_.T,P);
 		});
 		
 		_.T.shadowOn(_.get('shadow'));
 		
-		_.lines.each(function(L){
+		iChart.each(_.lines,function(L){
 			_.T.lineArray.apply(_.T,L);
 		});
 		
-		_.intersections.each(function(I){
+		iChart.each(_.intersections,function(I){
 			if(_.sign_plugin){
 				_.sign_plugin_fn.apply(_,I);
 			}else{
@@ -142,7 +142,7 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 	doDraw : function(_) {
 		_.drawSegment();
 		if (_.get('label')) {
-			_.labels.each(function(l){
+			iChart.each(_.labels,function(l){
 				l.draw();
 			});
 		}
@@ -183,7 +183,7 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 			}
 		}
 		//parseText 统一修复为返回{}
-		p.each(function(q){
+		iChart.each(p,function(q){
 			q.x_ = q.x;
 			q.y_ = q.y;
 			if(!q.ignored&&!q.direct&&L){
@@ -267,7 +267,7 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
                     hit : true
                 };
             };
-		
+
 		/**
 		 * override the default method
 		 */

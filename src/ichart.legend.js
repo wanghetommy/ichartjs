@@ -105,7 +105,7 @@ iChart.Legend = iChart.extend(iChart.Component, {
 		},
 		h=_.get('line_height');
 		if (e.x > this.x && e.x < (_.x + _.width) && e.y > _.y && e.y < (_.y + _.height)) {
-			_.data.each(function(d, i) {
+			iChart.each(_.data,function(d, i) {
 				if (e.x > d.x && e.x < (d.x + d.width_ + _.get('signwidth')) && e.y > (d.y -h/2) && e.y < (d.y + h/2)) {
 					r = {
 						valid : true,
@@ -139,7 +139,7 @@ iChart.Legend = iChart.extend(iChart.Component, {
 	doDraw : function(_) {
 		_.T.box(_.x, _.y, _.width, _.height, _.get('border'), _.get('f_color'), false, _.get('shadow'));
 		_.T.textStyle(_.L, 'middle', iChart.getFont(_.get('fontweight'), _.get('fontsize'), _.get('font')));
-		_.data.each(function(d) {
+		iChart.each(_.data,function(d) {
 			_.drawCell(d.x, d.y, d.text, d.color,d.sign,_);
 		});
 	},
@@ -161,7 +161,7 @@ iChart.Legend = iChart.extend(iChart.Component, {
 		/**
 		 * calculate the width each item will used
 		 */
-		_.data.each(function(d) {
+		iChart.each(_.data,function(d) {
 			d.width_ = _.T.measureText(d.text);
 		}, _);
 		
@@ -268,7 +268,7 @@ iChart.Legend = iChart.extend(iChart.Component, {
 		/**
 		 * calculate the width each item will used
 		 */
-		_.data.each(function(d, i) {
+		iChart.each(_.data,function(d, i) {
 			iChart.merge(d, _.fireEvent(_, 'parse', [_, d.name, i]));
 			d.text = d.text || d.name ||'';
 			d.sign = d.sign || _.get('sign')

@@ -61,7 +61,7 @@ iChart.Pie3D = iChart.extend(iChart.Pie, {
 			drawFn : function() {
 				this.drawSector();
 				L = [];
-				_.sectors.each(function(s) {
+				iChart.each(_.sectors,function(s) {
 					if (s.get('label')) {
 						if (s.expanded)
 							L.push(s.label);
@@ -69,16 +69,17 @@ iChart.Pie3D = iChart.extend(iChart.Pie, {
 							s.label.draw();
 					}
 				});
-				L.each(function(l) {
+				iChart.each(L,function(l) {
 					l.draw()
 				});
 			}
 		});
+
 		_.proxy.drawSector = function() {
 			/**
 			 * paint bottom layer
 			 */
-			_.sectors.each(function(s, i) {
+			iChart.each(_.sectors,function(s, i) {
 				_.T.ellipse(s.x, s.y + s.h, s.a, s.b, s.get(t), s.get(d), 0, s.get('border.enable'), s.get('border.width'), s.get('border.color'), s.get('shadow'), c, true);
 			}, _);
 			layer = [];
@@ -86,7 +87,7 @@ iChart.Pie3D = iChart.extend(iChart.Pie, {
 			/**
 			 * sort layer
 			 */
-			_.sectors.each(function(f) {
+			iChart.each(_.sectors,function(f) {
 				lay(c,f.get(t),f.get(d),f);
 				lay(!c,f.get(d),f.get(t),f);
 				spaint = spaint.concat(iChart.visible(f.get(t),f.get(d),f));
@@ -95,7 +96,7 @@ iChart.Pie3D = iChart.extend(iChart.Pie, {
 			/**
 			 * realtime sort
 			 */
-			layer.sor(function(p, q) {
+			iChart.sor(layer,function(p, q) {
 				var r = abs(p.g) - abs(q.g);
 				return r==0?p.z:r > 0;
 			});
@@ -103,7 +104,7 @@ iChart.Pie3D = iChart.extend(iChart.Pie, {
 			/**
 			 * paint inside layer
 			 */
-			layer.each(function(f, i) {
+			iChart.each(layer,function(f) {
 				_.T.sector3D.layerDraw.call(_.T, f.x, f.y, f.a + 0.5, f.b + 0.5, c, f.h, f.g, f.color);
 			}, _);
 			
@@ -111,21 +112,21 @@ iChart.Pie3D = iChart.extend(iChart.Pie, {
 				/**
 				 * realtime sort
 				 */
-				spaint.sor(function(p, q) {
+                iChart.sor(spaint,function(p, q) {
 					return abs((p.s+p.e)/2,1) - abs((q.s+q.e)/2,1)<0;
 				});
 			}
 			/**
 			 * paint outside layer
 			 */
-			spaint.each(function(s, i) {
+			iChart.each(spaint,function(s, i) {
 				_.T.sector3D.sPaint.call(_.T, s.f.x, s.f.y, s.f.a, s.f.b, s.s, s.e, c, s.f.h, s.f.get('f_color'));
 			}, _);
 
 			/**
 			 * paint top layer
 			 */
-			_.sectors.each(function(s, i) {
+			iChart.each(_.sectors,function(s, i) {
 				_.T.ellipse(s.x, s.y, s.a, s.b, s.get(t), s.get(d), s.get('f_color'), s.get('border.enable'), s.get('border.width'), s.get('border.color'), false, false, true);
 			}, _);
 		}

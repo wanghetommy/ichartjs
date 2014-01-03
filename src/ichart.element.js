@@ -159,7 +159,7 @@ iChart.Element.prototype = {
 		if(iChart.isString(n)&&iChart.isArray(this.events[n])){
 			this.events[n].push(fn);
 		}else if(iChart.isArray(n)){
-			n.each(function(c){this.on(c, fn)},this);
+			iChart.each(n,function(c){this.on(c, fn)},this);
 		}
 		return this;
 	},

@@ -87,10 +87,10 @@ iChart.Bar = iChart.extend(iChart.Chart, {
 		_.doEngine(_,bh,s,S,W,h2,gw,x,x0,y0);
 	},
 	doAnimation : function(t, d,_) {
-		_.labels.each(function(l) {
+        iChart.each(_.labels,function(l) {
 			l.draw();
 		});
-		_.rectangles.each(function(r) {
+        iChart.each(_.rectangles,function(r) {
 			r.push(_.W, Math.ceil(_.animationArithmetic(t, 0, r.width, d)));
 			r.drawRectangle();
 		});
