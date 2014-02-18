@@ -17,7 +17,7 @@
 			
 			this.set({
 				/**
-				 * @cfg {String} Specifies the text want to disply.(default to '')
+				 * @cfg {String} Specifies the text want to display.there will be a newlines when input a '\n' (default to '')
 				 */
 				text:'',
 				/**
