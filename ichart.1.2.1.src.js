@@ -1,8 +1,8 @@
 /**
-* ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2014-01-03 06:50
-* @author taylor wong
-* @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
+* grunt Library v0.4.4 http://www.ichartjs.com/
+* @date 2014-03-27 06:09
+* @author null
+* @Copyright 2014 mywei1989@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
 * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 */;
@@ -5358,11 +5358,23 @@ $.register('BarMulti2D');
 			}
 		},
 		doAction:function(_){
-			_.T.on('mouseover',function(c,e,m){
-				_.show(e,m);	
-			}).on('mouseout',function(c,e,m){
-				_.hidden(e);
-			});
+			//pie change to click events
+			if (_.T.T.canvas.id.indexOf("pie") > -1) {
+				_.T.on('click',function(c,e,m){
+					var shell=document.getElementById("shell-"+e.target.id);
+					var allTip =shell.getElementsByTagName('div'),i=0;
+					for(;i<allTip.length;i++){
+						allTip[i].style.visibility="hidden";
+					}
+					_.show(e,m);
+				});
+			} else {
+				_.T.on('mouseover',function(c,e,m){
+					_.show(e,m);  //显示提示框  
+				}).on('mouseout',function(c,e,m){
+					_.hidden(e);  //隐藏提示框
+				});			
+			}
 			
 			if(_.get('showType')=='follow'){
 				_.T.on('mousemove',function(c,e,m){
@@ -5420,7 +5432,7 @@ $.register('BarMulti2D');
 			
 			this.set({
 				/**
-				 * @cfg {String} Specifies the text want to disply.(default to '')
+				 * @cfg {String} Specifies the text want to display.there will be a newlines when input a '\n' (default to '')
 				 */
 				text:'',
 				/**
