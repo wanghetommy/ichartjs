@@ -112,11 +112,23 @@
 			}
 		},
 		doAction:function(_){
-			_.T.on('mouseover',function(c,e,m){
-				_.show(e,m);	
-			}).on('mouseout',function(c,e,m){
-				_.hidden(e);
-			});
+			//pie change to click events
+			if (_.T.T.canvas.id.indexOf("pie") > -1) {
+				_.T.on('click',function(c,e,m){
+					var shell=document.getElementById("shell-"+e.target.id);
+					var allTip =shell.getElementsByTagName('div'),i=0;
+					for(;i<allTip.length;i++){
+						allTip[i].style.visibility="hidden";
+					}
+					_.show(e,m);
+				});
+			} else {
+				_.T.on('mouseover',function(c,e,m){
+					_.show(e,m);  //显示提示框  
+				}).on('mouseout',function(c,e,m){
+					_.hidden(e);  //隐藏提示框
+				});			
+			}
 			
 			if(_.get('showType')=='follow'){
 				_.T.on('mousemove',function(c,e,m){
