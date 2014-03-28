@@ -669,6 +669,8 @@
 				return new _[_Rep[C.type]](C);
 			},
 			remove:function(id){
+                var c= _Reg[id];
+                c.destroy();
 				delete _Reg[id];
 			},
 			get:function(id){

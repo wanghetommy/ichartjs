@@ -309,7 +309,7 @@
 			return this;
 		},
 		shadowOff : function() {
-			this.c.shadowColor = 'white';
+            this.c.shadowColor = 'rgba(0,0,0,0.0)';
 			this.c.shadowBlur = this.c.shadowOffsetX = this.c.shadowOffsetY = 0;
 			return this;
 		},
