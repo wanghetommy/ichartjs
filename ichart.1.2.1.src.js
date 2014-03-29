@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2014-01-03 06:50
+* @date 2014-03-28 05:44
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -677,6 +677,8 @@
 				return new _[_Rep[C.type]](C);
 			},
 			remove:function(id){
+                var c= _Reg[id];
+                c.destroy();
 				delete _Reg[id];
 			},
 			get:function(id){
@@ -2335,7 +2337,7 @@ $.Label = $.extend($.Component, {
 			return this;
 		},
 		shadowOff : function() {
-			this.c.shadowColor = 'white';
+            this.c.shadowColor = 'rgba(0,0,0,0.0)';
 			this.c.shadowBlur = this.c.shadowOffsetX = this.c.shadowOffsetY = 0;
 			return this;
 		},
@@ -5420,7 +5422,7 @@ $.register('BarMulti2D');
 			
 			this.set({
 				/**
-				 * @cfg {String} Specifies the text want to disply.(default to '')
+				 * @cfg {String} Specifies the text want to display.there will be a newlines when input a '\n' (default to '')
 				 */
 				text:'',
 				/**

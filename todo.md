@@ -29,3 +29,5 @@ ichartjs需求收集与优化建议
         23、Pie看来有必要新增一个api。move(x,y)
         24、1.2.1 resize有问题?*
         25、折线图中上行、下行的颜色能否设置为不同
+        26、组合图load后。tip会不出现
+        27、scale_share:3不起作用。老版本ok
