@@ -56,13 +56,9 @@ iChart.Scale = iChart.extend(iChart.Component, {
 			 */
 			max_scale : undefined,
 			/**
-			 * @cfg {Number} Specifies the space of two scale.Note either this or property of scale_share must be has the given value.(default to undefined)
+			 * @cfg {Number} Specifies the space of two scale.(default to undefined)
 			 */
 			scale_space : undefined,
-			/**
-			 * @cfg {Number} Specifies the number of scale on axis.(default to 5)
-			 */
-			scale_share : 5,
 			/**
 			 * @cfg {Boolean} True to display the scale line.(default to true)
 			 */
@@ -234,7 +230,7 @@ iChart.Scale = iChart.extend(iChart.Component, {
 		/**
 		 * the real distance of each scale
 		 */
-		_.push('distanceOne', _.get('valid_distance') / _.push('scale_share',K));
+		_.push('distanceOne', _.get('valid_distance') / K);
 		
 		var text, x, y, x1 = 0, y1 = 0, x0 = 0, y0 = 0, tx = 0, ty = 0, w = _.get('scale_width'), w2 = w / 2, sa = _.get('scaleAlign'), ta = _.get('position'), ts = _.get('text_space'), tbl = '',aw = _.get('coo').get('axis.width');
 		
@@ -339,7 +335,7 @@ iChart.Coordinate = {
 		var f = '85%',
 			parse=iChart.parsePercent, 
 			scale = _.get('coordinate.scale'),
-			w = _.push('coordinate._width',parse(_.get('coordinate.width')||f,Math.floor(_.get('client_width'))));
+			w = _.push('coordinate._width',parse(_.get('coordinate.width')||f,Math.floor(_.get('client_width')))),
 			h = _.push('coordinate._height',parse(_.get('coordinate.height')||f,Math.floor(_.get('client_height')))-(_.is3D()?((_.get('coordinate.pedestal_height')||22) + (_.get('coordinate.board_deep')||20)):0));
 			_.push('coordinate.valid_height_value',parse(_.get('coordinate.valid_height'),h));
 			_.push('coordinate.valid_width_value',parse(_.get('coordinate.valid_width'),w));
@@ -408,7 +404,7 @@ iChart.Coordinate = {
 		}
 		_.remove(_,_.coo);
 		if(!_.isE())
-		return _.register(new iChart[_.is3D()?'Coordinate3D':'Coordinate2D'](_.get('coordinate'), _));;
+		return _.register(new iChart[_.is3D()?'Coordinate3D':'Coordinate2D'](_.get('coordinate'), _));
 	}
 }
 /**
