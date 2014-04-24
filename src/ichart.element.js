@@ -102,7 +102,7 @@ iChart.Element = function(config) {
 	_.initialization = false;
 	
 	/**
-	 * inititalize configure
+	 * initialize configure
 	 */
 	_.configure.apply(_, Array.prototype.slice.call(arguments, 1));
 	
@@ -112,7 +112,7 @@ iChart.Element = function(config) {
 	_.default_ = iChart.clone(_.options,true);
 	
 	/**
-	 * megre customize config
+	 * merge customize config
 	 */
 	_.set(config);
 	
