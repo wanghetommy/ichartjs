@@ -41,7 +41,7 @@ iChart.Painter = iChart.extend(iChart.Element, {
 			 */
 			offsety : 0,
 			/**
-			 * @cfg {String} Specifies the backgroundColor for this element.(defaults to 'FDFDFD')
+			 * @cfg {String} Specifies the backgroundColor for this element.null to transparent.(defaults to 'FDFDFD')
 			 */
 			background_color : '#FEFEFE',
 			/**

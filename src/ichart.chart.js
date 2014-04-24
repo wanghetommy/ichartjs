@@ -88,7 +88,7 @@
                 $.each(c,function(d,j){
 					V = d.value[i];
 					if(!V&&V!=0)return;
-					d.value[i] = V =  pF(V,V);
+					d.value[i] = V =  pF(V);
 					T+=V;
 					if(stack){
 						r = c[j].color;

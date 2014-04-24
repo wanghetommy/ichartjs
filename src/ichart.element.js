@@ -63,18 +63,7 @@ iChart.Element = function(config) {
 		shadow_offsety : 0
 	});
 	
-	/**
-	 * variable for short
-	 */
-	_.W = 'width';
-	_.H = 'height';
-	_.O = 'top';
-	_.B = 'bottom';
-	_.L = 'left';
-	_.R = 'right';
-	_.C = 'center';
-	_.X = 'originx';
-	_.Y = 'originy';
+
 	/**
 	 * the running variable cache
 	 */
@@ -100,7 +89,7 @@ iChart.Element = function(config) {
 			'initialize');
 			
 	/**
-	 * inititalize configure
+	 * initialize configure
 	 */
 	_.configure.apply(_, Array.prototype.slice.call(arguments, 1));
 	
@@ -110,7 +99,7 @@ iChart.Element = function(config) {
 	_.default_ = iChart.clone(_.options,true);
 	
 	/**
-	 * megre customize config
+	 * merge customize config
 	 */
 	_.set(config);
 	
@@ -118,6 +107,18 @@ iChart.Element = function(config) {
 }
 
 iChart.Element.prototype = {
+    /**
+     * variable for short
+     */
+    W : 'width',
+    H : 'height',
+    O : 'top',
+    B : 'bottom',
+    L : 'left',
+    R : 'right',
+    C : 'center',
+    X : 'originx',
+    Y : 'originy',
 	_:function(){return this},	
 	afterConfiguration : function(_) {
 		/**
