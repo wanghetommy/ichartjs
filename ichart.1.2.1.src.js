@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2014-03-28 05:44
+* @date 2014-04-26 11:56
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -927,18 +927,7 @@ $.Element = function(config) {
 		shadow_offsety : 0
 	});
 	
-	/**
-	 * variable for short
-	 */
-	_.W = 'width';
-	_.H = 'height';
-	_.O = 'top';
-	_.B = 'bottom';
-	_.L = 'left';
-	_.R = 'right';
-	_.C = 'center';
-	_.X = 'originx';
-	_.Y = 'originy';
+
 	/**
 	 * the running variable cache
 	 */
@@ -964,7 +953,7 @@ $.Element = function(config) {
 			'initialize');
 			
 	/**
-	 * inititalize configure
+	 * initialize configure
 	 */
 	_.configure.apply(_, Array.prototype.slice.call(arguments, 1));
 	
@@ -974,7 +963,7 @@ $.Element = function(config) {
 	_.default_ = $.clone(_.options,true);
 	
 	/**
-	 * megre customize config
+	 * merge customize config
 	 */
 	_.set(config);
 	
@@ -982,6 +971,18 @@ $.Element = function(config) {
 }
 
 $.Element.prototype = {
+    /**
+     * variable for short
+     */
+    W : 'width',
+    H : 'height',
+    O : 'top',
+    B : 'bottom',
+    L : 'left',
+    R : 'right',
+    C : 'center',
+    X : 'originx',
+    Y : 'originy',
 	_:function(){return this},	
 	afterConfiguration : function(_) {
 		/**
@@ -1259,7 +1260,7 @@ $.Painter = $.extend($.Element, {
 			 */
 			offsety : 0,
 			/**
-			 * @cfg {String} Specifies the backgroundColor for this element.(defaults to 'FDFDFD')
+			 * @cfg {String} Specifies the backgroundColor for this element.null to transparent.(defaults to 'FDFDFD')
 			 */
 			background_color : '#FEFEFE',
 			/**
@@ -2116,7 +2117,7 @@ $.Label = $.extend($.Component, {
                 $.each(c,function(d,j){
 					V = d.value[i];
 					if(!V&&V!=0)return;
-					d.value[i] = V =  pF(V,V);
+					d.value[i] = V =  pF(V);
 					T+=V;
 					if(stack){
 						r = c[j].color;
@@ -6079,13 +6080,9 @@ $.Scale = $.extend($.Component, {
 			 */
 			max_scale : undefined,
 			/**
-			 * @cfg {Number} Specifies the space of two scale.Note either this or property of scale_share must be has the given value.(default to undefined)
+			 * @cfg {Number} Specifies the space of two scale.(default to undefined)
 			 */
 			scale_space : undefined,
-			/**
-			 * @cfg {Number} Specifies the number of scale on axis.(default to 5)
-			 */
-			scale_share : 5,
 			/**
 			 * @cfg {Boolean} True to display the scale line.(default to true)
 			 */
@@ -6209,7 +6206,6 @@ $.Scale = $.extend($.Component, {
 
 		_.items = [];
 		_.labels = [];
-
 		if (L == 0) {
             /**
              * default to 5
@@ -6257,7 +6253,7 @@ $.Scale = $.extend($.Component, {
 		/**
 		 * the real distance of each scale
 		 */
-		_.push('distanceOne', _.get('valid_distance') / _.push('scale_share',K));
+		_.push('distanceOne', _.get('valid_distance') / (K?K:1));
 		
 		var text, x, y, x1 = 0, y1 = 0, x0 = 0, y0 = 0, tx = 0, ty = 0, w = _.get('scale_width'), w2 = w / 2, sa = _.get('scaleAlign'), ta = _.get('position'), ts = _.get('text_space'), tbl = '',aw = _.get('coo').get('axis.width');
 		
@@ -6362,7 +6358,7 @@ $.Coordinate = {
 		var f = '85%',
 			parse=$.parsePercent, 
 			scale = _.get('coordinate.scale'),
-			w = _.push('coordinate._width',parse(_.get('coordinate.width')||f,Math.floor(_.get('client_width'))));
+			w = _.push('coordinate._width',parse(_.get('coordinate.width')||f,Math.floor(_.get('client_width')))),
 			h = _.push('coordinate._height',parse(_.get('coordinate.height')||f,Math.floor(_.get('client_height')))-(_.is3D()?((_.get('coordinate.pedestal_height')||22) + (_.get('coordinate.board_deep')||20)):0));
 			_.push('coordinate.valid_height_value',parse(_.get('coordinate.valid_height'),h));
 			_.push('coordinate.valid_width_value',parse(_.get('coordinate.valid_width'),w));
@@ -6431,7 +6427,7 @@ $.Coordinate = {
 		}
 		_.remove(_,_.coo);
 		if(!_.isE())
-		return _.register(new $[_.is3D()?'Coordinate3D':'Coordinate2D'](_.get('coordinate'), _));;
+		return _.register(new $[_.is3D()?'Coordinate3D':'Coordinate2D'](_.get('coordinate'), _));
 	}
 }
 /**
@@ -7634,7 +7630,7 @@ $.Line = $.extend($.Chart, {
 	},
 	doConfig : function() {
 		$.Line.superclass.doConfig.call(this);
-		var _ = this._(), s = _.data.length == 1;
+		var _ = this._(), s = _.data.length <= 1;
 		
 		_.lines.length = 0;
 		_.lines.zIndex = _.get('z_index');
@@ -7653,6 +7649,28 @@ $.Line = $.extend($.Chart, {
 		
 		if(!_.Combination){
 			_.push('coordinate.crosshair', _.get('crosshair'));
+            //TODO merge labels to scale
+//            $.each(scale,function(s){
+//                /**
+//                 * applies the percent shower
+//                 */
+//                if(_.get('percent')&&s.position==li){
+//                    s = $.apply(s,{
+//                        start_scale : 0,
+//                        end_scale : 100,
+//                        scale_space : 10,
+//                        listeners:{
+//                            parseText:function(t){
+//                                return {text:t+'%'}
+//                            }
+//                        }
+//                    });
+//                }
+//                if(!s.start_scale||(ST&&!s.assign_scale&&s.start_scale>_.get('minValue')))
+//                    s.min_scale = _.get('minValue');
+//                if(!s.end_scale||(ST&&!s.assign_scale&&s.end_scale<_.get('maxValue')))
+//                    s.max_scale = _.get('maxValue');
+//            });
 			_.pushIf('coordinate.scale',[{
 				position : _.get('scaleAlign'),
 				max_scale : _.get('maxValue')
@@ -7677,7 +7695,7 @@ $.Line = $.extend($.Chart, {
 		}
 		if(_.isE())return;
 		
-		var vw = _.coo.valid_width,nw=vw,size=_.get('maxItemSize') - 1,M=vw / (size),ps=_.get('point_space');
+		var vw = _.coo.valid_width,nw=vw,size=_.get('maxItemSize') - 1,M=size?vw /size:vw,ps=_.get('point_space');
 
 		if (_.get('proportional_spacing')){
 			if(ps&&ps<M){
@@ -7686,6 +7704,7 @@ $.Line = $.extend($.Chart, {
 				_.push('point_space',M);
 			}
 		}
+
 		_.push('sub_option.width', nw);
 		_.push('sub_option.height', _.coo.valid_height);
 		

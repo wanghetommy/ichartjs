@@ -118,7 +118,7 @@ iChart.Line = iChart.extend(iChart.Chart, {
 	},
 	doConfig : function() {
 		iChart.Line.superclass.doConfig.call(this);
-		var _ = this._(), s = _.data.length == 1;
+		var _ = this._(), s = _.data.length <= 1;
 		
 		_.lines.length = 0;
 		_.lines.zIndex = _.get('z_index');
@@ -137,6 +137,28 @@ iChart.Line = iChart.extend(iChart.Chart, {
 		
 		if(!_.Combination){
 			_.push('coordinate.crosshair', _.get('crosshair'));
+            //TODO merge labels to scale
+//            iChart.each(scale,function(s){
+//                /**
+//                 * applies the percent shower
+//                 */
+//                if(_.get('percent')&&s.position==li){
+//                    s = iChart.apply(s,{
+//                        start_scale : 0,
+//                        end_scale : 100,
+//                        scale_space : 10,
+//                        listeners:{
+//                            parseText:function(t){
+//                                return {text:t+'%'}
+//                            }
+//                        }
+//                    });
+//                }
+//                if(!s.start_scale||(ST&&!s.assign_scale&&s.start_scale>_.get('minValue')))
+//                    s.min_scale = _.get('minValue');
+//                if(!s.end_scale||(ST&&!s.assign_scale&&s.end_scale<_.get('maxValue')))
+//                    s.max_scale = _.get('maxValue');
+//            });
 			_.pushIf('coordinate.scale',[{
 				position : _.get('scaleAlign'),
 				max_scale : _.get('maxValue')
@@ -161,7 +183,7 @@ iChart.Line = iChart.extend(iChart.Chart, {
 		}
 		if(_.isE())return;
 		
-		var vw = _.coo.valid_width,nw=vw,size=_.get('maxItemSize') - 1,M=vw / (size),ps=_.get('point_space');
+		var vw = _.coo.valid_width,nw=vw,size=_.get('maxItemSize') - 1,M=size?vw /size:vw,ps=_.get('point_space');
 
 		if (_.get('proportional_spacing')){
 			if(ps&&ps<M){
@@ -170,6 +192,7 @@ iChart.Line = iChart.extend(iChart.Chart, {
 				_.push('point_space',M);
 			}
 		}
+
 		_.push('sub_option.width', nw);
 		_.push('sub_option.height', _.coo.valid_height);
 		

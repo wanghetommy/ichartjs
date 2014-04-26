@@ -182,7 +182,6 @@ iChart.Scale = iChart.extend(iChart.Component, {
 
 		_.items = [];
 		_.labels = [];
-
 		if (L == 0) {
             /**
              * default to 5
@@ -230,7 +229,7 @@ iChart.Scale = iChart.extend(iChart.Component, {
 		/**
 		 * the real distance of each scale
 		 */
-		_.push('distanceOne', _.get('valid_distance') / K);
+		_.push('distanceOne', _.get('valid_distance') / (K?K:1));
 		
 		var text, x, y, x1 = 0, y1 = 0, x0 = 0, y0 = 0, tx = 0, ty = 0, w = _.get('scale_width'), w2 = w / 2, sa = _.get('scaleAlign'), ta = _.get('position'), ts = _.get('text_space'), tbl = '',aw = _.get('coo').get('axis.width');
 		
@@ -376,6 +375,7 @@ iChart.Coordinate = {
 						 }
 					});
 				}
+                //assign_scale - > force_scale
 				if(!s.start_scale||(ST&&!s.assign_scale&&s.start_scale>_.get('minValue')))
 					s.min_scale = _.get('minValue');
 				if(!s.end_scale||(ST&&!s.assign_scale&&s.end_scale<_.get('maxValue')))
