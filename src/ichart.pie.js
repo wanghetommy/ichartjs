@@ -211,7 +211,7 @@ iChart.Pie = iChart.extend(iChart.Chart, {
 		iChart.each(_.data,function(d, i) {
 			eA += (V||(d.value / _.total)) * PI;
 			if (i == (L - 1)) {
-				eA = pi2 + _.oA;
+				eA = pi2 + _.oA-0.000001;
 			}
 			d.startAngle = sA;
 			d.endAngle = eA;
@@ -219,6 +219,7 @@ iChart.Pie = iChart.extend(iChart.Chart, {
 			d.middleAngle = (sA + eA) / 2;
 			sA = eA+sepa;
 		}, _);
+        console.log(_.data);
 		
 		_.r = r = iChart.parsePercent(r,Math.floor(_.get('minDistance') * f));
 		
