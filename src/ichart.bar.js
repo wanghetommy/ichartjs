@@ -109,8 +109,8 @@ iChart.Bar = iChart.extend(iChart.Chart, {
 		/**
 		 * use option create a coordinate
 		 */
-		_.coo = iChart.Coordinate.coordinate_.call(_,function(){
-			var L = _.data.length, H = _.get('coordinate.valid_height_value'),KL;
+		_.coo = iChart.Coordinate.coordinate_.call(_,function(vw,H){
+			var L = _.data.length,KL;
 			
 			if (_.dataType == 'complex') {
 				KL = _.get('labels').length;

@@ -78,89 +78,132 @@ body {
 }
 </style>
 		<script type="text/javascript">
-            $(function(){
-                var data = [
-                    {name : 'MISE',value : 55.11,color : '#4572a7'},
-                    {name : 'Firefox',value : 29.84,color : '#aa4643'},
-                    {name : 'Chrome',value : 24.88,color : '#89a54e'},
-                    {name : 'Safari',value : 6.77,color : '#80699b'},
-                    {name : 'Opera',value : 2.02,color : '#3d96ae'}
-                ];
+            var chart;
 
-                var chart = new iChart.Column2D({
-                    render : 'canvasDiv',
-                    data : data,
-                    title : {
-                        text : 'This is a sample spirit from HighCharts',
-                        color : '#3e576f'
+            $(function(){
+                var labels = ["00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
+
+                chart =  new iChart.LineBasic2D({
+                    render: 'canvasDiv',
+                    data: create(),
+                    align: 'center',
+                    title: {
+                        text: 'PV流量',
+                        font: '微软雅黑',
+                        fontsize: 20,
+                        color: '#b4b4b4'
                     },
-                    subtitle : {
-                        text : 'Browser market share,April,2011 from 1 to 29 Feb 2012',
-                        color : '#6d869f'
+                    subtitle: {
+                        text: '14:00-16:00最大值',
+                        font: '微软雅黑',
+                        color: '#b4b4b4'
                     },
-                    footnote : {
-                        text : 'ichartjs.com',
-                        color : '#909090',
-                        fontsize : 11,
-                        padding : '0 38'
+                    footnote: {
+                        text: 'ichartjs.com',
+                        font: '微软雅黑',
+                        fontsize: 11,
+                        fontweight: 600,
+                        padding: '0 28',
+                        color: '#b4b4b4'
                     },
-                    width : 800,
-                    height : 400,
-                    label : {
-                        fontsize:11,
-                        color : '#666666'
-                    },
-                    shadow : true,
-                    shadow_blur : 2,
-                    shadow_color : '#aaaaaa',
-                    shadow_offsetx : 1,
-                    shadow_offsety : 0,
-                    column_width : 62,
-                    sub_option : {
-                        listeners : {
-                            parseText : function(r, t) {
-                                return t + "%";
+                    width: 800,
+                    height: 400,
+                    shadow: true,
+                    shadow_color: '#202020',
+                    shadow_blur: 8,
+                    shadow_offsetx: 0,
+                    shadow_offsety: 0,
+                    background_color: '#2e2e2e',
+                    //animation: true,//开启过渡动画
+                    //animation_duration: 600,//600ms完成动画
+                    tip: {
+                        enable: true,
+                        shadow: true,
+                        listeners: {
+                            //tip:提示框对象、name:数据名称、value:数据值、text:当前文本、i:数据点的索引
+                            parseText: function (tip, name, value, text, i) {
+                                return "<span style='color:#005268;font-size:12px;'>访问量约:<br/>" +
+                                        "</span><span style='color:#005268;font-size:20px;'>" + value + "万</span>";
                             }
-                        },
-                        label : {
-                            fontsize:11,
-                            fontweight:600,
-                            color : '#4572a7'
-                        },
-                        border : {
-                            width : 2,
-                            //radius : '5 5 0 0',//上圆角设置
-                            color : '#ffffff'
                         }
                     },
-                    coordinate : {
-                        background_color : null,
-                        grid_color : '#c0c0c0',
-                        width : 680,
-                        axis : {
-                            color : '#c0d0e0',
-                            width : [0, 0, 1, 0]
+                    crosshair: {
+                        enable: true,
+                        line_color: '#ec4646'
+                    },
+                    sub_option: {
+                        smooth: true,
+                        label: false,
+                        hollow: false,
+                        hollow_inside: false,
+                        point_size: 8
+                    },
+                    coordinate: {
+                        width: '90%',
+                        height: '90%',
+                        striped_factor: 0.18,
+                        grid_color: '#4e4e4e',
+                        axis: {
+                            color: '#252525',
+                            width: [0, 0, 4, 4]
                         },
-                        scale : [{
-                            position : 'left',
-                            start_scale : 0,
-                            scale_share:10,
-                            scale_enable : false,
-                            label : {
-                                fontsize:11,
-                                color : '#666666'
+                        scale:[
+                            {
+                                position: 'left',
+                                start_scale: 0,
+                                end_scale: 100,
+                                scale_space: 10,
+                                scale_size: 2,
+                                scale_enable: false,
+                                label: {color: '#9d987a', font: '微软雅黑', fontsize: 11, fontweight: 600},
+                                scale_color: '#9f9f9f'
+                            },
+                            {
+                                position: 'bottom',
+                                label: {color: '#9d987a', font: '微软雅黑', fontsize: 11, fontweight: 600},
+                                scale_enable: false,
+                                labels: labels
                             }
-                        }]
+                        ]
                     }
                 });
-
                 chart.draw();
-
             });
+
+            function create(){
+                var f = [];
+                for (var i = 0; i < 25; i++) {
+                    f.push(Math.floor(Math.random() * (10 + ((i % 16) * 5))) + 10);
+                }
+                return [
+                    {
+                        name: 'PV',
+                        value: f,
+                        color: '#ec4646',
+                        line_width: 2
+                    }
+                ];
+            }
+            var isRun = true;
+            //调用load方法重新加载数据
+            function change(){
+                chart.load(create());
+                if(isRun)
+                setTimeout(change,500);
+                isRun = true;
+            }
+
+            function trunOff() {
+                isRun = false;
+            }
+
 	</script>
 	</head>
 	<body>
 		<div id='canvasDiv' ></div>
+        <br/>
+        <input type="button" onclick="change();" value="trunOn">
+        <input type="button" onclick="trunOff();" value="trunOff">
         <div id='ichartjs_result'></div>
 	</body>
 </html>

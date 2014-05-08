@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2014-04-26 11:56
+* @date 2014-05-08 07:42
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -4569,8 +4569,8 @@ $.Column = $.extend($.Chart, {
 		/**
 		 * use option create a coordinate
 		 */
-		_.coo = $.Coordinate.coordinate_.call(_,function(){
-			var L = _.data.length, W = _.get('coordinate.valid_width_value'),w_,KL;
+		_.coo = $.Coordinate.coordinate_.call(_,function(W){
+			var L = _.data.length,KL;
 			if (_.dataType == 'complex') {
 				KL = _.get('labels').length;
 				L = KL * L + (_.is3D()?(L-1)*KL*_.get('group_fator'):0);
@@ -5045,8 +5045,8 @@ $.Bar = $.extend($.Chart, {
 		/**
 		 * use option create a coordinate
 		 */
-		_.coo = $.Coordinate.coordinate_.call(_,function(){
-			var L = _.data.length, H = _.get('coordinate.valid_height_value'),KL;
+		_.coo = $.Coordinate.coordinate_.call(_,function(vw,H){
+			var L = _.data.length,KL;
 			
 			if (_.dataType == 'complex') {
 				KL = _.get('labels').length;
@@ -5744,7 +5744,7 @@ $.Pie = $.extend($.Chart, {
 		$.each(_.data,function(d, i) {
 			eA += (V||(d.value / _.total)) * PI;
 			if (i == (L - 1)) {
-				eA = pi2 + _.oA;
+				eA = pi2 + _.oA-0.000001;
 			}
 			d.startAngle = sA;
 			d.endAngle = eA;
@@ -5752,6 +5752,7 @@ $.Pie = $.extend($.Chart, {
 			d.middleAngle = (sA + eA) / 2;
 			sA = eA+sepa;
 		}, _);
+        console.log(_.data);
 		
 		_.r = r = $.parsePercent(r,Math.floor(_.get('minDistance') * f));
 		
@@ -6349,6 +6350,11 @@ $.Coordinate = {
 			_.ILLUSIVE_COO = true;
 			
 			coo.refresh(_.get('minValue'),_.get('maxValue'),li);
+
+            /**
+             * invoke call back
+             */
+            if(g)g(coo.get('_valid_width'),coo.get('_valid_height'));
 			
 			return coo;
 		}
@@ -6359,9 +6365,9 @@ $.Coordinate = {
 			parse=$.parsePercent, 
 			scale = _.get('coordinate.scale'),
 			w = _.push('coordinate._width',parse(_.get('coordinate.width')||f,Math.floor(_.get('client_width')))),
-			h = _.push('coordinate._height',parse(_.get('coordinate.height')||f,Math.floor(_.get('client_height')))-(_.is3D()?((_.get('coordinate.pedestal_height')||22) + (_.get('coordinate.board_deep')||20)):0));
-			_.push('coordinate.valid_height_value',parse(_.get('coordinate.valid_height'),h));
-			_.push('coordinate.valid_width_value',parse(_.get('coordinate.valid_width'),w));
+			h = _.push('coordinate._height',parse(_.get('coordinate.height')||f,Math.floor(_.get('client_height')))-(_.is3D()?((_.get('coordinate.pedestal_height')||22) + (_.get('coordinate.board_deep')||20)):0)),
+			vh =_.push('coordinate._valid_height',parse(_.get('coordinate.valid_height'),h)),
+            vw = _.push('coordinate._valid_width',parse(_.get('coordinate.valid_width'),w));
 			
 		_.originXY(_,[_.get('l_originx'),_.get('r_originx') - w,_.get('centerx') - w / 2],[_.get('centery') - h / 2]);
 		
@@ -6376,7 +6382,7 @@ $.Coordinate = {
 		/**
 		 * invoke call back
 		 */
-		if(g)g();
+		if(g)g(vw,vh);
 		
 		if($.isObject(scale)){
 			scale = [scale];
@@ -6399,6 +6405,7 @@ $.Coordinate = {
 						 }
 					});
 				}
+                //assign_scale - > force_scale
 				if(!s.start_scale||(ST&&!s.assign_scale&&s.start_scale>_.get('minValue')))
 					s.min_scale = _.get('minValue');
 				if(!s.end_scale||(ST&&!s.assign_scale&&s.end_scale<_.get('maxValue')))
@@ -6691,8 +6698,8 @@ $.Coordinate2D = $.extend($.Component, {
 
 		_.width = _.get('_width');
 		_.height = _.get('_height');
-		_.valid_width = _.get('valid_width_value');
-		_.valid_height = _.get('valid_height_value');
+		_.valid_width = _.get('_valid_width');
+		_.valid_height = _.get('_valid_height');
 		/**
 		 * apply the gradient color to f_color
 		 */
