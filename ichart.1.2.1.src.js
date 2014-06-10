@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2014-05-08 07:42
+* @date 2014-06-10 06:49
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -5752,8 +5752,7 @@ $.Pie = $.extend($.Chart, {
 			d.middleAngle = (sA + eA) / 2;
 			sA = eA+sepa;
 		}, _);
-        console.log(_.data);
-		
+
 		_.r = r = $.parsePercent(r,Math.floor(_.get('minDistance') * f));
 		
 		_.topY = _.originXY(_,[r + _.get('l_originx'),_.get('r_originx') - r,_.get('centerx')],[_.get('centery')]).y;
@@ -6405,10 +6404,12 @@ $.Coordinate = {
 						 }
 					});
 				}
-                //assign_scale - > force_scale
-				if(!s.start_scale||(ST&&!s.assign_scale&&s.start_scale>_.get('minValue')))
+
+                s.min_scale = s.max_scale = undefined;
+                //start_scale==0?
+				if(!s.start_scale||(ST&&!s.force_scale&&s.start_scale>_.get('minValue')))
 					s.min_scale = _.get('minValue');
-				if(!s.end_scale||(ST&&!s.assign_scale&&s.end_scale<_.get('maxValue')))
+				if(!s.end_scale||(ST&&!s.force_scale&&s.end_scale<_.get('maxValue')))
 					s.max_scale = _.get('maxValue');
 			});
 		}else{
@@ -6593,11 +6594,11 @@ $.Coordinate2D = $.extend($.Component, {
 		$.each(this.scale,function(s){
 			if(s.get('position')==p){
 				var U;
-				if (!s.get('assign_scale')||s.get('end_scale') < x) {
+				if (!s.get('force_scale')||s.get('end_scale') < x) {
 					s.push('max_scale',s.push('end_scale',x));
 					U = true;
 				}
-				if (!s.get('assign_scale')||s.get('start_scale') > n) {
+				if (!s.get('force_scale')||s.get('start_scale') > n) {
 					s.push('min_scale',s.push('start_scale',n));
 					U = true;
 				}
@@ -6717,19 +6718,19 @@ $.Coordinate2D = $.extend($.Component, {
 
 		_.doCrosshair(_);
 		var jp, cg = !!(_.get('gridlinesVisible') && _.get('grids')), hg = cg && !!_.get('grids.horizontal'), vg = cg && !!_.get('grids.vertical'), h = _.height, w = _.width, vw = _.valid_width, vh = _.valid_height, k2g = _.get('gridlinesVisible')
-				&& _.get('scale2grid') && !(hg && vg), sw = _.push('x_start', _.x+(w - vw) / 2), sh = _.push('y_start', _.y+(h - vh) / 2), axis = _.get('axis.width');
+				&& _.get('scale2grid') && !(hg && vg), sw = _.push('x_start', _.x+(w - vw) / 2), sh = _.push('y_start', _.y+(h - vh) / 2), axis = _.get('axis.width'),scales=_.get('scale');
 		
 		_.push('x_end', _.x + (w + vw) / 2);
 		_.push('y_end', _.y + (h + vh) / 2);
-		
-		if (!$.isArray(_.get('scale'))) {
-			if ($.isObject(_.get('scale')))
-				_.push('scale', [_.get('scale')]);
-			else
-				_.push('scale', []);
-		}
-		
-		$.each(_.get('scale'),function(kd, i) {
+
+        /**
+         * convert to array
+         * @type {*}
+         */
+        scales = $.isArray(scales)?scales:_.push('scale', $.isObject(scales)?[scales]:[]);
+
+        //TODO 抽离出来
+		$.each(scales,function(kd, i) {
 			jp = kd['position'];
 			jp = jp || _.L;
 			jp = jp.toLowerCase();
@@ -7247,6 +7248,10 @@ $.LineSegment = $.extend($.Component, {
 			 * @cfg {String} Specifies the bgcolor when applies a Area.If not given,use lighter bgcolor of line.(default to null)
 			 */
 			area_color:null,
+            /**
+             * @cfg {Boolean} If true the the line will show.(default to true)
+             */
+            actived : true,
 			/**
 			 * @cfg {Boolean} If true the centre of point will be hollow.(default to true)
 			 */
@@ -7350,12 +7355,14 @@ $.LineSegment = $.extend($.Component, {
 		}
 	},
 	doDraw : function(_) {
-		_.drawSegment();
-		if (_.get('label')) {
-			$.each(_.labels,function(l){
-				l.draw();
-			});
-		}
+        if(_.get('actived')){
+            _.drawSegment();
+            if (_.get('label')) {
+                $.each(_.labels,function(l){
+                    l.draw();
+                });
+            }
+        }
 	},
 	isEventValid : function() {},
 	tipInvoke : function() {
@@ -7482,7 +7489,7 @@ $.LineSegment = $.extend($.Component, {
 		 * override the default method
 		 */
 		_.isEventValid = function(e) {
-			if (c && !c.isEventValid(e,c).valid) {
+			if (!_.get('actived')||(c && !c.isEventValid(e,c).valid)) {
 				return {
 					valid : false
 				};
@@ -7627,6 +7634,17 @@ $.Line = $.extend($.Chart, {
         this.on('resize', function(){
              this.push('point_space',0);
         });
+	},
+	/**
+	 * @method toggle or setting the visibility of linesegment
+	 */
+    toggle : function(index,state) {
+        var l = this.lines[(index||0)%this.lines.length];
+        if(typeof state =='undefined'){
+            state = !l.get('actived');
+        }
+        l.push('actived',state);
+        this.draw();
 	},
 	/**
 	 * @method Returns the coordinate of this element.

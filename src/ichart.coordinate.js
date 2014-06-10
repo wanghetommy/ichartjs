@@ -380,6 +380,9 @@ iChart.Coordinate = {
 						 }
 					});
 				}
+
+                s.min_scale = s.max_scale = undefined;
+                //start_scale==0?
 				if(!s.start_scale||(ST&&!s.force_scale&&s.start_scale>_.get('minValue')))
 					s.min_scale = _.get('minValue');
 				if(!s.end_scale||(ST&&!s.force_scale&&s.end_scale<_.get('maxValue')))
