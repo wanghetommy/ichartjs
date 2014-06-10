@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2014-05-08 07:42
+* @date 2014-06-10 11:26
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -5254,17 +5254,17 @@ $.register('BarMulti2D');
 	 */
 	$.Tip = $.extend($.Html,{
 		configure:function(){
-			
+
 			/**
 			 * invoked the super class's configuration
 			 */
 			$.Tip.superclass.configure.apply(this,arguments);
-			
+
 			/**
 			 * indicate the legend's type
 			 */
 			this.type = 'tip';
-			
+
 			this.set({
 				name:'',
 				index:0,
@@ -5362,11 +5362,11 @@ $.register('BarMulti2D');
 		},
 		doAction:function(_){
 			_.T.on('mouseover',function(c,e,m){
-				_.show(e,m);	
+				_.show(e,m);
 			}).on('mouseout',function(c,e,m){
 				_.hidden(e);
 			});
-			
+
 			if(_.get('showType')=='follow'){
 				_.T.on('mousemove',function(c,e,m){
 					if(_.T.variable.event.mouseover){
@@ -5378,14 +5378,18 @@ $.register('BarMulti2D');
 				});
 			}
 		},
+		refresh:function(){
+			var _ = this._();
+			_.text(_.get('name'),_.get('value'),_.get('text'),_.get('index'),_);
+		},
 		initialize:function(){
 			$.Tip.superclass.initialize.call(this);
-			
+
 			var _ = this._();
-			
+
 			_.text(_.get('name'),_.get('value'),_.get('text'),_.get('index'),_);
 			_.hidden();
-			
+
 			if(_.get('animation')){
 				var m =  _.get('move_duration')/1000+'s '+_.get('timing_function')+' 0s';
 				_.transition('opacity '+_.get('fade_duration')/1000+'s '+_.get('timing_function')+' 0s');
@@ -5397,7 +5401,7 @@ $.register('BarMulti2D');
 					}
 				},false);
 			}
-			
+
 		}
 });
 /**
