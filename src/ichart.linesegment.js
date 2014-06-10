@@ -37,6 +37,10 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 			 * @cfg {String} Specifies the bgcolor when applies a Area.If not given,use lighter bgcolor of line.(default to null)
 			 */
 			area_color:null,
+            /**
+             * @cfg {Boolean} If true the the line will show.(default to true)
+             */
+            actived : true,
 			/**
 			 * @cfg {Boolean} If true the centre of point will be hollow.(default to true)
 			 */
@@ -140,12 +144,14 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 		}
 	},
 	doDraw : function(_) {
-		_.drawSegment();
-		if (_.get('label')) {
-			iChart.each(_.labels,function(l){
-				l.draw();
-			});
-		}
+        if(_.get('actived')){
+            _.drawSegment();
+            if (_.get('label')) {
+                iChart.each(_.labels,function(l){
+                    l.draw();
+                });
+            }
+        }
 	},
 	isEventValid : function() {},
 	tipInvoke : function() {
@@ -272,7 +278,7 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 		 * override the default method
 		 */
 		_.isEventValid = function(e) {
-			if (c && !c.isEventValid(e,c).valid) {
+			if (!_.get('actived')||(c && !c.isEventValid(e,c).valid)) {
 				return {
 					valid : false
 				};

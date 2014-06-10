@@ -219,8 +219,7 @@ iChart.Pie = iChart.extend(iChart.Chart, {
 			d.middleAngle = (sA + eA) / 2;
 			sA = eA+sepa;
 		}, _);
-        console.log(_.data);
-		
+
 		_.r = r = iChart.parsePercent(r,Math.floor(_.get('minDistance') * f));
 		
 		_.topY = _.originXY(_,[r + _.get('l_originx'),_.get('r_originx') - r,_.get('centerx')],[_.get('centery')]).y;

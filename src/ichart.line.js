@@ -110,6 +110,17 @@ iChart.Line = iChart.extend(iChart.Chart, {
         });
 	},
 	/**
+	 * @method toggle or setting the visibility of linesegment
+	 */
+    toggle : function(index,state) {
+        var l = this.lines[(index||0)%this.lines.length];
+        if(typeof state =='undefined'){
+            state = !l.get('actived');
+        }
+        l.push('actived',state);
+        this.draw();
+	},
+	/**
 	 * @method Returns the coordinate of this element.
 	 * @return iChart.Coordinate2D
 	 */
