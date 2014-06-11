@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2014-06-10 11:26
+* @date 2014-06-11 02:42
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -6108,7 +6108,7 @@ $.Scale = $.extend($.Component, {
 			 * @cfg {String} Specifies the align against axis.(default to 'center') When the property of which set to 'h',Available value are:
 			 * @Option 'left'
 			 * @Option 'center'
-			 * @Option 'right' 
+			 * @Option 'right'
 			 * When the property of which set to 'v', Available value are:
 			 * @Option 'top'
 			 * @Option 'center'
@@ -6206,7 +6206,7 @@ $.Scale = $.extend($.Component, {
 	},
 	doConfig : function() {
 		$.Scale.superclass.doConfig.call(this);
-		
+
 		var _ = this._(),abs = Math.abs,L = _.get('labels').length,K=L - 1, min_s = _.get('min_scale'), max_s = _.get('max_scale'), s_space = _.get('scale_space'), e_scale = _.get('end_scale'), start_scale = _.get('start_scale');
 
 		_.items = [];
@@ -6247,7 +6247,9 @@ $.Scale = $.extend($.Component, {
                 K = K == 1 ? 5 : K;
                 K = (K == 8 || K == 2) ? 4 : K;
                 K = K == 9 ? 3 : K;
-                s_space = _.push('scale', (total) * M / K / M);
+                s_space =  _.push('scale', Math.ceil(total / K));
+                total = s_space * K;
+                e_scale = _.push('end_scale', e_scale > start_scale ? start_scale + total : start_scale - total);
 			}
 
 			if (parseInt(s_space)!=s_space && _.get('decimalsnum') == 0) {
@@ -6259,9 +6261,9 @@ $.Scale = $.extend($.Component, {
 		 * the real distance of each scale
 		 */
 		_.push('distanceOne', _.get('valid_distance') / (K?K:1));
-		
+
 		var text, x, y, x1 = 0, y1 = 0, x0 = 0, y0 = 0, tx = 0, ty = 0, w = _.get('scale_width'), w2 = w / 2, sa = _.get('scaleAlign'), ta = _.get('position'), ts = _.get('text_space'), tbl = '',aw = _.get('coo').get('axis.width');
-		
+
 		_.push('which', _.get('which').toLowerCase());
 		_.isH = _.get('which') == 'h';
 		if (_.isH) {
@@ -6307,7 +6309,7 @@ $.Scale = $.extend($.Component, {
 			text = L ? _.get('labels')[i] : (s_space * i + start_scale).toFixed(_.get('decimalsnum'));
 			x = _.isH ? _.get('valid_x') + i * _.get('distanceOne') : _.x;
 			y = _.isH ? _.y : _.get('valid_y') + _.get('valid_distance') - i * _.get('distanceOne');
-			
+
 			_.items.push({
 				x : x,
 				y : y,
@@ -6344,7 +6346,7 @@ $.Scale = $.extend($.Component, {
 $.Coordinate = {
 	coordinate_ : function(g) {
 		var _ = this._(),coo = _.get('coordinate'),li=_.get('scaleAlign');
-		
+
 		if(coo.ICHARTJS_OBJECT){
 			_.x = _.push(_.X, coo.x);
 			_.y = _.push(_.Y, coo.y);
@@ -6352,29 +6354,29 @@ $.Coordinate = {
 			 * Imply it was illusive
 			 */
 			_.ILLUSIVE_COO = true;
-			
+
 			coo.refresh(_.get('minValue'),_.get('maxValue'),li);
 
             /**
              * invoke call back
              */
             if(g)g(coo.get('_valid_width'),coo.get('_valid_height'));
-			
+
 			return coo;
 		}
 		/**
 		 * Apply the coordinate feature
 		 */
 		var f = '85%',
-			parse=$.parsePercent, 
+			parse=$.parsePercent,
 			scale = _.get('coordinate.scale'),
 			w = _.push('coordinate._width',parse(_.get('coordinate.width')||f,Math.floor(_.get('client_width')))),
 			h = _.push('coordinate._height',parse(_.get('coordinate.height')||f,Math.floor(_.get('client_height')))-(_.is3D()?((_.get('coordinate.pedestal_height')||22) + (_.get('coordinate.board_deep')||20)):0)),
 			vh =_.push('coordinate._valid_height',parse(_.get('coordinate.valid_height'),h)),
             vw = _.push('coordinate._valid_width',parse(_.get('coordinate.valid_width'),w));
-			
+
 		_.originXY(_,[_.get('l_originx'),_.get('r_originx') - w,_.get('centerx') - w / 2],[_.get('centery') - h / 2]);
-		
+
 		_.set({
 			coordinate : {
 				originx: _.x,
@@ -6382,12 +6384,12 @@ $.Coordinate = {
 				id:'coordinate'
 			}
 		});
-		
+
 		/**
 		 * invoke call back
 		 */
 		if(g)g(vw,vh);
-		
+
 		if($.isObject(scale)){
 			scale = [scale];
 		}
@@ -6423,7 +6425,7 @@ $.Coordinate = {
 				min_scale : _.get('minValue')
 			});
 		}
-		 
+
 		if (_.is3D()) {
 			_.set({
 				coordinate : {
@@ -6525,9 +6527,9 @@ $.Coordinate2D = $.extend($.Component, {
 			 * @cfg {Object} this is grid config for custom.there has two valid property horizontal and vertical.the property's sub property is: way:the manner calculate grid-line (default to 'share_alike') Available property are:
 			 * @Option share_alike
 			 * @Option given_value value: when property way apply to 'share_alike' this property mean to the number of grid's line.
-			 *  when apply to 'given_value' this property mean to the distance each grid line(unit:pixel) . 
-			 *  code will like: 
-			 *  { 
+			 *  when apply to 'given_value' this property mean to the distance each grid line(unit:pixel) .
+			 *  code will like:
+			 *  {
 			 *   horizontal: {way:'share_alike',value:10},
 			 *   vertical: { way:'given_value', value:40 }
 			 *   }
@@ -6589,7 +6591,7 @@ $.Coordinate2D = $.extend($.Component, {
 				width : 1
 			}
 		});
-		
+
 		this.scale = [];
 		this.gridlines = [];
 	},
@@ -6694,7 +6696,7 @@ $.Coordinate2D = $.extend($.Component, {
 		$.Coordinate2D.superclass.doConfig.call(this);
 
 		var _ = this._();
-		
+
 		/**
 		 * this element not atomic because it is a container,so this is a particular case.
 		 */
@@ -6710,7 +6712,7 @@ $.Coordinate2D = $.extend($.Component, {
 		if (_.get('gradient') && $.isString(_.get('f_color'))) {
 			_.push('f_color', _.T.avgLinearGradient(_.x, _.y, _.x, _.y + _.height, [_.get('dark_color'), _.get('light_color')]));
 		}
-		
+
 		if (_.get('axis.enable')) {
 			var aw = _.get('axis.width');
 			if (!$.isArray(aw))
@@ -6722,17 +6724,17 @@ $.Coordinate2D = $.extend($.Component, {
 		_.doCrosshair(_);
 		var jp, cg = !!(_.get('gridlinesVisible') && _.get('grids')), hg = cg && !!_.get('grids.horizontal'), vg = cg && !!_.get('grids.vertical'), h = _.height, w = _.width, vw = _.valid_width, vh = _.valid_height, k2g = _.get('gridlinesVisible')
 				&& _.get('scale2grid') && !(hg && vg), sw = _.push('x_start', _.x+(w - vw) / 2), sh = _.push('y_start', _.y+(h - vh) / 2), axis = _.get('axis.width');
-		
+
 		_.push('x_end', _.x + (w + vw) / 2);
 		_.push('y_end', _.y + (h + vh) / 2);
-		
+
 		if (!$.isArray(_.get('scale'))) {
 			if ($.isObject(_.get('scale')))
 				_.push('scale', [_.get('scale')]);
 			else
 				_.push('scale', []);
 		}
-		
+
 		$.each(_.get('scale'),function(kd, i) {
 			jp = kd['position'];
 			jp = jp || _.L;
@@ -6793,7 +6795,7 @@ $.Coordinate2D = $.extend($.Component, {
 			},
 			ghs = $.applyIf(_.get('gridHStyle'),g),
 			gvs = $.applyIf(_.get('gridVStyle'),g);
-		
+
 		if (k2g) {
 			var scale, x, y, p;
 			$.each(_.scale,function(scale) {
@@ -6814,7 +6816,7 @@ $.Coordinate2D = $.extend($.Component, {
 				} else {
 					x = w;
 				}
-				
+
 				$.each(scale.items,function(e) {
 					if (iol)
 					_.gridlines.push($.applyIf({
@@ -6956,7 +6958,7 @@ $.Coordinate3D = $.extend($.Coordinate2D, {
 			 */
 			shadow_offsety : 2,
 			/**
-			 * @cfg {Array} Specifies the style of board(wall) of this coordinate. 
+			 * @cfg {Array} Specifies the style of board(wall) of this coordinate.
 			 * the length of array will be 6,if less than 6,it will instead of <link>background_color</link>.and each object option has two property. Available property are:
 			 * @Option color the color of wall
 			 * @Option alpha the opacity of wall
@@ -6982,9 +6984,9 @@ $.Coordinate3D = $.extend($.Coordinate2D, {
 		 */
 		if(_.get('board_deep'))
 		_.T.cube3D(_.x +offx, _.y+h - offy, xa, ya, false, w, h, _.get('board_deep'), _.get('axis.enable'), _.get('axis.width'), _.get('axis.color'), _.get('board_style'));
-		
+
 		_.T.cube3D(_.x, _.y + h, xa, ya, false, w, h, zh, _.get('axis.enable'), _.get('axis.width'), _.get('axis.color'), _.get('wall_style'));
-		
+
 		$.each(_.gridlines,function(g) {
 			if(g.solid){
 				if(_.get('left_board'))
@@ -7023,7 +7025,7 @@ $.Coordinate3D = $.extend($.Coordinate2D, {
 					s.doLayout(offx,-offy,s);
 				});
 			}
-			
+
 			/**
 			 * right-front
 			 */
@@ -7035,7 +7037,7 @@ $.Coordinate3D = $.extend($.Coordinate2D, {
 			},false, {
 				color : ws[3].color
 			}]);
-			
+
 			/**
 			 * right-top
 			 */
@@ -7044,7 +7046,7 @@ $.Coordinate3D = $.extend($.Coordinate2D, {
 			},{
 				color : ws[5].color
 			}, false]);
-			
+
 			/**
 			 * lowerBottom-bottom-left-right-top-front
 			 */
@@ -7061,7 +7063,7 @@ $.Coordinate3D = $.extend($.Coordinate2D, {
 				_.get('bottom_style')[5].color = _.T.avgLinearGradient(_.x, _.y + h, _.x, _.y + h + _.get('pedestal_height'), [$.light(ws[3].color,f/2+0.06),$.dark(ws[3].color,f/2,0)]);
 			}
 			_.push('wall_style', [ws[0],ws[1],ws[2]]);
-			
+
 	}
 });
 /*
