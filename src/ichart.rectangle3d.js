@@ -56,7 +56,7 @@
 			);
 		},
 		isEventValid:function(e,_){
-			return {valid:e.x>_.x&&e.x<(_.x+_.get(_.W))&&e.y<_.y+_.get(_.H)&&e.y>_.y};
+			return {valid:_.get('actived')&&e.x>_.x&&e.x<(_.x+_.get(_.W))&&e.y<_.y+_.get(_.H)&&e.y>_.y};
 		},
 		tipInvoke:function(){
 			var _ = this._();

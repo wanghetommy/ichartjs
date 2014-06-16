@@ -152,6 +152,9 @@ iChart.Painter = iChart.extend(iChart.Element, {
 			_.push('f_color_',_.get('f_color'));
 		}
 	},
+    _draw:function () {
+        this.draw('',this.Combination);
+    },
 	/**
 	 * @method The commnd fire to draw the chart use configuration,
 	 * this is a abstract method.Currently known,both <link>iChart.Chart</link> and <link>iChart.Component</link> implement this method.

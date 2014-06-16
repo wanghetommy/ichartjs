@@ -54,6 +54,20 @@ iChart.Column = iChart.extend(iChart.Chart, {
 		this.components.push(this.labels);
 		this.components.push(this.rectangles);
 	},
+    /**
+     * @method toggle or setting the visibility of rectangle
+     */
+    toggle : function(index,state) {
+        index =  (index||0)%this.rectangles.length;
+        var r = this.rectangles[index];
+        var l = this.labels[index];
+        if(typeof state =='undefined'){
+            state = !l.get('actived');
+        }
+        r.push('actived',state);
+        l.push('actived',state);
+        this._draw();
+    },
 	doAnimation : function(t, d,_) {
 		var h;
 		iChart.each(_.labels,function(l){

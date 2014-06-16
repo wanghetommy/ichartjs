@@ -1190,7 +1190,7 @@
 			var _ = this._();
 			_.push('data', d||[]);
 			_.setUp();
-			(_.Combination?_.root:_).draw();
+			_._draw();
 		},
 		/**
 		 * @method resize the chart

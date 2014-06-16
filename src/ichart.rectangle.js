@@ -32,6 +32,11 @@
 				 * @cfg {String} Specifies the text of this element,Normally,this will given by chart.(default to '')
 				 */
 				value:'',
+
+                /**
+                 * @cfg {Boolean} If true the the rectangle will show.(default to true)
+                 */
+                actived : true,
 				/**
 				 * @cfg {<link>iChart.Text</link>} Specifies the config of label,set false to make label disabled.
 				 */
@@ -83,11 +88,13 @@
 			this.label = null;
 		},
 		last:function(_){
-			if(_.label)
+			if(_.label&&_.get('actived'))
 				_.label.draw();
 		},
 		doDraw:function(_){
-			_.drawRectangle();
+            if(_.get('actived')){
+			    _.drawRectangle();
+            }
 		},
 		doConfig:function(){
 			iChart.Rectangle.superclass.doConfig.call(this);

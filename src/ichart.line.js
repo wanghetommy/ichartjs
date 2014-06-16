@@ -109,6 +109,20 @@ iChart.Line = iChart.extend(iChart.Chart, {
              this.push('point_space',0);
         });
 	},
+    /**
+     * @method load the new data
+     * @paramter array#data
+     * @paramter array#labels
+     * @return void
+     */
+    load:function(data,labels){
+        //console.log(labels);
+        //chart.get('coordinate.scale')[1]['labels']=new_.labels;
+        //chart.push('point_space',0);//重置x轴坐标
+
+
+        iChart.Line.superclass.load.call(this,data);
+    },
 	/**
 	 * @method toggle or setting the visibility of linesegment
 	 */
@@ -118,7 +132,7 @@ iChart.Line = iChart.extend(iChart.Chart, {
             state = !l.get('actived');
         }
         l.push('actived',state);
-        this.draw();
+        this._draw();
 	},
 	/**
 	 * @method Returns the coordinate of this element.

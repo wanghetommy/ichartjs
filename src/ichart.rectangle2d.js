@@ -35,7 +35,7 @@
 				_.get('shadow'));
 		},
 		isEventValid:function(e,_){
-			return {valid:e.x>_.x&&e.x<(_.x+_.width)&&e.y<(_.y+_.height)&&e.y>(_.y)};
+			return {valid:_.get('actived')&&e.x>_.x&&e.x<(_.x+_.width)&&e.y<(_.y+_.height)&&e.y>(_.y)};
 		},
 		tipInvoke:function(){
 			var _ = this._();
