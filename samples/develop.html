@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>test</title>
+		<meta name="Description" content="" />
+		<meta name="Keywords" content="" />
+		<script type="text/javascript" src="../src/ichart.core.js"></script>
+		<script type="text/javascript" src="../src/ichart.element.js"></script>
+		<script type="text/javascript" src="../src/ichart.html.js"></script>
+		<script type="text/javascript" src="../src/ichart.painter.js"></script>
+		<script type="text/javascript" src="../src/ichart.component.js"></script>
+		<script type="text/javascript" src="../src/ichart.legend.js"></script>
+		<script type="text/javascript" src="../src/ichart.label.js"></script>
+		<script type="text/javascript" src="../src/ichart.chart.js"></script>
+		<script type="text/javascript" src="../src/ichart.custom.js"></script>
+		<script type="text/javascript" src="../src/ichart.sector.js"></script>
+		<script type="text/javascript" src="../src/ichart.sector2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.sector3d.js"></script>
+		<script type="text/javascript" src="../src/ichart.rectangle.js"></script>
+		<script type="text/javascript" src="../src/ichart.rectangle2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.rectangle3d.js"></script>
+		<script type="text/javascript" src="../src/ichart.column.js"></script>
+		<script type="text/javascript" src="../src/ichart.column2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.bar.js"></script>
+		<script type="text/javascript" src="../src/ichart.bar2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.barstacked2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.columnmulti2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.columnstacked2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.columnstacked3d.js"></script>
+		<script type="text/javascript" src="../src/ichart.columnmulti3d.js"></script>
+		<script type="text/javascript" src="../src/ichart.barmulti2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.column3d.js"></script>
+		<script type="text/javascript" src="../src/ichart.tip.js"></script>
+		<script type="text/javascript" src="../src/ichart.text.js"></script>
+		<script type="text/javascript" src="../src/ichart.pie.js"></script>
+		<script type="text/javascript" src="../src/ichart.pie2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.donut2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.pie3d.js"></script>
+		<script type="text/javascript" src="../src/ichart.coordinate.js"></script>
+		<script type="text/javascript" src="../src/ichart.crosshair.js"></script>
+		<script type="text/javascript" src="../src/ichart.linesegment.js"></script>
+		<script type="text/javascript" src="../src/ichart.line.js"></script>
+		<script type="text/javascript" src="../src/ichart.linebasic2d.js"></script>
+		<script type="text/javascript" src="../src/ichart.area2d.js"></script>
+		<script type="text/javascript" src="../plugin/ichart.gauge2d.js"></script>
+		<script type="text/javascript" src="../plugin/ichart.slider.js"></script>
+		<style type="text/css">
+body {
+	text-align: center;
+	background-repeat: repeat;
+    background-color: #0c1b38;
+}
+#canvasDiv {
+	margin: 0px auto;
+	text-align: center;
+    color:#0d8ecf;
+}
+#ichartjs_result{
+    position: absolute;
+    left: 20px;
+    bottom: 20px;
+    padding:8px;
+    color:#fefefe;
+    font-size:20px;
+    font-weight:600;
+    background-color:#6d869f;
+    cursor: pointer;
+    text-align:center;
+    border:1px solid #6a869d;
+    -webkit-box-shadow:0px 0px 2px #375073;
+    -moz-box-shadow:0px 0px 2px #375073;
+    box-shadow:0px 0px 2px #375073;
+    -moz-border-radius:10px;
+    -webkit-border-radius:10px;
+    -khtml-border-radius:10px;
+    border-radius:10px
+}
+</style>
+		<script type="text/javascript">
+            var chart;
+
+            $(function(){
+                var d = create();
+
+                chart =  new iChart.LineBasic2D({
+                    render: 'canvasDiv',
+                    data: d.data,
+                    align: 'center',
+                    title: {
+                        text: 'PV流量',
+                        font: '微软雅黑',
+                        fontsize: 20,
+                        color: '#b4b4b4'
+                    },
+                    subtitle: {
+                        text: '14:00-16:00最大值',
+                        font: '微软雅黑',
+                        color: '#b4b4b4'
+                    },
+                    footnote: {
+                        text: 'ichartjs.com',
+                        font: '微软雅黑',
+                        fontsize: 11,
+                        fontweight: 600,
+                        padding: '0 28',
+                        color: '#b4b4b4'
+                    },
+                    width: 800,
+                    height: 400,
+                    background_color: '#2e2e2e',
+                    crosshair: {
+                        enable: true,
+                        line_color: '#ec4646'
+                    },
+                    sub_option: {
+                        smooth: true,
+                        label: false,
+                        hollow: false,
+                        hollow_inside: false,
+                        point_size: 8
+                    },
+                    coordinate: {
+                        width: '90%',
+                        height: '90%',
+                        striped_factor: 0.18,
+                        grid_color: '#4e4e4e',
+                        axis: {
+                            color: '#252525',
+                            width: [0, 0, 4, 4]
+                        },
+                        scale:[
+                            {
+                                position: 'left',
+                                start_scale: 0,
+                                end_scale: 100,
+                                scale_space: 10,
+                                scale_size: 2,
+                                scale_enable: false,
+                                label: {color: '#9d987a', font: '微软雅黑', fontsize: 11, fontweight: 600},
+                                scale_color: '#9f9f9f'
+                            },
+                            {
+                                position: 'bottom',
+                                label: {color: '#9d987a', font: '微软雅黑', fontsize: 11, fontweight: 600},
+                                scale_enable: false,
+                                labels: d.labels
+                            }
+                        ]
+                    }
+                });
+                chart.draw();
+            });
+
+            function create(){
+                var f = [],L=[];
+
+                var n = Math.floor(Math.random()*25)+5;//模拟数据的数量
+
+                for (var i = 0; i < n; i++) {
+                    f.push(Math.floor(Math.random() * (10 + ((i % 16) * 5))) + 10);
+                    L.push(i);
+                }
+                return {
+                    data:[
+                        {
+                            name: 'PV',
+                            value: f,
+                            color: '#ec4646',
+                            line_width: 2
+                        }
+                    ],
+                    labels:L
+                }
+            }
+
+            //调用load方法重新加载数据
+            function change(){
+                //创建模拟数据
+                var new_ = create();
+                //load新数据并设置x轴的label
+                chart.load(new_.data,new_.labels);
+            }
+        </script>
+	</head>
+	<body>
+		<div id='canvasDiv' ></div>
+        <div style='width:360px;'>
+            <br/>
+            <input type="button" onclick="change();" value="load">
+        </div>
+	</body>
+</html>

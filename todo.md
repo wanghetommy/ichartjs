@@ -45,3 +45,8 @@ ichartjs需求收集与优化建议
         26、组合图load后。tip会不出现
         27、scale_share:3不起作用。老版本ok-remove*
         28、有一个配置项说明labels和数据的比例关系折线图
+        29、数据本身支持隐藏操作-先折线图?
+        30、支持cache
+        31、area_color支持数组颜色
+        32、use jsdoc http://usejsdoc.org/
+        33、折线图的2维坐标实现

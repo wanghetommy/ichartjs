@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2014-06-10 06:49
+* @date 2014-06-16 11:54
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -1371,6 +1371,9 @@ $.Painter = $.extend($.Element, {
 			_.push('f_color_',_.get('f_color'));
 		}
 	},
+    _draw:function () {
+        this.draw('',this.Combination);
+    },
 	/**
 	 * @method The commnd fire to draw the chart use configuration,
 	 * this is a abstract method.Currently known,both <link>$.Chart</link> and <link>$.Component</link> implement this method.
@@ -3219,7 +3222,7 @@ $.Label = $.extend($.Component, {
 			var _ = this._();
 			_.push('data', d||[]);
 			_.setUp();
-			(_.Combination?_.root:_).draw();
+			_._draw();
 		},
 		/**
 		 * @method resize the chart
@@ -4174,6 +4177,11 @@ $.Sector = $.extend($.Component, {
 				 * @cfg {String} Specifies the text of this element,Normally,this will given by chart.(default to '')
 				 */
 				value:'',
+
+                /**
+                 * @cfg {Boolean} If true the the rectangle will show.(default to true)
+                 */
+                actived : true,
 				/**
 				 * @cfg {<link>$.Text</link>} Specifies the config of label,set false to make label disabled.
 				 */
@@ -4225,11 +4233,13 @@ $.Sector = $.extend($.Component, {
 			this.label = null;
 		},
 		last:function(_){
-			if(_.label)
+			if(_.label&&_.get('actived'))
 				_.label.draw();
 		},
 		doDraw:function(_){
-			_.drawRectangle();
+            if(_.get('actived')){
+			    _.drawRectangle();
+            }
 		},
 		doConfig:function(){
 			$.Rectangle.superclass.doConfig.call(this);
@@ -4324,7 +4334,7 @@ $.Sector = $.extend($.Component, {
 				_.get('shadow'));
 		},
 		isEventValid:function(e,_){
-			return {valid:e.x>_.x&&e.x<(_.x+_.width)&&e.y<(_.y+_.height)&&e.y>(_.y)};
+			return {valid:_.get('actived')&&e.x>_.x&&e.x<(_.x+_.width)&&e.y<(_.y+_.height)&&e.y>(_.y)};
 		},
 		tipInvoke:function(){
 			var _ = this._();
@@ -4423,7 +4433,7 @@ $.Sector = $.extend($.Component, {
 			);
 		},
 		isEventValid:function(e,_){
-			return {valid:e.x>_.x&&e.x<(_.x+_.get(_.W))&&e.y<_.y+_.get(_.H)&&e.y>_.y};
+			return {valid:_.get('actived')&&e.x>_.x&&e.x<(_.x+_.get(_.W))&&e.y<_.y+_.get(_.H)&&e.y>_.y};
 		},
 		tipInvoke:function(){
 			var _ = this._();
@@ -4508,6 +4518,20 @@ $.Column = $.extend($.Chart, {
 		this.components.push(this.labels);
 		this.components.push(this.rectangles);
 	},
+    /**
+     * @method toggle or setting the visibility of rectangle
+     */
+    toggle : function(index,state) {
+        index =  (index||0)%this.rectangles.length;
+        var r = this.rectangles[index];
+        var l = this.labels[index];
+        if(typeof state =='undefined'){
+            state = !l.get('actived');
+        }
+        r.push('actived',state);
+        l.push('actived',state);
+        this._draw();
+    },
 	doAnimation : function(t, d,_) {
 		var h;
 		$.each(_.labels,function(l){
@@ -7635,6 +7659,22 @@ $.Line = $.extend($.Chart, {
              this.push('point_space',0);
         });
 	},
+    /**
+     * @method load the new data
+     * @paramter array#data
+     * @paramter array#labels
+     * @return void
+     */
+    load:function(data,labels){
+        var scale = this.get('coordinate.scale');
+        for(var i=0;i<scale.length;i++){
+            if(scale[i]['position']==this.get('labelAlign')){
+                scale[i]['labels']= labels;
+            }
+        }
+        this.push('point_space',0);
+        $.Line.superclass.load.call(this,data);
+    },
 	/**
 	 * @method toggle or setting the visibility of linesegment
 	 */
@@ -7644,7 +7684,7 @@ $.Line = $.extend($.Chart, {
             state = !l.get('actived');
         }
         l.push('actived',state);
-        this.draw();
+        this._draw();
 	},
 	/**
 	 * @method Returns the coordinate of this element.

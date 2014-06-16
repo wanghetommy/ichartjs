@@ -116,11 +116,13 @@ iChart.Line = iChart.extend(iChart.Chart, {
      * @return void
      */
     load:function(data,labels){
-        //console.log(labels);
-        //chart.get('coordinate.scale')[1]['labels']=new_.labels;
-        //chart.push('point_space',0);//重置x轴坐标
-
-
+        var scale = this.get('coordinate.scale');
+        for(var i=0;i<scale.length;i++){
+            if(scale[i]['position']==this.get('labelAlign')){
+                scale[i]['labels']= labels;
+            }
+        }
+        this.push('point_space',0);
         iChart.Line.superclass.load.call(this,data);
     },
 	/**
