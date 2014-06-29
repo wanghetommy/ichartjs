@@ -1172,7 +1172,7 @@
 			_.Rendered = true;
 		},
 		/**
-		 * @method set up the chart by latest configruation
+		 * @method set up the chart by latest configuration
 		 * @return void
 		 */
 		setUp:function(){

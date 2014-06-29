@@ -81,6 +81,13 @@ iChart.Component = iChart.extend(iChart.Painter, {
 			this.tip.destroy();
 		}
 	},
+    /**
+     * set up the chart by latest configuration
+     * @private
+     */
+    _setUp:function () {
+
+    },
 	doConfig : function() {
 		iChart.Component.superclass.doConfig.call(this);
 		var _ = this._(),w = _.get(_.W),W = _.get('maxwidth'),x = _.get(_.X);
