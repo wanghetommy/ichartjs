@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2014-06-16 11:54
+* @date 2014-07-03 08:09
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -1527,6 +1527,13 @@ $.Component = $.extend($.Painter, {
 			this.tip.destroy();
 		}
 	},
+    /**
+     * set up the chart by latest configuration
+     * @private
+     */
+    _setUp:function () {
+
+    },
 	doConfig : function() {
 		$.Component.superclass.doConfig.call(this);
 		var _ = this._(),w = _.get(_.W),W = _.get('maxwidth'),x = _.get(_.X);
@@ -3204,7 +3211,7 @@ $.Label = $.extend($.Component, {
 			_.Rendered = true;
 		},
 		/**
-		 * @method set up the chart by latest configruation
+		 * @method set up the chart by latest configuration
 		 * @return void
 		 */
 		setUp:function(){
@@ -7667,7 +7674,7 @@ $.Line = $.extend($.Chart, {
      */
     load:function(data,labels){
         var scale = this.get('coordinate.scale');
-        for(var i=0;i<scale.length;i++){
+        for(var i=0;labels&&i<scale.length;i++){
             if(scale[i]['position']==this.get('labelAlign')){
                 scale[i]['labels']= labels;
             }
