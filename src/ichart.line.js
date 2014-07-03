@@ -117,7 +117,7 @@ iChart.Line = iChart.extend(iChart.Chart, {
      */
     load:function(data,labels){
         var scale = this.get('coordinate.scale');
-        for(var i=0;i<scale.length;i++){
+        for(var i=0;labels&&i<scale.length;i++){
             if(scale[i]['position']==this.get('labelAlign')){
                 scale[i]['labels']= labels;
             }
