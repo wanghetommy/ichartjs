@@ -649,6 +649,7 @@ iChart.Coordinate2D = iChart.extend(iChart.Component, {
 		});
 	},
 	destroy:function(){
+        iChart.Coordinate2D.superclass.destroy.call(this);
 		if(this.crosshair){
 			this.crosshair.destroy();
 		}

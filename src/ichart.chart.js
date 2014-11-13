@@ -126,7 +126,8 @@
 		_.push('minValue',MI); 
 		_.push('maxValue',M);
 		_.doConfig();
-	};
+    },
+    _EVENT_MAP = {};
 	
 	/**
 	 * @private support an improved API for drawing in canvas
@@ -711,8 +712,15 @@
 		toDataURL : function(g) {
 			return this.canvas.toDataURL(g || "image/png");
 		},
-		addEvent : function(type, fn, useCapture) {
-			$.Event.addEvent(this.canvas, type, fn, useCapture);
+        unbound:function () {
+            for(var e in _EVENT_MAP){
+                this.canvas.removeEventListener(e,_EVENT_MAP[e],false);
+            }
+            _EVENT_MAP = {};
+        },
+		addEvent : function(type, fn) {
+            _EVENT_MAP[type] = fn;
+			$.Event.addEvent(this.canvas, type, fn,false);
 		}
 	}
 	
@@ -1049,7 +1057,7 @@
 		},
 		/**
 		 * @method register the customize component or combinate with other charts
-		 * @paramter <link>$.Custom</link><link>$.Chart</link>#object 
+		 * @paramter <link>$.Custom</link><link>$.Chart</link>#object
 		 * @return void
 		 */
 		plugin : function(c) {
@@ -1068,6 +1076,17 @@
 			_.plugins.push(c);
 		},
 		destroy:function(_){
+            /**
+             * broken to pieces
+             */
+            if(!_){
+                _ = _ || this;
+                _.segmentRect();
+                for(var e in _.events){
+                    _.events[e] = [];
+                }
+                _.T.unbound();
+            }
 			$.eachAll(_.components,function(C){
                 if(!C._plugin)
 				C.destroy(C);
@@ -1097,18 +1116,18 @@
 		getFootNote:function(){
 			return this.footnote;
 		},
-		/**
-		 * @method return the main Drawing Area's dimension,return following property:
-		 * x:the left-top coordinate-x
-		 * y:the left-top coordinate-y
-		 * width:the width of drawing area
-		 * height:the height of drawing area
-		 * @return Object#contains dimension info
-		 */
+        /**
+         * @method return the main Drawing Area's dimension,return following property:
+         * x:the left-top coordinate-x
+         * y:the left-top coordinate-y
+         * width:the width of drawing area
+         * height:the height of drawing area
+         * @return {{x: *, y: *, width: *, height: *}}
+         */
 		getDrawingArea:function(){
 			return {
 				x:this.get("l_originx"),
-				x:this.get("t_originy"),
+				y:this.get("t_originy"),
 				width:this.get("client_width"),
 				height:this.get("client_height")
 			}
@@ -1306,7 +1325,7 @@
 							return;
 						}
 						_.fireEvent(_, it, [_, $.Event.fix(e)]);
-					}, false);
+					});
 				});
 			}
 			

@@ -100,6 +100,7 @@ iChart.Html = iChart.extend(iChart.Element,{
 	destroy:function(){
 		this.wrap.removeChild(this.dom);
 		this.dom = null;
+
 	},
 	transition:function(v){
 		this.transitions = this.transitions==''?v:this.transitions+','+v;

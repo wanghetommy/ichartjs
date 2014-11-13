@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2014-07-03 08:09
+* @date 2014-11-13 09:36
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -764,8 +764,6 @@
 			addEvent : function(ele, type, fn, useCapture) {
 				if (ele.addEventListener)
 					ele.addEventListener(type, fn, useCapture);
-				else if (ele.attachEvent)
-					ele.attachEvent('on' + type, fn);
 				else
 					ele['on' + type] = fn;
 			},
@@ -1174,6 +1172,7 @@ $.Html = $.extend($.Element,{
 	destroy:function(){
 		this.wrap.removeChild(this.dom);
 		this.dom = null;
+
 	},
 	transition:function(v){
 		this.transitions = this.transitions==''?v:this.transitions+','+v;
@@ -1526,6 +1525,9 @@ $.Component = $.extend($.Painter, {
 		if(this.tip){
 			this.tip.destroy();
 		}
+        for(var e in this.events){
+            this.events[e] = [];
+        }
 	},
     /**
      * set up the chart by latest configuration
@@ -2165,7 +2167,8 @@ $.Label = $.extend($.Component, {
 		_.push('minValue',MI); 
 		_.push('maxValue',M);
 		_.doConfig();
-	};
+    },
+    _EVENT_MAP = {};
 	
 	/**
 	 * @private support an improved API for drawing in canvas
@@ -2750,8 +2753,15 @@ $.Label = $.extend($.Component, {
 		toDataURL : function(g) {
 			return this.canvas.toDataURL(g || "image/png");
 		},
-		addEvent : function(type, fn, useCapture) {
-			$.Event.addEvent(this.canvas, type, fn, useCapture);
+        unbound:function () {
+            for(var e in _EVENT_MAP){
+                this.canvas.removeEventListener(e,_EVENT_MAP[e],false);
+            }
+            _EVENT_MAP = {};
+        },
+		addEvent : function(type, fn) {
+            _EVENT_MAP[type] = fn;
+			$.Event.addEvent(this.canvas, type, fn,false);
 		}
 	}
 	
@@ -3088,7 +3098,7 @@ $.Label = $.extend($.Component, {
 		},
 		/**
 		 * @method register the customize component or combinate with other charts
-		 * @paramter <link>$.Custom</link><link>$.Chart</link>#object 
+		 * @paramter <link>$.Custom</link><link>$.Chart</link>#object
 		 * @return void
 		 */
 		plugin : function(c) {
@@ -3107,6 +3117,17 @@ $.Label = $.extend($.Component, {
 			_.plugins.push(c);
 		},
 		destroy:function(_){
+            /**
+             * broken to pieces
+             */
+            if(!_){
+                _ = _ || this;
+                _.segmentRect();
+                for(var e in _.events){
+                    _.events[e] = [];
+                }
+                _.T.unbound();
+            }
 			$.eachAll(_.components,function(C){
                 if(!C._plugin)
 				C.destroy(C);
@@ -3136,18 +3157,18 @@ $.Label = $.extend($.Component, {
 		getFootNote:function(){
 			return this.footnote;
 		},
-		/**
-		 * @method return the main Drawing Area's dimension,return following property:
-		 * x:the left-top coordinate-x
-		 * y:the left-top coordinate-y
-		 * width:the width of drawing area
-		 * height:the height of drawing area
-		 * @return Object#contains dimension info
-		 */
+        /**
+         * @method return the main Drawing Area's dimension,return following property:
+         * x:the left-top coordinate-x
+         * y:the left-top coordinate-y
+         * width:the width of drawing area
+         * height:the height of drawing area
+         * @return {{x: *, y: *, width: *, height: *}}
+         */
 		getDrawingArea:function(){
 			return {
 				x:this.get("l_originx"),
-				x:this.get("t_originy"),
+				y:this.get("t_originy"),
 				width:this.get("client_width"),
 				height:this.get("client_height")
 			}
@@ -3345,7 +3366,7 @@ $.Label = $.extend($.Component, {
 							return;
 						}
 						_.fireEvent(_, it, [_, $.Event.fix(e)]);
-					}, false);
+					});
 				});
 			}
 			
@@ -5382,7 +5403,7 @@ $.register('BarMulti2D');
 			}
 		},
 		text:function(n,v,t,i,_){
-			_.dom.innerHTML = _.fireString(_, 'parseText', [_,n,v,t,i],t);
+            _.dom.innerHTML = _.fireString(_, 'parseText', [_,n,v,t,i],t);
 		},
 		hidden:function(e){
 			if(this.get('animation')){
@@ -5402,7 +5423,7 @@ $.register('BarMulti2D');
 				_.T.on('mousemove',function(c,e,m){
 					if(_.T.variable.event.mouseover){
 						setTimeout(function(){
-							if(_.T.variable.event.mouseover)
+							if(_.dom&&_.T.variable.event.mouseover)
 								_.follow(e,m,_);
 						},_.get('delay'));
 					}
@@ -6704,6 +6725,7 @@ $.Coordinate2D = $.extend($.Component, {
 		});
 	},
 	destroy:function(){
+        $.Coordinate2D.superclass.destroy.call(this);
 		if(this.crosshair){
 			this.crosshair.destroy();
 		}

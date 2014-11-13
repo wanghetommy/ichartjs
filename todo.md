@@ -50,3 +50,4 @@ ichartjs需求收集与优化建议
         31、area_color支持数组颜色
         32、use jsdoc http://usejsdoc.org/
         33、折线图的2维坐标实现
+        33、柱形图太小点击不到。需要放大处理?

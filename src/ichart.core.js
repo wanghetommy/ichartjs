@@ -756,8 +756,6 @@
 			addEvent : function(ele, type, fn, useCapture) {
 				if (ele.addEventListener)
 					ele.addEventListener(type, fn, useCapture);
-				else if (ele.attachEvent)
-					ele.attachEvent('on' + type, fn);
 				else
 					ele['on' + type] = fn;
 			},

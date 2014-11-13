@@ -102,7 +102,7 @@
 			}
 		},
 		text:function(n,v,t,i,_){
-			_.dom.innerHTML = _.fireString(_, 'parseText', [_,n,v,t,i],t);
+            _.dom.innerHTML = _.fireString(_, 'parseText', [_,n,v,t,i],t);
 		},
 		hidden:function(e){
 			if(this.get('animation')){
@@ -122,7 +122,7 @@
 				_.T.on('mousemove',function(c,e,m){
 					if(_.T.variable.event.mouseover){
 						setTimeout(function(){
-							if(_.T.variable.event.mouseover)
+							if(_.dom&&_.T.variable.event.mouseover)
 								_.follow(e,m,_);
 						},_.get('delay'));
 					}

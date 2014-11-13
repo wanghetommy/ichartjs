@@ -80,6 +80,9 @@ iChart.Component = iChart.extend(iChart.Painter, {
 		if(this.tip){
 			this.tip.destroy();
 		}
+        for(var e in this.events){
+            this.events[e] = [];
+        }
 	},
     /**
      * set up the chart by latest configuration

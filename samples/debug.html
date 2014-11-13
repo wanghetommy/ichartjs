@@ -87,17 +87,6 @@
                 render: 'canvasDiv',
                 data: create(),
                 align: 'center',
-                title: {
-                    text: 'PV流量',
-                    font: '微软雅黑',
-                    fontsize: 20,
-                    color: '#b4b4b4'
-                },
-                subtitle: {
-                    text: '14:00-16:00最大值',
-                    font: '微软雅黑',
-                    color: '#b4b4b4'
-                },
                 footnote: {
                     text: 'ichartjs.com',
                     font: '微软雅黑',
@@ -109,10 +98,6 @@
                 width: 800,
                 height: 400,
                 shadow: true,
-                shadow_color: '#202020',
-                shadow_blur: 8,
-                shadow_offsetx: 0,
-                shadow_offsety: 0,
                 background_color: '#2e2e2e',
                 //animation: true,//开启过渡动画
                 //animation_duration: 600,//600ms完成动画
@@ -168,6 +153,7 @@
                 }
             });
             chart.draw();
+            //chart.destroy();
         });
 
         function create(){
