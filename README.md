@@ -4,6 +4,9 @@ Licensed under the Apache License, Version 2.0 (the "License");
 --------------------------------------------------
 http://www.ichartjs.com
 --------------------------------------------------
+The branch master is develop branch.
+The latest release version for use is : https://github.com/wanghetommy/ichartjs/tree/ichartjs1.2
+--------------------------------------------------
 Directory INFO 
 <table>
 <thead><tr>
