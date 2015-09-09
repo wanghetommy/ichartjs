@@ -78,118 +78,102 @@
         }
     </style>
     <script type="text/javascript">
-        var chart;
-
         $(function(){
-            var labels = ["00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
+            var pv=[],ip=[],t;
 
-            chart =  new iChart.LineBasic2D({
-                render: 'canvasDiv',
-                data: create(),
-                align: 'center',
-                footnote: {
-                    text: 'ichartjs.com',
-                    font: '微软雅黑',
-                    fontsize: 11,
-                    fontweight: 600,
-                    padding: '0 28',
-                    color: '#b4b4b4'
-                },
-                width: 800,
-                height: 400,
-                shadow: true,
-                background_color: '#2e2e2e',
-                //animation: true,//开启过渡动画
-                //animation_duration: 600,//600ms完成动画
-                tip: {
-                    enable: true,
-                    shadow: true,
-                    listeners: {
-                        //tip:提示框对象、name:数据名称、value:数据值、text:当前文本、i:数据点的索引
-                        parseText: function (tip, name, value, text, i) {
-                            return "<span style='color:#005268;font-size:12px;'>访问量约:<br/>" +
-                                    "</span><span style='color:#005268;font-size:20px;'>" + value + "万</span>";
-                        }
-                    }
-                },
-                crosshair: {
-                    enable: true,
-                    line_color: '#ec4646'
-                },
-                sub_option: {
-                    smooth: true,
-                    label: false,
-                    hollow: false,
-                    hollow_inside: false,
-                    point_size: 8
-                },
-                coordinate: {
-                    width: '90%',
-                    height: '90%',
-                    striped_factor: 0.18,
-                    grid_color: '#4e4e4e',
-                    axis: {
-                        color: '#252525',
-                        width: [0, 0, 4, 4]
-                    },
-                    scale:[
-                        {
-                            position: 'left',
-                            start_scale: 0,
-                            end_scale: 100,
-                            scale_space: 10,
-                            scale_size: 2,
-                            scale_enable: false,
-                            label: {color: '#9d987a', font: '微软雅黑', fontsize: 11, fontweight: 600},
-                            scale_color: '#9f9f9f'
-                        },
-                        {
-                            position: 'bottom',
-                            label: {color: '#9d987a', font: '微软雅黑', fontsize: 11, fontweight: 600},
-                            scale_enable: false,
-                            labels: labels
-                        }
-                    ]
-                }
-            });
-            chart.draw();
-            //chart.destroy();
-        });
+            //创建随机长度数据
+            var number =  Math.floor(Math.random()*50)+10;
 
-        function create(){
-            var f = [];
-            for (var i = 0; i < 25; i++) {
-                f.push(Math.floor(Math.random() * (10 + ((i % 16) * 5))) + 10);
+            //创建x轴标签文本
+            var date = new Date();
+            date.setDate(date.getDate()-number);
+            var labels = [];
+            //创建随机数据
+            for(var i=0;i<number;i++){
+                t = Math.floor(Math.random()*(30+((i%12)*5)))+10;
+                pv.push(t);
+                t = Math.floor(t*0.5);
+                t = t-Math.floor((Math.random()*t)/2);
+                ip.push(t);
+
+                date.setDate(date.getDate()+1);
+                labels.push(date.getFullYear()+"-"+(date.getMonth()+1)+"-"+date.getDate());
             }
-            return [
+
+            var data = [
                 {
-                    name: 'PV',
-                    value: f,
-                    color: '#ec4646',
-                    line_width: 2
+                    name : 'PV',
+                    value:pv,
+                    color:'#aad0db',
+                    line_width:2
+                },
+                {
+                    name : 'IP',
+                    value:ip,
+                    color:'#f68f70',
+                    line_width:2
                 }
             ];
-        }
-        var isRun = true;
-        //调用load方法重新加载数据
-        function change(){
-            chart.load(create());
-            if(isRun)
-                setTimeout(change,500);
-            isRun = true;
-        }
 
-        function trunOff() {
-            isRun = false;
-        }
+            var chart = new iChart.LineBasic2D({
+                render : 'canvasDiv',
+                data: data,
+                align:'center',
+                title : 'A网站近5天流量趋势,按每2小时分组统计',
+                subtitle : '平均每个人访问2-3个页面(访问量单位：万)',
+                footnote : '数据来源：模拟数据',
+                width : 800,
+                height : 400,
+                background_color:'#FEFEFE',
+                legend : {
+                    enable : true,
+                    row:1,//设置在一行上显示，与column配合使用
+                    column : 'max',
+                    valign:'top',
+                    sign:'bar',
+                    background_color:null,//设置透明背景
+                    offsetx:-80,//设置x轴偏移，满足位置需要
+                    border : true
+                },
+                crosshair:{
+                    enable:true,
+                    line_color:'#62bce9'//十字线的颜色
+                },
+                sub_option : {
+                    label:false,
+                    point_size:10
+                },
+                coordinate:{
+                    width:640,
+                    height:240,
+                    axis:{
+                        color:'#dcdcdc',
+                        width:1
+                    },
+                    yAxis:{
+                        start_scale:0,
+                        end_scale:100,
+                        scale_space:10,
+                        scale_size:2,
+                        scale_color:'#9f9f9f'
+                    },
+                    xAxis:{
+                        labels:labels,
+                        step:6
+
+                    }
+                }
+            });
+
+            //开始画图
+            chart.draw();
+        });
 
     </script>
 </head>
 <body>
 <div id='canvasDiv' ></div>
 <br/>
-<input type="button" onclick="change();" value="trunOn">
-<input type="button" onclick="trunOff();" value="trunOff">
 <div id='ichartjs_result'></div>
 </body>
 </html>

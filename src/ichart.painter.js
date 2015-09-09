@@ -95,6 +95,8 @@ iChart.Painter = iChart.extend(iChart.Element, {
 		};
 		
 		this.variable.animation = {}
+
+        //touchstart
 		/**
 		 * register the common event
 		 */

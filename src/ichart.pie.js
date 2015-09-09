@@ -203,7 +203,7 @@ iChart.Pie = iChart.extend(iChart.Chart, {
 		//If 3D,let it bigger
 		if (_.is3D())
 			f += 0.06;
-		
+
 		var L = _.data.length,sepa = iChart.angle2Radian(iChart.between(0,90,_.get('separate_angle'))),PI = pi2-sepa,sepa=sepa/L,eA = _.oA+sepa, sA = eA;
 		if(_.total==0){
 			V  = 1/L;

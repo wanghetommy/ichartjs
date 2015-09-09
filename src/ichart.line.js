@@ -30,6 +30,22 @@ iChart.Line = iChart.extend(iChart.Chart, {
 			coordinate : {
 				axis : {
 					width : [0, 0, 2, 2]
+				},
+				xAxis:{
+					/**
+					 * @cfg {String} the align of label.(default to 'bottom') Available value are:
+					 * @Option 'top,'bottom'
+					 */
+					position:'bottom',
+					step:1
+				},
+				yAxis:{
+					/**
+					 * @cfg {String} the align of label.(default to 'bottom') Available value are:
+					 * @Option 'top,'bottom'
+					 */
+					position:'left',
+					step:1
 				}
 			},
 			/**
@@ -82,6 +98,7 @@ iChart.Line = iChart.extend(iChart.Chart, {
 			legend : {
 				sign : 'bar'
 			},
+
 			/**
 			 * @cfg {<link>iChart.Text</link>} Specifies option of label at bottom.
 			 */
@@ -118,6 +135,7 @@ iChart.Line = iChart.extend(iChart.Chart, {
     load:function(data,labels){
         var scale = this.get('coordinate.scale');
         for(var i=0;labels&&i<scale.length;i++){
+			//TODO  labelAlign
             if(scale[i]['position']==this.get('labelAlign')){
                 scale[i]['labels']= labels;
             }
@@ -186,17 +204,13 @@ iChart.Line = iChart.extend(iChart.Chart, {
 //                if(!s.end_scale||(ST&&!s.assign_scale&&s.end_scale<_.get('maxValue')))
 //                    s.max_scale = _.get('maxValue');
 //            });
-			_.pushIf('coordinate.scale',[{
-				position : _.get('scaleAlign'),
-				max_scale : _.get('maxValue')
-			}, {
-				position : _.get('labelAlign'),
-				start_scale : 1,
-				scale : 1,
-				end_scale : _.get('maxItemSize'),
-				labels : _.get('labels'),
-				label:_.get('label')
-			}]);
+
+			_.pushIf('coordinate.scale',[
+				iChart.apply(_.get('coordinate.yAxis'),{
+				end_scale : _.get('maxValue')
+			}), iChart.apply(_.get('coordinate.xAxis'),{
+				end_scale : _.get('maxItemSize')
+			})]);
 		}
 		
 		/**

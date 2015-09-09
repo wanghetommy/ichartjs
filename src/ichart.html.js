@@ -98,6 +98,7 @@ iChart.Html = iChart.extend(iChart.Element,{
 		iChart.Event.addEvent(this.dom,type,fn,useCapture);
 	},
 	destroy:function(){
+		if(this.dom)
 		this.wrap.removeChild(this.dom);
 		this.dom = null;
 

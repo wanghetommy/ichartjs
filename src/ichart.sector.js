@@ -141,7 +141,9 @@ iChart.Sector = iChart.extend(iChart.Component, {
 			if (_.label&&!_.get('mini_label')){
 				_.label.draw();
 			}
-			_.drawSector();
+			if(Math.abs(_.get('endAngle')-_.get('startAngle'))>0.00001){
+				_.drawSector();
+			}
 			if (_.label&&_.get('mini_label')){
 				_.label.draw();
 			}
