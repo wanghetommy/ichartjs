@@ -79,7 +79,7 @@
     </style>
     <script type="text/javascript">
         $(function(){
-            var pv=[],ip=[],t;
+            var ip=[],t;
 
             //创建随机长度数据
             var number =  Math.floor(Math.random()*50)+10;
@@ -90,23 +90,14 @@
             var labels = [];
             //创建随机数据
             for(var i=0;i<number;i++){
-                t = Math.floor(Math.random()*(30+((i%12)*5)))+10;
-                pv.push(t);
-                t = Math.floor(t*0.5);
-                t = t-Math.floor((Math.random()*t)/2);
-                ip.push(t);
+                //t = Math.floor(Math.random()*(200+((i%12)*10)))+10;
+                ip.push(5+10*i);
 
                 date.setDate(date.getDate()+1);
                 labels.push(date.getFullYear()+"-"+(date.getMonth()+1)+"-"+date.getDate());
             }
 
             var data = [
-                {
-                    name : 'PV',
-                    value:pv,
-                    color:'#aad0db',
-                    line_width:2
-                },
                 {
                     name : 'IP',
                     value:ip,
@@ -135,6 +126,10 @@
                     offsetx:-80,//设置x轴偏移，满足位置需要
                     border : true
                 },
+                tip:{
+                    enable:true,
+                    shadow:true
+                },
                 crosshair:{
                     enable:true,
                     line_color:'#62bce9'//十字线的颜色
@@ -151,9 +146,7 @@
                         width:1
                     },
                     yAxis:{
-                        start_scale:0,
-                        end_scale:100,
-                        scale_space:10,
+                        labels:[0,10,50,200,500],
                         scale_size:2,
                         scale_color:'#9f9f9f'
                     },

@@ -207,7 +207,7 @@ iChart.Line = iChart.extend(iChart.Chart, {
 
 			_.pushIf('coordinate.scale',[
 				iChart.apply(_.get('coordinate.yAxis'),{
-				end_scale : _.get('maxValue')
+				maxValue : _.get('maxValue')
 			}), iChart.apply(_.get('coordinate.xAxis'),{
 				end_scale : _.get('maxItemSize')
 			})]);

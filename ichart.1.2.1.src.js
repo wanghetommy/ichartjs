@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2015-09-10 12:56
+* @date 2015-09-11 12:14
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -6228,12 +6228,14 @@ $.Scale = $.extend($.Component, {
     getScale: function (_) {
         var u = [_.get('basic_value'), _.get('start_scale'), _.get('end_scale'), _.get('end_scale') - _.get('start_scale'), 0];
         u[4] = $.inRange(u[1], u[2] + 1, u[0]) || $.inRange(u[2] - 1, u[1], u[0]);
+
         return {
             range: u[4],
             basic: u[4] ? (u[0] - u[1]) / u[3] : 0,
             start: u[4] ? u[0] : u[1],
             end: u[2],
-            distance: u[3]
+            distance: u[3],
+            values: _.values
         }
     },
     /**
@@ -6263,10 +6265,27 @@ $.Scale = $.extend($.Component, {
     doConfig: function () {
         $.Scale.superclass.doConfig.call(this);
 
-        var _ = this._(), abs = Math.abs, L = _.get('labels').length, min_s = _.get('min_scale'), max_s = _.get('max_scale'), s_space = _.get('scale_space'), e_scale = _.get('end_scale'), start_scale = _.get('start_scale'), S = _.get('step'), K = e_scale - start_scale - 1;
+        var _ = this._(), abs = Math.abs, L = _.get('labels').length, min_s = _.get('min_scale'), max_s = _.get('max_scale'), s_space = _.get('scale_space'), e_scale = _.get('end_scale'), start_scale = _.get('start_scale'), S = _.get('step'),
+            K = e_scale - start_scale - 1;
 
         _.items = [];
         _.labels = [];
+        _.values = [];
+
+        /**
+         * startScale must less than minScale
+         */
+        if (start_scale > min_s) {
+            start_scale = _.push('start_scale', $.floor(min_s));
+        }
+
+        /**
+         * end_scale must greater than maxScale
+         */
+        if (!$.isNumber(e_scale) || e_scale < max_s) {
+            e_scale = $.ceil(max_s);
+            e_scale = _.push('end_scale', (!e_scale && !start_scale) ? 1 : e_scale);
+        }
 
         if (L == 0) {
             /**
@@ -6274,20 +6293,7 @@ $.Scale = $.extend($.Component, {
              * @type {number}
              */
             K = 5;
-            /**
-             * startScale must less than minScale
-             */
-            if (start_scale > min_s) {
-                start_scale = _.push('start_scale', $.floor(min_s));
-            }
 
-            /**
-             * end_scale must greater than maxScale
-             */
-            if (!$.isNumber(e_scale) || e_scale < max_s) {
-                e_scale = $.ceil(max_s);
-                e_scale = _.push('end_scale', (!e_scale && !start_scale) ? 1 : e_scale);
-            }
 
             var total = abs(e_scale - start_scale);
             if (s_space && abs(s_space) < abs(total)) {
@@ -6310,6 +6316,11 @@ $.Scale = $.extend($.Component, {
             if (parseInt(s_space) != s_space && _.get('decimalsnum') == 0) {
                 _.push('decimalsnum', (s_space + "").substring((s_space + "").indexOf('.') + 1).length);
             }
+        }else{
+            K = L-1;
+            if(e_scale>_.get('labels')[K]){
+                _.get('labels')[K]=e_scale;
+            }
         }
 
 
@@ -6318,7 +6329,7 @@ $.Scale = $.extend($.Component, {
          */
         _.push('distanceOne', _.get('valid_distance') / (K ? K : 1));
 
-        var text, x, y, x1 = 0, y1 = 0, x0 = 0, y0 = 0, tx = 0, ty = 0, w = _.get('scale_width'), w2 = w / 2, sa = _.get('scaleAlign'), ta = _.get('position'), ts = _.get('text_space'), tbl = '', aw = _.get('coo').get('axis.width');
+        var value, x, y, x1 = 0, y1 = 0, x0 = 0, y0 = 0, tx = 0, ty = 0, w = _.get('scale_width'), w2 = w / 2, sa = _.get('scaleAlign'), ta = _.get('position'), ts = _.get('text_space'), tbl = '', aw = _.get('coo').get('axis.width');
 
         _.push('which', _.get('which').toLowerCase());
         _.isH = _.get('which') == 'h';
@@ -6363,10 +6374,10 @@ $.Scale = $.extend($.Component, {
          */
         for (var i = 0; i <= K; i++) {
             if (i % S == 0) {
-                text = L ? _.get('labels')[i] || i : (s_space * i + start_scale).toFixed(_.get('decimalsnum'));
+                value = L ? _.get('labels')[i] || i : (s_space * i + start_scale).toFixed(_.get('decimalsnum'));
                 x = _.isH ? _.get('valid_x') + i * _.get('distanceOne') : _.x;
                 y = _.isH ? _.y : _.get('valid_y') + _.get('valid_distance') - i * _.get('distanceOne');
-
+                _.values.push($.parseFloat(value));
                 _.items.push({
                     x: x,
                     y: y,
@@ -6380,12 +6391,12 @@ $.Scale = $.extend($.Component, {
                  */
                 if (_.get('label'))
                     _.labels.push(new $.Text($.applyIf($.apply(_.get('label'), $.merge({
-                        text: text,
+                        text: value,
                         x: x,
                         y: y,
                         originx: x + tx,
                         originy: y + ty
-                    }, _.fireEvent(_, 'parseText', [text, x + tx, y + ty, i, K == i]))), {
+                    }, _.fireEvent(_, 'parseText', [value, x + tx, y + ty, i, K == i]))), {
                         textAlign: ta,
                         textBaseline: tbl
                     }), _));
@@ -7799,7 +7810,7 @@ $.Line = $.extend($.Chart, {
 
 			_.pushIf('coordinate.scale',[
 				$.apply(_.get('coordinate.yAxis'),{
-				end_scale : _.get('maxValue')
+				maxValue : _.get('maxValue')
 			}), $.apply(_.get('coordinate.xAxis'),{
 				end_scale : _.get('maxItemSize')
 			})]);
@@ -7936,14 +7947,26 @@ $.LineBasic2D = $.extend($.Line, {
 		_.push('sub_option.tipInvokeHeap', _.tipInvokeHeap);
 		_.push('sub_option.point_space', sp);
 
+
 		$.each(_.data,function(d, i){
 			S = _.coo.getScale(d.scaleAlign||_.get('scaleAlign'));
 			oy = _.get('sub_option.originy')- S.basic*H;
 			points = [];
+			var V = S.values;
+
 			$.each(d.value,function(v, j){
                 if(v!=null){
                     x = sp * j;
-                    y = (v - S.start) * H / S.distance;
+					//TODO move to scale
+					for(var i=1;i< V.length;i++){
+						if(v<=V[i]){
+							y = ((((v - V[i-1])/(V[i]-V[i-1])+(i-1)))/(V.length-1)) * H;
+							//console.log(v,v - V[i-1],V[i]-V[i-1],i,y,H);
+							break;
+						}
+					}
+
+                    //y = (v - S.start) * H /S.distance;
                     p = {
                         x : ox + x,
                         y : oy - y,

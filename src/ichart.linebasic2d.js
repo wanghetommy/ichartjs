@@ -40,14 +40,26 @@ iChart.LineBasic2D = iChart.extend(iChart.Line, {
 		_.push('sub_option.tipInvokeHeap', _.tipInvokeHeap);
 		_.push('sub_option.point_space', sp);
 
+
 		iChart.each(_.data,function(d, i){
 			S = _.coo.getScale(d.scaleAlign||_.get('scaleAlign'));
 			oy = _.get('sub_option.originy')- S.basic*H;
 			points = [];
+			var V = S.values;
+
 			iChart.each(d.value,function(v, j){
                 if(v!=null){
                     x = sp * j;
-                    y = (v - S.start) * H / S.distance;
+					//TODO move to scale
+					for(var i=1;i< V.length;i++){
+						if(v<=V[i]){
+							y = ((((v - V[i-1])/(V[i]-V[i-1])+(i-1)))/(V.length-1)) * H;
+							//console.log(v,v - V[i-1],V[i]-V[i-1],i,y,H);
+							break;
+						}
+					}
+
+                    //y = (v - S.start) * H /S.distance;
                     p = {
                         x : ox + x,
                         y : oy - y,
