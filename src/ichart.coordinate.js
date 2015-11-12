@@ -296,7 +296,13 @@ iChart.Scale = iChart.extend(iChart.Component, {
                 value = L ? _.get('labels')[i] || i : (s_space * i + start_scale).toFixed(_.get('decimalsnum'));
                 x = _.isH ? _.get('valid_x') + i * _.get('distanceOne') : _.x;
                 y = _.isH ? _.y : _.get('valid_y') + _.get('valid_distance') - i * _.get('distanceOne');
-                _.values.push(iChart.parseFloat(value));
+                //TODO 非标轴
+                try{
+                    _.values.push(iChart.parseFloat(value));
+                }catch (e){
+                    _.values.push(value);
+                }
+
                 _.items.push({
                     x: x,
                     y: y,

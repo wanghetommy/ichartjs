@@ -63,6 +63,10 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 			 */
 			smoothing : 1.5,
 			/**
+			 * @cfg {Boolean} If true LineSegment with the same color of pre point.(default to false)
+			 */
+            color_with_point : false,
+			/**
 			 * @cfg {Number} Specifies the size of point.(default size 6).Only applies when intersection is true
 			 */
 			point_size : 6,
@@ -82,6 +86,7 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 			 * @cfg {Number} Override the default as 1
 			 */
 			shadow_offsety : 1,
+
 			/**
 			 * @inner {Number} Specifies the space between two point
 			 */
@@ -176,9 +181,21 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 		_.lines = [];
 		_.intersections = [];
 		_.labels = [];
-		
-		var p = _.get('points'),I = _.get('intersection'),L = !!_.get('label'), T = [],Q  = false,s = _.get('smooth'), sm = _.get('smoothing') || 1.5, b = _.get('f_color'), h = _.get('brushsize'),ps=_.get('point_size');
-		
+
+        var p = _.get('points'),
+            I = _.get('intersection'),
+            L = !!_.get('label'),
+            T = [],
+            Q = false,
+            s = _.get('smooth'),
+            sm = _.get('smoothing') || 1.5,
+            b = _.get('f_color'),
+            h = _.get('brushsize'),
+            ps = _.get('point_size'),
+            cp = _.get('color_with_point'),
+            c,
+            conse;
+
 		if (I) {
 			var f = _.getPlugin('sign'),g=b,j = _.get('hollow_color');
 			_.sign_plugin = iChart.isFunction(f);
@@ -192,7 +209,9 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 		iChart.each(p,function(q){
 			q.x_ = q.x;
 			q.y_ = q.y;
-			if(!q.ignored&&!q.direct&&L){
+            q.color = q.color||b;
+            conse = !q.ignored&& !q.direct;
+			if(conse&&L){
 				_.push('label.originx', q.x);
 				_.push('label.originy', q.y-ps/2-1);
 				_.push('label.text',_.fireString(_, 'parseText', [_, q.value],q.value));
@@ -202,24 +221,28 @@ iChart.LineSegment = iChart.extend(iChart.Component, {
 				});
 				_.labels.push(new iChart.Text(_.get('label'), _))
 			}
-			if(q.ignored&&Q){
-				_.lines.push([T, h, b, s, sm]);
+
+			if(((q.ignored||(cp&&c&&(c!= q.color)))&&T.length)){
+                if(!q.ignored){
+                    T.push(q);
+                }
+				_.lines.push([T, h, c, s, sm]);
 				_.PP(_,T,T[0].x,_.y,T[T.length-1].x,_.y);
-				T = [];
-				Q = false;
-			}else if(!q.ignored&& !q.direct){
+                T = q.ignored?[]:[q];
+			}else if(conse){
 				T.push(q);
-				Q = true;
 			}
+
+            c = q.color;
 			
-			if(I&&!q.ignored&& !q.direct){
+			if(I&&conse){
 				_.intersections.push(_.sign_plugin?[_.T,_.get('sign'),q,ps,q.color||g,q.hollow_color||j]:_.get('hollow')?[q, ps/2-h+1,q.color||g,h+1,q.hollow_color||j]:[q,ps/2,q.color||g]);
 			}
 			
 		});
 		
 		if(T.length){
-			_.lines.push([T, h, b, s, sm]);
+			_.lines.push([T, h, c||b, s, sm]);
 			_.PP(_,T,T[0].x,_.y,T[T.length-1].x,_.y);
 		}
 	},

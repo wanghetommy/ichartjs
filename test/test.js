@@ -91,6 +91,7 @@ function start(){
 			result(true,chart.get('title.text') || chart.type,chart.RUN_TIME_COST);
 			
 		} catch (e) {
+			console.log(e);
 			result(false,chart.get('title.text') || chart.type,e.name+":"+e.message);
 		}
 		start();

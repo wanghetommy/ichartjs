@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2015-09-11 12:14
+* @date 2015-11-13 01:11
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -6377,7 +6377,13 @@ $.Scale = $.extend($.Component, {
                 value = L ? _.get('labels')[i] || i : (s_space * i + start_scale).toFixed(_.get('decimalsnum'));
                 x = _.isH ? _.get('valid_x') + i * _.get('distanceOne') : _.x;
                 y = _.isH ? _.y : _.get('valid_y') + _.get('valid_distance') - i * _.get('distanceOne');
-                _.values.push($.parseFloat(value));
+                //TODO 非标轴
+                try{
+                    _.values.push($.parseFloat(value));
+                }catch (e){
+                    _.values.push(value);
+                }
+
                 _.items.push({
                     x: x,
                     y: y,
@@ -7351,6 +7357,10 @@ $.LineSegment = $.extend($.Component, {
 			 */
 			smoothing : 1.5,
 			/**
+			 * @cfg {Boolean} If true LineSegment with the same color of pre point.(default to false)
+			 */
+            color_with_point : false,
+			/**
 			 * @cfg {Number} Specifies the size of point.(default size 6).Only applies when intersection is true
 			 */
 			point_size : 6,
@@ -7370,6 +7380,7 @@ $.LineSegment = $.extend($.Component, {
 			 * @cfg {Number} Override the default as 1
 			 */
 			shadow_offsety : 1,
+
 			/**
 			 * @inner {Number} Specifies the space between two point
 			 */
@@ -7464,9 +7475,21 @@ $.LineSegment = $.extend($.Component, {
 		_.lines = [];
 		_.intersections = [];
 		_.labels = [];
-		
-		var p = _.get('points'),I = _.get('intersection'),L = !!_.get('label'), T = [],Q  = false,s = _.get('smooth'), sm = _.get('smoothing') || 1.5, b = _.get('f_color'), h = _.get('brushsize'),ps=_.get('point_size');
-		
+
+        var p = _.get('points'),
+            I = _.get('intersection'),
+            L = !!_.get('label'),
+            T = [],
+            Q = false,
+            s = _.get('smooth'),
+            sm = _.get('smoothing') || 1.5,
+            b = _.get('f_color'),
+            h = _.get('brushsize'),
+            ps = _.get('point_size'),
+            cp = _.get('color_with_point'),
+            c,
+            conse;
+
 		if (I) {
 			var f = _.getPlugin('sign'),g=b,j = _.get('hollow_color');
 			_.sign_plugin = $.isFunction(f);
@@ -7480,7 +7503,9 @@ $.LineSegment = $.extend($.Component, {
 		$.each(p,function(q){
 			q.x_ = q.x;
 			q.y_ = q.y;
-			if(!q.ignored&&!q.direct&&L){
+            q.color = q.color||b;
+            conse = !q.ignored&& !q.direct;
+			if(conse&&L){
 				_.push('label.originx', q.x);
 				_.push('label.originy', q.y-ps/2-1);
 				_.push('label.text',_.fireString(_, 'parseText', [_, q.value],q.value));
@@ -7490,24 +7515,28 @@ $.LineSegment = $.extend($.Component, {
 				});
 				_.labels.push(new $.Text(_.get('label'), _))
 			}
-			if(q.ignored&&Q){
-				_.lines.push([T, h, b, s, sm]);
+
+			if(((q.ignored||(cp&&c&&(c!= q.color)))&&T.length)){
+                if(!q.ignored){
+                    T.push(q);
+                }
+				_.lines.push([T, h, c, s, sm]);
 				_.PP(_,T,T[0].x,_.y,T[T.length-1].x,_.y);
-				T = [];
-				Q = false;
-			}else if(!q.ignored&& !q.direct){
+                T = q.ignored?[]:[q];
+			}else if(conse){
 				T.push(q);
-				Q = true;
 			}
+
+            c = q.color;
 			
-			if(I&&!q.ignored&& !q.direct){
+			if(I&&conse){
 				_.intersections.push(_.sign_plugin?[_.T,_.get('sign'),q,ps,q.color||g,q.hollow_color||j]:_.get('hollow')?[q, ps/2-h+1,q.color||g,h+1,q.hollow_color||j]:[q,ps/2,q.color||g]);
 			}
 			
 		});
 		
 		if(T.length){
-			_.lines.push([T, h, b, s, sm]);
+			_.lines.push([T, h, c||b, s, sm]);
 			_.PP(_,T,T[0].x,_.y,T[T.length-1].x,_.y);
 		}
 	},
@@ -7950,7 +7979,7 @@ $.LineBasic2D = $.extend($.Line, {
 
 		$.each(_.data,function(d, i){
 			S = _.coo.getScale(d.scaleAlign||_.get('scaleAlign'));
-			oy = _.get('sub_option.originy')- S.basic*H;
+			oy = _.get('sub_option.originy');//-S.basic*H
 			points = [];
 			var V = S.values;
 
