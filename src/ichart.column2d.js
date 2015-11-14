@@ -15,10 +15,11 @@ iChart.Column2D = iChart.extend(iChart.Column, {
 
 		this.type = 'column2d';
 	},
-	doEngine:function(_,cw,s,S,H,w2,q,gw,x,y,y0){
+	doEngine:function(_,cw,s,S,So,H,w2,q,gw,x,y,y0){
 		var h;
 		iChart.each(_.data,function(d, i) {
-			h = (d.value - S.start) * H / S.distance;
+			//TODO 抽象至父类
+			h = So.getMark(d.value,S) * H;
 			_.doParse(_,d, i, {
 				id : i,
 				originx :x + i * gw,

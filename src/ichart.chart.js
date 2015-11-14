@@ -868,6 +868,25 @@
 					height : 20
 				},
 				/**
+				 * @cfg {Object} the option for {<link>iChart.Coordinate2D</link>} If needed
+				 */
+				coordinate : {
+					xAxis:{
+						/**
+						 * @cfg {String} the align of label.(default to 'bottom') Available value are:
+						 * @Option 'top,'bottom'
+						 */
+						position:'bottom'
+					},
+					yAxis:{
+						/**
+						 * @cfg {String} the align of label.(default to 'left') Available value are:
+						 * @Option 'left,'right'
+						 */
+						position:'left'
+					}
+				},
+				/**
 				 * @cfg {Boolean} If true element will have a animation when show, false to skip the animation.(default to false)
 				 */
 				animation : false,

@@ -145,7 +145,7 @@
 				return typeof e === "boolean" && !e;
 			},
 			isDefined : function(e) {
-				return typeof e !== "undefined"
+				return typeof e !== "undefined";
 			},
             each : function(t,f,s,d) {
                 var j = t.length;
@@ -609,7 +609,7 @@
 				return u < l?(v > l || v < u):(u > v && l < v);
 			},
 			inRangeClosed : function(l, u, v) {
-				return u >= v && l <= v;
+				return (u >= v && l <= v)||(l >= v && u <= v);
 			},
 			inEllipse : function(x, y, a, b) {
 				return (x * x / a / a + y * y / b / b) <= 1;
@@ -691,8 +691,9 @@
 			parseFloat : function(v, d) {
 				if (!_.isNumber(v)) {
 					v = pF(v);
-					if (!_.isNumber(v))
+					if (!_.isNumber(v)){
 						throw new Error("[" + d +"]is not a valid number.");
+					}
 				}
 				return v;
 			},

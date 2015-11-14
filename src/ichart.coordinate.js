@@ -28,10 +28,6 @@ iChart.Scale = iChart.extend(iChart.Component, {
              */
             which: 'h',
             /**
-             * @cfg {Number} Specifies value of Baseline Coordinate.(default to 0)
-             */
-            basic_value: 0,
-            /**
              * @cfg {Boolean} indicate whether the grid is accord with scale.(default to true)
              */
             scale2grid: true,
@@ -144,16 +140,25 @@ iChart.Scale = iChart.extend(iChart.Component, {
             valid: false
         };
     },
+    getMark: function (v,S) {
+        var V = S.values;
+        for (var i = 1; i < V.length; i++) {
+            if (v <= V[i]) {
+                return ((((v - V[i - 1]) / (V[i] - V[i - 1]) + (i - 1))) / (V.length - 1)) - S.basic;
+            }
+        }
+        throw new Error("InValidMark");
+    },
     getScale: function (_) {
-        var u = [_.get('basic_value'), _.get('start_scale'), _.get('end_scale'), _.get('end_scale') - _.get('start_scale'), 0];
-        u[4] = iChart.inRange(u[1], u[2] + 1, u[0]) || iChart.inRange(u[2] - 1, u[1], u[0]);
+        var u = [
+            _.get('start_scale'),
+            _.get('end_scale'),
+        ];
+
+        u[2] = iChart.inRangeClosed(_.get('start_scale'),_.get('end_scale'), 0);
 
         return {
-            range: u[4],
-            basic: u[4] ? (u[0] - u[1]) / u[3] : 0,
-            start: u[4] ? u[0] : u[1],
-            end: u[2],
-            distance: u[3],
+            basic: u[2] ? _.getMark(0,{values:_.values,basic:0}) : 0,
             values: _.values
         }
     },
@@ -184,27 +189,38 @@ iChart.Scale = iChart.extend(iChart.Component, {
     doConfig: function () {
         iChart.Scale.superclass.doConfig.call(this);
 
-        var _ = this._(), abs = Math.abs, L = _.get('labels').length, min_s = _.get('min_scale'), max_s = _.get('max_scale'), s_space = _.get('scale_space'), e_scale = _.get('end_scale'), start_scale = _.get('start_scale'), S = _.get('step'),
-            K = e_scale - start_scale - 1;
+        var _ = this._(), abs = Math.abs,La =_.get('labels'), L = La.length, min_s = _.get('min_scale'), max_s = _.get('max_scale'), s_space = _.get('scale_space'), e_scale = _.get('end_scale'), s_scale = _.get('start_scale'), S = _.get('step'), K;
 
         _.items = [];
         _.labels = [];
         _.values = [];
 
+        if(L){
+            if(La[0]<s_scale||La[0]<min_s){
+                s_scale = La[0];
+            }
+            if(La[L-1]>e_scale||La[L-1]>max_s){
+                e_scale = La[L-1];
+            }
+        }
+
         /**
          * startScale must less than minScale
          */
-        if (start_scale > min_s) {
-            start_scale = _.push('start_scale', iChart.floor(min_s));
+        if (s_scale > min_s) {
+            s_scale = iChart.floor(min_s);
         }
+
+        s_scale = _.push('start_scale', s_scale);
 
         /**
          * end_scale must greater than maxScale
          */
         if (!iChart.isNumber(e_scale) || e_scale < max_s) {
             e_scale = iChart.ceil(max_s);
-            e_scale = _.push('end_scale', (!e_scale && !start_scale) ? 1 : e_scale);
+            e_scale = (!e_scale && !s_scale) ? 1 : e_scale;
         }
+        _.push('end_scale', e_scale);
 
         if (L == 0) {
             /**
@@ -212,9 +228,7 @@ iChart.Scale = iChart.extend(iChart.Component, {
              * @type {number}
              */
             K = 5;
-
-
-            var total = abs(e_scale - start_scale);
+            var total = abs(e_scale - s_scale);
             if (s_space && abs(s_space) < abs(total)) {
                 K = abs(Math.ceil((total) / s_space));
             } else {
@@ -235,12 +249,14 @@ iChart.Scale = iChart.extend(iChart.Component, {
             if (parseInt(s_space) != s_space && _.get('decimalsnum') == 0) {
                 _.push('decimalsnum', (s_space + "").substring((s_space + "").indexOf('.') + 1).length);
             }
-        }else{
-            K = L-1;
-            if(e_scale>_.get('labels')[K]){
-                _.get('labels')[K]=e_scale;
+        } else {
+            K = L - 1;
+
+            if (e_scale > La[K]&&La[K]<max_s) {
+                La[K] = e_scale;
             }
         }
+        _.push('end_scale', e_scale);
 
 
         /**
@@ -293,13 +309,12 @@ iChart.Scale = iChart.extend(iChart.Component, {
          */
         for (var i = 0; i <= K; i++) {
             if (i % S == 0) {
-                value = L ? _.get('labels')[i] || i : (s_space * i + start_scale).toFixed(_.get('decimalsnum'));
+                value = L ? (typeof La[i] == "undefined")?i:La[i] : (s_space * i + s_scale).toFixed(_.get('decimalsnum'));
                 x = _.isH ? _.get('valid_x') + i * _.get('distanceOne') : _.x;
                 y = _.isH ? _.y : _.get('valid_y') + _.get('valid_distance') - i * _.get('distanceOne');
-                //TODO 非标轴
-                try{
+                try {
                     _.values.push(iChart.parseFloat(value));
-                }catch (e){
+                } catch (e) {
                     _.values.push(value);
                 }
 
@@ -447,7 +462,7 @@ iChart.Coordinate = {
 iChart.Coordinate2D = iChart.extend(iChart.Component, {
     configure: function () {
         /**
-         * invoked the super class's configurationuration
+         * invoked the super class's configuration
          */
         iChart.Coordinate2D.superclass.configure.apply(this, arguments);
 
@@ -584,7 +599,7 @@ iChart.Coordinate2D = iChart.extend(iChart.Component, {
             axis: {
                 enable: true,
                 color: '#666666',
-                width: 1
+                width : [0, 0, 1, 1]
             }
         });
 

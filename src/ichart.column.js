@@ -17,10 +17,6 @@ iChart.Column = iChart.extend(iChart.Chart, {
 		
 		this.set({
 			/**
-			 * @cfg {<link>iChart.Coordinate2D</link>} the option for coordinate.
-			 */
-			coordinate : {},
-			/**
 			 * @cfg {Number} By default,if a width is not specified the chart will attempt to distribution in horizontally.(default to '80%')
 			 */
 			column_width : '66%',
@@ -102,8 +98,9 @@ iChart.Column = iChart.extend(iChart.Chart, {
 		if(_.isE())return;
 		var cw = _.get('column_width_'),
 		s = _.get('column_space'),
-		S = _.coo.getScale(_.get('scaleAlign')),
-		H = _.coo.valid_height, 
+        So = _.coo.getScaleObj(_.get('scaleAlign')),
+		S = So.getScale(So),
+		H = _.coo.valid_height,
 		w2 = cw / 2, 
 		q = cw * (_.get('group_fator') || 0), 
 		gw = _.dataType != 'complex'?(cw + s):(_.data.length * cw + s + (_.is3D() ? (_.data.length - 1) * q : 0)), 
@@ -114,7 +111,7 @@ iChart.Column = iChart.extend(iChart.Chart, {
 		/**
 		 * applies paramters to subClass
 		 */
-		_.doEngine(_,cw,s,S,H,w2,q,gw,x,y,y0);
+		_.doEngine(_,cw,s,S,So,H,w2,q,gw,x,y,y0);
 	},
 	doConfig : function() {
 		iChart.Column.superclass.doConfig.call(this);
@@ -125,7 +122,14 @@ iChart.Column = iChart.extend(iChart.Chart, {
 		_.labels.length = 0;
 		_.rectangles.zIndex = _.get(z);
 		_.labels.zIndex = _.get(z) + 1;
-		
+
+        if(!_.Combination){
+            _.pushIf('coordinate.scale', [
+                iChart.apply(_.get('coordinate.yAxis'), {
+                    maxValue: _.get('maxValue')
+                })]);
+        }
+
 		/**
 		 * use option create a coordinate
 		 */

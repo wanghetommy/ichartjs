@@ -25,30 +25,6 @@ iChart.Line = iChart.extend(iChart.Chart, {
 			 */
 			brushsize : 1,
 			/**
-			 * @cfg {Object} the option for coordinate
-			 */
-			coordinate : {
-				axis : {
-					width : [0, 0, 2, 2]
-				},
-				xAxis:{
-					/**
-					 * @cfg {String} the align of label.(default to 'bottom') Available value are:
-					 * @Option 'top,'bottom'
-					 */
-					position:'bottom',
-					step:1
-				},
-				yAxis:{
-					/**
-					 * @cfg {String} the align of label.(default to 'bottom') Available value are:
-					 * @Option 'top,'bottom'
-					 */
-					position:'left',
-					step:1
-				}
-			},
-			/**
 			 * @cfg {Object} Specifies config crosshair.(default enable to false).For details see <link>iChart.CrossHair</link> Note:this has a extra property named 'enable',indicate whether crosshair available(default to false)
 			 */
 			crosshair : {
@@ -182,28 +158,6 @@ iChart.Line = iChart.extend(iChart.Chart, {
 		
 		if(!_.Combination){
 			_.push('coordinate.crosshair', _.get('crosshair'));
-            //TODO merge labels to scale
-//            iChart.each(scale,function(s){
-//                /**
-//                 * applies the percent shower
-//                 */
-//                if(_.get('percent')&&s.position==li){
-//                    s = iChart.apply(s,{
-//                        start_scale : 0,
-//                        end_scale : 100,
-//                        scale_space : 10,
-//                        listeners:{
-//                            parseText:function(t){
-//                                return {text:t+'%'}
-//                            }
-//                        }
-//                    });
-//                }
-//                if(!s.start_scale||(ST&&!s.assign_scale&&s.start_scale>_.get('minValue')))
-//                    s.min_scale = _.get('minValue');
-//                if(!s.end_scale||(ST&&!s.assign_scale&&s.end_scale<_.get('maxValue')))
-//                    s.max_scale = _.get('maxValue');
-//            });
 
 			_.pushIf('coordinate.scale',[
 				iChart.apply(_.get('coordinate.yAxis'),{

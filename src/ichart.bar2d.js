@@ -16,10 +16,10 @@ iChart.Bar2D = iChart.extend(iChart.Bar, {
 		this.type = 'bar2d';
 
 	},
-	doEngine:function(_,bh,s,S,W,h2,gw,x,x0,y0){
+	doEngine:function(_,bh,s,S,So,W,h2,gw,x,x0,y0){
 		var w;
 		iChart.each(_.data,function(d, i) {
-			w = (d.value - S.start) * W / S.distance;
+			w = So.getMark(d.value,S) * W;
 			_.doParse(_, d, i, {
 				id : i,
 				originy : y0 + i * gw,

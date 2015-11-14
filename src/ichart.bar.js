@@ -16,12 +16,6 @@ iChart.Bar = iChart.extend(iChart.Chart, {
 		this.type = 'bar';
 		this.set({
 			/**
-			 * @cfg {<link>iChart.Coordinate2D</link>} the option for coordinate.
-			 */
-			coordinate : {
-				striped_direction : 'h'
-			},
-			/**
 			 * @cfg {Number} Specifies the width of each bar(default to calculate according to coordinate's height)
 			 */
 			bar_height : '66%',
@@ -76,7 +70,8 @@ iChart.Bar = iChart.extend(iChart.Chart, {
 		if(_.isE())return;
 		var bh = _.get('_bar_height'),
 		s = _.get('bar_space'),
-		S = _.coo.getScale(_.get('scaleAlign')),
+		So = _.coo.getScaleObj(_.get('scaleAlign')),
+		S = So.getScale(So),
 		W = _.coo.valid_width,
 		h2 = bh / 2,
 		gw =  _.dataType != 'complex'?bh + s:_.data.length * bh + s,
@@ -84,7 +79,7 @@ iChart.Bar = iChart.extend(iChart.Chart, {
 		x0 = _.coo.get(_.X) - _.get('text_space')-_.coo.get('axis.width')[3], 
 		y0 = _.coo.get('y_start')+ s;
 		
-		_.doEngine(_,bh,s,S,W,h2,gw,x,x0,y0);
+		_.doEngine(_,bh,s,S,So,W,h2,gw,x,x0,y0);
 	},
 	doAnimation : function(t, d,_) {
         iChart.each(_.labels,function(l) {
@@ -105,6 +100,13 @@ iChart.Bar = iChart.extend(iChart.Chart, {
 		
 		_.rectangles.zIndex = _.get(z);
 		_.labels.zIndex = _.get(z) + 1;
+
+		if(!_.Combination){
+			_.pushIf('coordinate.scale', [
+				iChart.apply(_.get('coordinate.xAxis'), {
+					maxValue: _.get('maxValue')
+				})]);
+		}
 		
 		/**
 		 * use option create a coordinate

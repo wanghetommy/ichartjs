@@ -35,13 +35,13 @@ iChart.ColumnStacked2D = iChart.extend(iChart.Column, {
 		});
 		
 	},
-	doEngine:function(_,cw,s,S,H,w2,q,gw,x,y,y0){
+	doEngine:function(_,cw,s,S,So,H,w2,q,gw,x,y,y0){
 		var h0,h,v,p = _.get('percent');
 		iChart.each(_.columns,function(c, i) {
 			h0 = 0;
 			v = p?100/c.total:1;
             iChart.each(c.item,function(d, j) {
-				h = (d.value*v - S.start) * H / S.distance;
+				h = So.getMark(d.value*v,S) * H;
 				d.total = c.total;
 				_.doParse(_, d, i + '_' + j, {
 					id : i + '_' + j,
