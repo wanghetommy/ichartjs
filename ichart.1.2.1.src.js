@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2015-11-15 11:32
+* @date 2015-11-15 11:38
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -7932,7 +7932,7 @@ $.LineBasic2D = $.extend($.Line, {
 		/**
 		 * get the max/min scale of this coordinate for calculated the height
 		 */
-		var S, H = _.coo.valid_height, sp = _.get('point_space'), points, x, y, 
+		var So,S, H = _.coo.valid_height, sp = _.get('point_space'), points, x, y,
 		ox = _.get('sub_option.originx'), oy, p,N=_.get('nullToDirect');
 		
 		_.push('sub_option.tip.showType', 'follow');
@@ -7942,14 +7942,15 @@ $.LineBasic2D = $.extend($.Line, {
 
 
 		$.each(_.data,function(d){
-			S = _.coo.getScale(d.scaleAlign||_.get('scaleAlign'));
+			So = _.coo.getScaleObj(d.scaleAlign||_.get('scaleAlign')),
+			S = So.getScale(So);
 			oy = _.get('sub_option.originy');//-S.basic*H??
 			points = [];
 
 			$.each(d.value,function(v, j){
                 if(v!=null){
                     x = sp * j;
-					y = _.coo.getMark(v,S) * H;
+					y = So.getMark(v,S) * H;
                     p = {
                         x : ox + x,
                         y : oy - y,

@@ -32,7 +32,7 @@ iChart.LineBasic2D = iChart.extend(iChart.Line, {
 		/**
 		 * get the max/min scale of this coordinate for calculated the height
 		 */
-		var S, H = _.coo.valid_height, sp = _.get('point_space'), points, x, y, 
+		var So,S, H = _.coo.valid_height, sp = _.get('point_space'), points, x, y,
 		ox = _.get('sub_option.originx'), oy, p,N=_.get('nullToDirect');
 		
 		_.push('sub_option.tip.showType', 'follow');
@@ -42,14 +42,15 @@ iChart.LineBasic2D = iChart.extend(iChart.Line, {
 
 
 		iChart.each(_.data,function(d){
-			S = _.coo.getScale(d.scaleAlign||_.get('scaleAlign'));
+			So = _.coo.getScaleObj(d.scaleAlign||_.get('scaleAlign')),
+			S = So.getScale(So);
 			oy = _.get('sub_option.originy');//-S.basic*H??
 			points = [];
 
 			iChart.each(d.value,function(v, j){
                 if(v!=null){
                     x = sp * j;
-					y = _.coo.getMark(v,S) * H;
+					y = So.getMark(v,S) * H;
                     p = {
                         x : ox + x,
                         y : oy - y,
