@@ -66,6 +66,17 @@ iChart.Bar = iChart.extend(iChart.Chart, {
 	doParse : function(_, d, i, o) {
 		_.doActing(_, d, o,i);
 	},
+	rect:function(_,d, i,x,y,W,S,So){
+		var w = So.getMark(d.value,S) * W;
+		_.doParse(_, d, i, {
+			id : i,
+			originx : x - (w > 0 ? 0 : Math.abs(w)),
+			originy : y,
+			width : Math.abs(w)
+		});
+		_.rectangles.push(new iChart.Rectangle2D(_.get('sub_option'), _));
+		return w;
+	},
 	engine:function(_){
 		if(_.isE())return;
 		var bh = _.get('_bar_height'),
@@ -77,9 +88,9 @@ iChart.Bar = iChart.extend(iChart.Chart, {
 		gw =  _.dataType != 'complex'?bh + s:_.data.length * bh + s,
 		x = _.coo.get('x_start')+ S.basic * W,
 		x0 = _.coo.get(_.X) - _.get('text_space')-_.coo.get('axis.width')[3], 
-		y0 = _.coo.get('y_start')+ s;
+		y = _.coo.get('y_start')+ s;
 		
-		_.doEngine(_,bh,s,S,So,W,h2,gw,x,x0,y0);
+		_.doEngine(_,bh,s,S,So,W,h2,gw,x,y,x0);
 	},
 	doAnimation : function(t, d,_) {
         iChart.each(_.labels,function(l) {
@@ -104,7 +115,8 @@ iChart.Bar = iChart.extend(iChart.Chart, {
 		if(!_.Combination){
 			_.pushIf('coordinate.scale', [
 				iChart.apply(_.get('coordinate.xAxis'), {
-					maxValue: _.get('maxValue')
+					maxValue: _.get('maxValue'),
+					minValue: _.get('minValue')
 				})]);
 		}
 		

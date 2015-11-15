@@ -208,10 +208,8 @@ iChart.Scale = iChart.extend(iChart.Component, {
          * startScale must less than minScale
          */
         if (s_scale > min_s) {
-            s_scale = iChart.floor(min_s);
+            s_scale = _.push('start_scale', iChart.floor(min_s));
         }
-
-        s_scale = _.push('start_scale', s_scale);
 
         /**
          * end_scale must greater than maxScale
@@ -219,8 +217,8 @@ iChart.Scale = iChart.extend(iChart.Component, {
         if (!iChart.isNumber(e_scale) || e_scale < max_s) {
             e_scale = iChart.ceil(max_s);
             e_scale = (!e_scale && !s_scale) ? 1 : e_scale;
+            _.push('end_scale', e_scale);
         }
-        _.push('end_scale', e_scale);
 
         if (L == 0) {
             /**
@@ -251,8 +249,10 @@ iChart.Scale = iChart.extend(iChart.Component, {
             }
         } else {
             K = L - 1;
-
-            if (e_scale > La[K]&&La[K]<max_s) {
+            if (La[0]>min_s) {
+                La[0] = s_scale;
+            }
+            if (La[K]<max_s) {
                 La[K] = e_scale;
             }
         }
@@ -399,43 +399,36 @@ iChart.Coordinate = {
          */
         if (g)g(vw, vh);
 
+        var ST = _.dataType == 'stacked';
+
         if (iChart.isObject(scale)) {
             scale = [scale];
         }
-        if (iChart.isArray(scale)) {
-            var ST = _.dataType != 'stacked';
-            iChart.each(scale, function (s) {
-                /**
-                 * applies the percent shower
-                 */
-                if (_.get('percent') && s.position == li) {
-                    s = iChart.apply(s, {
-                        start_scale: 0,
-                        end_scale: 100,
-                        scale_space: 10,
-                        listeners: {
-                            parseText: function (t) {
-                                return {text: t + '%'}
-                            }
-                        }
-                    });
-                }
 
-                s.min_scale = s.max_scale = undefined;
-                //start_scale==0?
-                if (!s.start_scale || (ST && !s.force_scale && s.start_scale > _.get('minValue')))
-                    s.min_scale = _.get('minValue');
-                if (!s.end_scale || (ST && !s.force_scale && s.end_scale < _.get('maxValue')))
-                    s.max_scale = _.get('maxValue');
-            });
-        } else {
-            _.push('coordinate.scale', {
-                position: li,
-                scaleAlign: li,
-                max_scale: _.get('maxValue'),
-                min_scale: _.get('minValue')
-            });
-        }
+        iChart.each(scale, function (s) {
+            /**
+             * applies the percent shower
+             */
+            if (!ST&&_.get('percent') && s.position == li) {
+                s = iChart.apply(s, {
+                    start_scale: 0,
+                    end_scale: 100,
+                    scale_space: 10,
+                    listeners: {
+                        parseText: function (t) {
+                            return {text: t + '%'}
+                        }
+                    }
+                });
+            }
+
+            s.min_scale = s.max_scale = undefined;
+
+            if (!s.start_scale || (s.start_scale > _.get('minValue')))
+                s.min_scale = _.get('minValue');
+            if (!s.end_scale || s.end_scale < _.get('maxValue'))
+                s.max_scale = _.get('maxValue');
+        });
 
         if (_.is3D()) {
             _.set({

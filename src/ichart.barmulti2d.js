@@ -23,20 +23,12 @@ iChart.BarMulti2D = iChart.extend(iChart.Bar, {
 			labels : []
 		});
 	},
-	doEngine:function(_,bh,s,S,So,W,h2,gw,x,x0,y0){
-		var w;
+	doEngine:function(_,bh,s,S,So,W,h2,gw,x,y,x0){
         iChart.each(_.columns,function(c, i) {
             iChart.each(c.item,function(d, j) {
-				w = So.getMark(d.value,S) * W;
-				_.doParse(_, d, j, {
-					id : i + '_' + j,
-					originy : y0 + j * bh + i * gw,
-					width : Math.abs(w),
-					originx: x+(w>0?0:-Math.abs(w))
-				});
-				_.rectangles.push(new iChart.Rectangle2D(_.get('sub_option'), _));
+				_.rect(_,d, i + '_' + j,x,y + j * bh + i * gw,W,S,So);
 			}, _);
-			_.doLabel(_,i, c.name, x0, y0 - s * 0.5 + (i + 0.5) * gw);
+			_.doLabel(_,i, c.name, x0, y - s * 0.5 + (i + 0.5) * gw);
 		}, _);
 	},
 	doConfig : function() {

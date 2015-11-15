@@ -25,17 +25,9 @@ iChart.ColumnMulti2D = iChart.extend(iChart.Column, {
 
 	},
 	doEngine:function(_,cw,s,S,So,H,w2,q,gw,x,y,y0){
-		var h;
 		iChart.each(_.columns,function(c, i) {
             iChart.each(c.item,function(d, j) {
-				h = So.getMark(d.value,S) * H;
-				_.doParse(_, d, i + '_' + j, {
-					id : i + '_' + j,
-					originx : x + j * (cw + q) + i * gw,
-					originy : y - (h > 0 ? h : 0),
-					height : Math.abs(h)
-				});
-				_.rectangles.push(new iChart[_.sub](_.get('sub_option'), _));
+				_.rect(_,d, i + '_' + j,x + j * (cw + q) + i * gw,y,H,S,So);
 			}, _);
 
 			_.doLabel(_, i, c.name, x - s * 0.5 + (i + 0.5) * gw, y0);

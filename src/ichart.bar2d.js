@@ -16,19 +16,10 @@ iChart.Bar2D = iChart.extend(iChart.Bar, {
 		this.type = 'bar2d';
 
 	},
-	doEngine:function(_,bh,s,S,So,W,h2,gw,x,x0,y0){
-		var w;
+	doEngine:function(_,bh,s,S,So,W,h2,gw,x,y,x0){
 		iChart.each(_.data,function(d, i) {
-			w = So.getMark(d.value,S) * W;
-			_.doParse(_, d, i, {
-				id : i,
-				originy : y0 + i * gw,
-				width : Math.abs(w),
-				originx : x + (w > 0 ? 0 : -Math.abs(w))
-			});
-
-			_.rectangles.push(new iChart.Rectangle2D(_.get('sub_option'), _));
-			_.doLabel(_,i, d.name, x0, y0 + i * gw + h2);
+			_.rect(_,d, i,x,y + i * gw,W,S,So);
+			_.doLabel(_,i, d.name, x0, y + i * gw + h2);
 		}, _);
 	},
 	doConfig : function() {

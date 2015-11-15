@@ -83,34 +83,26 @@
                 {name : 'IE',value : 35.75,color:'#a5c2d5'},
                 {name : 'Chrome',value : 29.84,color:'#cbab4f'},
                 {name : 'Firefox',value : 24.88,color:'#76a871'},
-                {name : 'Safari',value : 16.77,color:'#9f7961'},
-                {name : 'Opera',value : 12.02,color:'#a56f8f'},
-                {name : 'Other',value : 17.3,color:'#6f83a5'}
+                {name : 'Safari',value : 6.77,color:'#9f7961'},
+                {name : 'Opera',value : 2.02,color:'#a56f8f'},
+                {name : 'Other',value : 25.73,color:'#6f83a5'}
             ];
 
-            new iChart.Bar2D({
+            new iChart.Column2D({
                 render : 'canvasDiv',
                 data: data,
                 title : 'Top 5 Browsers from 1 to 29 Feb 2012',
-                showpercent:true,
                 decimalsnum:2,
                 width : 800,
                 height : 400,
                 coordinate:{
                     background_color:'#fefefe',
-                    xAxis:{
-                        scale_size:2,
-                        scale_color:'#9f9f9f',
-                        labels:[-50,0,20,45,50],
-                        label : {
-                            fontsize:11,
-                            color : '#666666'
-                        }
+                    yAxis:{
+                        labels:[-10,20,60,80]
                     }
                 }
             }).draw();
         });
-
     </script>
 </head>
 <body>

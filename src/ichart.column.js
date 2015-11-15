@@ -94,6 +94,18 @@ iChart.Column = iChart.extend(iChart.Chart, {
 	doParse : function(_,d, i, o) {
 		_.doActing(_,d,o,i);
 	},
+    rect:function(_,d, i,x,y,H,S,So){
+        var h = So.getMark(d.value,S) * H;
+        _.doParse(_,d, i, {
+            id : i,
+            originx :x,
+            originy : y - (h > 0 ? h : 0),
+            height : Math.abs(h)
+        });
+        _.rectangles.push(new iChart[_.sub](_.get('sub_option'), _));
+
+        return h;
+    },
 	engine:function(_){
 		if(_.isE())return;
 		var cw = _.get('column_width_'),
@@ -126,7 +138,8 @@ iChart.Column = iChart.extend(iChart.Chart, {
         if(!_.Combination){
             _.pushIf('coordinate.scale', [
                 iChart.apply(_.get('coordinate.yAxis'), {
-                    maxValue: _.get('maxValue')
+                    maxValue: _.get('maxValue'),
+                    minValue: _.get('minValue')
                 })]);
         }
 

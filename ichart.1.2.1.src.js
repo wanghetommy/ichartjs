@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2015-11-15 01:40
+* @date 2015-11-15 11:32
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -4611,6 +4611,18 @@ $.Column = $.extend($.Chart, {
 	doParse : function(_,d, i, o) {
 		_.doActing(_,d,o,i);
 	},
+    rect:function(_,d, i,x,y,H,S,So){
+        var h = So.getMark(d.value,S) * H;
+        _.doParse(_,d, i, {
+            id : i,
+            originx :x,
+            originy : y - (h > 0 ? h : 0),
+            height : Math.abs(h)
+        });
+        _.rectangles.push(new $[_.sub](_.get('sub_option'), _));
+
+        return h;
+    },
 	engine:function(_){
 		if(_.isE())return;
 		var cw = _.get('column_width_'),
@@ -4643,7 +4655,8 @@ $.Column = $.extend($.Chart, {
         if(!_.Combination){
             _.pushIf('coordinate.scale', [
                 $.apply(_.get('coordinate.yAxis'), {
-                    maxValue: _.get('maxValue')
+                    maxValue: _.get('maxValue'),
+                    minValue: _.get('minValue')
                 })]);
         }
 
@@ -4698,17 +4711,8 @@ $.Column2D = $.extend($.Column, {
 		this.type = 'column2d';
 	},
 	doEngine:function(_,cw,s,S,So,H,w2,q,gw,x,y,y0){
-		var h;
 		$.each(_.data,function(d, i) {
-			//TODO 抽象至父类
-			h = So.getMark(d.value,S) * H;
-			_.doParse(_,d, i, {
-				id : i,
-				originx :x + i * gw,
-				originy : y  - (h>0? h :0),
-				height : Math.abs(h)
-			});
-			_.rectangles.push(new $[_.sub](_.get('sub_option'), _));
+			_.rect(_,d, i,x + i * gw,y,H,S,So);
 			_.doLabel(_,i, d.name, x + gw * i + w2, y0);
 		}, _);
 	},
@@ -4803,17 +4807,9 @@ $.ColumnMulti2D = $.extend($.Column, {
 
 	},
 	doEngine:function(_,cw,s,S,So,H,w2,q,gw,x,y,y0){
-		var h;
 		$.each(_.columns,function(c, i) {
             $.each(c.item,function(d, j) {
-				h = So.getMark(d.value,S) * H;
-				_.doParse(_, d, i + '_' + j, {
-					id : i + '_' + j,
-					originx : x + j * (cw + q) + i * gw,
-					originy : y - (h > 0 ? h : 0),
-					height : Math.abs(h)
-				});
-				_.rectangles.push(new $[_.sub](_.get('sub_option'), _));
+				_.rect(_,d, i + '_' + j,x + j * (cw + q) + i * gw,y,H,S,So);
 			}, _);
 
 			_.doLabel(_, i, c.name, x - s * 0.5 + (i + 0.5) * gw, y0);
@@ -4921,21 +4917,13 @@ $.ColumnStacked2D = $.extend($.Column, {
 		
 	},
 	doEngine:function(_,cw,s,S,So,H,w2,q,gw,x,y,y0){
-		var h0,h,v,p = _.get('percent');
+		var h0,v,p = _.get('percent');
 		$.each(_.columns,function(c, i) {
 			h0 = 0;
 			v = p?100/c.total:1;
             $.each(c.item,function(d, j) {
-				h = So.getMark(d.value*v,S) * H;
 				d.total = c.total;
-				_.doParse(_, d, i + '_' + j, {
-					id : i + '_' + j,
-					originx : x + i * gw,
-					originy : y - (h > 0 ? h : 0)-h0,
-					height : Math.abs(h)
-				});
-				h0 += h;
-				_.rectangles.push(new $[_.sub](_.get('sub_option'), _));
+				h0 += _.rect(_,d, i + '_' + j,x + i * gw,y - h0,H,S,So);
 			}, _);
 			_.doLabel(_, i, c.name, x - s * 0.5 + (i + 0.5) * gw, y0);
 		}, _);
@@ -5084,6 +5072,17 @@ $.Bar = $.extend($.Chart, {
 	doParse : function(_, d, i, o) {
 		_.doActing(_, d, o,i);
 	},
+	rect:function(_,d, i,x,y,W,S,So){
+		var w = So.getMark(d.value,S) * W;
+		_.doParse(_, d, i, {
+			id : i,
+			originx : x - (w > 0 ? 0 : Math.abs(w)),
+			originy : y,
+			width : Math.abs(w)
+		});
+		_.rectangles.push(new $.Rectangle2D(_.get('sub_option'), _));
+		return w;
+	},
 	engine:function(_){
 		if(_.isE())return;
 		var bh = _.get('_bar_height'),
@@ -5095,9 +5094,9 @@ $.Bar = $.extend($.Chart, {
 		gw =  _.dataType != 'complex'?bh + s:_.data.length * bh + s,
 		x = _.coo.get('x_start')+ S.basic * W,
 		x0 = _.coo.get(_.X) - _.get('text_space')-_.coo.get('axis.width')[3], 
-		y0 = _.coo.get('y_start')+ s;
+		y = _.coo.get('y_start')+ s;
 		
-		_.doEngine(_,bh,s,S,So,W,h2,gw,x,x0,y0);
+		_.doEngine(_,bh,s,S,So,W,h2,gw,x,y,x0);
 	},
 	doAnimation : function(t, d,_) {
         $.each(_.labels,function(l) {
@@ -5122,7 +5121,8 @@ $.Bar = $.extend($.Chart, {
 		if(!_.Combination){
 			_.pushIf('coordinate.scale', [
 				$.apply(_.get('coordinate.xAxis'), {
-					maxValue: _.get('maxValue')
+					maxValue: _.get('maxValue'),
+					minValue: _.get('minValue')
 				})]);
 		}
 		
@@ -5178,19 +5178,10 @@ $.Bar2D = $.extend($.Bar, {
 		this.type = 'bar2d';
 
 	},
-	doEngine:function(_,bh,s,S,So,W,h2,gw,x,x0,y0){
-		var w;
+	doEngine:function(_,bh,s,S,So,W,h2,gw,x,y,x0){
 		$.each(_.data,function(d, i) {
-			w = So.getMark(d.value,S) * W;
-			_.doParse(_, d, i, {
-				id : i,
-				originy : y0 + i * gw,
-				width : Math.abs(w),
-				originx : x + (w > 0 ? 0 : -Math.abs(w))
-			});
-
-			_.rectangles.push(new $.Rectangle2D(_.get('sub_option'), _));
-			_.doLabel(_,i, d.name, x0, y0 + i * gw + h2);
+			_.rect(_,d, i,x,y + i * gw,W,S,So);
+			_.doLabel(_,i, d.name, x0, y + i * gw + h2);
 		}, _);
 	},
 	doConfig : function() {
@@ -5243,24 +5234,16 @@ $.BarStacked2D = $.extend($.Bar, {
 		});
 		
 	},
-	doEngine:function(_,bh,s,S,So,W,h2,gw,x,x0,y0){
-		var w0,w,v,p = _.get('percent');
+	doEngine:function(_,bh,s,S,So,W,h2,gw,x,y,x0){
+		var w0,v,p = _.get('percent');
 		$.each(_.columns,function(c, i) {
 			w0 = 0;
 			v = p?100/c.total:1;
 			$.each(c.item,function(d, j) {
-				w = So.getMark(d.value*v,S) * W;
 				d.total = c.total;
-				_.doParse(_, d, j, {
-					id : i + '_' + j,
-					originy : y0 + i * gw,
-					originx : x + (w > 0 ? 0 : -Math.abs(w))+w0,
-					width : Math.abs(w)
-				});
-				w0 += w;
-				_.rectangles.push(new $.Rectangle2D(_.get('sub_option'), _));
+				w0 +=_.rect(_, d, i + '_' + j, x + w0, y + i * gw, W, S, So);
 			}, _);
-			_.doLabel(_, i, c.name,x0, y0 - s * 0.5 + (i + 0.5) * gw);
+			_.doLabel(_, i, c.name, x0, y - s * 0.5 + (i + 0.5) * gw);
 		}, _);
 	},
 	doConfig : function() {
@@ -5302,20 +5285,12 @@ $.BarMulti2D = $.extend($.Bar, {
 			labels : []
 		});
 	},
-	doEngine:function(_,bh,s,S,So,W,h2,gw,x,x0,y0){
-		var w;
+	doEngine:function(_,bh,s,S,So,W,h2,gw,x,y,x0){
         $.each(_.columns,function(c, i) {
             $.each(c.item,function(d, j) {
-				w = So.getMark(d.value,S) * W;
-				_.doParse(_, d, j, {
-					id : i + '_' + j,
-					originy : y0 + j * bh + i * gw,
-					width : Math.abs(w),
-					originx: x+(w>0?0:-Math.abs(w))
-				});
-				_.rectangles.push(new $.Rectangle2D(_.get('sub_option'), _));
+				_.rect(_,d, i + '_' + j,x,y + j * bh + i * gw,W,S,So);
 			}, _);
-			_.doLabel(_,i, c.name, x0, y0 - s * 0.5 + (i + 0.5) * gw);
+			_.doLabel(_,i, c.name, x0, y - s * 0.5 + (i + 0.5) * gw);
 		}, _);
 	},
 	doConfig : function() {
@@ -6316,10 +6291,8 @@ $.Scale = $.extend($.Component, {
          * startScale must less than minScale
          */
         if (s_scale > min_s) {
-            s_scale = $.floor(min_s);
+            s_scale = _.push('start_scale', $.floor(min_s));
         }
-
-        s_scale = _.push('start_scale', s_scale);
 
         /**
          * end_scale must greater than maxScale
@@ -6327,8 +6300,8 @@ $.Scale = $.extend($.Component, {
         if (!$.isNumber(e_scale) || e_scale < max_s) {
             e_scale = $.ceil(max_s);
             e_scale = (!e_scale && !s_scale) ? 1 : e_scale;
+            _.push('end_scale', e_scale);
         }
-        _.push('end_scale', e_scale);
 
         if (L == 0) {
             /**
@@ -6359,8 +6332,10 @@ $.Scale = $.extend($.Component, {
             }
         } else {
             K = L - 1;
-
-            if (e_scale > La[K]&&La[K]<max_s) {
+            if (La[0]>min_s) {
+                La[0] = s_scale;
+            }
+            if (La[K]<max_s) {
                 La[K] = e_scale;
             }
         }
@@ -6507,43 +6482,36 @@ $.Coordinate = {
          */
         if (g)g(vw, vh);
 
+        var ST = _.dataType == 'stacked';
+
         if ($.isObject(scale)) {
             scale = [scale];
         }
-        if ($.isArray(scale)) {
-            var ST = _.dataType != 'stacked';
-            $.each(scale, function (s) {
-                /**
-                 * applies the percent shower
-                 */
-                if (_.get('percent') && s.position == li) {
-                    s = $.apply(s, {
-                        start_scale: 0,
-                        end_scale: 100,
-                        scale_space: 10,
-                        listeners: {
-                            parseText: function (t) {
-                                return {text: t + '%'}
-                            }
-                        }
-                    });
-                }
 
-                s.min_scale = s.max_scale = undefined;
-                //start_scale==0?
-                if (!s.start_scale || (ST && !s.force_scale && s.start_scale > _.get('minValue')))
-                    s.min_scale = _.get('minValue');
-                if (!s.end_scale || (ST && !s.force_scale && s.end_scale < _.get('maxValue')))
-                    s.max_scale = _.get('maxValue');
-            });
-        } else {
-            _.push('coordinate.scale', {
-                position: li,
-                scaleAlign: li,
-                max_scale: _.get('maxValue'),
-                min_scale: _.get('minValue')
-            });
-        }
+        $.each(scale, function (s) {
+            /**
+             * applies the percent shower
+             */
+            if (!ST&&_.get('percent') && s.position == li) {
+                s = $.apply(s, {
+                    start_scale: 0,
+                    end_scale: 100,
+                    scale_space: 10,
+                    listeners: {
+                        parseText: function (t) {
+                            return {text: t + '%'}
+                        }
+                    }
+                });
+            }
+
+            s.min_scale = s.max_scale = undefined;
+
+            if (!s.start_scale || (s.start_scale > _.get('minValue')))
+                s.min_scale = _.get('minValue');
+            if (!s.end_scale || s.end_scale < _.get('maxValue'))
+                s.max_scale = _.get('maxValue');
+        });
 
         if (_.is3D()) {
             _.set({
@@ -7678,252 +7646,252 @@ $.LineSegment = $.extend($.Component, {
  * @extend#$.Chart
  */
 $.Line = $.extend($.Chart, {
-	/**
-	 * initialize the context for the line
-	 */
-	configure : function() {
-		/**
-		 * invoked the super class's configuration
-		 */
-		$.Line.superclass.configure.call(this);
+    /**
+     * initialize the context for the line
+     */
+    configure: function () {
+        /**
+         * invoked the super class's configuration
+         */
+        $.Line.superclass.configure.call(this);
 
-		this.type = 'line';
+        this.type = 'line';
 
-		this.set({
+        this.set({
             /**
              * @cfg {Boolean} if the left-right point are direct when point's value is null.false to break.(default to true)
              */
             nullToDirect: true,
-			/**
-			 * @cfg {Number} Specifies the default linewidth of the canvas's context in this element.(defaults to 1)
-			 */
-			brushsize : 1,
-			/**
-			 * @cfg {Object} Specifies config crosshair.(default enable to false).For details see <link>$.CrossHair</link> Note:this has a extra property named 'enable',indicate whether crosshair available(default to false)
-			 */
-			crosshair : {
-				enable : false
-			},
-			/**
-			 * @cfg {Function} when there has more than one linesegment,you can use tipMocker make them as a tip.(default to null)
-			 * @paramter Array tips the array of linesegment's tip
-			 * @paramter int the index of data
-			 * @return String
-			 */
-			tipMocker:null,
-			/**
-			 * @cfg {Number(0.0~1.0)} If null,the position there will follow the points.If given a number,there has a fixed position,0 is top,and 1 to bottom.(default to null)
-			 */
-			tipMockerOffset:null,
-			/**
-			 * @cfg {String} the align of scale.(default to 'left') Available value are:
-			 * @Option 'left'
-			 * @Option 'right'
-			 */
-			scaleAlign : 'left',
-			/**
-			 * @cfg {String} the align of label.(default to 'bottom') Available value are:
-			 * @Option 'top,'bottom'
-			 */
-			labelAlign : 'bottom',
-			/**
-			 * @cfg {Array} the array of labels close to the axis
-			 */
-			labels : [],
-			/**
-			 * @inner {Number} the distance of column's bottom and text.(default to 6)
-			 */
-			label_space : 6,
-			/**
-			 * @inner {Boolean} if the point are proportional space.(default to true)
-			 */
-			proportional_spacing : true,
-			/**
-			 * @cfg {<link>$.LineSegment</link>} the option for linesegment.
-			 */
-			sub_option : {},
-			/**
-			 * {Object} the option for legend.
-			 */
-			legend : {
-				sign : 'bar'
-			},
+            /**
+             * @cfg {Number} Specifies the default linewidth of the canvas's context in this element.(defaults to 1)
+             */
+            brushsize: 1,
+            /**
+             * @cfg {Object} Specifies config crosshair.(default enable to false).For details see <link>$.CrossHair</link> Note:this has a extra property named 'enable',indicate whether crosshair available(default to false)
+             */
+            crosshair: {
+                enable: false
+            },
+            /**
+             * @cfg {Function} when there has more than one linesegment,you can use tipMocker make them as a tip.(default to null)
+             * @paramter Array tips the array of linesegment's tip
+             * @paramter int the index of data
+             * @return String
+             */
+            tipMocker: null,
+            /**
+             * @cfg {Number(0.0~1.0)} If null,the position there will follow the points.If given a number,there has a fixed position,0 is top,and 1 to bottom.(default to null)
+             */
+            tipMockerOffset: null,
+            /**
+             * @cfg {String} the align of scale.(default to 'left') Available value are:
+             * @Option 'left'
+             * @Option 'right'
+             */
+            scaleAlign: 'left',
+            /**
+             * @cfg {String} the align of label.(default to 'bottom') Available value are:
+             * @Option 'top,'bottom'
+             */
+            labelAlign: 'bottom',
+            /**
+             * @cfg {Array} the array of labels close to the axis
+             */
+            labels: [],
+            /**
+             * @inner {Number} the distance of column's bottom and text.(default to 6)
+             */
+            label_space: 6,
+            /**
+             * @inner {Boolean} if the point are proportional space.(default to true)
+             */
+            proportional_spacing: true,
+            /**
+             * @cfg {<link>$.LineSegment</link>} the option for linesegment.
+             */
+            sub_option: {},
+            /**
+             * {Object} the option for legend.
+             */
+            legend: {
+                sign: 'bar'
+            },
 
-			/**
-			 * @cfg {<link>$.Text</link>} Specifies option of label at bottom.
-			 */
-			label:{}
-		});
-
-		this.registerEvent(
-		/**
-		 * @event Fires when parse this element'data.Return value will override existing.
-		 * @paramter object#data the data of one linesegment
-		 * @paramter object#v the point's value
-		 * @paramter int#x coordinate-x of point
-		 * @paramter int#y coordinate-y of point
-		 * @paramter int#index the index of point
-		 * @return Object object Detail:
-		 * @property text the text of point
-		 * @property x coordinate-x of point
-		 * @property y coordinate-y of point
-		 */
-		'parsePoint');
-
-		this.lines = [];
-		this.components.push(this.lines);
-        this.on('resize', function(){
-             this.push('point_space',0);
+            /**
+             * @cfg {<link>$.Text</link>} Specifies option of label at bottom.
+             */
+            label: {}
         });
-	},
+
+        this.registerEvent(
+            /**
+             * @event Fires when parse this element'data.Return value will override existing.
+             * @paramter object#data the data of one linesegment
+             * @paramter object#v the point's value
+             * @paramter int#x coordinate-x of point
+             * @paramter int#y coordinate-y of point
+             * @paramter int#index the index of point
+             * @return Object object Detail:
+             * @property text the text of point
+             * @property x coordinate-x of point
+             * @property y coordinate-y of point
+             */
+            'parsePoint');
+
+        this.lines = [];
+        this.components.push(this.lines);
+        this.on('resize', function () {
+            this.push('point_space', 0);
+        });
+    },
     /**
      * @method load the new data
      * @paramter array#data
      * @paramter array#labels
      * @return void
      */
-    load:function(data,labels){
+    load: function (data, labels) {
         var scale = this.get('coordinate.scale');
-        for(var i=0;labels&&i<scale.length;i++){
-			//TODO  labelAlign
-            if(scale[i]['position']==this.get('labelAlign')){
-                scale[i]['labels']= labels;
+        for (var i = 0; labels && i < scale.length; i++) {
+            //TODO  labelAlign
+            if (scale[i]['position'] == this.get('labelAlign')) {
+                scale[i]['labels'] = labels;
             }
         }
-        this.push('point_space',0);
-        $.Line.superclass.load.call(this,data);
+        this.push('point_space', 0);
+        $.Line.superclass.load.call(this, data);
     },
-	/**
-	 * @method toggle or setting the visibility of linesegment
-	 */
-    toggle : function(index,state) {
-        var l = this.lines[(index||0)%this.lines.length];
-        if(typeof state =='undefined'){
+    /**
+     * @method toggle or setting the visibility of linesegment
+     */
+    toggle: function (index, state) {
+        var l = this.lines[(index || 0) % this.lines.length];
+        if (typeof state == 'undefined') {
             state = !l.get('actived');
         }
-        l.push('actived',state);
+        l.push('actived', state);
         this._draw();
-	},
-	/**
-	 * @method Returns the coordinate of this element.
-	 * @return $.Coordinate2D
-	 */
-	getCoordinate : function() {
-		return this.coo;
-	},
-	doConfig : function() {
-		$.Line.superclass.doConfig.call(this);
-		var _ = this._(), s = _.data.length <= 1;
-		
-		_.lines.length = 0;
-		_.lines.zIndex = _.get('z_index');
-		
-		var k = _.pushIf('sub_option.keep_with_coordinate',s);
-		if (_.get('crosshair.enable')) {
-			_.pushIf('crosshair.hcross', s);
-			_.pushIf('crosshair.invokeOffset', function(e) {
-				/**
-				 * TODO how fire muti line?now fire by first line
-				 */
-				var r = _.lines[0].isEventValid(e);
-				return r.valid ? r : k;
-			});
-		}
-		
-		if(!_.Combination){
-			_.push('coordinate.crosshair', _.get('crosshair'));
+    },
+    /**
+     * @method Returns the coordinate of this element.
+     * @return $.Coordinate2D
+     */
+    getCoordinate: function () {
+        return this.coo;
+    },
+    doConfig: function () {
+        $.Line.superclass.doConfig.call(this);
+        var _ = this._(), s = _.data.length <= 1;
 
-			_.pushIf('coordinate.scale',[
-				$.apply(_.get('coordinate.yAxis'),{
-				maxValue : _.get('maxValue')
-			}), $.apply(_.get('coordinate.xAxis'),{
-				end_scale : _.get('maxItemSize')
-			})]);
-		}
-		
-		/**
-		 * use option create a coordinate
-		 */
-		_.coo = $.Coordinate.coordinate_.call(_);
-		
-		if(_.Combination){
-			_.coo.push('crosshair', _.get('crosshair'));
-			_.coo.doCrosshair(_.coo);
-		}
-		if(_.isE())return;
-		
-		var vw = _.coo.valid_width,nw=vw,size=_.get('maxItemSize') - 1,M=size?vw /size:vw,ps=_.get('point_space');
+        _.lines.length = 0;
+        _.lines.zIndex = _.get('z_index');
 
-		if (_.get('proportional_spacing')){
-			if(ps&&ps<M){
-				nw = size*ps;
-			}else{
-				_.push('point_space',M);
-			}
-		}
+        var k = _.pushIf('sub_option.keep_with_coordinate', s);
+        if (_.get('crosshair.enable')) {
+            _.pushIf('crosshair.hcross', s);
+            _.pushIf('crosshair.invokeOffset', function (e) {
+                /**
+                 * TODO how fire muti line?now fire by first line
+                 */
+                var r = _.lines[0].isEventValid(e);
+                return r.valid ? r : k;
+            });
+        }
 
-		_.push('sub_option.width', nw);
-		_.push('sub_option.height', _.coo.valid_height);
-		
-		_.push('sub_option.originx', _.coo.get('x_start')+(vw-nw)/2);
-		_.push('sub_option.originy', _.coo.get('y_end'));
+        if (!_.Combination) {
+            _.push('coordinate.crosshair', _.get('crosshair'));
+
+            _.pushIf('coordinate.scale', [
+                $.apply(_.get('coordinate.yAxis'), {
+                    maxValue: _.get('maxValue'),
+                    minValue: _.get('minValue')
+                }), $.apply(_.get('coordinate.xAxis'), {
+                    end_scale: _.get('maxItemSize')
+                })]);
+        }
+
+        /**
+         * use option create a coordinate
+         */
+        _.coo = $.Coordinate.coordinate_.call(_);
+
+        if (_.Combination) {
+            _.coo.push('crosshair', _.get('crosshair'));
+            _.coo.doCrosshair(_.coo);
+        }
+        if (_.isE())return;
+
+        var vw = _.coo.valid_width, nw = vw, size = _.get('maxItemSize') - 1, M = size ? vw / size : vw, ps = _.get('point_space');
+
+        if (_.get('proportional_spacing')) {
+            if (ps && ps < M) {
+                nw = size * ps;
+            } else {
+                _.push('point_space', M);
+            }
+        }
+
+        _.push('sub_option.width', nw);
+        _.push('sub_option.height', _.coo.valid_height);
+
+        _.push('sub_option.originx', _.coo.get('x_start') + (vw - nw) / 2);
+        _.push('sub_option.originy', _.coo.get('y_end'));
 
 
-		
-		if (_.get('tip.enable')){
-			if(!_.mocker&&$.isFunction(_.get('tipMocker'))){
-				_.push('sub_option.tip.enable', false);
-				_.push('tip.invokeOffsetDynamic', true);
-				var U,x=_.coo.get(_.X),y=_.coo.get(_.Y),H=_.coo.height,f = _.get('tipMockerOffset'),r0,r,r1;
-				f = $.isNumber(f)?(f<0?0:(f>1?1:f)):null;
-				_.push('tip.invokeOffset',function(w,h,m){
-					if(f!=null){
-						m.top = y+(H-h)*f;
-					}else{
-						m.top = m.maxTop-(m.maxTop-m.minTop)/3-h;
-						if(h>H||y>m.top){
-							m.top = y;
-						}
-					}
-					return {
-						left:(m.left - w - x  > 5)?m.left-w-5:m.left+5,
-						top:m.top
-					}
-				});
-				/**
-				 * proxy the event parseText
-				 */
-				var p = _.get('tip.listeners.parseText');
-				if(p)
-				delete _.get('tip.listeners').parseText;
-				_.mocker = new $.Custom({
-					eventValid:function(e){
-						r = _.lines[0].isEventValid(e);
-						r.hit = r0 != r.i;
-						if(r.valid){
-							r0 = r.i;
-							U = [];
-							$.each(_.lines,function(l,i){
-								r1 = l.isEventValid(e);
-								if(i==0){
-									r.minTop = r.maxTop = r1.top;
-								}else{
-									r.minTop = Math.min(r.minTop,r1.top);
-									r.maxTop = Math.max(r.maxTop,r1.top);
-								}
-								U.push(p?p(l,r1.name,r1.value,r1.text,r1.i):(r1.name+' '+r1.value));
-							});
-							r.text = _.get('tipMocker').call(_,U,r.i);
-						}
-						return r.valid ? r : false;
-					}
-				});
-				new $.Tip(_.get('tip'),_.mocker);
-				_.register(_.mocker);
-			}
-		}
-		_.pushIf('sub_option.area_opacity',_.get('area_opacity'));
-	}
+        if (_.get('tip.enable')) {
+            if (!_.mocker && $.isFunction(_.get('tipMocker'))) {
+                _.push('sub_option.tip.enable', false);
+                _.push('tip.invokeOffsetDynamic', true);
+                var U, x = _.coo.get(_.X), y = _.coo.get(_.Y), H = _.coo.height, f = _.get('tipMockerOffset'), r0, r, r1;
+                f = $.isNumber(f) ? (f < 0 ? 0 : (f > 1 ? 1 : f)) : null;
+                _.push('tip.invokeOffset', function (w, h, m) {
+                    if (f != null) {
+                        m.top = y + (H - h) * f;
+                    } else {
+                        m.top = m.maxTop - (m.maxTop - m.minTop) / 3 - h;
+                        if (h > H || y > m.top) {
+                            m.top = y;
+                        }
+                    }
+                    return {
+                        left: (m.left - w - x > 5) ? m.left - w - 5 : m.left + 5,
+                        top: m.top
+                    }
+                });
+                /**
+                 * proxy the event parseText
+                 */
+                var p = _.get('tip.listeners.parseText');
+                if (p)
+                    delete _.get('tip.listeners').parseText;
+                _.mocker = new $.Custom({
+                    eventValid: function (e) {
+                        r = _.lines[0].isEventValid(e);
+                        r.hit = r0 != r.i;
+                        if (r.valid) {
+                            r0 = r.i;
+                            U = [];
+                            $.each(_.lines, function (l, i) {
+                                r1 = l.isEventValid(e);
+                                if (i == 0) {
+                                    r.minTop = r.maxTop = r1.top;
+                                } else {
+                                    r.minTop = Math.min(r.minTop, r1.top);
+                                    r.maxTop = Math.max(r.maxTop, r1.top);
+                                }
+                                U.push(p ? p(l, r1.name, r1.value, r1.text, r1.i) : (r1.name + ' ' + r1.value));
+                            });
+                            r.text = _.get('tipMocker').call(_, U, r.i);
+                        }
+                        return r.valid ? r : false;
+                    }
+                });
+                new $.Tip(_.get('tip'), _.mocker);
+                _.register(_.mocker);
+            }
+        }
+        _.pushIf('sub_option.area_opacity', _.get('area_opacity'));
+    }
 
 });
 /**

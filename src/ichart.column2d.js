@@ -16,17 +16,8 @@ iChart.Column2D = iChart.extend(iChart.Column, {
 		this.type = 'column2d';
 	},
 	doEngine:function(_,cw,s,S,So,H,w2,q,gw,x,y,y0){
-		var h;
 		iChart.each(_.data,function(d, i) {
-			//TODO 抽象至父类
-			h = So.getMark(d.value,S) * H;
-			_.doParse(_,d, i, {
-				id : i,
-				originx :x + i * gw,
-				originy : y  - (h>0? h :0),
-				height : Math.abs(h)
-			});
-			_.rectangles.push(new iChart[_.sub](_.get('sub_option'), _));
+			_.rect(_,d, i,x + i * gw,y,H,S,So);
 			_.doLabel(_,i, d.name, x + gw * i + w2, y0);
 		}, _);
 	},
