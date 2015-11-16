@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2015-11-15 11:38
+* @date 2015-11-16 10:31
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -4620,7 +4620,6 @@ $.Column = $.extend($.Chart, {
             height : Math.abs(h)
         });
         _.rectangles.push(new $[_.sub](_.get('sub_option'), _));
-
         return h;
     },
 	engine:function(_){
@@ -7944,7 +7943,7 @@ $.LineBasic2D = $.extend($.Line, {
 		$.each(_.data,function(d){
 			So = _.coo.getScaleObj(d.scaleAlign||_.get('scaleAlign')),
 			S = So.getScale(So);
-			oy = _.get('sub_option.originy');//-S.basic*H??
+			oy = _.get('sub_option.originy')-S.basic*H;
 			points = [];
 
 			$.each(d.value,function(v, j){

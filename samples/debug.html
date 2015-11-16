@@ -79,113 +79,27 @@
     </style>
     <script type="text/javascript">
         $(function(){
-            var pv=[],ip=[],t;
-            //创建随机数据
-            for(var i=0;i<61;i++){
-                t = Math.floor(Math.random()*(30+((i%12)*5)))+10;
-                pv.push(t);
-                t = Math.floor(t*0.5);
-                t = t-Math.floor((Math.random()*t)/2);
-                ip.push(t);
-            }
-
             var data = [
                 {
-                    name : 'PV',
-                    value:pv,
-                    color:'#aad0db',
-                    line_width:2
-                },
-                {
-                    name : 'IP',
-                    value:ip,
-                    color:'#f68f70',
-                    line_width:2
+                    name : '北京',
+                    value:[-9,1,12,20,26,30,32,29,22,12,0,-6],
+                    color:'#1f7e92',
+                    line_width:3
                 }
             ];
-
-            //创建x轴标签文本
-            var date = new Date();
-            date.setDate(date.getDate()-6);
-            var labels = [];
-            for(var i=0;i<6;i++){
-                date.setDate(date.getDate()+1);
-                labels.push(date.getFullYear()+"-"+(date.getMonth()+1)+"-"+date.getDate());
-            }
-
             var chart = new iChart.LineBasic2D({
                 render : 'canvasDiv',
                 data: data,
-                align:'center',
-                title : 'A网站近5天流量趋势,按每2小时分组统计',
-                subtitle : '平均每个人访问2-3个页面(访问量单位：万)',
-                footnote : '数据来源：模拟数据',
+                title : '北京2012年平均温度情况',
                 width : 800,
                 height : 400,
-                background_color:'#FEFEFE',
-                tip:{
-                    enable:true,
-                    shadow:true,
-                    move_duration:400,
-                    border:{
-                        enable:true,
-                        radius : 5,
-                        width:2,
-                        color:'#3f8695'
-                    },
-                    listeners:{
-                        //tip:提示框对象、name:数据名称、value:数据值、text:当前文本、i:数据点的索引
-                        parseText:function(tip,name,value,text,i){
-                            return name+"访问量:"+value+"万";
-                        }
-                    }
+                coordinate:{height:'90%',background_color:'#f6f9fa'},
+                sub_option:{
+                    hollow_inside:false,//设置一个点的亮色在外环的效果
+                    point_size:16
                 },
-                tipMocker:function(tips,i){
-                    return "<div style='font-weight:600'>"+
-                            labels[Math.floor(i/12)]+" "+//日期
-                            (((i%12)*2<10?"0":"")+(i%12)*2)+":00"+//时间
-                            "</div>"+tips.join("<br/>");
-                },
-                legend : {
-                    enable : true,
-                    row:1,//设置在一行上显示，与column配合使用
-                    column : 'max',
-                    valign:'top',
-                    sign:'bar',
-                    background_color:null,//设置透明背景
-                    offsetx:-80,//设置x轴偏移，满足位置需要
-                    border : true
-                },
-                crosshair:{
-                    enable:true,
-                    line_color:'#62bce9'//十字线的颜色
-                },
-                sub_option : {
-                    label:false,
-                    point_size:10
-                },
-                coordinate:{
-                    width:640,
-                    height:240,
-                    axis:{
-                        color:'#dcdcdc',
-                        width:1
-                    },
-                    scale:[{
-                        position:'left',
-                        start_scale:0,
-                        end_scale:100,
-                        scale_space:10,
-                        scale_size:2,
-                        scale_color:'#9f9f9f'
-                    },{
-                        position:'bottom',
-                        labels:labels
-                    }]
-                }
+                labels:["一月","二月","三月","四月","五月","六月","七月","八月","九月","十月","十一月","十二月"]
             });
-
-            //开始画图
             chart.draw();
         });
     </script>

@@ -44,7 +44,7 @@ iChart.LineBasic2D = iChart.extend(iChart.Line, {
 		iChart.each(_.data,function(d){
 			So = _.coo.getScaleObj(d.scaleAlign||_.get('scaleAlign')),
 			S = So.getScale(So);
-			oy = _.get('sub_option.originy');//-S.basic*H??
+			oy = _.get('sub_option.originy')-S.basic*H;
 			points = [];
 
 			iChart.each(d.value,function(v, j){

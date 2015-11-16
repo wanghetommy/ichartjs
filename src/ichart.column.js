@@ -103,7 +103,6 @@ iChart.Column = iChart.extend(iChart.Chart, {
             height : Math.abs(h)
         });
         _.rectangles.push(new iChart[_.sub](_.get('sub_option'), _));
-
         return h;
     },
 	engine:function(_){
