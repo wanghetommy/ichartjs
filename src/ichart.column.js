@@ -95,7 +95,11 @@ iChart.Column = iChart.extend(iChart.Chart, {
 		_.doActing(_,d,o,i);
 	},
     rect:function(_,d, i,x,y,H,S,So){
-        var h = So.getMark(d.value,S) * H;
+        var v = d.value;
+        if(_.get('percent')){
+            v = v*100/ d.total;
+        }
+        var h = So.getMark(v,S) * H;
         _.doParse(_,d, i, {
             id : i,
             originx :x,

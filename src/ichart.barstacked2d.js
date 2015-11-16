@@ -36,13 +36,12 @@ iChart.BarStacked2D = iChart.extend(iChart.Bar, {
 		
 	},
 	doEngine:function(_,bh,s,S,So,W,h2,gw,x,y,x0){
-		var w0,v,p = _.get('percent');
+		var w;
 		iChart.each(_.columns,function(c, i) {
-			w0 = 0;
-			v = p?100/c.total:1;
+			w = 0;
 			iChart.each(c.item,function(d, j) {
 				d.total = c.total;
-				w0 +=_.rect(_, d, i + '_' + j, x + w0, y + i * gw, W, S, So);
+				w +=_.rect(_, d, i + '_' + j, x + w, y + i * gw, W, S, So);
 			}, _);
 			_.doLabel(_, i, c.name, x0, y - s * 0.5 + (i + 0.5) * gw);
 		}, _);

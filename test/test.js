@@ -47,7 +47,7 @@ function result(succ,type,costOrCause){
 		str.push("</td>");
 		fail++;
 	}
-	
+
 	str.push("</tr></table>");
 	resultList.innerHTML = str.join("");
 	canvas.innerHTML = "";
@@ -71,25 +71,25 @@ function start(){
 				panel.innerHTML = str.join("");
 				return;
 			}
-			
+
 			chart = unit.shift()();
-			
+
 			chart.on('beforedraw',function(){
 				chart.START_RUN_TIME = new Date().getTime();
 				return true;
 			});
-			
+
 			chart.on('draw',function(){
 				chart.END_RUN_TIME = new Date().getTime();
 				chart.RUN_TIME_COST = chart.END_RUN_TIME - chart.START_RUN_TIME;
 			});
-			
+
 			//console.profile(chart.get('title.text'));
 			chart.draw();
 			//console.profileEnd(chart.get('title.text'));
 			if(chart.get('title.text')!='Test')
-			result(true,chart.get('title.text') || chart.type,chart.RUN_TIME_COST);
-			
+				result(true,chart.get('title.text') || chart.type,chart.RUN_TIME_COST);
+
 		} catch (e) {
 			console.log(e);
 			result(false,chart.get('title.text') || chart.type,e.name+":"+e.message);

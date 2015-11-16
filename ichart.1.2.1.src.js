@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2015-11-16 10:31
+* @date 2015-11-16 02:42
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -4612,7 +4612,11 @@ $.Column = $.extend($.Chart, {
 		_.doActing(_,d,o,i);
 	},
     rect:function(_,d, i,x,y,H,S,So){
-        var h = So.getMark(d.value,S) * H;
+        var v = d.value;
+        if(_.get('percent')){
+            v = v*100/ d.total;
+        }
+        var h = So.getMark(v,S) * H;
         _.doParse(_,d, i, {
             id : i,
             originx :x,
@@ -4916,13 +4920,12 @@ $.ColumnStacked2D = $.extend($.Column, {
 		
 	},
 	doEngine:function(_,cw,s,S,So,H,w2,q,gw,x,y,y0){
-		var h0,v,p = _.get('percent');
+		var h;
 		$.each(_.columns,function(c, i) {
-			h0 = 0;
-			v = p?100/c.total:1;
+			h = 0;
             $.each(c.item,function(d, j) {
 				d.total = c.total;
-				h0 += _.rect(_,d, i + '_' + j,x + i * gw,y - h0,H,S,So);
+				h += _.rect(_,d, i + '_' + j,x + i * gw,y - h,H,S,So);
 			}, _);
 			_.doLabel(_, i, c.name, x - s * 0.5 + (i + 0.5) * gw, y0);
 		}, _);
@@ -5072,7 +5075,11 @@ $.Bar = $.extend($.Chart, {
 		_.doActing(_, d, o,i);
 	},
 	rect:function(_,d, i,x,y,W,S,So){
-		var w = So.getMark(d.value,S) * W;
+		var v = d.value;
+		if(_.get('percent')){
+			v = v*100/ d.total;
+		}
+		var w = So.getMark(v,S) * W;
 		_.doParse(_, d, i, {
 			id : i,
 			originx : x - (w > 0 ? 0 : Math.abs(w)),
@@ -5234,13 +5241,12 @@ $.BarStacked2D = $.extend($.Bar, {
 		
 	},
 	doEngine:function(_,bh,s,S,So,W,h2,gw,x,y,x0){
-		var w0,v,p = _.get('percent');
+		var w;
 		$.each(_.columns,function(c, i) {
-			w0 = 0;
-			v = p?100/c.total:1;
+			w = 0;
 			$.each(c.item,function(d, j) {
 				d.total = c.total;
-				w0 +=_.rect(_, d, i + '_' + j, x + w0, y + i * gw, W, S, So);
+				w +=_.rect(_, d, i + '_' + j, x + w, y + i * gw, W, S, So);
 			}, _);
 			_.doLabel(_, i, c.name, x0, y - s * 0.5 + (i + 0.5) * gw);
 		}, _);
@@ -6202,7 +6208,8 @@ $.Scale = $.extend($.Component, {
             /**
              * @inner {Number}
              */
-            join_size: 2
+            join_size: 2,
+            percent: false
         });
 
         this.registerEvent(
@@ -6481,7 +6488,7 @@ $.Coordinate = {
          */
         if (g)g(vw, vh);
 
-        var ST = _.dataType == 'stacked';
+        var st = (_.dataType == 'stacked'&&_.get('percent'));
 
         if ($.isObject(scale)) {
             scale = [scale];
@@ -6491,8 +6498,9 @@ $.Coordinate = {
             /**
              * applies the percent shower
              */
-            if (!ST&&_.get('percent') && s.position == li) {
-                s = $.apply(s, {
+            if (st&&_.get('percent') && s.position == li) {
+                $.apply(s, {
+                    percent:true,
                     start_scale: 0,
                     end_scale: 100,
                     scale_space: 10,
@@ -6502,14 +6510,14 @@ $.Coordinate = {
                         }
                     }
                 });
+            }else{
+                s.min_scale = s.max_scale = undefined;
+
+                if (!s.start_scale || (s.start_scale > _.get('minValue')))
+                    s.min_scale = _.get('minValue');
+                if (!s.end_scale || s.end_scale < _.get('maxValue'))
+                    s.max_scale = _.get('maxValue');
             }
-
-            s.min_scale = s.max_scale = undefined;
-
-            if (!s.start_scale || (s.start_scale > _.get('minValue')))
-                s.min_scale = _.get('minValue');
-            if (!s.end_scale || s.end_scale < _.get('maxValue'))
-                s.max_scale = _.get('maxValue');
         });
 
         if (_.is3D()) {

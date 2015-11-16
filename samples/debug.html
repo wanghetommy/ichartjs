@@ -81,25 +81,110 @@
         $(function(){
             var data = [
                 {
-                    name : '北京',
-                    value:[-9,1,12,20,26,30,32,29,22,12,0,-6],
-                    color:'#1f7e92',
-                    line_width:3
+                    name : 'Jan-Sep',
+                    value:[2.75,2.92,8.31,4.95,4.6,4.32,4.32,2.97],
+                    color:'#ECAD55'
+                },
+                {
+                    name : 'Oct-Dec',
+                    value:[3.4,3.57,4.49,6.05,5.4,4.87,14.48,3.22],
+                    color:'#47AAB3'
                 }
             ];
-            var chart = new iChart.LineBasic2D({
+
+            var chart = new iChart.BarStacked2D({
                 render : 'canvasDiv',
                 data: data,
-                title : '北京2012年平均温度情况',
+                labels:["2005","2006","2007","2008","2009","2010","2011","2012"],
+                title : {
+                    text:'Total U.S Retail Software Revenue',
+                    width:400,
+                    align:'left',
+                    background_color : '#495998',
+                    color:'#c0c8e7'
+                },
+                subtitle : {
+                    text:'Showing Jan-Sep Share,2012 Estimated',
+                    width:280,
+                    height:20,
+                    fontsize:12,
+                    align:'left',
+                    color:'#c0c8e7'
+                },
+                padding:10,
+                footnote : '数据来源：互联网',
                 width : 800,
                 height : 400,
-                coordinate:{height:'90%',background_color:'#f6f9fa'},
+                bar_height:20,
+                background_color : '#353757',
+                shadow : true,
+                shadow_blur : 2,
+                shadow_color : '#aaaaaa',
+                shadow_offsetx : 1,
+                shadow_offsety : 0,
                 sub_option:{
-                    hollow_inside:false,//设置一个点的亮色在外环的效果
-                    point_size:16
+                    label:{color:'#ffffff',fontsize:12,fontweight:600},
+                    border : {
+                        width : 2,
+                        color : '#d3d4f0'
+                    }
                 },
-                labels:["一月","二月","三月","四月","五月","六月","七月","八月","九月","十月","十一月","十二月"]
+                label:{color:'#d3d4f0',fontsize:12,fontweight:600},
+                percent:true,
+                showpercent:true,
+                decimalsnum:0,
+                legend:{
+                    enable:true,
+                    background_color : null,
+                    line_height:25,
+                    color:'#d3d4f0',
+                    fontsize:12,
+                    fontweight:600,
+                    border : {
+                        enable : false
+                    }
+                },
+                coordinate:{
+                    background_color : 0,
+                    axis : {
+                        color : '#c0c8e7',
+                        width : 0
+                    },
+                    scale:[{
+                        position:'bottom',
+                        scale_enable : false,
+                        start_scale:0,
+                        scale_space:2,
+                        end_scale:12,
+                        label:{color:'#d3d4f0',fontsize:11,fontweight:600},
+                        listeners:{
+                            parseText:function(t,x,y){
+                                return {text:"$"+t}
+                            }
+                        }
+                    }],
+                    width:600,
+                    height:260
+                }
             });
+
+            //利用自定义组件构造左侧说明文本
+            chart.plugin(new iChart.Custom({
+                drawFn:function(){
+                    //计算位置
+                    var coo = chart.getCoordinate(),
+                            x = coo.get('originx'),
+                            y = coo.get('originy'),
+                            h = coo.height;
+                    //在左下侧的位置，渲染一个单位的文字
+                    chart.target.textAlign('start')
+                            .textBaseline('bottom')
+                            .textFont('600 11px Verdana')
+                            .fillText('Billions',x-20,y+h+30,false,'#a8b2d7');
+
+                }
+            }));
+
             chart.draw();
         });
     </script>
