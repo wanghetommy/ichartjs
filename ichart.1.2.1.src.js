@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2015-11-16 02:42
+* @date 2015-11-16 11:12
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -3196,20 +3196,20 @@ $.Label = $.extend($.Component, {
 				height:this.get("client_height")
 			}
 		},
+		/**
+		 * @param _
+         * @param {Element} shell
+         */
 		create : function(_,shell) {
 			/**
 			 * fit the window
 			 */
 			if(_.get('fit')){
-				var w = window.innerWidth,
-			    	h = window.innerHeight,
-			    	style = $.getDoc().body.style;
-				//clientHeight
-			    style.padding = "0px";
-			    style.margin = "0px";
-			    style.overflow = "hidden";
-			    _.push(_.W, w);
-			    _.push(_.H, h);
+				var dimension = window.getComputedStyle?window.getComputedStyle(shell, null):shell.currentStyle;
+				if(dimension){
+					_.push(_.W, $.fixPixel(dimension.width));
+					_.push(_.H, $.fixPixel(dimension.height));
+				}
 			}
 			
 			_.canvasid = $.uid(_.type);

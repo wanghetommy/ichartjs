@@ -1151,20 +1151,20 @@
 				height:this.get("client_height")
 			}
 		},
+		/**
+		 * @param _
+         * @param {Element} shell
+         */
 		create : function(_,shell) {
 			/**
 			 * fit the window
 			 */
 			if(_.get('fit')){
-				var w = window.innerWidth,
-			    	h = window.innerHeight,
-			    	style = $.getDoc().body.style;
-				//clientHeight
-			    style.padding = "0px";
-			    style.margin = "0px";
-			    style.overflow = "hidden";
-			    _.push(_.W, w);
-			    _.push(_.H, h);
+				var dimension = window.getComputedStyle?window.getComputedStyle(shell, null):shell.currentStyle;
+				if(dimension){
+					_.push(_.W, iChart.fixPixel(dimension.width));
+					_.push(_.H, iChart.fixPixel(dimension.height));
+				}
 			}
 			
 			_.canvasid = $.uid(_.type);
