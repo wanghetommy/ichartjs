@@ -31,14 +31,14 @@ iChart.Element = function(config) {
 		 * @Option enable {boolean} If enable the border
 		 * @Option color {String} the border's color.(default to '#BCBCBC')
 		 * @Option style {String} the border's style.(default to 'solid')
-		 * @Option width {Number/String} the border's width.If given array,the option radius will be 0.(default to 1)
+		 * @Option width {Number/String} the border's width.If given array,the option radius will be 0.(default to 0)
 		 * @Option radius {Number/String} the border's radius.(default to 0)
 		 */
 		border : {
 			enable : false,
 			color : '#BCBCBC',
 			style : 'solid',
-			width : 1,
+			width : 0,
 			radius : 0
 		},
 		/**

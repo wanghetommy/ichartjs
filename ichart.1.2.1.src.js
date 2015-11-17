@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2015-11-16 11:12
+* @date 2015-11-17 11:41
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -33,19 +33,10 @@
 		 * spirit from jquery
 		 */
 		var isReady = false, readyBound = false, readyList = [], DOMContentLoaded = (function() {
-			if (document.addEventListener) {
-				return function() {
-					document.removeEventListener("DOMContentLoaded", DOMContentLoaded, false);
-					ready();
-				};
-			} else if (document.attachEvent) {
-				return function() {
-					if (document.readyState === "complete") {
-						document.detachEvent("onreadystatechange", DOMContentLoaded);
-						ready();
-					}
-				};
-			}
+			return function() {
+				document.removeEventListener("DOMContentLoaded", DOMContentLoaded, false);
+				ready();
+			};
 		})(), doScrollCheck = function() {
 			if (isReady) {
 				return;
@@ -72,23 +63,8 @@
 			if (document.readyState === "complete") {
 				return setTimeout(ready, 1);
 			}
-			if (document.addEventListener) {
-				document.addEventListener("DOMContentLoaded", DOMContentLoaded, false);
-				window.addEventListener("load", ready, false);
-			} else if (document.attachEvent) {
-				document.attachEvent("onreadystatechange", DOMContentLoaded);
-				window.attachEvent("onload", ready);
-				var toplevel = false;
-
-				try {
-					toplevel = window.frameElement == null;
-				} catch (e) {
-				}
-
-				if (document.documentElement.doScroll && toplevel) {
-					doScrollCheck();
-				}
-			}
+			document.addEventListener("DOMContentLoaded", DOMContentLoaded, false);
+			window.addEventListener("load", ready, false);
 		}, bind = function(fn) {
 			bindReady();
 			if (isReady)
@@ -763,10 +739,7 @@
 		 */
 		_.Event = {
 			addEvent : function(ele, type, fn, useCapture) {
-				if (ele.addEventListener)
-					ele.addEventListener(type, fn, useCapture);
-				else
-					ele['on' + type] = fn;
+				ele.addEventListener(type, fn, useCapture);
 			},
 			fix : function(e) {
 				/**
@@ -894,14 +867,14 @@ $.Element = function(config) {
 		 * @Option enable {boolean} If enable the border
 		 * @Option color {String} the border's color.(default to '#BCBCBC')
 		 * @Option style {String} the border's style.(default to 'solid')
-		 * @Option width {Number/String} the border's width.If given array,the option radius will be 0.(default to 1)
+		 * @Option width {Number/String} the border's width.If given array,the option radius will be 0.(default to 0)
 		 * @Option radius {Number/String} the border's radius.(default to 0)
 		 */
 		border : {
 			enable : false,
 			color : '#BCBCBC',
 			style : 'solid',
-			width : 1,
+			width : 0,
 			radius : 0
 		},
 		/**

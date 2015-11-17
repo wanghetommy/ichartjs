@@ -46,7 +46,15 @@
     <script type="text/javascript" src="../plugin/ichart.gauge2d.js"></script>
     <script type="text/javascript" src="../plugin/ichart.slider.js"></script>
     <style type="text/css">
+        html{
+            height: 100%;
+            padding: 0px;
+            margin: 0px;
+        }
         body {
+            height: 100%;
+            padding: 0px;
+            margin: 0px;
             text-align: center;
             background-repeat: repeat;
             background-color: #0c1b38;
@@ -56,51 +64,52 @@
             text-align: center;
             color:#0d8ecf;
         }
-        #ichartjs_result{
-            position: absolute;
-            left: 20px;
-            bottom: 20px;
-            padding:8px;
-            color:#fefefe;
-            font-size:20px;
-            font-weight:600;
-            background-color:#6d869f;
-            cursor: pointer;
-            text-align:center;
-            border:1px solid #6a869d;
-            -webkit-box-shadow:0px 0px 2px #375073;
-            -moz-box-shadow:0px 0px 2px #375073;
-            box-shadow:0px 0px 2px #375073;
-            -moz-border-radius:10px;
-            -webkit-border-radius:10px;
-            -khtml-border-radius:10px;
-            border-radius:10px
-        }
     </style>
     <script type="text/javascript">
         $(function(){
             var data = [
-                {name : 'IE',value : 35.75,color:'#a5c2d5'},
-                {name : 'Chrome',value : 29.84,color:'#cbab4f'},
-                {name : 'Firefox',value : 24.88,color:'#76a871'},
-                {name : 'Safari',value : 6.77,color:'#9f7961'},
-                {name : 'Opera',value : 2.02,color:'#a56f8f'},
-                {name : 'Other',value : 0.13,color:'#6f83a5'}
+                {name : 'IE',value : 35.7,color:'#cad6ee'},
+                {name : 'IE',value : 62.4,color:'#cad6ee'},
+                {name : 'IE',value : 80.8,color:'#cad6ee'},
+                {name : 'Chrome',value : 42.6,color:'#cad6ee'},
+                {name : 'Firefox',value : 24.8,color:'#cad6ee'},
+                {name : 'Safari',value : 6.7,color:'#cad6ee'},
+                {name : 'Opera',value : 1.4,color:'#cad6ee'},
+                {name : 'Other',value : 0.6,color:'#cad6ee'}
             ];
 
             new iChart.Column2D({
                 render : 'canvasDiv',
                 data: data,
-                title : 'Top 5 Browsers from 1 to 29 Feb 2012',
+                title: {
+                    text:'Top 5 Browsers from 1 to 29 Feb 2012',
+                    color:'#eff1f5'
+                },
                 fit:true,
                 //showpercent:true,
                 //decimalsnum:2,
                 width : 800,
                 height : 400,
+                background_color:"#6b82ae",
+                sub_option:{
+
+                },
                 coordinate:{
-                    background_color:'#fefefe',
+                    grid_color:'#8a9ec2',
+                    axis:{
+                        width:0
+                    },
                     yAxis:{
-                        labels:[0,0.2,1,20,25,30,50]
+                        label:{
+                            color:"#cad6ee"
+                        },
+                        scale_enable:false,
+                        labels:[0,1,5,10,50,100]
+                    },
+                    xAxis:{
+                        label:{
+                            color:"#cad6ee"
+                        }
                     }
                 }
             }).draw();
@@ -108,8 +117,6 @@
     </script>
 </head>
 <body>
-<div id='canvasDiv' style="width: 700px;height:320px;"></div>
-<br/>
-<div id='ichartjs_result'></div>
+<div id='canvasDiv' style="width: 100%;height:100%;"></div>
 </body>
 </html>

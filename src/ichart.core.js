@@ -25,19 +25,10 @@
 		 * spirit from jquery
 		 */
 		var isReady = false, readyBound = false, readyList = [], DOMContentLoaded = (function() {
-			if (document.addEventListener) {
-				return function() {
-					document.removeEventListener("DOMContentLoaded", DOMContentLoaded, false);
-					ready();
-				};
-			} else if (document.attachEvent) {
-				return function() {
-					if (document.readyState === "complete") {
-						document.detachEvent("onreadystatechange", DOMContentLoaded);
-						ready();
-					}
-				};
-			}
+			return function() {
+				document.removeEventListener("DOMContentLoaded", DOMContentLoaded, false);
+				ready();
+			};
 		})(), doScrollCheck = function() {
 			if (isReady) {
 				return;
@@ -64,23 +55,8 @@
 			if (document.readyState === "complete") {
 				return setTimeout(ready, 1);
 			}
-			if (document.addEventListener) {
-				document.addEventListener("DOMContentLoaded", DOMContentLoaded, false);
-				window.addEventListener("load", ready, false);
-			} else if (document.attachEvent) {
-				document.attachEvent("onreadystatechange", DOMContentLoaded);
-				window.attachEvent("onload", ready);
-				var toplevel = false;
-
-				try {
-					toplevel = window.frameElement == null;
-				} catch (e) {
-				}
-
-				if (document.documentElement.doScroll && toplevel) {
-					doScrollCheck();
-				}
-			}
+			document.addEventListener("DOMContentLoaded", DOMContentLoaded, false);
+			window.addEventListener("load", ready, false);
 		}, bind = function(fn) {
 			bindReady();
 			if (isReady)
@@ -755,10 +731,7 @@
 		 */
 		_.Event = {
 			addEvent : function(ele, type, fn, useCapture) {
-				if (ele.addEventListener)
-					ele.addEventListener(type, fn, useCapture);
-				else
-					ele['on' + type] = fn;
+				ele.addEventListener(type, fn, useCapture);
 			},
 			fix : function(e) {
 				/**
