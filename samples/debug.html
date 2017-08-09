@@ -68,51 +68,42 @@
     <script type="text/javascript">
         $(function(){
             var data = [
-                {name : 'IE',value : 35.7,color:'#cad6ee'},
-                {name : 'IE',value : 62.4,color:'#cad6ee'},
-                {name : 'IE',value : 80.8,color:'#cad6ee'},
-                {name : 'Chrome',value : 42.6,color:'#cad6ee'},
-                {name : 'Firefox',value : 24.8,color:'#cad6ee'},
-                {name : 'Safari',value : 6.7,color:'#cad6ee'},
-                {name : 'Opera',value : 1.4,color:'#cad6ee'},
-                {name : 'Other',value : 0.6,color:'#cad6ee'}
+                {
+                    name : '北京',
+                    value:[11,null,null,null,null,null,null,null,null],
+                    color:'#1f7e92',
+                    line_width:3
+                }
             ];
-
-            new iChart.Column2D({
+            var chart = new iChart.LineBasic2D({
                 render : 'canvasDiv',
                 data: data,
-                title: {
-                    text:'Top 5 Browsers from 1 to 29 Feb 2012',
-                    color:'#eff1f5'
-                },
-                fit:true,
-                //showpercent:true,
-                //decimalsnum:2,
+                title : '北京2012年平均温度情况',
                 width : 800,
                 height : 400,
-                background_color:"#6b82ae",
-                sub_option:{
-
-                },
                 coordinate:{
-                    grid_color:'#8a9ec2',
-                    axis:{
-                        width:0
-                    },
-                    yAxis:{
-                        label:{
-                            color:"#cad6ee"
-                        },
-                        scale_enable:false,
-                        labels:[0,1,5,10,50,100]
-                    },
-                    xAxis:{
-                        label:{
-                            color:"#cad6ee"
-                        }
-                    }
+                    height: '90%', background_color: '#f6f9fa',
+                    scale:[{
+                        position:'left',
+                        start_scale:0,
+                        end_scale:50,
+                        scale_space:10,
+                        scale_size:2,
+                        scale_color:'#9f9f9f'
+                    },{
+                        position:'bottom',
+                        label : {color:'#333333',fontsize:11},
+                        labels:["7-15"]
+                    }]
+                },
+                sub_option:{
+                    hollow_inside:false,//设置一个点的亮色在外环的效果
+                    point_size:16
                 }
-            }).draw();
+
+
+            });
+            chart.draw();
         });
     </script>
 </head>
