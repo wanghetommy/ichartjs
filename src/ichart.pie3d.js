@@ -30,12 +30,12 @@ iChart.Pie3D = iChart.extend(iChart.Pie, {
 		return new iChart[_.sub](_.get('sub_option'), _);
 	},
 	one:function(_){
-		var layer,spaint,L = [],c = _.get('counterclockwise'), abs = function(n,M) {
+		var layer=[],spaint,L = [],c = _.get('counterclockwise'), abs = function(n,M) {
 			/**
 			 * If M,close to pi/2,else pi*3/2
 			 */
 			return 1 + Math.sin(M?(n+Math.PI):n);
-		}, t = 'startAngle', d = 'endAngle',Q,s,e
+		}, t = 'startAngle', d = 'endAngle',Q,s,e,
 		/**
 		 * If the inside layer visibile
 		 */

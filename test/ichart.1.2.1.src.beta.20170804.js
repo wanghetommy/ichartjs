@@ -1,6 +1,6 @@
 /**
 * ichartjs Library v1.2.1 http://www.ichartjs.com/
-* @date 2018-06-14 08:02
+* @date 2017-08-04 06:28
 * @author taylor wong
 * @Copyright 2013 wanghetommy@gmail.com Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -5866,12 +5866,12 @@ $.Pie3D = $.extend($.Pie, {
 		return new $[_.sub](_.get('sub_option'), _);
 	},
 	one:function(_){
-		var layer=[],spaint,L = [],c = _.get('counterclockwise'), abs = function(n,M) {
+		var layer,spaint,L = [],c = _.get('counterclockwise'), abs = function(n,M) {
 			/**
 			 * If M,close to pi/2,else pi*3/2
 			 */
 			return 1 + Math.sin(M?(n+Math.PI):n);
-		}, t = 'startAngle', d = 'endAngle',Q,s,e,
+		}, t = 'startAngle', d = 'endAngle',Q,s,e
 		/**
 		 * If the inside layer visibile
 		 */
