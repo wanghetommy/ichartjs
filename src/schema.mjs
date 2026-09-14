@@ -1,3 +1,7 @@
+/**
+ * JSON-safe schema utilities and built-in Agent business data contracts.
+ * Defines editable fields, validation constraints, and structured issues.
+ */
 export const schemaVersion = '1.0';
 export const fieldTypes = ['string', 'number', 'boolean', 'date', 'enum', 'array', 'object'];
 const forbiddenKeys = new Set(['__proto__', 'prototype', 'constructor']);
@@ -45,7 +49,7 @@ const models = {
   'timeline-event': schema('timeline-event', { title: { type: 'string', required: true, editable: true }, date: { type: 'date', required: true, editable: true }, description: { type: 'string', editable: true }, status }),
   milestone: schema('milestone', { title: { type: 'string', required: true, editable: true }, date: { type: 'date', required: true, editable: true }, status }),
   'burndown-sample': schema('burndown-sample', { date: { type: 'date', required: true, editable: true }, remaining: { type: 'number', min: 0, required: true, editable: true }, scopeChange: { type: 'number', default: 0, editable: true }, forecast: { type: 'date', nullable: true, editable: false } }),
-  'flow-node': schema('flow-node', { label: { type: 'string', required: true, editable: true }, position, laneId: { type: 'string', references: 'swimlane', editable: true }, description: { type: 'string', editable: true }, status }),
+  'flow-node': schema('flow-node', { label: { type: 'string', required: true, editable: true }, position, size: { type: 'object', editable: true, properties: { width: { type: 'number', required: true, min: 1 }, height: { type: 'number', required: true, min: 1 } } }, laneId: { type: 'string', references: 'swimlane', editable: true }, groupId: { type: 'string', editable: false }, ports: { type: 'array', editable: false, items: { type: 'object', properties: { id: { type: 'string', required: true }, side: { type: 'enum', values: ['left', 'right', 'top', 'bottom'] }, offset: { type: 'number', min: 0, max: 1 } } } }, description: { type: 'string', editable: true }, status }),
   'flow-edge': schema('flow-edge', { from: { type: 'string', references: 'flow-node', required: true, editable: true }, to: { type: 'string', references: 'flow-node', required: true, editable: true }, label: { type: 'string', editable: true } }),
   swimlane: schema('swimlane', { label: { type: 'string', required: true, editable: true } })
 };

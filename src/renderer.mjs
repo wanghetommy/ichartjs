@@ -1,3 +1,7 @@
+/**
+ * Canvas and SVG renderer implementations for the shared Scene Graph.
+ * Rendering is intentionally separate from chart layout and data semantics.
+ */
 export class BaseRenderer {
   constructor(options = {}) { this.options = options; this.container = null; }
   mount(container) { this.container = typeof container === 'string' ? document.querySelector(container) : container; if (!this.container) throw new Error('Chart container was not found.'); return this; }

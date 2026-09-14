@@ -1,3 +1,7 @@
+/**
+ * Business data validation against declared schemas and cross-field rules.
+ * Returns normalized rows plus structured errors and warnings.
+ */
 import { copyJSON, isRecord, issue, validateDataSchema } from './schema.mjs';
 
 export function isDateOnly(value) {

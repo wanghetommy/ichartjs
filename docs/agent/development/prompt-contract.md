@@ -1,5 +1,13 @@
 # Agent Prompt Contract
 
+## Code and Documentation Contract
+
+- Every active source module under `src/` must begin with a short file-level module comment.
+- The comment states the module responsibility and its important public or behavioral constraints.
+- Public APIs and complex algorithms may add focused JSDoc; line-by-line comments are not required.
+- Agent-facing documentation must describe behavior and contracts, not duplicate implementation details.
+- When a module responsibility changes, update its file-level comment in the same change.
+
 When generating a chart, an Agent must:
 
 1. Inspect the input data.

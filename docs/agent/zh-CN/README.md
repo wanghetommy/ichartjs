@@ -1,0 +1,22 @@
+# iChart.js 2.0 Agent 指南（中文）
+
+这是 iChart.js 2.0 面向用户 Agent 的中文使用入口。默认先读取本文件，再按任务读取一份场景文档。
+
+## 选择场景
+
+- [数据分析图表](charting-scenario.md)
+- [项目管理图表](project-scenario.md)
+- [交互式 Diagram](diagram-scenario.md)
+- [Runtime 契约](runtime-contract.md)
+- [编辑契约](editing-contract.md)
+- 机器可读能力清单位于 `docs/manifests/`，供 Agent 按需读取。
+
+## 标准流程
+
+```text
+inspectData → recommend → 生成 Spec → validateSpec → createChart → 检查状态
+```
+
+API 名称、字段名、命令名、错误码和 JSON Manifest 统一使用英文标识符；其语义以英文技术契约为标准，本文提供中文辅助说明。
+
+全部已支持图表的浏览入口：`playground/project-gallery.html`。

@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "source": "src/command.mjs#operationTypes",
+  "commands": {
+    "updateField": { "models": ["project-task", "timeline-event", "milestone", "burndown-sample", "flow-node", "flow-edge", "swimlane"], "previewRequired": true, "undoable": true },
+    "updateRecord": { "models": ["project-task", "timeline-event", "milestone", "burndown-sample", "flow-node", "flow-edge", "swimlane"], "previewRequired": true, "undoable": true },
+    "updateTask": { "models": ["project-task"], "previewRequired": true, "undoable": true },
+    "shiftTask": { "models": ["project-task"], "required": ["taskId", "days"], "previewRequired": true, "undoable": true },
+    "updateProgress": { "models": ["project-task"], "required": ["taskId", "progress"], "previewRequired": true, "undoable": true },
+    "addDependency": { "models": ["project-task"], "required": ["taskId", "dependencyId"], "previewRequired": true, "undoable": true },
+    "removeDependency": { "models": ["project-task"], "required": ["taskId", "dependencyId"], "previewRequired": true, "undoable": true },
+    "updateMilestone": { "models": ["milestone"], "required": ["recordId"], "previewRequired": true, "undoable": true },
+    "moveNode": { "models": ["flow-node"], "required": ["nodeId", "position"], "previewRequired": true, "undoable": true },
+    "moveNodes": { "models": ["flow-node"], "required": ["nodeIds", "delta"], "previewRequired": true, "undoable": true },
+    "moveNodeToLane": { "models": ["flow-node"], "required": ["nodeId", "laneId"], "previewRequired": true, "undoable": true },
+    "resizeNode": { "models": ["flow-node"], "required": ["nodeId", "size"], "previewRequired": true, "undoable": true },
+    "alignNodes": { "models": ["flow-node"], "required": ["nodeIds", "alignment"], "previewRequired": true, "undoable": true },
+    "snapNodes": { "models": ["flow-node"], "required": ["nodeIds"], "previewRequired": true, "undoable": true },
+    "updateEdge": { "models": ["flow-edge"], "required": ["edgeId", "changes"], "previewRequired": true, "undoable": true }
+  }
+}

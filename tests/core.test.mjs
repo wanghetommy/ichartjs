@@ -152,12 +152,15 @@ test('validates a business schema and previews a safe task edit', () => {
 });
 
 test('reroutes flow arrows after a node moves', () => {
-  const model = buildScene(normalizeSpec({ type: 'flow', nodes: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }], edges: [{ from: 'a', to: 'b' }] }));
+  const model = buildScene(normalizeSpec({ type: 'flow', nodes: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }], edges: [{ from: 'a', to: 'b', label: 'Next' }] }));
   const edge = model.scene.find('edge-0'), arrow = model.scene.find('edge-0-arrow'), destination = model.scene.find('node-b');
   destination.geometry.y += 40;
   rerouteDiagramScene(model.scene);
   assert.equal(edge.geometry.points.at(-1).y, destination.geometry.y + destination.geometry.height / 2);
   assert.equal(arrow.geometry.points[0].y, edge.geometry.points.at(-1).y);
+  const label = model.scene.find('edge-label-0'), middle = edge.geometry.points[Math.floor(edge.geometry.points.length / 2)];
+  assert.equal(label.geometry.x, middle.x);
+  assert.equal(label.geometry.y, middle.y - 8);
 });
 
 test('commits guarded business edits and tracks audit state', async () => {
@@ -215,5 +218,54 @@ test('exposes RC capabilities and editing lifecycle methods', async () => {
   assert.equal(typeof chart.getChangeSet, 'function');
   assert.equal(typeof chart.undo, 'function');
   assert.equal(typeof chart.redo, 'function');
+  chart.destroy();
+});
+
+test('validates and lays out advanced diagram models deterministically', async () => {
+  const { layoutDiagram, routeEdge, validateDiagram } = await import('../src/index.mjs');
+  const spec = { type: 'flow', width: 640, height: 360, nodes: [{ id: 'start', label: 'Start' }, { id: 'review', label: 'Review' }, { id: 'done', label: 'Done', ports: [{ id: 'in' }] }], edges: [{ id: 'e1', from: 'start', to: 'review' }, { id: 'e2', from: 'review', to: 'done', toPort: 'in' }], diagram: { layout: 'layered', routing: 'orthogonal', grid: 8 } };
+  assert.equal(validateDiagram(spec).valid, true);
+  const first = layoutDiagram(spec, { x: 40, y: 20, width: 500, height: 280 });
+  assert.deepEqual(first, layoutDiagram(spec, { x: 40, y: 20, width: 500, height: 280 }));
+  assert.deepEqual(routeEdge(spec.edges[0], { x: 40, y: 20, width: 112, height: 36 }, { x: 240, y: 92, width: 112, height: 36 }, 'straight').length, 2);
+  assert.ok(validateDiagram({ ...spec, edges: [{ from: 'start', to: 'missing' }] }).errors.some(error => error.code === 'EDGE_ENDPOINT'));
+});
+
+test('supports diagram node resizing through the shared edit history', async () => {
+  const { createChart, getBusinessSchema } = await import('../src/index.mjs');
+  const schema = getBusinessSchema('flow-node');
+  const chart = createChart({ type: 'flow', nodes: [{ id: 'a', label: 'A', position: { x: 40, y: 40 }, size: { width: 112, height: 36 } }], edges: [], data: { schema }, editing: { enabled: true, requireConfirmation: false } });
+  const preview = chart.previewEdit({ type: 'layout-edit', operations: [{ op: 'resizeNode', nodeId: 'a', size: { width: 180, height: 48 } }] });
+  assert.equal(preview.valid, true);
+  const committed = chart.applyEdit(preview.command, { preview, confirmed: true });
+  assert.equal(committed.valid, true);
+  assert.equal(chart.getSpec().nodes[0].size.width, 180);
+  assert.equal(chart.undo().valid, true);
+  assert.equal(chart.getSpec().nodes[0].size.width, 112);
+  chart.destroy();
+});
+
+test('supports diagram groups, ports, multi-select alignment, snapping, and undo', async () => {
+  const { buildScene } = await import('../src/charts.mjs');
+  const { createChart, getBusinessSchema, validateDiagram } = await import('../src/index.mjs');
+  const spec = { type: 'flow', width: 640, height: 360, nodes: [
+    { id: 'a', label: 'A', groupId: 'main', position: { x: 41, y: 43 }, size: { width: 100, height: 40 }, ports: [{ id: 'out', side: 'right', offset: 0.25 }] },
+    { id: 'b', label: 'B', groupId: 'main', position: { x: 217, y: 91 }, size: { width: 140, height: 60 }, ports: [{ id: 'in', side: 'left', offset: 0.75 }] }
+  ], groups: [{ id: 'main', label: 'Main flow' }], edges: [{ id: 'ab', from: 'a', to: 'b', fromPort: 'out', toPort: 'in' }], diagram: { layout: 'manual', routing: 'orthogonal', grid: 8 } };
+  assert.equal(validateDiagram(spec).valid, true);
+  const scene = buildScene(normalizeSpec(spec)).scene;
+  assert.ok(scene.find('group-main'));
+  assert.ok(scene.find('port-a-out'));
+  assert.ok(scene.find('port-b-in'));
+  const chart = createChart({ ...spec, data: { schema: getBusinessSchema('flow-node') }, editing: { enabled: true, requireConfirmation: false } });
+  chart.selectNodes(['a', 'b']);
+  assert.deepEqual(chart.getSelectedNodeIds(), ['a', 'b']);
+  assert.equal(chart.getSelectedData().length, 2);
+  assert.equal(chart.alignSelected('right').valid, true);
+  assert.equal(chart.getSpec().nodes[0].position.x + 100, chart.getSpec().nodes[1].position.x + 140);
+  assert.equal(chart.snapSelected().valid, true);
+  assert.equal(chart.getSpec().nodes[0].position.x % 8, 0);
+  assert.equal(chart.moveSelectedBy({ x: 8, y: 0 }).valid, true);
+  assert.equal(chart.undo().valid, true);
   chart.destroy();
 });

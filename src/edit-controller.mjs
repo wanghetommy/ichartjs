@@ -1,3 +1,7 @@
+/**
+ * Chart-level edit transaction coordinator.
+ * Connects preview, confirmation, commit, revision checks, audit, and history.
+ */
 import { copyJSON, issue } from './schema.mjs';
 import { normalizeCommand } from './command.mjs';
 import { previewEdit, commitPreview } from './edit.mjs';
@@ -34,6 +38,7 @@ export class EditController {
       schema: edgeEdit ? spec.data.edgeSchema : spec.data.schema ?? spec.schema,
       validationOptions: { ...spec.validationOptions, references: { ...spec.validationOptions?.references, ...(diagram ? { 'flow-node': nodes.map(row => row.id), swimlane: lanes.map(row => row.id) } : {}) } },
       requireConfirmation: spec.editing?.requireConfirmation,
+      grid: spec.diagram?.grid || 8,
       allowStructuralChanges: spec.editing?.allowStructuralChanges === true
     };
     return { options, field, root, signature: JSON.stringify([options, spec.editing, spec.type]) };

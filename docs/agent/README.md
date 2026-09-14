@@ -1,5 +1,22 @@
 # iChart.js 2.0 Agent Guide
 
+This is the user-facing Agent entry point for iChart.js 2.0. Read this file first, then load one scenario guide as needed.
+
+## Language
+
+- English technical contract: current documents.
+- Chinese companion guide: [`zh-CN/README.md`](zh-CN/README.md).
+- APIs, fields, commands, error codes, and manifests use English identifiers. The English documents define the canonical technical contract; Chinese documents provide equivalent guidance.
+
+## Start Here
+
+- [Data Charting](charting-scenario.md): generic data analysis charts.
+- [Project Management](project-scenario.md): Gantt, Timeline, Milestone, and Burndown.
+- [Interactive Diagrams](diagram-scenario.md): Flow, Swimlane, Groups, Ports, and editing.
+- [Runtime Contract](runtime-contract.md): shared Spec, renderer, interaction, and export rules.
+- [Editing Contract](editing-contract.md): schemas, commands, preview, commit, and undo/redo.
+- Machine-readable capability manifests are in `docs/manifests/` and should be loaded on demand.
+
 The 2.0 API is Spec-first. An Agent should inspect data, choose a chart, create a JSON-friendly Spec, validate it, and then render it.
 
 ## Recommended flow
@@ -19,11 +36,9 @@ const chart = ichart.createChart(spec);
 chart.describe();
 ```
 
-Use `getCapabilities()` to discover supported chart types, project-management views, diagrams, renderers, interactions, exports, and data operations. Iteration 3 adds project-management and process visualization; see `docs/agent/iteration-3.md` for scope and acceptance criteria. Use `chart.getSpec()`, `chart.getState()`, `chart.getSelectedData()`, and `chart.toDataTable()` to inspect a live chart.
+Use `getCapabilities()` to discover supported chart types, project-management views, diagrams, renderers, interactions, exports, and data operations. Use `chart.getSpec()`, `chart.getState()`, `chart.getSelectedData()`, and `chart.toDataTable()` to inspect a live chart.
 
-For the post-Iteration 3 development sequence, see `docs/agent/roadmap.md`.
-
-Iteration 4A–4E currently implements schema inspection, data validation, typed command validation, read-only previews, guarded local commits, revision checks, audit metadata, change sets, undo/redo, and recipe validation. The chart runtime intentionally does not persist external business data or provide authorization; the host application owns those responsibilities. See `docs/agent/iteration-4.md` and the viewable demo at `http://localhost:3000/playground/editing`.
+For a visual overview of all supported chart types, open `playground/project-gallery.html`.
 
 ## Selection rules
 
@@ -35,7 +50,7 @@ Iteration 4A–4E currently implements schema inspection, data validation, typed
 - Prefer `canvas` when rendering many marks or targeting lower-power devices.
 - Use `gantt`, `timeline`, `milestone`, or `burndown` for project delivery views.
 - Use `flow` or `swimlane` for process, ownership, and responsibility views.
-- Do not generate `map` or `3d` Specs in the 2.0 roadmap unless a later capability declaration enables them.
+- Do not generate `map` or `3d` Specs unless `getCapabilities()` declares them.
 
 ## Error handling
 

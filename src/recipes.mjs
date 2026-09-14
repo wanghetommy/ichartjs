@@ -1,3 +1,7 @@
+/**
+ * Agent Recipe validation against runtime capabilities and business schemas.
+ * Recipes remain declarative and do not execute external side effects.
+ */
 import { copyJSON, validateDataSchema } from './schema.mjs';
 import { validateCommand } from './command.mjs';
 

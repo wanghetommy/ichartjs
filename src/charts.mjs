@@ -1,3 +1,7 @@
+/**
+ * Chart-to-scene builders for generic and project visualizations.
+ * Keeps chart specifications independent from Canvas and SVG renderers.
+ */
 import { Scene, SceneNode } from './scene.mjs';
 import { normalizeData } from './data.mjs';
 import { buildProjectScene } from './project.mjs';

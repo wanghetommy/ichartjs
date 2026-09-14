@@ -1,3 +1,7 @@
+/**
+ * Bounded undo/redo history for committed local chart edits.
+ * Stores immutable before/after snapshots supplied by the edit controller.
+ */
 import { copyJSON } from './schema.mjs';
 
 export class EditHistory {

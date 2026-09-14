@@ -1,3 +1,7 @@
+/**
+ * Business and diagram edit preview/commit primitives.
+ * Validates schemas and commands before producing deterministic patches.
+ */
 import { copyJSON, getBusinessSchema, issue, validateDataSchema } from './schema.mjs';
 import { validateData } from './validation.mjs';
 import { commandCapabilities, normalizeCommand, validateCommand } from './command.mjs';
@@ -30,6 +34,17 @@ export function previewEdit(input, options = {}) {
     const before = hit.row[field]; hit.row[field] = copyJSON(value); changes.push(change(before, hit.row[field], `values.${hit.rowIndex}.${field}`, operation)); patches.push({ op: 'replace', path: `/values/${hit.rowIndex}/${field}`, value: copyJSON(value) }); affected.add(hit.row[key]);
   };
   command.operations.forEach((operation, opIndex) => {
+    if (['moveNodes', 'alignNodes', 'snapNodes'].includes(operation.op)) {
+      const hits = operation.nodeIds.map(id => index.get(id));
+      if (hits.some(hit => !hit)) { errors.push(issue('RECORD_NOT_FOUND', `command.operations.${opIndex}.nodeIds`, 'One or more diagram nodes were not found.')); return; }
+      const source = hits[0].row.position || { x: 0, y: 0 };
+      const positions = hits.map(hit => ({ hit, position: { ...(hit.row.position || { x: 0, y: 0 }) } }));
+      if (operation.op === 'moveNodes') positions.forEach(item => { item.position.x += operation.delta.x; item.position.y += operation.delta.y; });
+      if (operation.op === 'alignNodes') { const sizes = positions.map(item => ({ width: Number(item.hit.row.size?.width) || 112, height: Number(item.hit.row.size?.height) || 36 })), bounds = positions.map((item, index) => ({ left: item.position.x, top: item.position.y, right: item.position.x + sizes[index].width, bottom: item.position.y + sizes[index].height, center: item.position.x + sizes[index].width / 2, middle: item.position.y + sizes[index].height / 2 })); const target = operation.alignment === 'left' ? Math.min(...bounds.map(item => item.left)) : operation.alignment === 'right' ? Math.max(...bounds.map(item => item.right)) : operation.alignment === 'top' ? Math.min(...bounds.map(item => item.top)) : operation.alignment === 'bottom' ? Math.max(...bounds.map(item => item.bottom)) : operation.alignment === 'center' ? bounds.reduce((sum, item) => sum + item.center, 0) / bounds.length : bounds.reduce((sum, item) => sum + item.middle, 0) / bounds.length; positions.forEach((item, index) => { if (operation.alignment === 'left') item.position.x = target; else if (operation.alignment === 'right') item.position.x = target - sizes[index].width; else if (operation.alignment === 'top') item.position.y = target; else if (operation.alignment === 'bottom') item.position.y = target - sizes[index].height; else if (operation.alignment === 'center') item.position.x = target - sizes[index].width / 2; else item.position.y = target - sizes[index].height / 2; }); }
+      if (operation.op === 'snapNodes') positions.forEach(item => { const grid = Number(options.grid) || 8; item.position.x = Math.round(item.position.x / grid) * grid; item.position.y = Math.round(item.position.y / grid) * grid; });
+      positions.forEach(item => setField(item.hit, 'position', item.position, operation, opIndex));
+      return;
+    }
     const hit = requireTarget(operation, opIndex); if (!hit) return;
     if (operation.op === 'updateField') setField(hit, operation.field, operation.value, operation, opIndex);
     if (['updateRecord', 'updateTask', 'updateMilestone'].includes(operation.op)) Object.entries(operation.changes || {}).forEach(([field, value]) => setField(hit, field, value, operation, opIndex));
@@ -43,6 +58,7 @@ export function previewEdit(input, options = {}) {
       const current = Array.isArray(hit.row.dependencies) ? [...hit.row.dependencies] : [], next = operation.op === 'addDependency' ? [...new Set([...current, operation.dependencyId])] : current.filter(id => id !== operation.dependencyId); setField(hit, 'dependencies', next, operation, opIndex);
     }
     if (operation.op === 'moveNode') setField(hit, 'position', operation.position, operation, opIndex);
+    if (operation.op === 'resizeNode') setField(hit, 'size', operation.size, operation, opIndex);
     if (operation.op === 'moveNodeToLane') setField(hit, 'laneId', operation.laneId, operation, opIndex);
     if (operation.op === 'updateEdge') Object.entries(operation.changes || {}).forEach(([field, value]) => setField(hit, field, value, operation, opIndex));
   });

@@ -1,0 +1,18 @@
+{
+  "name": "workflow-diagram",
+  "version": "2.0",
+  "intent": "workflow",
+  "spec": {
+    "type": "flow",
+    "renderer": "svg",
+    "diagram": { "layout": "layered", "routing": "orthogonal", "grid": 8 },
+    "nodes": [],
+    "edges": []
+  },
+  "commands": [
+    { "type": "layout-edit", "operations": [{ "op": "moveNode", "nodeId": "review", "position": { "x": 320, "y": 120 } }] },
+    { "type": "layout-edit", "operations": [{ "op": "resizeNode", "nodeId": "review", "size": { "width": 180, "height": 56 } }] },
+    { "type": "layout-edit", "reason": "Align selected workflow nodes", "operations": [{ "op": "alignNodes", "nodeIds": ["review", "qa"], "alignment": "left" }] },
+    { "type": "layout-edit", "reason": "Snap selected workflow nodes to grid", "operations": [{ "op": "snapNodes", "nodeIds": ["review", "qa"] }] }
+  ]
+}

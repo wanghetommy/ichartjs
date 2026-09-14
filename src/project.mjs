@@ -1,5 +1,10 @@
+/**
+ * Project-management and process visualization scene builders.
+ * Covers Gantt, timeline, milestone, burndown, flow, and swimlane views.
+ */
 import { Scene } from './scene.mjs';
 import { normalizeData } from './data.mjs';
+import { layoutDiagram, normalizeDiagramData, routeEdge } from './diagram.mjs';
 
 export const projectTypes = ['gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane'];
 const day = 86400000;
@@ -133,7 +138,8 @@ function burndownScene(scene, spec, rows, state) {
 }
 
 function diagramScene(scene, spec, rows, state) {
-  const plot = state.plot, edges = spec.edges ?? spec.data.edges ?? [], lanes = spec.lanes ?? spec.data.lanes ?? [];
+  const diagramSpec = normalizeDiagramData(spec), plot = state.plot, edges = diagramSpec.edges, lanes = diagramSpec.lanes, layout = layoutDiagram(diagramSpec, plot);
+  rows = diagramSpec.nodes;
   const ranks = new Map(rows.map(row => [row.id, 0]));
   const pending = new Map(rows.map(row => [row.id, edges.filter(edge => edge.to === row.id).length]));
   const queue = rows.filter(row => pending.get(row.id) === 0).map(row => row.id);
@@ -155,15 +161,28 @@ function diagramScene(scene, spec, rows, state) {
     const slotKey = `${lane}:${rank}`, slot = slots.get(slotKey) || 0;
     slots.set(slotKey, slot + 1);
     const sameCell = rows.filter(item => ranks.get(item.id) === rank && (!lanes.length || item.laneId === row.laneId)).length;
-    const geometry = { x: row.position?.x ?? plot.x + rank * gapX + 12, y: row.position?.y ?? plot.y + (lanes.length ? lane * laneHeight : 0) + (slot + 0.5) * (lanes.length ? laneHeight : Math.max(plot.height, sameCell * 64)) / sameCell - 18, width: 112, height: 36 };
+    const generated = layout[row.id];
+    const geometry = { x: row.position?.x ?? generated?.x ?? plot.x + rank * gapX + 12, y: row.position?.y ?? generated?.y ?? plot.y + (lanes.length ? lane * laneHeight : 0) + (slot + 0.5) * (lanes.length ? laneHeight : Math.max(plot.height, sameCell * 64)) / sameCell - 18, width: row.size?.width || 112, height: row.size?.height || 36 };
     positions.set(row.id, geometry);
     scene.add({ id: `node-${row.id}`, type: 'rect', geometry, bounds: { ...geometry }, style: { fill: spec.colors[lane % spec.colors.length] }, dataRef: { nodeId: row.id, dataIndex: index, datum: row }, interactive: true, zIndex: 2 });
+    (row.ports || []).forEach(port => { const point = port.side === 'left' ? { x: geometry.x, y: geometry.y + geometry.height * (port.offset ?? 0.5) } : port.side === 'top' ? { x: geometry.x + geometry.width * (port.offset ?? 0.5), y: geometry.y } : port.side === 'bottom' ? { x: geometry.x + geometry.width * (port.offset ?? 0.5), y: geometry.y + geometry.height } : { x: geometry.x + geometry.width, y: geometry.y + geometry.height * (port.offset ?? 0.5) }; scene.add({ id: `port-${row.id}-${port.id}`, type: 'circle', geometry: { cx: point.x, cy: point.y, r: 4 }, bounds: { x: point.x - 6, y: point.y - 6, width: 12, height: 12 }, style: { fill: '#ffffff', stroke: '#334155', strokeWidth: 1.5 }, dataRef: { nodeId: row.id, portId: port.id }, interactive: true, zIndex: 4 }); });
     text(scene, `node-label-${row.id}`, row.label || row.id, geometry.x + 56, geometry.y + 23, { fill: '#ffffff', textAnchor: 'middle' });
   });
+  const groups = spec.groups ?? spec.data.groups ?? [];
+  groups.forEach(group => {
+    const boxes = rows.filter(row => row.groupId === group.id).map(row => positions.get(row.id)).filter(Boolean);
+    if (!boxes.length) return;
+    const left = Math.min(...boxes.map(box => box.x)) - 16, top = Math.min(...boxes.map(box => box.y)) - 24, right = Math.max(...boxes.map(box => box.x + box.width)) + 16, bottom = Math.max(...boxes.map(box => box.y + box.height)) + 16;
+    scene.add({ id: `group-${group.id}`, type: 'rect', geometry: { x: left, y: top, width: right - left, height: bottom - top }, bounds: { x: left, y: top, width: right - left, height: bottom - top }, style: { fill: 'none', stroke: '#94a3b8', strokeWidth: 1.5, opacity: 0.8 }, dataRef: { groupId: group.id }, interactive: false, zIndex: 0 });
+    text(scene, `group-label-${group.id}`, group.label || group.id, left + 8, top + 15, { font: '600 11px system-ui' });
+  });
   edges.forEach((edge, index) => {
-    const from = positions.get(edge.from), to = positions.get(edge.to), middle = (from.x + from.width + to.x) / 2;
-    arrow(scene, `edge-${index}`, [{ x: from.x + from.width, y: from.y + 18 }, { x: middle, y: from.y + 18 }, { x: middle, y: to.y + 18 }, { x: to.x, y: to.y + 18 }], { from: edge.from, to: edge.to });
-    if (edge.label) text(scene, `edge-label-${index}`, edge.label, middle, (from.y + to.y) / 2 + 10, { textAnchor: 'middle', font: '11px system-ui' });
+    const from = positions.get(edge.from), to = positions.get(edge.to);
+    if (!from || !to) return;
+    const fromNode = rows.find(row => row.id === edge.from), toNode = rows.find(row => row.id === edge.to);
+    const points = routeEdge({ ...edge, fromPortDefinition: fromNode?.ports?.find(port => port.id === edge.fromPort), toPortDefinition: toNode?.ports?.find(port => port.id === edge.toPort) }, from, to, edge.routing || spec.diagram?.routing || 'orthogonal');
+    arrow(scene, `edge-${index}`, points, { from: edge.from, to: edge.to, edgeId: edge.id || `edge-${index}`, status: edge.status, routing: edge.routing || spec.diagram?.routing || 'orthogonal' }, edge.critical === true);
+    if (edge.label) { const middle = points[Math.floor(points.length / 2)]; text(scene, `edge-label-${index}`, edge.label, middle.x, middle.y - 8, { textAnchor: 'middle', font: '11px system-ui' }); }
   });
   state.nodePositions = Object.fromEntries(positions);
 }
@@ -208,10 +227,13 @@ export function rerouteDiagramScene(scene) {
     if (!node.id.startsWith('edge-') || !node.dataRef?.from || !node.dataRef?.to) return;
     const source = scene.find(`node-${node.dataRef.from}`), destination = scene.find(`node-${node.dataRef.to}`);
     if (!source || !destination) return;
-    const start = { x: source.geometry.x + source.geometry.width, y: source.geometry.y + source.geometry.height / 2 }, end = { x: destination.geometry.x, y: destination.geometry.y + destination.geometry.height / 2 }, middle = (start.x + end.x) / 2;
-    node.geometry.points = [start, { x: middle, y: start.y }, { x: middle, y: end.y }, end];
+    const start = { x: source.geometry.x + source.geometry.width, y: source.geometry.y + source.geometry.height / 2 }, end = { x: destination.geometry.x, y: destination.geometry.y + destination.geometry.height / 2 };
+    const middle = (start.x + end.x) / 2;
+    node.geometry.points = node.dataRef.routing === 'straight' ? [start, end] : node.dataRef.routing === 'curved' ? [start, { x: start.x + Math.max(30, Math.abs(end.x - start.x) * 0.4), y: start.y }, { x: end.x - Math.max(30, Math.abs(end.x - start.x) * 0.4), y: end.y }, end] : [start, { x: middle, y: start.y }, { x: middle, y: end.y }, end];
     const arrow = scene.find(`${node.id}-arrow`), beforeTip = node.geometry.points.at(-2);
     if (arrow) arrow.geometry.points = [end, { x: end.x - 7 * Math.cos(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) - Math.PI / 6), y: end.y - 7 * Math.sin(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) - Math.PI / 6) }, { x: end.x - 7 * Math.cos(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) + Math.PI / 6), y: end.y - 7 * Math.sin(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) + Math.PI / 6) }, end];
+    const edgeIndex = Number(node.id.slice(5)), label = scene.find(`edge-label-${edgeIndex}`), labelPoint = node.geometry.points[Math.floor(node.geometry.points.length / 2)];
+    if (label && labelPoint) { label.geometry.x = labelPoint.x; label.geometry.y = labelPoint.y - 8; }
   });
   return scene;
 }

@@ -1,3 +1,7 @@
+/**
+ * Data inspection, normalization, and immutable transformation pipeline.
+ * Provides the common row model consumed by chart and Agent APIs.
+ */
 function typeOf(values) {
   const usable = values.filter(value => value !== null && value !== undefined && value !== '');
   if (!usable.length) return 'unknown';

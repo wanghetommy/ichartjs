@@ -1,3 +1,7 @@
+/**
+ * Renderer-independent plugin lifecycle host and built-in plugin factories.
+ * Plugins extend chart behavior without changing the core scene contract.
+ */
 import { SceneNode } from './scene.mjs';
 
 export class PluginHost {

@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "source": "src/schema.mjs#getBusinessSchema",
+  "models": {
+    "project-task": { "key": "id", "required": ["id", "name", "start", "end"], "editable": ["name", "start", "end", "progress", "status", "dependencies"] },
+    "timeline-event": { "key": "id", "required": ["id", "title", "date"], "editable": ["title", "date", "description", "status"] },
+    "milestone": { "key": "id", "required": ["id", "title", "date"], "editable": ["title", "date", "status"] },
+    "burndown-sample": { "key": "id", "required": ["id", "date", "remaining"], "editable": ["date", "remaining", "scopeChange"] },
+    "flow-node": { "key": "id", "required": ["id", "label"], "editable": ["label", "position", "size", "laneId", "description", "status"] },
+    "flow-edge": { "key": "id", "required": ["id", "from", "to"], "editable": ["from", "to", "label"] },
+    "swimlane": { "key": "id", "required": ["id", "label"], "editable": ["label"] }
+  }
+}

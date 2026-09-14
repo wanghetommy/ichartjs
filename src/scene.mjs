@@ -1,3 +1,7 @@
+/**
+ * Renderer-independent Scene Graph nodes, traversal, lookup, and hit testing.
+ * Scene nodes carry geometry, style, data references, and interaction state.
+ */
 export class SceneNode {
   constructor(config = {}) {
     Object.assign(this, { id: '', type: 'group', geometry: {}, style: {}, children: [], dataRef: null, bounds: null, zIndex: 0, visible: true, interactive: false, selected: false, highlighted: false }, config);

@@ -13,11 +13,11 @@
 
 ### Current status
 
-4A–4E local runtime implementation is complete and the repository is at `2.0.0-rc.1` review stage. See `docs/agent/rc-1-acceptance.md` for passed gates and explicitly deferred host/device checks.
+4A–4E local runtime implementation is complete and the repository is at `2.0.0-rc.1` review stage. See `docs/agent/development/rc-1-acceptance.md` for passed gates and explicitly deferred host/device checks.
 
 ### Goal
 
-Make the runtime reliable for production Agent integrations and allow safe, explainable business-data edits. The complete task list is in `docs/agent/iteration-4.md`.
+Make the runtime reliable for production Agent integrations and allow safe, explainable business-data edits. The complete task list is in `docs/agent/development/iteration-4.md`.
 
 ### Tasks
 
@@ -51,11 +51,15 @@ Make the runtime reliable for production Agent integrations and allow safe, expl
 
 - `types/`
 - `docs/agent/api-reference.md`
-- `docs/agent/iteration-4.md`
+- `docs/agent/development/iteration-4.md`
 - `http://localhost:3000/playground/editing` (source page: `playground/editing.html`)
 - `agent-recipes/manifest.json`
 
 ## Iteration 5 — Advanced Diagram and Editing Runtime
+
+### Current status
+
+Initial Iteration 5 runtime is implemented: normalized diagram models, deterministic layouts, routing modes, node size support, diagram validation, Agent capability discovery, shared edit history, and a viewable editor demo at `http://localhost:3000/playground/diagram-editor`. Advanced group/port editing, multi-select, copy/paste, and full routing obstacle avoidance remain later Iteration 5 increments.
 
 ### Goal
 

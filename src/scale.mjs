@@ -1,3 +1,7 @@
+/**
+ * Coordinate scale primitives for category, linear, time, and logarithmic axes.
+ * Scales map normalized values to plot coordinates and generate ticks.
+ */
 export class Scale {
   constructor({ type = 'linear', domain = [0, 1], range = [0, 1], categories = [] } = {}) { this.type = type; this.domain = domain; this.range = range; this.categories = categories; }
   map(value) { if (this.type === 'category') { const index = this.categories.indexOf(String(value)); return this.range[0] + (index + 0.5) * (this.range[1] - this.range[0]) / Math.max(1, this.categories.length); } const logarithmic = this.type === 'log'; const numeric = this.type === 'time' ? new Date(value).getTime() : logarithmic ? Math.log10(Math.max(0.000001, Number(value))) : Number(value); const start = this.type === 'time' ? new Date(this.domain[0]).getTime() : logarithmic ? Math.log10(Math.max(0.000001, Number(this.domain[0]))) : Number(this.domain[0]); const end = this.type === 'time' ? new Date(this.domain[1]).getTime() : logarithmic ? Math.log10(Math.max(0.000001, Number(this.domain[1]))) : Number(this.domain[1]); return this.range[0] + ((numeric - start) / ((end - start) || 1)) * (this.range[1] - this.range[0]); }

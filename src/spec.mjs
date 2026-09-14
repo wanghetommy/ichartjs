@@ -1,3 +1,7 @@
+/**
+ * Chart Spec defaults, normalization, and top-level validation.
+ * The normalized Spec is the stable contract shared by all renderers.
+ */
 const chartTypes = new Set(['line', 'area', 'bar', 'column', 'pie', 'scatter', 'funnel', 'gauge', 'gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane']);
 
 const defaults = {

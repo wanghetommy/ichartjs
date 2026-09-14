@@ -1,31 +1,41 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>iChart.js 2.0 Project Gallery</title>
+  <title>iChart.js 2.0 — Complete Chart Gallery</title>
   <style>
-    body { margin: 0; padding: 24px; background: #f1f5f9; color: #0f172a; font: 14px system-ui, sans-serif; }
-    h1 { margin: 0 0 8px; } p { color: #475569; }
-    main { max-width: 1200px; margin: auto; } .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; }
-    article { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px #0f172a0d; }
-    h2 { font-size: 16px; margin: 0 0 10px; } .chart { min-height: 260px; } pre { overflow: auto; max-height: 130px; background: #f8fafc; padding: 8px; font-size: 11px; }
+    :root{color-scheme:light}*{box-sizing:border-box}body{margin:0;padding:24px;background:#f1f5f9;color:#0f172a;font:14px system-ui,-apple-system,sans-serif}main{max-width:1280px;margin:auto}header{display:flex;gap:16px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}h1{margin:0 0 6px;font-size:28px}p{margin:0;color:#475569}.filters{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.filters button{border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:999px;padding:8px 14px;cursor:pointer}.filters button.active{background:#2563eb;border-color:#2563eb;color:#fff}.summary{color:#64748b;font-size:13px;margin-bottom:14px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px}article{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;box-shadow:0 2px 8px #0f172a0d}article.hidden{display:none}.card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}h2{font-size:16px;margin:0}.badge{font-size:11px;border-radius:999px;padding:3px 8px;background:#e0f2fe;color:#0369a1}.chart{height:280px;border:1px solid #f1f5f9;border-radius:8px;overflow:hidden}.meta{display:flex;justify-content:space-between;gap:8px;color:#64748b;font-size:12px;margin-top:10px}.status{font-size:12px;margin-top:8px}.status.ok{color:#15803d}.status.error{color:#b91c1c}pre{overflow:auto;max-height:115px;background:#f8fafc;padding:8px;font-size:11px;margin:10px 0 0}
   </style>
 </head>
-<body>
-<main><h1>iChart.js 2.0 Project Gallery</h1><p>Iteration 3 demo: project management and process visualization. Serve over HTTP.</p><section class="grid" id="gallery"></section></main>
+<body><main>
+  <header><div><h1>iChart.js 2.0 Complete Gallery</h1><p>所有已实现图表类型的统一浏览器验收入口；每次迭代优先检查此页面。</p></div><p id="count"></p></header>
+  <nav class="filters" aria-label="Chart categories"><button class="active" data-filter="all">全部</button><button data-filter="basic">基础图表</button><button data-filter="statistical">分析图表</button><button data-filter="project">项目管理</button><button data-filter="diagram">流程图表</button></nav>
+  <div class="summary">分类筛选只隐藏卡片，不改变图表实例；卡片中的 Renderer、数据和错误状态用于快速回归。</div>
+  <section class="grid" id="gallery"></section>
+</main>
 <script type="module">
-import { createChart } from '../src/index.mjs';
+import { createChart, getCapabilities } from '../src/index.mjs';
+const colors = ['#2563eb','#16a34a','#f59e0b','#dc2626','#7c3aed'];
+const common = { width: 560, height: 280, interaction: { tooltip:true, hover:true, pan:true, zoom:true, keyboard:true }, accessibility:{ enabled:true } };
 const items = [
-  ['Gantt', { type: 'gantt', renderer: 'svg', data: [{ id: 'design', name: 'Design', start: '2026-09-01', end: '2026-09-05', progress: 1 }, { id: 'build', name: 'Build', start: '2026-09-06', end: '2026-09-15', progress: .6 }, { id: 'qa', name: 'QA', start: '2026-09-16', end: '2026-09-19', progress: .2 }] }],
-  ['Timeline', { type: 'timeline', renderer: 'svg', data: [{ date: '2026-09-01', title: 'Kickoff' }, { date: '2026-09-08', title: 'Beta' }, { date: '2026-09-19', title: 'Release' }] }],
-  ['Milestones', { type: 'milestone', renderer: 'canvas', data: [{ date: '2026-09-03', title: 'Design approved' }, { date: '2026-09-12', title: 'Feature complete' }, { date: '2026-09-19', title: 'Release' }] }],
-  ['Burndown', { type: 'burndown', renderer: 'svg', data: [{ date: '2026-09-01', remaining: 40 }, { date: '2026-09-05', remaining: 32 }, { date: '2026-09-10', remaining: 20 }, { date: '2026-09-15', remaining: 8 }, { date: '2026-09-19', remaining: 0 }] }],
-  ['Flow', { type: 'flow', renderer: 'svg', interaction: { drag: true }, nodes: [{ id: 'start', label: 'Start' }, { id: 'review', label: 'Review' }, { id: 'done', label: 'Done' }], edges: [{ from: 'start', to: 'review' }, { from: 'review', to: 'done' }] }],
-  ['Swimlane', { type: 'swimlane', renderer: 'svg', lanes: [{ id: 'product', label: 'Product' }, { id: 'agent', label: 'Agent' }, { id: 'dev', label: 'Development' }], nodes: [{ id: 'request', label: 'Request', laneId: 'product' }, { id: 'plan', label: 'Plan', laneId: 'agent' }, { id: 'ship', label: 'Ship', laneId: 'dev' }], edges: [{ from: 'request', to: 'plan' }, { from: 'plan', to: 'ship' }] }]
+  {id:'line',name:'Line',category:'basic',renderer:'svg',spec:{type:'line',renderer:'svg',data:[{name:'Jan',value:18},{name:'Feb',value:28},{name:'Mar',value:22},{name:'Apr',value:36},{name:'May',value:31}],title:{text:'Monthly trend'}}},
+  {id:'area',name:'Area',category:'basic',renderer:'canvas',spec:{type:'area',renderer:'canvas',data:[{name:'Jan',value:12},{name:'Feb',value:24},{name:'Mar',value:20},{name:'Apr',value:34},{name:'May',value:30}],title:{text:'Area trend'}}},
+  {id:'bar',name:'Bar',category:'basic',renderer:'svg',spec:{type:'bar',renderer:'svg',data:[{name:'Alpha',value:24},{name:'Beta',value:18},{name:'Gamma',value:32},{name:'Delta',value:27}]}},
+  {id:'column',name:'Column',category:'basic',renderer:'canvas',spec:{type:'column',renderer:'canvas',data:[{name:'Q1',value:42},{name:'Q2',value:58},{name:'Q3',value:48},{name:'Q4',value:72}]}},
+  {id:'pie',name:'Pie',category:'basic',renderer:'svg',spec:{type:'pie',renderer:'svg',data:[{name:'Product',value:42},{name:'Service',value:28},{name:'Other',value:18}]}},
+  {id:'scatter',name:'Scatter',category:'statistical',renderer:'canvas',spec:{type:'scatter',renderer:'canvas',data:[{name:1,value:12},{name:2,value:19},{name:3,value:15},{name:4,value:28},{name:5,value:24}]}},
+  {id:'funnel',name:'Funnel',category:'statistical',renderer:'svg',spec:{type:'funnel',renderer:'svg',data:[{name:'Visit',value:100},{name:'Signup',value:72},{name:'Trial',value:48},{name:'Paid',value:26}]}},
+  {id:'gauge',name:'Gauge',category:'statistical',renderer:'canvas',spec:{type:'gauge',renderer:'canvas',data:[{name:'SLA',value:82}]}},
+  {id:'gantt',name:'Gantt',category:'project',renderer:'svg',spec:{type:'gantt',renderer:'svg',data:[{id:'design',name:'Design',start:'2026-09-01',end:'2026-09-05',progress:1},{id:'build',name:'Build',start:'2026-09-06',end:'2026-09-15',progress:.6,dependencies:['design']},{id:'qa',name:'QA',start:'2026-09-16',end:'2026-09-19',progress:.2,dependencies:['build']}] }},
+  {id:'timeline',name:'Timeline',category:'project',renderer:'svg',spec:{type:'timeline',renderer:'svg',data:[{date:'2026-09-01',title:'Kickoff'},{date:'2026-09-08',title:'Beta'},{date:'2026-09-19',title:'Release'}]}},
+  {id:'milestone',name:'Milestone',category:'project',renderer:'canvas',spec:{type:'milestone',renderer:'canvas',data:[{date:'2026-09-03',title:'Design approved'},{date:'2026-09-12',title:'Feature complete'},{date:'2026-09-19',title:'Release'}]}},
+  {id:'burndown',name:'Burndown',category:'project',renderer:'svg',spec:{type:'burndown',renderer:'svg',data:[{date:'2026-09-01',remaining:40},{date:'2026-09-05',remaining:32,scopeChange:4},{date:'2026-09-10',remaining:20},{date:'2026-09-15',remaining:8},{date:'2026-09-19',remaining:0}]}},
+  {id:'flow',name:'Flow',category:'diagram',renderer:'svg',spec:{type:'flow',renderer:'svg',nodes:[{id:'start',label:'Start',position:{x:72,y:110}},{id:'review',label:'Review',position:{x:250,y:80}},{id:'done',label:'Done',position:{x:440,y:110}}],edges:[{from:'start',to:'review'},{from:'review',to:'done'}]}},
+  {id:'swimlane',name:'Swimlane',category:'diagram',renderer:'svg',spec:{type:'swimlane',renderer:'svg',lanes:[{id:'product',label:'Product'},{id:'agent',label:'Agent'},{id:'dev',label:'Development'}],nodes:[{id:'request',label:'Request',laneId:'product'},{id:'plan',label:'Plan',laneId:'agent'},{id:'ship',label:'Ship',laneId:'dev'}],edges:[{from:'request',to:'plan'},{from:'plan',to:'ship'}]}}
 ];
-const gallery = document.querySelector('#gallery');
-items.forEach(([name, spec], index) => { const article = document.createElement('article'); article.innerHTML = `<h2>${name}</h2><div class="chart" id="chart-${index}"></div><pre>${JSON.stringify(spec, null, 2)}</pre>`; gallery.appendChild(article); createChart({ ...spec, container: `#chart-${index}`, width: 520, height: 280, interaction: { ...(spec.interaction || {}), pan: true, zoom: true, tooltip: true, keyboard: true }, accessibility: { enabled: true } }); });
-</script>
-</body>
-</html>
+const gallery=document.querySelector('#gallery'), count=document.querySelector('#count');
+document.querySelectorAll('[data-filter]').forEach(button=>button.onclick=()=>{document.querySelectorAll('[data-filter]').forEach(item=>item.classList.toggle('active',item===button));const filter=button.dataset.filter;items.forEach(item=>document.querySelector(`[data-card="${item.id}"]`).classList.toggle('hidden',filter!=='all'&&item.category!==filter));count.textContent=`显示 ${filter==='all'?items.length:items.filter(item=>item.category===filter).length} / ${items.length} 个图表`;});
+items.forEach((item,index)=>{const card=document.createElement('article');card.dataset.card=item.id;card.innerHTML=`<div class="card-head"><h2>${item.name}</h2><span class="badge">${item.category} · ${item.renderer}</span></div><div class="chart" id="gallery-${index}"></div><div class="meta"><span>type: ${item.spec.type}</span><span class="status" id="status-${index}">initializing…</span></div><details><summary>查看 Spec</summary><pre>${JSON.stringify(item.spec,null,2)}</pre></details>`;gallery.appendChild(card);try{createChart({...common,...item.spec,container:`#gallery-${index}`,width:560,height:280});document.querySelector(`#status-${index}`).textContent='ready';document.querySelector(`#status-${index}`).className='status ok';}catch(error){document.querySelector(`#status-${index}`).textContent=error.message;document.querySelector(`#status-${index}`).className='status error';}});
+count.textContent=`显示 ${items.length} / ${items.length} 个图表`;document.title=`iChart.js 2.0 Gallery · ${getCapabilities().chartTypes.length} chart types`;
+</script></body></html>
