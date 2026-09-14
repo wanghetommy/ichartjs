@@ -1,0 +1,19 @@
+{
+  "name": "project-management-views",
+  "version": "2.0",
+  "intentMappings": {
+    "schedule": "gantt",
+    "milestone": "milestone",
+    "progress": "burndown",
+    "workflow": "flow",
+    "responsibility": "swimlane"
+  },
+  "examples": {
+    "gantt": { "type": "gantt", "renderer": "svg", "data": [{ "id": "design", "name": "Design", "start": "2026-09-01", "end": "2026-09-05", "progress": 1 }] },
+    "timeline": { "type": "timeline", "renderer": "svg", "data": [{ "date": "2026-09-01", "title": "Kickoff" }] },
+    "milestone": { "type": "milestone", "renderer": "svg", "data": [{ "date": "2026-09-19", "title": "Release" }] },
+    "burndown": { "type": "burndown", "renderer": "svg", "data": [{ "date": "2026-09-01", "remaining": 40 }, { "date": "2026-09-19", "remaining": 0 }] },
+    "flow": { "type": "flow", "renderer": "svg", "nodes": [{ "id": "start", "label": "Start" }, { "id": "done", "label": "Done" }], "edges": [{ "from": "start", "to": "done" }] },
+    "swimlane": { "type": "swimlane", "renderer": "svg", "lanes": [{ "id": "agent", "label": "Agent" }], "nodes": [{ "id": "plan", "label": "Plan", "laneId": "agent" }], "edges": [] }
+  }
+}

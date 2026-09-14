@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>iChart.js 2.0 Project Gallery</title>
+  <style>
+    body { margin: 0; padding: 24px; background: #f1f5f9; color: #0f172a; font: 14px system-ui, sans-serif; }
+    h1 { margin: 0 0 8px; } p { color: #475569; }
+    main { max-width: 1200px; margin: auto; } .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; }
+    article { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px #0f172a0d; }
+    h2 { font-size: 16px; margin: 0 0 10px; } .chart { min-height: 260px; } pre { overflow: auto; max-height: 130px; background: #f8fafc; padding: 8px; font-size: 11px; }
+  </style>
+</head>
+<body>
+<main><h1>iChart.js 2.0 Project Gallery</h1><p>Iteration 3 demo: project management and process visualization. Serve over HTTP.</p><section class="grid" id="gallery"></section></main>
+<script type="module">
+import { createChart } from '../src/index.mjs';
+const items = [
+  ['Gantt', { type: 'gantt', renderer: 'svg', data: [{ id: 'design', name: 'Design', start: '2026-09-01', end: '2026-09-05', progress: 1 }, { id: 'build', name: 'Build', start: '2026-09-06', end: '2026-09-15', progress: .6 }, { id: 'qa', name: 'QA', start: '2026-09-16', end: '2026-09-19', progress: .2 }] }],
+  ['Timeline', { type: 'timeline', renderer: 'svg', data: [{ date: '2026-09-01', title: 'Kickoff' }, { date: '2026-09-08', title: 'Beta' }, { date: '2026-09-19', title: 'Release' }] }],
+  ['Milestones', { type: 'milestone', renderer: 'canvas', data: [{ date: '2026-09-03', title: 'Design approved' }, { date: '2026-09-12', title: 'Feature complete' }, { date: '2026-09-19', title: 'Release' }] }],
+  ['Burndown', { type: 'burndown', renderer: 'svg', data: [{ date: '2026-09-01', remaining: 40 }, { date: '2026-09-05', remaining: 32 }, { date: '2026-09-10', remaining: 20 }, { date: '2026-09-15', remaining: 8 }, { date: '2026-09-19', remaining: 0 }] }],
+  ['Flow', { type: 'flow', renderer: 'svg', interaction: { drag: true }, nodes: [{ id: 'start', label: 'Start' }, { id: 'review', label: 'Review' }, { id: 'done', label: 'Done' }], edges: [{ from: 'start', to: 'review' }, { from: 'review', to: 'done' }] }],
+  ['Swimlane', { type: 'swimlane', renderer: 'svg', lanes: [{ id: 'product', label: 'Product' }, { id: 'agent', label: 'Agent' }, { id: 'dev', label: 'Development' }], nodes: [{ id: 'request', label: 'Request', laneId: 'product' }, { id: 'plan', label: 'Plan', laneId: 'agent' }, { id: 'ship', label: 'Ship', laneId: 'dev' }], edges: [{ from: 'request', to: 'plan' }, { from: 'plan', to: 'ship' }] }]
+];
+const gallery = document.querySelector('#gallery');
+items.forEach(([name, spec], index) => { const article = document.createElement('article'); article.innerHTML = `<h2>${name}</h2><div class="chart" id="chart-${index}"></div><pre>${JSON.stringify(spec, null, 2)}</pre>`; gallery.appendChild(article); createChart({ ...spec, container: `#chart-${index}`, width: 520, height: 280, interaction: { ...(spec.interaction || {}), pan: true, zoom: true, tooltip: true, keyboard: true }, accessibility: { enabled: true } }); });
+</script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>iChart.js 2.0 Alpha</title>
+  <style>
+    body { font: 14px system-ui, sans-serif; margin: 24px; color: #0f172a; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px; }
+    .chart { min-height: 360px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; }
+    .chart canvas, .chart svg { max-width: 100%; height: auto; }
+    .ichart-v2-tooltip { box-shadow: 0 4px 12px #0003; }
+  </style>
+</head>
+<body>
+  <h1>iChart.js 2.0 Alpha</h1>
+  <p>同一类 Chart Spec 分别使用 Canvas 与 SVG Renderer。</p>
+  <div class="grid">
+    <div id="canvas-chart" class="chart"></div>
+    <div id="svg-chart" class="chart"></div>
+  </div>
+  <script>
+    // The standalone fallback keeps this demo viewable from file:// URLs.
+    // For module-based integration, use src/index.mjs from an HTTP server.
+    function createChart(options) {
+      const container = document.querySelector(options.container);
+      const values = options.data.values;
+      const width = options.width || 640;
+      const height = options.height || 360;
+      const xField = options.encoding.x.field;
+      const yField = options.encoding.y.field;
+      const padding = { top: 48, right: 24, bottom: 48, left: 56 };
+      const plotWidth = width - padding.left - padding.right;
+      const plotHeight = height - padding.top - padding.bottom;
+      const max = Math.max(...values.map(row => Number(row[yField]) || 0), 1);
+      const point = (row, index) => ({
+        x: padding.left + (index + 0.5) * plotWidth / values.length,
+        y: padding.top + plotHeight - (Number(row[yField]) || 0) / max * plotHeight
+      });
+      if (options.renderer === 'svg') {
+        const ns = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(ns, 'svg');
+        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        svg.setAttribute('width', width);
+        svg.setAttribute('height', height);
+        svg.innerHTML = `<rect width="100%" height="100%" fill="#fff"/><line x1="${padding.left}" y1="${padding.top + plotHeight}" x2="${padding.left + plotWidth}" y2="${padding.top + plotHeight}" stroke="#94a3b8"/><line x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${padding.top + plotHeight}" stroke="#94a3b8"/>`;
+        const points = values.map(point);
+        const path = document.createElementNS(ns, 'path');
+        path.setAttribute('d', points.map((item, index) => `${index ? 'L' : 'M'} ${item.x} ${item.y}`).join(' '));
+        path.setAttribute('fill', 'none'); path.setAttribute('stroke', '#2563eb'); path.setAttribute('stroke-width', '2'); svg.appendChild(path);
+        values.forEach((row, index) => { const item = point(row, index); const circle = document.createElementNS(ns, 'circle'); circle.setAttribute('cx', item.x); circle.setAttribute('cy', item.y); circle.setAttribute('r', '5'); circle.setAttribute('fill', '#2563eb'); circle.addEventListener('click', () => alert(`${row[xField]}: ${row[yField]}`)); svg.appendChild(circle); const label = document.createElementNS(ns, 'text'); label.setAttribute('x', item.x); label.setAttribute('y', padding.top + plotHeight + 22); label.setAttribute('text-anchor', 'middle'); label.setAttribute('font-size', '12'); label.textContent = row[xField]; svg.appendChild(label); });
+        container.replaceChildren(svg);
+      } else {
+        const canvas = document.createElement('canvas'); canvas.width = width * 2; canvas.height = height * 2; canvas.style.width = `${width}px`; canvas.style.height = `${height}px`; const ctx = canvas.getContext('2d'); ctx.scale(2, 2); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, width, height); ctx.strokeStyle = '#94a3b8'; ctx.beginPath(); ctx.moveTo(padding.left, padding.top + plotHeight); ctx.lineTo(padding.left + plotWidth, padding.top + plotHeight); ctx.moveTo(padding.left, padding.top); ctx.lineTo(padding.left, padding.top + plotHeight); ctx.stroke(); const points = values.map(point); ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 2; ctx.beginPath(); points.forEach((item, index) => index ? ctx.lineTo(item.x, item.y) : ctx.moveTo(item.x, item.y)); ctx.stroke(); values.forEach((row, index) => { const item = point(row, index); ctx.fillStyle = '#2563eb'; ctx.beginPath(); ctx.arc(item.x, item.y, 5, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#475569'; ctx.font = '12px system-ui'; ctx.textAlign = 'center'; ctx.fillText(row[xField], item.x, padding.top + plotHeight + 22); }); container.replaceChildren(canvas);
+      }
+    }
+    const data = { values: [
+      { month: 'Jan', sales: 120 }, { month: 'Feb', sales: 180 },
+      { month: 'Mar', sales: 145 }, { month: 'Apr', sales: 230 },
+      { month: 'May', sales: 205 }
+    ] };
+    const base = { type: 'line', data, encoding: { x: { field: 'month' }, y: { field: 'sales' } }, title: { text: 'Monthly Sales' } };
+    createChart({ ...base, container: '#canvas-chart', renderer: 'canvas' });
+    createChart({ ...base, container: '#svg-chart', renderer: 'svg' });
+  </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "monthly-sales-trend",
+  "intent": "trend",
+  "inputData": [
+    { "month": "Jan", "sales": 120 },
+    { "month": "Feb", "sales": 180 },
+    { "month": "Mar", "sales": 145 }
+  ],
+  "spec": {
+    "version": "2.0",
+    "type": "line",
+    "renderer": "svg",
+    "data": { "values": [] },
+    "encoding": {
+      "x": { "field": "month", "type": "category" },
+      "y": { "field": "sales", "type": "quantitative" }
+    },
+    "interaction": { "tooltip": true, "hover": true, "click": true }
+  },
+  "expected": { "chartType": "line", "dimension": "month", "measure": "sales" }
+}

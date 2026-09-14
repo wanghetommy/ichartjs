@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>iChart.js 2.0 Iteration 2</title>
+  <style>
+    body { margin: 24px; font: 14px system-ui, sans-serif; color: #0f172a; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; }
+    .card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; min-height: 360px; }
+    .card h2 { font-size: 15px; margin: 4px 8px 8px; }
+    .card canvas, .card svg { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+  <h1>Iteration 2 可验收 Demo</h1>
+  <p>展示新增的 Scale、主题、Agent 能力和基础新增图表类型。请通过 HTTP 服务打开本页。</p>
+  <div class="grid">
+    <section class="card"><h2>Scatter / SVG</h2><div id="scatter"></div></section>
+    <section class="card"><h2>Funnel / Canvas</h2><div id="funnel"></div></section>
+    <section class="card"><h2>Gauge / SVG</h2><div id="gauge"></div></section>
+    <section class="card"><h2>Dark Theme / SVG + Zoom + Crosshair</h2><div id="dark"></div></section>
+  </div>
+  <script type="module">
+    import { createChart, getCapabilities, inspectData } from '../src/index.mjs';
+    import { dataLabelsPlugin } from '../src/plugin.mjs';
+    const points = Array.from({ length: 12 }, (_, index) => ({ x: index + 1, y: (index * 17) % 90 + 10 }));
+    createChart({ container: '#scatter', type: 'scatter', renderer: 'svg', data: { values: points }, encoding: { x: { field: 'x' }, y: { field: 'y' } }, title: { text: 'Scatter' }, accessibility: { enabled: true } });
+    createChart({ container: '#funnel', type: 'funnel', renderer: 'canvas', data: { values: [{ name: 'Visits', value: 1000 }, { name: 'Leads', value: 620 }, { name: 'Deals', value: 180 }] }, title: { text: 'Funnel' } });
+    createChart({ container: '#gauge', type: 'gauge', renderer: 'svg', data: { values: [{ value: 72 }] }, title: { text: 'Gauge' }, accessibility: { enabled: true, description: '完成率 72%' } });
+    createChart({ container: '#dark', type: 'line', renderer: 'svg', theme: 'dark', background: '#0f172a', interaction: { tooltip: 'axis', hover: true, click: true, crosshair: true, zoom: true, pan: true }, plugins: [dataLabelsPlugin()], accessibility: { enabled: true }, data: { values: [{ name: 'Q1', value: 22 }, { name: 'Q2', value: 48 }, { name: 'Q3', value: 36 }, { name: 'Q4', value: 70 }, { name: 'Q5', value: 82 }, { name: 'Q6', value: 60 }] }, title: { text: 'Dark Theme' } });
+    console.log('Capabilities:', getCapabilities());
+    console.log('Data inspection:', inspectData(points));
+  </script>
+</body>
+</html>

@@ -1,17 +1,12 @@
 {
   "name": "ichartjs",
-  "version": "1.2.1",
-  "description": "ichartjs project",
+  "version": "2.0.0-rc.1",
+  "description": "ichartjs project with the 2.0 Agent-first core",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check src/index.mjs && node --check src/charts.mjs && node --check src/renderer.mjs && node --check src/edit-controller.mjs",
+    "rc:check": "npm test && npm run check && git diff --check"
   },
   "author": "taylor",
-  "license": "apache license 2.0",
-  "devDependencies": {
-    "grunt": "~1.0.0",
-    "grunt-contrib-concat": "^1.0.1",
-    "grunt-contrib-jshint": "~1.1.0",
-    "grunt-contrib-nodeunit": "~1.0.0",
-    "grunt-contrib-uglify": "~3.0.1"
-  }
+  "license": "apache license 2.0"
 }
