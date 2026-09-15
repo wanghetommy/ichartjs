@@ -2,13 +2,13 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>iChart.js 2.0 Iteration 5B Diagram Editor</title>
+<title>iChart.js 2.0 Iteration 5 Diagram Editor</title>
 <style>
 body{margin:0;padding:24px;background:#f1f5f9;color:#0f172a;font:14px system-ui,sans-serif}main{max-width:1080px;margin:auto}.panel{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin:16px 0}#chart{min-height:420px;border:1px solid #e2e8f0;border-radius:8px}button{border:0;border-radius:6px;padding:9px 12px;background:#2563eb;color:#fff;cursor:pointer;margin:4px}button.secondary{background:#475569}button:disabled{opacity:.5;cursor:not-allowed}.toolbar{display:flex;flex-wrap:wrap;gap:4px}.ok{color:#15803d}.warn{color:#b45309}pre{overflow:auto;background:#f8fafc;padding:12px;font-size:12px}
 </style></head>
-<body><main><h1>Iteration 5B — Diagram Editor</h1><p>Shift/⌘ 点击多选节点；拖动节点；方向键移动；支持 Group、Port、对齐、8px 吸附和共享 Undo/Redo。</p>
-<section class="panel"><div id="chart"></div><div class="toolbar"><button id="select">Select Review + QA</button><button id="left">Align Left</button><button id="center">Align Center</button><button id="snap">Snap 8px</button><button id="resize">Resize Review</button><button id="undo" class="secondary" disabled>Undo</button><button id="redo" class="secondary" disabled>Redo</button><button id="reset" class="secondary">Reset</button></div><p id="status" class="ok">Ready.</p></section>
-<section class="panel"><h2>Selection and normalized state</h2><pre id="output"></pre></section></main>
+<body><main><h1>Iteration 5 — Diagram Editor</h1><p>Shift/⌘ 点击多选节点；拖动 Port 连线，或用 Tab 聚焦 Port、Enter 开始/完成、Escape 取消；支持 Group 移动、复制、安全解组与级联删除。</p>
+<section class="panel"><div id="chart"></div><div class="toolbar"><button id="select">Select Review + QA</button><button id="copy">Copy</button><button id="paste">Paste</button><button id="collapse">Toggle Group</button><button id="move-group">Move Group</button><button id="resize-group">Resize Group</button><button id="duplicate-group">Duplicate Group</button><button id="delete-group">Delete Group (Ungroup)</button><button id="add-done">Add Done to Group</button><button id="remove-selected">Remove Selected from Group</button><button id="connect">Connect Start → Done</button><button id="left">Align Left</button><button id="center">Align Center</button><button id="snap">Snap 8px</button><button id="resize">Resize Review</button><button id="undo" class="secondary" disabled>Undo</button><button id="redo" class="secondary" disabled>Redo</button><button id="reset" class="secondary">Reset</button></div><p id="status" class="ok">Ready.</p></section>
+<section class="panel"><h2>Selection, clipboard, collapsed groups, and normalized state</h2><pre id="output"></pre></section></main>
 <script type="module">
 import { createChart, getBusinessSchema, validateDiagram } from '../src/index.mjs';
 const initialNodes = [
@@ -18,17 +18,32 @@ const initialNodes = [
   { id:'done', label:'Done', position:{x:570,y:165}, ports:[{id:'in',side:'left',offset:.5}] }
 ];
 const initialEdges = [{id:'start-review',from:'start',to:'review',toPort:'in',label:'submit'},{id:'review-qa',from:'review',to:'qa',fromPort:'out',toPort:'in',label:'verify'},{id:'qa-done',from:'qa',to:'done',fromPort:'out',toPort:'in',label:'release'}];
-const chart = createChart({container:'#chart',type:'flow',renderer:'svg',width:1000,height:420,nodes:initialNodes,edges:initialEdges,groups:[{id:'delivery',label:'Delivery group'}],data:{schema:getBusinessSchema('flow-node')},diagram:{layout:'manual',routing:'orthogonal',grid:8},accessibility:{enabled:true},interaction:{tooltip:true,hover:true,drag:true,pan:true,zoom:true,keyboard:true},editing:{enabled:true,requireConfirmation:false}});
+const deepClone = value => JSON.parse(JSON.stringify(value));
+const chart = createChart({container:'#chart',type:'flow',renderer:'svg',width:1000,height:420,nodes:deepClone(initialNodes),edges:deepClone(initialEdges),groups:[{id:'delivery',label:'Delivery group'}],data:{schema:getBusinessSchema('flow-node'),edgeSchema:getBusinessSchema('flow-edge')},diagram:{layout:'manual',routing:'orthogonal',grid:8},accessibility:{enabled:true},interaction:{tooltip:true,hover:true,drag:true,pan:true,zoom:true,keyboard:true},editing:{enabled:true,requireConfirmation:false,allowStructuralChanges:true}});
 const output=document.querySelector('#output'),status=document.querySelector('#status'),undo=document.querySelector('#undo'),redo=document.querySelector('#redo');
-const refresh=(message,result={valid:true})=>{status.className=result.valid===false?'warn':'ok';status.textContent=message;output.textContent=JSON.stringify({selected:chart.getSelectedNodeIds(),selectedData:chart.getSelectedData(),state:chart.getState(),validation:validateDiagram(chart.getSpec())},null,2);const history=chart.getState().history;undo.disabled=!history.undo;redo.disabled=!history.redo;};
+const refresh=(message,result={valid:true})=>{status.className=result.valid===false?'warn':'ok';status.textContent=message;output.textContent=JSON.stringify({selected:chart.getSelectedNodeIds(),selectedData:chart.getSelectedData(),clipboard:chart.getClipboard(),collapsedGroups:chart.getCollapsedGroupIds(),state:chart.getState(),validation:validateDiagram(chart.getSpec())},null,2);const history=chart.getState().history;undo.disabled=!history.undo;redo.disabled=!history.redo;};
 chart.on('selectionchange',()=>refresh(`Selected: ${chart.getSelectedNodeIds().join(', ')||'none'}`));
+chart.on('clipboardchange',event=>refresh(`Clipboard updated (${event.clipboard.nodes.length} nodes).`));
+chart.on('groupcollapsechange',event=>refresh(`Collapsed groups: ${event.collapsedGroups.join(', ')||'none'}.`));
+chart.on('connectionpreview',event=>refresh(`Connecting from ${event.source.nodeId}${event.source.portId?`:${event.source.portId}`:''}...`));
+chart.on('connectioncancel',()=>refresh('Connection cancelled.'));
 const run=(action,success)=>{const result=action();refresh(result.valid?success:result.errors.map(error=>error.message).join(' '),result);};
 document.querySelector('#select').onclick=()=>{chart.selectNodes(['review','qa']);refresh('Review and QA selected.');};
+document.querySelector('#copy').onclick=()=>run(()=>chart.copySelection(),'Selection copied to clipboard.');
+document.querySelector('#paste').onclick=()=>run(()=>chart.pasteSelection({confirmed:true,source:'diagram-demo'}),'Clipboard pasted with deterministic IDs and internal edges.');
+document.querySelector('#collapse').onclick=()=>run(()=>chart.toggleGroupCollapse('delivery',{confirmed:true,source:'diagram-demo'}),'Delivery group toggled.');
+document.querySelector('#move-group').onclick=()=>run(()=>chart.moveGroupBy('delivery',{x:16,y:8},{source:'diagram-demo'}),'Delivery group moved by 16×8.');
+document.querySelector('#resize-group').onclick=()=>run(()=>chart.resizeGroup('delivery',{width:240,height:180},{source:'diagram-demo'}),'Delivery member bounds resized to 240×180.');
+document.querySelector('#duplicate-group').onclick=()=>run(()=>chart.duplicateGroup('delivery',{confirmed:true,source:'diagram-demo'}),'Delivery group duplicated with deterministic IDs.');
+document.querySelector('#delete-group').onclick=()=>run(()=>chart.deleteGroup('delivery',{confirmed:true,policy:'ungroup',source:'diagram-demo'}),'Delivery group removed; member nodes preserved.');
+document.querySelector('#add-done').onclick=()=>{chart.selectNodes(['done']);run(()=>chart.assignSelectedToGroup('delivery',{confirmed:true,source:'diagram-demo'}),'Done added to Delivery group.');};
+document.querySelector('#remove-selected').onclick=()=>run(()=>chart.assignSelectedToGroup(null,{confirmed:true,source:'diagram-demo'}),'Selected nodes removed from their group.');
+document.querySelector('#connect').onclick=()=>run(()=>chart.connectNodes({from:'start',to:'done',fromPort:'out',toPort:'in',label:'fast-track'},{confirmed:true,source:'diagram-demo'}),'Created a new edge from Start to Done.');
 document.querySelector('#left').onclick=()=>run(()=>chart.alignSelected('left'),'Selected nodes aligned left.');
 document.querySelector('#center').onclick=()=>run(()=>chart.alignSelected('center'),'Selected nodes centered.');
 document.querySelector('#snap').onclick=()=>run(()=>chart.snapSelected(),'Selected nodes snapped to 8px grid.');
 document.querySelector('#resize').onclick=()=>run(()=>{const preview=chart.previewEdit({type:'layout-edit',operations:[{op:'resizeNode',nodeId:'review',size:{width:180,height:60}}]});return chart.applyEdit(preview.command,{preview,confirmed:true,source:'iteration-5b-demo'});},'Review resized; arrows and labels rerouted.');
 undo.onclick=()=>refresh('Undo applied.',chart.undo());redo.onclick=()=>refresh('Redo applied.',chart.redo());
-document.querySelector('#reset').onclick=()=>{chart.update({nodes:initialNodes.map(node=>({...node,position:{...node.position},size:node.size?{...node.size}:undefined,ports:node.ports?.map(port=>({...port}))})),edges:initialEdges.map(edge=>({...edge}))});refresh('Reset completed.');};
-refresh('Iteration 5B demo ready.');
+document.querySelector('#reset').onclick=()=>{chart.update({nodes:deepClone(initialNodes),edges:deepClone(initialEdges),groups:[{id:'delivery',label:'Delivery group'}]});refresh('Reset completed.');};
+refresh('Iteration 5 demo ready.');
 </script></body></html>

@@ -6,7 +6,7 @@ Date: 2026-09-14
 
 | Gate | Result | Evidence |
 | --- | --- | --- |
-| Unit tests | Pass | `npm test`, 24/24 tests |
+| Unit tests | Pass | `npm test`, 33/33 tests |
 | Syntax checks | Pass | `npm run check` |
 | Diff whitespace | Pass | `git diff --check` |
 | Combined RC command | Pass | `npm run rc:check` |
@@ -24,6 +24,8 @@ Date: 2026-09-14
 - Commit updates local chart state and revision.
 - Undo and redo controls become available after commit.
 - Demo states clearly that external persistence is not performed.
+- `http://127.0.0.1:3000/playground/diagram-editor.html` exposes Iteration 5 group lifecycle, group resize, pointer/keyboard port connection, and shared history behavior.
+- `http://127.0.0.1:3000/playground/project-gallery.html` exposes the Iteration 5 Flow model and links to the editor.
 
 ## Deferred host/device gates
 

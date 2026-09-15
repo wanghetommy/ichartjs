@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>iChart.js Iteration 7 · Foundational Gallery</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f1f5f9;color:#0f172a;font:14px system-ui,sans-serif}main{max-width:1320px;margin:auto;padding:24px}header{display:flex;justify-content:space-between;gap:20px;align-items:end;flex-wrap:wrap}h1{margin:0 0 6px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;margin-top:20px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px}.head{display:flex;justify-content:space-between;align-items:center}.chart{height:300px}.status{color:#15803d}.error{color:#b91c1c}a{color:#1d4ed8}p{color:#475569}
+  </style>
+</head>
+<body><main>
+  <header><div><h1>Iteration 7 Foundational Gallery</h1><p>Stack、Donut、Combo、Bin、Heatmap 和 Radar 的统一验收入口。</p></div><a href="./project-gallery.html">完整 Gallery →</a></header>
+  <section class="grid" id="gallery"></section>
+</main>
+<script type="module">
+import { createChart } from '../src/index.mjs?gallery=iteration-7';
+const monthly=[{name:'Jan',product:24,service:12,rate:42},{name:'Feb',product:30,service:18,rate:55},{name:'Mar',product:22,service:20,rate:49},{name:'Apr',product:36,service:24,rate:68}];
+const matrix=[{id:'m-am',x:'Mon',y:'AM',value:0},{id:'t-am',x:'Tue',y:'AM',value:18},{id:'w-am',x:'Wed',y:'AM',value:35},{id:'m-pm',x:'Mon',y:'PM',value:22},{id:'t-pm',x:'Tue',y:'PM',value:null},{id:'w-pm',x:'Wed',y:'PM',value:48}];
+const indicators=[{name:'质量',field:'quality',min:0,max:100},{name:'速度',field:'speed',min:0,max:100},{name:'稳定性',field:'stability',min:0,max:100},{name:'体验',field:'ux',min:0,max:100},{name:'成本',field:'cost',min:0,max:100}];
+const cards=[
+  ['stacked','Stacked Column',{type:'column',stack:'stacked',data:monthly,encoding:{x:{field:'name'},y:[{field:'product'},{field:'service'}]}}],
+  ['percent','Percent Stacked',{type:'column',stack:'percent',data:monthly,encoding:{x:{field:'name'},y:[{field:'product'},{field:'service'}]}}],
+  ['donut','Donut',{type:'pie',innerRadius:.58,data:[{name:'Product',value:46},{name:'Service',value:34},{name:'Other',value:20}]}],
+  ['combo','Column + Line Combo',{type:'column',data:monthly,encoding:{x:{field:'name'},y:[{field:'product',mark:'column'},{field:'rate',mark:'line',axis:'right'}]}}],
+  ['histogram','Histogram via Bin',{type:'column',data:[12,18,22,25,27,31,33,34,38,44,48,53].map(value=>({score:value})),transform:{type:'bin',field:'score',step:10,extent:[10,60]},encoding:{x:{field:'name'},y:{field:'value'}}}],
+  ['heatmap-svg','Heatmap · SVG',{type:'heatmap',renderer:'svg',data:matrix,encoding:{x:{field:'x'},y:{field:'y'},color:{field:'value'}},colorScale:{range:['#dbeafe','#1d4ed8'],missing:'#e2e8f0'}}],
+  ['heatmap-canvas','Heatmap · Canvas',{type:'heatmap',renderer:'canvas',data:matrix,encoding:{x:{field:'x'},y:{field:'y'},color:{field:'value'}}}],
+  ['radar','Radar',{type:'radar',renderer:'svg',indicators,data:[{id:'alpha',name:'Alpha',quality:86,speed:72,stability:91,ux:80,cost:65},{id:'beta',name:'Beta',quality:74,speed:88,stability:76,ux:68,cost:82}]}]
+];
+const gallery=document.querySelector('#gallery');
+cards.forEach(([id,name,spec],index)=>{const card=document.createElement('article');card.className='card';card.innerHTML=`<div class="head"><h2>${name}</h2><span id="status-${id}">initializing…</span></div><div class="chart" id="chart-${id}"></div>`;gallery.appendChild(card);try{createChart({width:560,height:300,renderer:index%2?'canvas':'svg',interaction:{tooltip:true,keyboard:true},accessibility:{enabled:true},...spec,container:`#chart-${id}`});const status=document.querySelector(`#status-${id}`);status.textContent='ready';status.className='status';}catch(error){const status=document.querySelector(`#status-${id}`);status.textContent=error.message;status.className='error';}});
+</script></body></html>

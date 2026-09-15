@@ -16,6 +16,15 @@
     "resizeNode": { "models": ["flow-node"], "required": ["nodeId", "size"], "previewRequired": true, "undoable": true },
     "alignNodes": { "models": ["flow-node"], "required": ["nodeIds", "alignment"], "previewRequired": true, "undoable": true },
     "snapNodes": { "models": ["flow-node"], "required": ["nodeIds"], "previewRequired": true, "undoable": true },
-    "updateEdge": { "models": ["flow-edge"], "required": ["edgeId", "changes"], "previewRequired": true, "undoable": true }
+    "moveGroup": { "models": ["flow-node"], "required": ["groupId", "delta"], "previewRequired": true, "undoable": true },
+    "resizeGroup": { "models": ["flow-node"], "required": ["groupId", "size"], "previewRequired": true, "undoable": true },
+    "assignNodesToGroup": { "models": ["flow-node"], "required": ["nodeIds", "groupId"], "previewRequired": true, "confirmationRequired": true, "undoable": true },
+    "duplicateGroup": { "models": ["flow-node", "flow-edge"], "required": ["groupId"], "previewRequired": true, "confirmationRequired": true, "undoable": true },
+    "deleteGroup": { "models": ["flow-node", "flow-edge"], "required": ["groupId", "policy"], "previewRequired": true, "confirmationRequired": true, "undoable": true },
+    "updateEdge": { "models": ["flow-edge"], "required": ["edgeId", "changes"], "previewRequired": true, "undoable": true },
+    "addEdge": { "models": ["flow-edge"], "required": ["from", "to"], "previewRequired": true, "confirmationRequired": true, "undoable": true },
+    "toggleGroupCollapse": { "models": ["flow-node"], "required": ["groupId"], "previewRequired": true, "confirmationRequired": true, "undoable": true },
+    "duplicateSelection": { "models": ["flow-node", "flow-edge"], "required": ["nodeIds"], "previewRequired": true, "confirmationRequired": true, "undoable": true },
+    "pasteSelection": { "models": ["flow-node", "flow-edge"], "required": ["nodes"], "previewRequired": true, "confirmationRequired": true, "undoable": true }
   }
 }

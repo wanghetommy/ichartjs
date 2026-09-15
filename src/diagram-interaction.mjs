@@ -1,10 +1,35 @@
 /**
  * Diagram pointer, selection, keyboard, and editing interaction helpers.
- * Converts user gestures into validated layout edits and preserves selection.
+ * Converts user gestures into validated layout and structure edits.
  */
 import { buildScene } from './charts.mjs';
 
 export const isDiagram = chart => ['flow', 'swimlane'].includes(chart.spec.type);
+
+function focusableNodes(chart) {
+  const items = [];
+  chart.model.scene.walk(node => {
+    if (!node.interactive) return;
+    if (!/^node-|^group-|^port-/.test(node.id)) return;
+    items.push(node);
+  });
+  return items;
+}
+
+function center(node) {
+  if (node.geometry?.cx != null && node.geometry?.cy != null) return { x: node.geometry.cx, y: node.geometry.cy };
+  return { x: node.bounds?.x + node.bounds?.width / 2 || node.geometry?.x || 0, y: node.bounds?.y + node.bounds?.height / 2 || node.geometry?.y || 0 };
+}
+
+function clearConnectPreview(chart) {
+  chart.model.scene.root.children = chart.model.scene.root.children.filter(node => node.id !== 'diagram-connect-preview');
+}
+
+function paintConnectPreview(chart, start, end) {
+  clearConnectPreview(chart);
+  chart.model.scene.add({ id: 'diagram-connect-preview', type: 'path', geometry: { points: [start, end] }, style: { fill: 'none', stroke: '#2563eb', strokeWidth: 2, opacity: 0.65 }, zIndex: 101 });
+  if (chart.renderer.container) chart.renderer.render(chart.model.scene);
+}
 
 export function paintSelection(chart) {
   for (const [id] of chart._selected) {
@@ -13,7 +38,9 @@ export function paintSelection(chart) {
     else chart._selected.delete(id);
   }
   chart.model.scene.walk(node => {
+    if (node.id === chart._diagramFocusTarget) node.highlighted = true;
     if (node.selected && node.id.startsWith('node-')) { node.style.stroke = '#f59e0b'; node.style.strokeWidth = 3; }
+    if (node.selected && node.id.startsWith('group-')) { node.style.stroke = '#2563eb'; node.style.strokeWidth = 2; }
   });
 }
 
@@ -28,19 +55,21 @@ export function diagramPointer(chart, phase, event, target) {
     target.focus?.({ preventScroll: true });
     target.setPointerCapture?.(event.pointerId);
     const hit = chart.model.scene.hit(point.x, point.y), additive = Boolean(event.shiftKey || event.ctrlKey || event.metaKey);
-    const nodeId = hit?.dataRef?.nodeId, groupId = hit?.dataRef?.groupId;
-    if (groupId) chart.selectGroup(groupId, { additive });
+    const nodeId = hit?.dataRef?.nodeId, groupId = hit?.dataRef?.groupId, portId = hit?.dataRef?.portId;
+    if (groupId && !nodeId) chart.selectGroup(groupId, { additive });
     else if (nodeId) {
       if (additive && chart.getSelectedNodeIds().includes(nodeId)) chart.selectNodes(chart.getSelectedNodeIds().filter(id => id !== nodeId));
       else if (additive || !chart.getSelectedNodeIds().includes(nodeId)) chart.selectNodes([nodeId], { additive });
     } else if (!additive) chart.clearSelection();
-    const mode = (nodeId || groupId) && chart.spec.interaction?.drag && chart.spec.editing?.enabled ? 'nodes' : !hit && (additive || chart.spec.interaction?.brush) ? 'box' : !hit && chart.spec.interaction?.pan ? 'pan' : 'select';
+    const mode = portId && chart.spec.editing?.enabled ? 'connect' : nodeId && chart.spec.interaction?.drag && chart.spec.editing?.enabled ? 'nodes' : !hit && (additive || chart.spec.interaction?.brush) ? 'box' : !hit && chart.spec.interaction?.pan ? 'pan' : groupId ? 'group' : 'select';
     const view = chart.model.state.view, positions = {};
     chart.getSelectedNodeIds().forEach(id => {
-      const geometry = chart.model.scene.find(`node-${id}`).geometry;
+      const geometry = chart.model.scene.find(`node-${id}`)?.geometry;
+      if (!geometry) return;
       positions[id] = { x: (geometry.x - view.offsetX) / view.scale, y: (geometry.y - view.offsetY) / view.scale };
     });
-    chart._diagramGesture = { mode, point, previous: point, positions, view: { ...view }, pointerId: event.pointerId, revision: chart._revision, additive, selected: chart.getSelectedNodeIds(), moved: false };
+    chart._diagramGesture = { mode, point, previous: point, positions, view: { ...view }, pointerId: event.pointerId, revision: chart._revision, additive, selected: chart.getSelectedNodeIds(), moved: false, hitId: hit?.id, groupId, nodeId, portId };
+    if (mode === 'connect' && hit) paintConnectPreview(chart, center(hit), point);
     return true;
   }
   const gesture = chart._diagramGesture;
@@ -49,7 +78,13 @@ export function diagramPointer(chart, phase, event, target) {
     if (chart._revision !== gesture.revision) { chart._diagramGesture = null; chart.render(); return true; }
     if (Math.hypot(point.x - gesture.point.x, point.y - gesture.point.y) < 3 && !gesture.moved) return true;
     gesture.moved = true;
-    if (gesture.mode === 'nodes') {
+    if (gesture.mode === 'connect') {
+      const source = chart.model.scene.find(gesture.hitId);
+      if (source) {
+        paintConnectPreview(chart, center(source), point);
+        chart.emit('connectionpreview', { chart, source: source.dataRef, coordinate: point });
+      }
+    } else if (gesture.mode === 'nodes') {
       let delta = { x: (point.x - gesture.point.x) / gesture.view.scale, y: (point.y - gesture.point.y) / gesture.view.scale };
       const anchor = Object.values(gesture.positions)[0], grid = chart.spec.diagram?.grid ?? 8;
       if (anchor && chart.spec.diagram?.snap !== false && !event.altKey) delta = { x: Math.round((anchor.x + delta.x) / grid) * grid - anchor.x, y: Math.round((anchor.y + delta.y) / grid) * grid - anchor.y };
@@ -72,31 +107,73 @@ export function diagramPointer(chart, phase, event, target) {
   chart._suppressDiagramClick = gesture.moved;
   if (target.hasPointerCapture?.(event.pointerId)) target.releasePointerCapture(event.pointerId);
   const cancelled = event.type === 'pointercancel' || chart._revision !== gesture.revision;
+  if (gesture.mode === 'connect') clearConnectPreview(chart);
   chart.render();
   if (!cancelled && gesture.moved && gesture.mode === 'nodes' && gesture.operations?.length) {
     const preview = chart.previewEdit({ type: 'layout-edit', reason: 'Drag diagram selection', operations: gesture.operations });
     if (preview.requiresConfirmation) chart.emit('editrequest', { chart, preview, source: 'pointer' });
-    else chart.applyEdit(preview.command, { preview, source: 'pointer' });
+    else chart.applyEdit(preview.command, { preview, source: 'pointer', confirmed: true });
   } else if (!cancelled && gesture.moved && gesture.mode === 'box') {
     chart.selectBox(gesture.point, point);
     if (gesture.additive) chart.selectNodes(gesture.selected, { additive: true });
-  }
+  } else if (!cancelled && gesture.mode === 'connect') {
+    const hit = chart.model.scene.hit(point.x, point.y), targetNodeId = hit?.dataRef?.nodeId, targetPortId = hit?.dataRef?.portId;
+    if (targetNodeId && targetNodeId !== gesture.nodeId) chart.connectNodes({ from: gesture.nodeId, to: targetNodeId, ...(gesture.portId ? { fromPort: gesture.portId } : {}), ...(targetPortId ? { toPort: targetPortId } : {}) }, { confirmed: true, source: 'pointer' });
+    else chart.emit('connectioncancel', { chart, sourceNodeId: gesture.nodeId, sourcePortId: gesture.portId });
+  } else if (!cancelled && !gesture.moved && gesture.mode === 'group' && gesture.groupId) chart.toggleGroupCollapse(gesture.groupId, { confirmed: true, source: 'pointer' });
   chart.emit('dragend', { chart, cancelled, nodeIds: gesture.selected });
   return true;
 }
 
 export function diagramKeyboard(chart, event) {
   if (!isDiagram(chart)) return false;
-  const modifier = event.ctrlKey || event.metaKey, key = event.key.toLowerCase();
-  if (key === 'escape') { chart._diagramGesture = null; chart.clearSelection(); event.preventDefault(); return true; }
+  const modifier = event.ctrlKey || event.metaKey, key = event.key.toLowerCase(), nodes = focusableNodes(chart);
+  if (key === 'escape') {
+    chart._diagramGesture = null;
+    if (chart._keyboardConnection) {
+      const source = chart._keyboardConnection;
+      chart._keyboardConnection = null;
+      clearConnectPreview(chart);
+      chart.render();
+      chart.emit('connectioncancel', { chart, sourceNodeId: source.nodeId, sourcePortId: source.portId, source: 'keyboard' });
+    } else chart.clearSelection();
+    event.preventDefault();
+    return true;
+  }
   if (modifier && key === 'a') { chart.selectNodes(chart.model.data.rows.map(row => row.id)); event.preventDefault(); return true; }
+  if (modifier && key === 'c') { chart.copySelection(); event.preventDefault(); return true; }
+  if (modifier && key === 'v') { chart.pasteSelection({ confirmed: true, source: 'keyboard' }); event.preventDefault(); return true; }
+  if (modifier && key === 'd') { chart.duplicateSelection({ confirmed: true, source: 'keyboard' }); event.preventDefault(); return true; }
   if (modifier && ['z', 'y'].includes(key) && chart.spec.editing?.enabled) { chart[key === 'y' || event.shiftKey ? 'redo' : 'undo'](); event.preventDefault(); return true; }
   if (['tab', 'enter', ' '].includes(key)) {
-    const nodes = chart.model.data.rows, step = event.shiftKey ? -1 : 1;
+    const step = event.shiftKey ? -1 : 1;
     if (!nodes.length) return true;
     if (key === 'tab') chart._diagramFocus = ((chart._diagramFocus ?? (step > 0 ? -1 : 0)) + step + nodes.length) % nodes.length;
-    chart.selectNodes([nodes[chart._diagramFocus ?? 0].id], { additive: key === ' ' && event.shiftKey });
-    if (key !== 'tab') event.preventDefault();
+    const target = nodes[chart._diagramFocus ?? 0];
+    chart._diagramFocusTarget = target?.id;
+    if (target?.id?.startsWith('node-')) chart.selectNodes([target.dataRef.nodeId], { additive: key === ' ' && event.shiftKey });
+    else if (target?.id?.startsWith('group-')) chart.selectGroup(target.dataRef.groupId, { additive: key === ' ' && event.shiftKey });
+    else if (target?.id?.startsWith('port-') && target.dataRef?.nodeId) chart.selectNodes([target.dataRef.nodeId], { additive: key === ' ' && event.shiftKey });
+    if (chart._keyboardConnection && target) {
+      const source = chart.model.scene.find(chart._keyboardConnection.targetId);
+      if (source) paintConnectPreview(chart, center(source), center(target));
+      chart.emit('connectionpreview', { chart, source: chart._keyboardConnection, target: target.dataRef, sourceType: 'keyboard' });
+    }
+    if (key !== 'tab') {
+      if (target?.id?.startsWith('port-') && chart.spec.editing?.enabled) {
+        if (!chart._keyboardConnection) {
+          chart._keyboardConnection = { nodeId: target.dataRef.nodeId, portId: target.dataRef.portId, targetId: target.id };
+          paintConnectPreview(chart, center(target), center(target));
+          chart.emit('connectionpreview', { chart, source: chart._keyboardConnection, target: null, sourceType: 'keyboard' });
+        } else if (target.dataRef.nodeId !== chart._keyboardConnection.nodeId) {
+          const source = chart._keyboardConnection;
+          chart._keyboardConnection = null;
+          clearConnectPreview(chart);
+          chart.connectNodes({ from: source.nodeId, to: target.dataRef.nodeId, fromPort: source.portId, toPort: target.dataRef.portId }, { confirmed: true, source: 'keyboard' });
+        }
+      } else if (target?.id?.startsWith('group-') && chart.spec.editing?.enabled && !chart._keyboardConnection) chart.toggleGroupCollapse(target.dataRef.groupId, { confirmed: true, source: 'keyboard' });
+      event.preventDefault();
+    }
     return true;
   }
   if (!['arrowright', 'arrowleft', 'arrowup', 'arrowdown'].includes(key)) return false;
@@ -104,10 +181,14 @@ export function diagramKeyboard(chart, event) {
     const step = event.shiftKey ? 10 : 1, delta = { x: key === 'arrowright' ? step : key === 'arrowleft' ? -step : 0, y: key === 'arrowdown' ? step : key === 'arrowup' ? -step : 0 };
     const preview = chart.previewEdit({ type: 'layout-edit', reason: 'Keyboard move', operations: [{ op: 'moveNodes', nodeIds: chart.getSelectedNodeIds(), delta }] });
     if (preview.requiresConfirmation) chart.emit('editrequest', { chart, preview, source: 'keyboard' });
-    else chart.applyEdit(preview.command, { preview, source: 'keyboard' });
-  } else {
-    const nodes = chart.model.data.rows;
-    if (nodes.length) { const step = ['arrowright', 'arrowdown'].includes(key) ? 1 : -1; chart._diagramFocus = ((chart._diagramFocus ?? -1) + step + nodes.length) % nodes.length; chart.selectNodes([nodes[chart._diagramFocus].id]); }
+    else chart.applyEdit(preview.command, { preview, source: 'keyboard', confirmed: true });
+  } else if (nodes.length) {
+    const step = ['arrowright', 'arrowdown'].includes(key) ? 1 : -1;
+    chart._diagramFocus = ((chart._diagramFocus ?? -1) + step + nodes.length) % nodes.length;
+    const target = nodes[chart._diagramFocus];
+    chart._diagramFocusTarget = target.id;
+    if (target.id.startsWith('node-')) chart.selectNodes([target.dataRef.nodeId]);
+    else if (target.id.startsWith('group-')) chart.selectGroup(target.dataRef.groupId);
   }
   event.preventDefault();
   return true;

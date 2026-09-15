@@ -2,6 +2,8 @@
  * Data inspection, normalization, and immutable transformation pipeline.
  * Provides the common row model consumed by chart and Agent APIs.
  */
+import { binData } from './transforms.mjs';
+export { binData, applyTransforms } from './transforms.mjs';
 function typeOf(values) {
   const usable = values.filter(value => value !== null && value !== undefined && value !== '');
   if (!usable.length) return 'unknown';
@@ -55,6 +57,7 @@ export class DataPipeline {
   average(field, output = field) { if (!this._groupField) return this; const groups = new Map(); this._rows.forEach(row => { const key = row[this._groupField]; const item = groups.get(key) || { [this._groupField]: key, [output]: 0, __count: 0 }; item[output] += Number(row[field]) || 0; item.__count += 1; groups.set(key, item); }); this._rows = [...groups.values()].map(row => { row[output] /= row.__count; delete row.__count; return row; }); return this; }
   topN(field, count) { this._rows = [...this._rows].sort((a, b) => (Number(b[field]) || 0) - (Number(a[field]) || 0)).slice(0, count); return this; }
   percentage(field, output = field) { const total = this._rows.reduce((sum, row) => sum + (Number(row[field]) || 0), 0) || 1; this._rows = this._rows.map(row => ({ ...row, [output]: (Number(row[field]) || 0) / total })); return this; }
+  bin(field, options = {}) { this._rows = binData(this._rows, { ...options, field }).rows; return this; }
   toArray() { return this._rows.map(row => ({ ...row })); }
 }
 

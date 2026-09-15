@@ -1,0 +1,18 @@
+{
+  "name": "foundational-analysis-views",
+  "version": "2.0",
+  "intentMappings": {
+    "composition": "column",
+    "distribution": "column",
+    "matrix": "heatmap",
+    "multidimensional": "radar"
+  },
+  "examples": {
+    "stacked": { "type": "column", "stack": "stacked", "encoding": { "x": { "field": "period" }, "y": [{ "field": "product" }, { "field": "service" }] }, "data": [] },
+    "donut": { "type": "pie", "innerRadius": 0.55, "data": [{ "name": "Product", "value": 60 }, { "name": "Service", "value": 40 }] },
+    "combo": { "type": "column", "encoding": { "x": { "field": "period" }, "y": [{ "field": "sales", "mark": "column" }, { "field": "rate", "mark": "line", "axis": "right" }] }, "data": [] },
+    "histogram": { "type": "column", "transform": { "type": "bin", "field": "score", "thresholds": 8 }, "encoding": { "x": { "field": "name" }, "y": { "field": "value" } }, "data": [] },
+    "heatmap": { "type": "heatmap", "encoding": { "x": { "field": "day" }, "y": { "field": "period" }, "color": { "field": "value" } }, "data": [] },
+    "radar": { "type": "radar", "indicators": [{ "name": "Quality", "field": "quality", "min": 0, "max": 100 }, { "name": "Speed", "field": "speed", "min": 0, "max": 100 }, { "name": "Experience", "field": "experience", "min": 0, "max": 100 }], "data": [] }
+  }
+}

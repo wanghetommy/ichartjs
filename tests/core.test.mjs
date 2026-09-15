@@ -1,20 +1,58 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { data, getCapabilities, inspectData, normalizeSpec, recommend, validateSpec } from '../src/index.mjs';
+import { binData, data, getCapabilities, inspectData, normalizeSpec, recommend, resolveZoomWindow, validateSpec } from '../src/index.mjs';
 import { resolveTheme } from '../src/theme.mjs';
 import { annotationPlugin, dataLabelsPlugin, dataZoomPlugin } from '../src/plugin.mjs';
 import { buildScene } from '../src/charts.mjs';
 import { Scene, SceneNode } from '../src/scene.mjs';
 import { Scale } from '../src/scale.mjs';
 import { analyzeBurndown, criticalSchedule, projectTooltip, rerouteDiagramScene } from '../src/project.mjs';
+import { analyzeSchedule, applyWorkingCalendar, buildCapacityView, buildIssueAgingSeries, buildReleaseForecast, buildRiskMatrixSeries, buildVelocitySeries } from '../src/project-analytics.mjs';
+import { createLinkedProjectState, filterProjectRows } from '../src/project-linking.mjs';
 import { getBusinessSchema, inspectDataSchema } from '../src/schema.mjs';
 import { previewEdit, validateEdit } from '../src/edit.mjs';
+import { validateData } from '../src/validation.mjs';
+import { diagramKeyboard } from '../src/diagram-interaction.mjs';
 
 test('normalizes and validates a v2 spec', () => {
   const spec = normalizeSpec({ type: 'line', data: [{ name: 'Jan', value: '12' }] });
   assert.equal(spec.version, '2.0');
   assert.equal(spec.encoding.x.field, 'name');
   assert.equal(validateSpec(spec).valid, true);
+});
+
+test('supports Iteration 7 chart modes and public types', () => {
+  const capabilities = getCapabilities();
+  assert.ok(capabilities.chartTypes.includes('heatmap'));
+  assert.ok(capabilities.chartTypes.includes('radar'));
+  assert.ok(!capabilities.chartTypes.includes('donut'));
+  assert.equal(validateSpec({ type: 'pie', innerRadius: 0.55, data: [{ name: 'A', value: 1 }] }).valid, true);
+  assert.equal(validateSpec({ type: 'column', stack: 'percent', data: [{ name: 'A', one: 1, two: 2 }], encoding: { x: { field: 'name' }, y: [{ field: 'one' }, { field: 'two' }] } }).valid, true);
+  assert.equal(validateSpec({ type: 'radar', indicators: [{ name: 'A', field: 'a' }, { name: 'B', field: 'b' }, { name: 'C', field: 'c' }], data: [{ a: 1, b: 2, c: 3 }] }).valid, true);
+});
+
+test('bins numeric data deterministically without mutating source', () => {
+  const rows = [{ score: 0 }, { score: 4 }, { score: 10 }, { score: 'bad' }];
+  const result = binData(rows, { field: 'score', step: 5, extent: [0, 10] });
+  assert.deepEqual(result.rows.map(row => row.value), [2, 1]);
+  assert.deepEqual(result.rows.map(row => row.sourceIndices), [[0, 1], [2]]);
+  assert.equal(result.warnings[0].code, 'INVALID_BIN_VALUE');
+  assert.equal(rows[0].score, 0);
+});
+
+test('builds stacked, donut, combo, heatmap, and radar scenes', () => {
+  const stacked = buildScene(normalizeSpec({ type: 'column', stack: 'stacked', data: [{ name: 'A', one: 2, two: 3 }], encoding: { x: { field: 'name' }, y: [{ field: 'one' }, { field: 'two' }] } }));
+  assert.equal(stacked.scene.find('series-1-item-0').dataRef.stackStart, 2);
+  const donut = buildScene(normalizeSpec({ type: 'pie', innerRadius: 0.5, data: [{ name: 'A', value: 2 }] }));
+  assert.ok(donut.scene.find('series-0-item-0').geometry.innerR > 0);
+  const combo = buildScene(normalizeSpec({ type: 'column', data: [{ name: 'A', sales: 2, rate: 3 }, { name: 'B', sales: 4, rate: 5 }], encoding: { x: { field: 'name' }, y: [{ field: 'sales', mark: 'column' }, { field: 'rate', mark: 'line', axis: 'right' }] } }));
+  assert.ok(combo.scene.find('series-1-line'));
+  const heatmap = buildScene(normalizeSpec({ type: 'heatmap', data: [{ id: 'a', x: 'Mon', y: 'AM', value: 0 }, { id: 'b', x: 'Tue', y: 'AM', value: null }] }));
+  assert.equal(heatmap.scene.find('heatmap-cell-0').dataRef.value, 0);
+  assert.equal(heatmap.scene.find('heatmap-cell-1').dataRef.value, null);
+  const radar = buildScene(normalizeSpec({ type: 'radar', indicators: [{ name: 'A', field: 'a', max: 10 }, { name: 'B', field: 'b', max: 10 }, { name: 'C', field: 'c', max: 10 }], data: [{ id: 'team', a: 5, b: 8, c: 3 }] }));
+  assert.equal(radar.scene.find('radar-series-0').geometry.closed, true);
+  assert.equal(radar.scene.find('radar-item-0-0').dataRef.recordId, 'team');
 });
 
 test('reports invalid specs with structured errors', () => {
@@ -37,6 +75,21 @@ test('builds interactive scene nodes for a column chart', () => {
   model.scene.walk(node => nodes.push(node));
   assert.equal(nodes.filter(node => node.type === 'rect').length, 2);
   assert.equal(model.scene.hit(190, 250)?.dataRef.dataIndex, 0);
+});
+
+test('keeps line paths unfilled while area uses a dedicated fill path', () => {
+  const line = buildScene(normalizeSpec({ type: 'line', data: [{ name: 'A', value: 1 }, { name: 'B', value: 2 }] }));
+  assert.equal(line.scene.find('series-0-line').style.fill, 'none');
+  assert.equal(line.scene.find('area-fill-0'), undefined);
+  const area = buildScene(normalizeSpec({ type: 'area', data: [{ name: 'A', value: 1 }, { name: 'B', value: 2 }] }));
+  assert.ok(area.scene.find('area-fill-0'));
+  assert.equal(area.scene.find('series-0-line').style.fill, 'none');
+});
+
+test('zooms out to the full data window from either boundary', () => {
+  assert.deepEqual(resolveZoomWindow(5, { start: 0, end: 4 }, 1.25), { start: 0, end: 5 });
+  assert.deepEqual(resolveZoomWindow(5, { start: 1, end: 5 }, 1.25), { start: 0, end: 5 });
+  assert.deepEqual(resolveZoomWindow(10, { start: 4, end: 8 }, 0.8), { start: 5, end: 8 });
 });
 
 test('scene graph finds and hits nodes', () => {
@@ -90,6 +143,7 @@ test('formal plugins expose lifecycle behavior', () => {
 test('supports iteration 3 project management capabilities', () => {
   const capabilities = getCapabilities();
   assert.deepEqual(capabilities.projectManagement, ['gantt', 'timeline', 'milestone', 'burndown']);
+  assert.ok(capabilities.projectIntelligence.analytics.includes('capacity'));
   assert.deepEqual(capabilities.diagrams, ['flow', 'swimlane']);
   assert.deepEqual(recommend([{ start: '2026-09-01', end: '2026-09-03' }], { intent: 'schedule' }).primary, 'gantt');
   assert.equal(validateSpec({ type: 'gantt', data: [{ id: 'a', name: 'Design', start: '2026-09-01', end: '2026-09-03' }] }).valid, true);
@@ -136,6 +190,68 @@ test('computes gantt critical path and project tooltip content', () => {
   const schedule = criticalSchedule([{ id: 'a', start: '2026-09-01', end: '2026-09-03', dependencies: [] }, { id: 'b', start: '2026-09-03', end: '2026-09-08', dependencies: ['a'] }]);
   assert.deepEqual(schedule.criticalIds, ['a', 'b']);
   assert.match(projectTooltip('gantt', { id: 'b', name: 'Build', start: '2026-09-03', end: '2026-09-08', critical: true, float: 0 }), /Critical: yes/);
+});
+
+test('analyzes schedule intelligence with calendar rules and variance deterministically', () => {
+  const adjusted = applyWorkingCalendar('2026-09-12', { calendar: { timezone: 'UTC', workingWeekdays: [1, 2, 3, 4, 5], holidays: [], nonWorkingDayPolicy: 'next-working-day' } });
+  assert.equal(adjusted.date, '2026-09-14');
+  const analysis = analyzeSchedule([
+    { id: 'design', start: '2026-09-08', end: '2026-09-09', baselineEnd: '2026-09-08', actualEnd: '2026-09-09', progress: 100, status: 'done', dependencies: [] },
+    { id: 'build', start: '2026-09-10', end: '2026-09-12', baselineStart: '2026-09-10', baselineEnd: '2026-09-11', actualStart: '2026-09-10', actualEnd: '2026-09-12', progress: 40, status: 'active', dependencies: [{ id: 'design', type: 'finish-to-start', lag: 1 }] }
+  ], { calendar: { timezone: 'UTC', workingWeekdays: [1, 2, 3, 4, 5], holidays: ['2026-09-11'], nonWorkingDayPolicy: 'next-working-day' } });
+  assert.deepEqual(analysis.calendar.holidays, ['2026-09-11']);
+  assert.deepEqual(analysis.criticalIds, ['design', 'build']);
+  assert.equal(analysis.tasks.find(task => task.id === 'build').endVarianceDays, 1);
+  assert.equal(analysis.tasks.find(task => task.id === 'build').dependencies[0].lag, 1);
+  assert.match(analysis.assumptions.join(' '), /timezone UTC/);
+});
+
+test('supports dependency objects consistently and starts finish-to-start successors next workday', () => {
+  const rows = [
+    { id: 'a', name: 'A', start: '2026-09-14', end: '2026-09-15', progress: 100, status: 'done', dependencies: [] },
+    { id: 'b', name: 'B', start: '2026-09-14', end: '2026-09-15', progress: 0, status: 'todo', dependencies: [{ id: 'a', type: 'finish-to-start', lag: 0 }] }
+  ];
+  assert.equal(validateSpec({ type: 'gantt', data: rows }).valid, true);
+  assert.equal(validateData(rows, getBusinessSchema('project-task')).valid, true);
+  const analysis = analyzeSchedule(rows, { calendar: { timezone: 'UTC' } });
+  assert.equal(analysis.tasks.find(task => task.id === 'b').earliestStart, '2026-09-16');
+});
+
+test('warns and falls back when calendar timezone is not supported', () => {
+  const analysis = analyzeSchedule([{ id: 'a', start: '2026-09-14', end: '2026-09-15' }], { calendar: { timezone: 'local' } });
+  assert.equal(analysis.calendar.timezone, 'UTC');
+  assert.ok(analysis.warnings.some(warning => warning.code === 'UNSUPPORTED_TIMEZONE'));
+});
+
+test('builds project intelligence adapters and linked filters with stable ids', () => {
+  const tasks = [
+    { id: 'a', owner: 'Alex', resource: 'Alex', start: '2026-09-01', end: '2026-09-03', load: 2, capacity: 4, sprint: 'S1', status: 'done', points: 3, priority: 'high', labels: ['core'] },
+    { id: 'b', owner: 'Sam', resource: 'Sam', start: '2026-09-04', end: '2026-09-07', load: 3, capacity: 2, sprint: 'S1', status: 'active', points: 5, priority: 'critical', labels: ['api'] }
+  ];
+  const filtered = filterProjectRows(tasks, { filters: { owner: ['Alex'] } });
+  assert.deepEqual(filtered.map(row => row.id), ['a']);
+  const linked = createLinkedProjectState(tasks, { filters: { owner: ['Alex'] }, selection: ['a'] });
+  assert.equal(linked.visibleCount, 1);
+  assert.deepEqual(linked.selection, ['a']);
+  const capacity = buildCapacityView(tasks, { defaultCapacity: 3 });
+  assert.equal(capacity.values.find(row => row.name === 'Sam').status, 'overloaded');
+  assert.equal(buildVelocitySeries(tasks).values.find(row => row.name === 'S1').value, 3);
+  assert.equal(buildReleaseForecast([{ date: '2026-09-01', remaining: 10 }, { date: '2026-09-03', remaining: 6 }, { date: '2026-09-05', remaining: 2 }]).forecast.reason, 'estimated');
+  assert.equal(buildRiskMatrixSeries([{ id: 'risk-1', probability: 4, impact: 5 }]).values[0].recordId, 'risk-1');
+  assert.deepEqual(buildIssueAgingSeries([{ id: 'issue-1', createdAt: '2026-09-10' }], { today: '2026-09-15' }).details[0].recordId, 'issue-1');
+});
+
+test('preserves fallback record ids after linked filtering and warns on invalid adapter data', () => {
+  const linked = createLinkedProjectState([{ owner: 'Alex' }, { owner: 'Sam' }], { filters: { owner: ['Sam'] } });
+  assert.deepEqual(linked.visibleRecordIds, ['record-1']);
+  assert.ok(buildVelocitySeries([{ sprint: 'S1', points: 'invalid', status: 'done' }]).warnings.some(warning => warning.code === 'INVALID_POINTS'));
+  assert.ok(buildRiskMatrixSeries([{ id: 'risk', probability: 'invalid', impact: 5 }]).warnings.some(warning => warning.code === 'INVALID_RISK_VALUE'));
+  const missingToday = buildIssueAgingSeries([{ id: 'issue', createdAt: '2026-09-10' }]);
+  assert.equal(missingToday.details.length, 0);
+  assert.ok(missingToday.warnings.some(warning => warning.code === 'MISSING_REFERENCE_DATE'));
+  const invalidCreated = buildIssueAgingSeries([{ id: 'issue', createdAt: 'invalid' }], { today: '2026-09-15' });
+  assert.equal(invalidCreated.details.length, 0);
+  assert.ok(invalidCreated.warnings.some(warning => warning.code === 'INVALID_CREATED_DATE'));
 });
 
 test('validates a business schema and previews a safe task edit', () => {
@@ -208,6 +324,30 @@ test('supports headless JSON export and reports unavailable raster export', asyn
   chart.destroy();
 });
 
+test('exposes project analytics and linked state on gantt charts', async () => {
+  const { createChart } = await import('../src/index.mjs');
+  const chart = createChart({
+    type: 'gantt',
+    data: [
+      { id: 'design', name: 'Design', start: '2026-09-01', end: '2026-09-03', baselineStart: '2026-09-01', baselineEnd: '2026-09-02', actualStart: '2026-09-01', actualEnd: '2026-09-03', owner: 'Alex', progress: 100, status: 'done' },
+      { id: 'build', name: 'Build', start: '2026-09-04', end: '2026-09-06', owner: 'Sam', progress: 40, status: 'active' }
+    ],
+    project: {
+      linked: { selection: ['build'] },
+      overlays: { criticalPath: true, slack: true, baseline: true, actual: true, variance: true },
+      calendar: { timezone: 'UTC', workingWeekdays: [1, 2, 3, 4, 5], holidays: [] }
+    }
+  });
+  assert.ok(chart.getProjectAnalytics().schedule.tasks.length >= 1);
+  assert.deepEqual(chart.getLinkedState().selection, ['build']);
+  chart.setLinkedFilters({ owner: ['Alex'] });
+  assert.equal(chart.getLinkedState().visibleCount, 1);
+  chart.setLinkedSelection(['design']);
+  assert.deepEqual(chart.getLinkedState().selection, ['design']);
+  assert.equal(chart.getState().projectAnalytics.schedule.calendar.timezone, 'UTC');
+  chart.destroy();
+});
+
 test('exposes RC capabilities and editing lifecycle methods', async () => {
   const { createChart, getCapabilities } = await import('../src/index.mjs');
   const capabilities = getCapabilities();
@@ -267,5 +407,168 @@ test('supports diagram groups, ports, multi-select alignment, snapping, and undo
   assert.equal(chart.getSpec().nodes[0].position.x % 8, 0);
   assert.equal(chart.moveSelectedBy({ x: 8, y: 0 }).valid, true);
   assert.equal(chart.undo().valid, true);
+  chart.destroy();
+});
+
+test('supports diagram structure edits for copy paste, group collapse, and edge creation', async () => {
+  const { createChart, getBusinessSchema } = await import('../src/index.mjs');
+  const chart = createChart({
+    type: 'flow',
+    nodes: [
+      { id: 'a', label: 'A', groupId: 'main', position: { x: 40, y: 60 }, ports: [{ id: 'out', side: 'right', offset: 0.5 }] },
+      { id: 'b', label: 'B', groupId: 'main', position: { x: 220, y: 60 }, ports: [{ id: 'in', side: 'left', offset: 0.5 }] },
+      { id: 'c', label: 'C', position: { x: 440, y: 60 }, ports: [{ id: 'in', side: 'left', offset: 0.5 }] }
+    ],
+    edges: [{ id: 'ab', from: 'a', to: 'b', fromPort: 'out', toPort: 'in' }],
+    groups: [{ id: 'main', label: 'Main flow' }],
+    data: { schema: getBusinessSchema('flow-node'), edgeSchema: getBusinessSchema('flow-edge') },
+    diagram: { layout: 'manual', routing: 'orthogonal', grid: 8 },
+    editing: { enabled: true, requireConfirmation: false, allowStructuralChanges: true }
+  });
+  chart.selectNodes(['a', 'b']);
+  assert.equal(chart.copySelection().valid, true);
+  const pasted = chart.pasteSelection({ confirmed: true });
+  assert.equal(pasted.valid, true);
+  assert.ok(chart.getDiagramNodes().some(node => node.id === 'a-copy'));
+  assert.ok(chart.getDiagramEdges().some(edge => edge.from === 'a-copy' && edge.to === 'b-copy'));
+  const collapsed = chart.toggleGroupCollapse('main', { confirmed: true });
+  assert.equal(collapsed.valid, true);
+  assert.deepEqual(chart.getCollapsedGroupIds(), ['main']);
+  const connected = chart.connectNodes({ from: 'a', to: 'c', fromPort: 'out', toPort: 'in' }, { confirmed: true });
+  assert.equal(connected.valid, true);
+  assert.ok(chart.getDiagramEdges().some(edge => edge.from === 'a' && edge.to === 'c'));
+  assert.equal(chart.undo().valid, true);
+  chart.destroy();
+});
+
+test('renders collapsed groups and routes orthogonal edges around obstacles', async () => {
+  const { buildScene } = await import('../src/charts.mjs');
+  const { routeEdge } = await import('../src/index.mjs');
+  const spec = normalizeSpec({
+    type: 'flow',
+    nodes: [
+      { id: 'a', label: 'A', groupId: 'main', position: { x: 40, y: 60 }, size: { width: 100, height: 40 } },
+      { id: 'b', label: 'B', groupId: 'main', position: { x: 210, y: 60 }, size: { width: 100, height: 40 } },
+      { id: 'c', label: 'C', position: { x: 430, y: 60 }, size: { width: 100, height: 40 } }
+    ],
+    edges: [{ id: 'ac', from: 'a', to: 'c' }],
+    groups: [{ id: 'main', label: 'Main flow', collapsed: true }],
+    diagram: { layout: 'manual', routing: 'orthogonal', grid: 8 }
+  });
+  const scene = buildScene(spec).scene;
+  assert.ok(scene.find('group-main'));
+  assert.equal(scene.find('node-a'), undefined);
+  const path = routeEdge({ grid: 8, obstacles: [{ x: 120, y: 0, width: 100, height: 160 }] }, { x: 0, y: 40, width: 60, height: 40 }, { x: 280, y: 40, width: 60, height: 40 }, 'orthogonal');
+  const intersects = (first, second, box) => {
+    if (first.x === second.x) return first.x >= box.x && first.x <= box.x + box.width && Math.max(first.y, second.y) >= box.y && Math.min(first.y, second.y) <= box.y + box.height;
+    if (first.y === second.y) return first.y >= box.y && first.y <= box.y + box.height && Math.max(first.x, second.x) >= box.x && Math.min(first.x, second.x) <= box.x + box.width;
+    return false;
+  };
+  assert.ok(path.every((point, index) => index === 0 || !intersects(path[index - 1], point, { x: 120, y: 0, width: 100, height: 160 })));
+});
+
+test('moves diagram groups and changes membership through shared history', async () => {
+  const { createChart, getBusinessSchema } = await import('../src/index.mjs');
+  const chart = createChart({
+    type: 'flow',
+    nodes: [
+      { id: 'a', label: 'A', groupId: 'main', position: { x: 40, y: 60 } },
+      { id: 'b', label: 'B', groupId: 'main', position: { x: 200, y: 60 } },
+      { id: 'c', label: 'C', position: { x: 360, y: 60 } }
+    ],
+    edges: [],
+    groups: [{ id: 'main', label: 'Main flow' }],
+    data: { schema: getBusinessSchema('flow-node'), edgeSchema: getBusinessSchema('flow-edge') },
+    diagram: { layout: 'manual', routing: 'orthogonal', grid: 8 },
+    editing: { enabled: true, requireConfirmation: false, allowStructuralChanges: true }
+  });
+  assert.equal(chart.moveGroupBy('main', { x: 16, y: 8 }).valid, true);
+  assert.deepEqual(chart.getDiagramNodes().slice(0, 2).map(node => node.position), [{ x: 56, y: 68 }, { x: 216, y: 68 }]);
+  chart.selectNodes(['c']);
+  assert.equal(chart.assignSelectedToGroup('main', { confirmed: true }).valid, true);
+  assert.equal(chart.getDiagramNodes().find(node => node.id === 'c').groupId, 'main');
+  assert.equal(chart.undo().valid, true);
+  assert.equal(chart.getDiagramNodes().find(node => node.id === 'c').groupId, undefined);
+  assert.equal(chart.redo().valid, true);
+  chart.selectNodes(['a']);
+  assert.equal(chart.assignSelectedToGroup(null, { confirmed: true }).valid, true);
+  assert.equal(chart.getDiagramNodes().find(node => node.id === 'a').groupId, undefined);
+  chart.destroy();
+});
+
+test('duplicates and deletes groups with explicit member policies', async () => {
+  const { createChart, getBusinessSchema } = await import('../src/index.mjs');
+  const chart = createChart({
+    type: 'flow',
+    nodes: [{ id: 'a', label: 'A', groupId: 'main', position: { x: 40, y: 60 } }, { id: 'b', label: 'B', groupId: 'main', position: { x: 200, y: 60 } }],
+    edges: [{ id: 'ab', from: 'a', to: 'b' }],
+    groups: [{ id: 'main', label: 'Main flow' }],
+    data: { schema: getBusinessSchema('flow-node'), edgeSchema: getBusinessSchema('flow-edge') },
+    diagram: { layout: 'manual', routing: 'orthogonal', grid: 8 },
+    editing: { enabled: true, requireConfirmation: false, allowStructuralChanges: true }
+  });
+  assert.equal(chart.duplicateGroup('main', { confirmed: true, offset: { x: 24, y: 16 } }).valid, true);
+  assert.ok(chart.getDiagramGroups().some(group => group.id === 'main-copy'));
+  assert.equal(chart.getDiagramNodes().filter(node => node.groupId === 'main-copy').length, 2);
+  assert.ok(chart.getDiagramEdges().some(edge => edge.from === 'a-copy' && edge.to === 'b-copy'));
+  assert.equal(chart.deleteGroup('main-copy', { confirmed: true, policy: 'delete-members' }).valid, true);
+  assert.equal(chart.getDiagramNodes().some(node => node.groupId === 'main-copy'), false);
+  assert.equal(chart.undo().valid, true);
+  assert.equal(chart.getDiagramNodes().filter(node => node.groupId === 'main-copy').length, 2);
+  assert.equal(chart.deleteGroup('main', { confirmed: true }).valid, true);
+  assert.equal(chart.getDiagramGroups().some(group => group.id === 'main'), false);
+  assert.equal(chart.getDiagramNodes().filter(node => ['a', 'b'].includes(node.id)).every(node => node.groupId === undefined), true);
+  chart.destroy();
+});
+
+test('connects and cancels diagram ports using keyboard only', async () => {
+  const { createChart, getBusinessSchema } = await import('../src/index.mjs');
+  const chart = createChart({
+    type: 'flow',
+    nodes: [
+      { id: 'a', label: 'A', position: { x: 40, y: 60 }, ports: [{ id: 'out', side: 'right' }] },
+      { id: 'b', label: 'B', position: { x: 220, y: 60 }, ports: [{ id: 'in', side: 'left' }] }
+    ],
+    edges: [],
+    data: { schema: getBusinessSchema('flow-node'), edgeSchema: getBusinessSchema('flow-edge') },
+    diagram: { layout: 'manual', routing: 'orthogonal', grid: 8 },
+    interaction: { keyboard: true },
+    editing: { enabled: true, requireConfirmation: false, allowStructuralChanges: true }
+  });
+  const focusable = () => { const rows = []; chart.model.scene.walk(node => { if (node.interactive && /^(node|group|port)-/.test(node.id)) rows.push(node); }); return rows; };
+  const event = key => ({ key, preventDefault() {}, ctrlKey: false, metaKey: false, shiftKey: false });
+  chart._diagramFocus = focusable().findIndex(node => node.id === 'port-a-out');
+  assert.equal(diagramKeyboard(chart, event('Enter')), true);
+  assert.equal(chart._keyboardConnection.nodeId, 'a');
+  chart._diagramFocus = focusable().findIndex(node => node.id === 'port-b-in');
+  assert.equal(diagramKeyboard(chart, event('Enter')), true);
+  assert.equal(chart._keyboardConnection, null);
+  assert.ok(chart.getDiagramEdges().some(edge => edge.from === 'a' && edge.to === 'b' && edge.fromPort === 'out' && edge.toPort === 'in'));
+  assert.equal(chart.undo().valid, true);
+  chart._diagramFocus = focusable().findIndex(node => node.id === 'port-a-out');
+  diagramKeyboard(chart, event('Enter'));
+  diagramKeyboard(chart, event('Escape'));
+  assert.equal(chart._keyboardConnection, null);
+  chart.destroy();
+});
+
+test('resizes member-derived groups and routes through dense obstacles deterministically', async () => {
+  const { createChart, getBusinessSchema, routeEdge } = await import('../src/index.mjs');
+  const chart = createChart({ type: 'flow', nodes: [
+    { id: 'a', label: 'A', groupId: 'main', position: { x: 40, y: 40 }, size: { width: 80, height: 40 } },
+    { id: 'b', label: 'B', groupId: 'main', position: { x: 160, y: 100 }, size: { width: 80, height: 40 } }
+  ], edges: [], groups: [{ id: 'main', label: 'Main', padding: 20 }], data: { schema: getBusinessSchema('flow-node'), edgeSchema: getBusinessSchema('flow-edge') }, diagram: { layout: 'manual', routing: 'orthogonal', grid: 8 }, editing: { enabled: true, requireConfirmation: false, allowStructuralChanges: true } });
+  assert.equal(chart.resizeGroup('main', { width: 300, height: 180 }).valid, true);
+  const nodes = chart.getDiagramNodes();
+  const width = Math.max(...nodes.map(node => node.position.x + node.size.width)) - Math.min(...nodes.map(node => node.position.x));
+  const height = Math.max(...nodes.map(node => node.position.y + node.size.height)) - Math.min(...nodes.map(node => node.position.y));
+  assert.equal(Math.round(width), 300);
+  assert.equal(Math.round(height), 180);
+  assert.equal(chart.undo().valid, true);
+  const obstacles = [{ x: 100, y: 0, width: 80, height: 120 }, { x: 220, y: 80, width: 80, height: 120 }, { x: 340, y: 0, width: 80, height: 120 }];
+  const input = { grid: 8, obstacles };
+  const first = routeEdge(input, { x: 0, y: 40, width: 60, height: 40 }, { x: 480, y: 40, width: 60, height: 40 }, 'orthogonal');
+  assert.deepEqual(first, routeEdge(input, { x: 0, y: 40, width: 60, height: 40 }, { x: 480, y: 40, width: 60, height: 40 }, 'orthogonal'));
+  assert.ok(first.length >= 4);
   chart.destroy();
 });

@@ -1,0 +1,16 @@
+{
+  "name": "approval-process-diagram",
+  "version": "2.0",
+  "intent": "approval-process",
+  "spec": {
+    "type": "flow",
+    "renderer": "svg",
+    "diagram": { "layout": "layered", "routing": "orthogonal", "grid": 8 },
+    "nodes": [
+      { "id": "request", "label": "Request", "ports": [{ "id": "out", "side": "right" }] },
+      { "id": "review", "label": "Review", "ports": [{ "id": "in", "side": "left" }, { "id": "out", "side": "right" }] },
+      { "id": "approved", "label": "Approved", "ports": [{ "id": "in", "side": "left" }] }
+    ],
+    "edges": [{ "id": "request-review", "from": "request", "to": "review", "fromPort": "out", "toPort": "in" }]
+  }
+}

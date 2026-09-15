@@ -12,7 +12,7 @@ export function isDateOnly(value) {
 
 export function cyclicIds(rows, key, field) {
   const degree = new Map(rows.map(row => [row[key], 0])), next = new Map(rows.map(row => [row[key], []]));
-  rows.forEach(row => (row[field] || []).forEach(id => { if (degree.has(id)) { degree.set(row[key], degree.get(row[key]) + 1); next.get(id).push(row[key]); } }));
+  rows.forEach(row => (row[field] || []).forEach(value => { const id = typeof value === 'string' ? value : value?.id; if (degree.has(id)) { degree.set(row[key], degree.get(row[key]) + 1); next.get(id).push(row[key]); } }));
   const queue = [...degree.keys()].filter(id => degree.get(id) === 0);
   for (let index = 0; index < queue.length; index += 1) next.get(queue[index]).forEach(id => { degree.set(id, degree.get(id) - 1); if (degree.get(id) === 0) queue.push(id); });
   return [...degree.keys()].filter(id => degree.get(id) > 0);
@@ -38,6 +38,12 @@ export function validateData(input, schema, options = {}) {
     }
     const value = object[name];
     if (value === null && field.nullable) return;
+    if (field.anyOf) {
+      const option = field.anyOf.find(candidate => candidate.type === 'string' ? typeof value === 'string' : candidate.type === 'object' ? isRecord(value) : candidate.type === 'array' ? Array.isArray(value) : candidate.type === 'number' ? typeof value === 'number' && Number.isFinite(value) : candidate.type === 'boolean' ? typeof value === 'boolean' : candidate.type === 'date' ? isDateOnly(value) : candidate.type === 'enum' ? candidate.values.includes(value) : false);
+      if (!option) errors.push(issue('FIELD_VALUE', path, 'Value does not match any supported field shape.'));
+      else normalizeField(object, name, { ...option, required: field.required }, path);
+      return;
+    }
     const correctType = field.type === 'string' ? typeof value === 'string' && (!field.required || value.length > 0)
       : field.type === 'number' ? typeof value === 'number' && Number.isFinite(value)
         : field.type === 'boolean' ? typeof value === 'boolean'
@@ -78,7 +84,7 @@ export function validateData(input, schema, options = {}) {
           if (!Array.isArray(table) || table.some(id => typeof id !== 'string')) { errors.push(issue('REFERENCE_CONTEXT', `references.${field.references}`, 'Supply the trusted related record IDs before validating references.')); continue; }
           targets = new Set(table);
         }
-        const values = Array.isArray(row[name]) ? row[name] : [row[name]];
+        const values = (Array.isArray(row[name]) ? row[name] : [row[name]]).map(value => typeof value === 'string' ? value : value?.id);
         values.forEach(id => { if (!targets.has(id)) errors.push(issue('MISSING_REFERENCE', `values.${index}.${name}`, `Unknown referenced ID: ${id}`)); });
       }
       for (const rule of schema.rules || []) {

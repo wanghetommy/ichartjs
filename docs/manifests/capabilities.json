@@ -2,11 +2,15 @@
   "version": "2.0",
   "source": "src/index.mjs#getCapabilities",
   "scenarios": {
-    "charting": ["line", "area", "bar", "column", "pie", "scatter", "funnel", "gauge"],
+    "charting": ["line", "area", "bar", "column", "pie", "scatter", "funnel", "gauge", "heatmap", "radar"],
     "project": ["gantt", "timeline", "milestone", "burndown"],
     "diagram": ["flow", "swimlane"]
   },
+  "projectIntelligence": ["variance", "capacity", "release", "risk", "aging"],
+  "chartModes": ["stacked", "percent-stacked", "donut", "mixed-line-column", "bin"],
   "renderers": ["canvas", "svg"],
   "excluded": ["map", "3d"],
-  "gallery": "playground/project-gallery.html"
+  "gallery": "playground/project-gallery.html",
+  "projectIntelligenceDemo": "playground/project-intelligence.html",
+  "foundationalGallery": "playground/foundational-gallery.html"
 }

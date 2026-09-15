@@ -97,8 +97,36 @@ export function routeEdge(edge, from, to, mode = 'orthogonal') {
   const start = pointFor(from, edge.fromPortDefinition, 'right'), end = pointFor(to, edge.toPortDefinition, 'left');
   if (mode === 'straight') return [start, end];
   if (mode === 'curved') { const bend = Math.max(30, Math.abs(end.x - start.x) * 0.4); return [start, { x: start.x + bend, y: start.y }, { x: end.x - bend, y: end.y }, end]; }
-  const middle = (start.x + end.x) / 2;
-  return [start, { x: middle, y: start.y }, { x: middle, y: end.y }, end];
+  const obstacles = (edge.obstacles || []).filter(box => box && Number.isFinite(box.x) && Number.isFinite(box.y) && Number.isFinite(box.width) && Number.isFinite(box.height));
+  const padding = Math.max(12, Number(edge.grid) || 8);
+  const segmentIntersects = (first, second, box) => {
+    const expanded = { x: box.x - padding, y: box.y - padding, width: box.width + padding * 2, height: box.height + padding * 2 };
+    if (first.x === second.x) return first.x >= expanded.x && first.x <= expanded.x + expanded.width && Math.max(first.y, second.y) >= expanded.y && Math.min(first.y, second.y) <= expanded.y + expanded.height;
+    if (first.y === second.y) return first.y >= expanded.y && first.y <= expanded.y + expanded.height && Math.max(first.x, second.x) >= expanded.x && Math.min(first.x, second.x) <= expanded.x + expanded.width;
+    return false;
+  };
+  const validPath = points => points.every((point, index) => index === 0 || obstacles.every(box => !segmentIntersects(points[index - 1], point, box)));
+  const snap = value => { const grid = Number(edge.grid) || 8; return Math.round(value / grid) * grid; };
+  const middle = snap((start.x + end.x) / 2), middleY = snap((start.y + end.y) / 2);
+  const candidates = [
+    [start, { x: middle, y: start.y }, { x: middle, y: end.y }, end],
+    [start, { x: start.x, y: middleY }, { x: end.x, y: middleY }, end]
+  ];
+  const xChannels = new Set([start.x, end.x, middle]), yChannels = new Set([start.y, end.y, middleY]);
+  obstacles.forEach(box => {
+    [box.x - padding, box.x + box.width + padding].forEach(x => xChannels.add(snap(x)));
+    [box.y - padding, box.y + box.height + padding].forEach(y => yChannels.add(snap(y)));
+  });
+  xChannels.forEach(x => candidates.push([start, { x, y: start.y }, { x, y: end.y }, end]));
+  yChannels.forEach(y => candidates.push([start, { x: start.x, y }, { x: end.x, y }, end]));
+  xChannels.forEach(x => yChannels.forEach(y => {
+    candidates.push([start, { x, y: start.y }, { x, y }, { x: end.x, y }, end]);
+    candidates.push([start, { x: start.x, y }, { x, y }, { x, y: end.y }, end]);
+  }));
+  const compact = points => points.filter((point, index) => !index || point.x !== points[index - 1].x || point.y !== points[index - 1].y);
+  const length = points => points.slice(1).reduce((sum, point, index) => sum + Math.abs(point.x - points[index].x) + Math.abs(point.y - points[index].y), 0);
+  const valid = candidates.map(compact).filter(validPath).sort((left, right) => length(left) - length(right) || left.length - right.length || JSON.stringify(left).localeCompare(JSON.stringify(right)));
+  return valid[0] || compact(candidates[0]);
 }
 
 export function normalizeDiagramData(spec) {

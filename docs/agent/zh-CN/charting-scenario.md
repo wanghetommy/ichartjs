@@ -14,6 +14,17 @@
 | `scatter` | 两个数值变量关系 | `canvas` |
 | `funnel` | 转化阶段 | `svg` |
 | `gauge` | 单指标完成度 | `canvas` |
+| `heatmap` | 矩阵强度与日历模式 | `canvas` 或 `svg` |
+| `radar` | 多维指标对比 | `svg` |
+
+## 基础模式
+
+- Bar、Column、Area 使用 `stack: "stacked"` 或 `stack: "percent"`，不新增堆叠类型。
+- Donut 使用 `type: "pie"` 配合 `innerRadius`。
+- Combo 使用每个系列的 `mark: "column"` 或 `mark: "line"`，并可设置 `axis: "right"`。
+- Histogram 使用 `transform: { type: "bin", field, thresholds | step, extent }`。
+- Heatmap 通过 `colorScale.missing` 区分缺失值和数值零。
+- Radar 应为每个指标声明 `min` 和 `max`；缺失域或混合单位会产生告警。
 
 ## Agent 流程
 
@@ -46,5 +57,6 @@
 - Renderer：`src/renderer.mjs`
 - 测试：`tests/core.test.mjs`
 - 验收：`playground/project-gallery.html`
+- Iteration 7 验收：`playground/foundational-gallery.html`
 
 新增图表必须同步更新代码、测试、Gallery、`docs/manifests/capabilities.json` 和本文件。

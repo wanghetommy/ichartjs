@@ -5,14 +5,42 @@
     "schedule": "gantt",
     "milestone": "milestone",
     "progress": "burndown",
+    "variance": "gantt",
+    "capacity": "column",
+    "release": "burndown",
+    "risk": "scatter",
+    "aging": "bar",
     "workflow": "flow",
     "responsibility": "swimlane"
   },
   "examples": {
-    "gantt": { "type": "gantt", "renderer": "svg", "data": [{ "id": "design", "name": "Design", "start": "2026-09-01", "end": "2026-09-05", "progress": 1 }] },
+    "gantt": {
+      "type": "gantt",
+      "renderer": "svg",
+      "project": {
+        "overlays": {
+          "criticalPath": true,
+          "slack": true,
+          "baseline": true,
+          "actual": true,
+          "variance": true
+        },
+        "calendar": {
+          "timezone": "UTC",
+          "workingWeekdays": [1, 2, 3, 4, 5],
+          "holidays": ["2026-09-10"]
+        }
+      },
+      "data": [
+        { "id": "design", "name": "Design", "start": "2026-09-01", "end": "2026-09-05", "baselineStart": "2026-09-01", "baselineEnd": "2026-09-04", "actualStart": "2026-09-01", "actualEnd": "2026-09-05", "owner": "Alex", "progress": 100, "status": "done" }
+      ]
+    },
     "timeline": { "type": "timeline", "renderer": "svg", "data": [{ "date": "2026-09-01", "title": "Kickoff" }] },
-    "milestone": { "type": "milestone", "renderer": "svg", "data": [{ "date": "2026-09-19", "title": "Release" }] },
+    "milestone": { "type": "milestone", "renderer": "svg", "data": [{ "date": "2026-09-19", "title": "Release", "baselineDate": "2026-09-17", "actualDate": "2026-09-19" }] },
     "burndown": { "type": "burndown", "renderer": "svg", "data": [{ "date": "2026-09-01", "remaining": 40 }, { "date": "2026-09-19", "remaining": 0 }] },
+    "capacity": { "type": "column", "renderer": "svg", "data": [{ "name": "Alex", "value": 10, "capacity": 8, "overload": 2 }] },
+    "risk": { "type": "scatter", "renderer": "svg", "data": [{ "name": "Vendor delay", "x": 4, "y": 5, "value": 20, "recordId": "risk-1" }] },
+    "aging": { "type": "bar", "renderer": "svg", "data": [{ "name": "0-7", "value": 4 }, { "name": "8-14", "value": 2 }] },
     "flow": { "type": "flow", "renderer": "svg", "nodes": [{ "id": "start", "label": "Start" }, { "id": "done", "label": "Done" }], "edges": [{ "from": "start", "to": "done" }] },
     "swimlane": { "type": "swimlane", "renderer": "svg", "lanes": [{ "id": "agent", "label": "Agent" }], "nodes": [{ "id": "plan", "label": "Plan", "laneId": "agent" }], "edges": [] }
   }

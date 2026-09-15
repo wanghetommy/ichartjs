@@ -1,0 +1,18 @@
+{
+  "name": "agent-orchestration-diagram",
+  "version": "2.0",
+  "intent": "agent-orchestration",
+  "spec": {
+    "type": "flow",
+    "renderer": "svg",
+    "diagram": { "layout": "layered", "routing": "orthogonal", "grid": 8 },
+    "groups": [{ "id": "workers", "label": "Worker Agents", "padding": 20 }],
+    "nodes": [
+      { "id": "router", "label": "Router" },
+      { "id": "research", "label": "Research", "groupId": "workers" },
+      { "id": "writer", "label": "Writer", "groupId": "workers" },
+      { "id": "review", "label": "Review" }
+    ],
+    "edges": [{ "from": "router", "to": "research" }, { "from": "research", "to": "writer" }, { "from": "writer", "to": "review" }]
+  }
+}

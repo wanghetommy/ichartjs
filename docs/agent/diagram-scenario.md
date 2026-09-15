@@ -31,22 +31,26 @@ Supported:
 
 - Nodes, edges, lanes, groups, and ports.
 - `manual`, `layered`, `tree`, and `radial` layouts.
-- `straight`, `orthogonal`, and `curved` routing declarations.
+- `straight`, `orthogonal`, and `curved` routing declarations, with lightweight obstacle-aware orthogonal routing.
 - Node dragging, multi-selection, alignment, and grid snapping.
-- Keyboard movement, undo/redo, and a shared Canvas/SVG Scene.
+- Keyboard movement, copy/paste, duplicate, group collapse/expand, undo/redo, and a shared Canvas/SVG Scene.
+- Port-aware drag-to-connect interaction and typed edge creation.
+- Group collapse/expand with collapsed group summary rendering.
 
 Current limitations:
 
 - Groups are flat; nested groups are not supported.
-- Port visualization and port routing are supported, but drag-to-connect is not complete.
-- Copy/paste and group collapse/expand are not complete.
+- Group bounds are derived from member geometry and configurable `group.padding`; `resizeGroup` scales member positions and sizes rather than persisting a second group rectangle.
+- `deleteGroup` defaults to `ungroup`; use `delete-members` only after explicit host confirmation.
+- Canvas keeps basic accessibility text, while SVG exposes richer diagram semantics.
+- Cross-browser matrix and physical-device validation remain acceptance work, not runtime guarantees.
 
 ## Agent Workflow
 
 1. Assign stable IDs to nodes and edges.
 2. Use `validateDiagram(spec)` to check endpoints, ports, groups, lanes, and layout options.
 3. Create the chart with `createChart(spec)`.
-4. Use typed commands such as `moveNodes`, `alignNodes`, and `snapNodes` for edits.
+4. Use typed commands such as `moveNodes`, `alignNodes`, `snapNodes`, `addEdge`, `toggleGroupCollapse`, `duplicateSelection`, and `pasteSelection` for edits.
 5. Follow the preview/confirm/commit flow for all business-data changes.
 
 ## Implementation Map
@@ -57,12 +61,14 @@ Current limitations:
 - Commands and transactions: `src/command.mjs`, `src/edit-controller.mjs`
 - Editor demo: `playground/diagram-editor.html`
 - Full gallery: `playground/project-gallery.html`
+- Keyboard port connection: Tab focuses nodes/groups/ports, Enter starts or completes a port connection, and Escape cancels it.
 
 ## Development Checklist
 
 - Update Diagram data rules and `validateDiagram()`.
 - Update command validation and preview/commit/history tests.
 - Ensure edge arrows, labels, and ports are recomputed after node movement.
+- Verify collapsed groups hide member nodes from the rendered Scene while preserving normalized Spec data.
 - Check Canvas and SVG Scene structures together.
 - Update `diagram-editor.html` and the Gallery.
 
@@ -71,4 +77,6 @@ Current limitations:
 - Edges, arrows, and labels follow nodes after movement.
 - Multi-selection alignment and snapping are visible in state output.
 - Keyboard edits create undoable history entries.
+- Copy/paste preserves internal edges and produces deterministic new IDs.
+- Group collapse hides member nodes and keeps group-level state visible.
 - Groups, ports, and invalid references produce structured validation results.

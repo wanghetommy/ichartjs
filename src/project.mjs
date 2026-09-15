@@ -5,76 +5,29 @@
 import { Scene } from './scene.mjs';
 import { normalizeData } from './data.mjs';
 import { layoutDiagram, normalizeDiagramData, routeEdge } from './diagram.mjs';
+import { analyzeBurndownSeries, analyzeSchedule } from './project-analytics.mjs';
+import { createLinkedProjectState, filterProjectRows, linkedRecordId } from './project-linking.mjs';
 
 export const projectTypes = ['gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane'];
 const day = 86400000;
 export const timestamp = value => value == null || value === '' ? NaN : new Date(value).getTime();
 const dateLabel = value => new Date(value).toISOString().slice(0, 10);
-
-export function criticalSchedule(rows) {
-  const tasks = new Map(rows.map(row => [row.id, { id: row.id, duration: (timestamp(row.end) - timestamp(row.start)) / day, dependencies: row.dependencies || [], successors: [] }]));
-  tasks.forEach(task => task.dependencies.forEach(id => tasks.get(id).successors.push(task.id)));
-  const order = [], pending = new Map([...tasks].map(([id, task]) => [id, task.dependencies.length]));
-  const queue = [...tasks.keys()].filter(id => !pending.get(id));
-  for (let index = 0; index < queue.length; index += 1) {
-    const task = tasks.get(queue[index]);
-    task.earliestStart = Math.max(0, ...task.dependencies.map(id => tasks.get(id).earliestFinish));
-    task.earliestFinish = task.earliestStart + task.duration;
-    order.push(task);
-    task.successors.forEach(id => { pending.set(id, pending.get(id) - 1); if (!pending.get(id)) queue.push(id); });
-  }
-  if (order.length !== rows.length) throw new Error('Cyclic task dependencies');
-  const duration = Math.max(0, ...order.map(task => task.earliestFinish));
-  [...order].reverse().forEach(task => {
-    task.latestFinish = task.successors.length ? Math.min(...task.successors.map(id => tasks.get(id).latestStart)) : duration;
-    task.latestStart = task.latestFinish - task.duration;
-    task.float = Math.max(0, task.latestStart - task.earliestStart);
-    task.critical = task.float < 1e-8;
-  });
-  const criticalIds = order.filter(task => task.critical).map(task => task.id);
-  const criticalEdges = order.flatMap(task => task.dependencies.filter(id => task.critical && tasks.get(id).critical && Math.abs(tasks.get(id).earliestFinish - task.earliestStart) < 1e-8).map(from => ({ from, to: task.id })));
-  return { duration, criticalIds, criticalEdges, tasks: order };
-}
-
-export function analyzeBurndown(rows, options = {}) {
-  const samples = rows.map((row, dataIndex) => ({ ...row, dataIndex, time: timestamp(row.date), remaining: Number(row.remaining ?? row.actual ?? row.value), scopeChange: Number(row.scopeChange || 0) })).sort((left, right) => left.time - right.time);
-  if (!samples.length) return { samples, forecast: { date: null, reason: 'insufficient-data' } };
-  const first = samples[0], last = samples.at(-1);
-  const initial = options.initialScope ?? first.remaining;
-  let cumulativeScope = initial;
-  samples.forEach(sample => {
-    cumulativeScope += sample.scopeChange;
-    sample.scope = cumulativeScope;
-    sample.completed = cumulativeScope - sample.remaining;
-  });
-  const elapsedDays = (last.time - first.time) / day;
-  const completedSinceFirst = last.completed - first.completed;
-  const velocity = elapsedDays > 0 ? completedSinceFirst / elapsedDays : 0;
-  let forecast = { date: null, velocity, reason: samples.length < 2 ? 'insufficient-data' : 'non-positive-velocity' };
-  if (last.remaining === 0) forecast = { date: dateLabel(last.time), velocity, reason: 'complete' };
-  else if (velocity > 0) {
-    const projectedTime = last.time + last.remaining / velocity * day;
-    if (Number.isFinite(projectedTime) && Math.abs(projectedTime) < 8.64e15) forecast = { date: dateLabel(projectedTime), time: projectedTime, velocity, reason: 'estimated' };
-  }
-  const start = options.start ? timestamp(options.start) : first.time;
-  const end = options.end ? timestamp(options.end) : last.time;
-  samples.forEach(sample => { sample.ideal = sample.ideal ?? Math.max(0, initial * (1 - (sample.time - start) / (end - start || day))); });
-  return { samples, initialScope: initial, start, end, forecast };
-}
+const dependencyId = dependency => typeof dependency === 'string' ? dependency : dependency?.id || null;
 
 function text(scene, id, content, x, y, style = {}) {
   scene.add({ id, type: 'text', geometry: { text: String(content), x, y }, style: { fill: '#334155', font: '12px system-ui', ...style }, zIndex: 4 });
 }
 
 function arrow(scene, id, points, reference, critical = false) {
-  const color = critical ? '#dc2626' : '#64748b', tip = points.at(-1), previous = points.at(-2);
+  const color = critical ? '#dc2626' : '#64748b';
+  const tip = points.at(-1), previous = points.at(-2);
   const angle = Math.atan2(tip.y - previous.y, tip.x - previous.x), size = 7;
   scene.add({ id, type: 'path', geometry: { points }, style: { fill: 'none', stroke: color, strokeWidth: critical ? 2.5 : 1.5 }, dataRef: reference, zIndex: 1 });
   scene.add({ id: id.startsWith('dependency-') ? id.replace('dependency-', 'dependency-arrow-') : `${id}-arrow`, type: 'path', geometry: { points: [tip, { x: tip.x - size * Math.cos(angle - Math.PI / 6), y: tip.y - size * Math.sin(angle - Math.PI / 6) }, { x: tip.x - size * Math.cos(angle + Math.PI / 6), y: tip.y - size * Math.sin(angle + Math.PI / 6) }, tip] }, style: { fill: color, stroke: color }, zIndex: 3 });
 }
 
 function timeAxis(scene, plot, min, max) {
-  const map = value => plot.x + (timestamp(value) - min) / (max - min) * plot.width;
+  const map = value => plot.x + (timestamp(value) - min) / (max - min || day) * plot.width;
   const ticks = Math.max(2, Math.min(5, Math.floor(plot.width / 100)));
   for (let index = 0; index < ticks; index += 1) {
     const time = min + (max - min) * index / (ticks - 1), x = map(time);
@@ -84,51 +37,173 @@ function timeAxis(scene, plot, min, max) {
   return map;
 }
 
+function projectConfig(spec) {
+  return spec.project || {};
+}
+
+function projectOverlays(spec) {
+  const project = projectConfig(spec);
+  return {
+    criticalPath: project.overlays?.criticalPath !== false,
+    slack: Boolean(project.overlays?.slack),
+    baseline: Boolean(project.overlays?.baseline),
+    actual: Boolean(project.overlays?.actual),
+    variance: Boolean(project.overlays?.variance)
+  };
+}
+
+function projectSelection(spec, state) {
+  const linked = state.linked || createLinkedProjectState([], {});
+  return new Set(linked.selection);
+}
+
+function rowWindow(row) {
+  const values = [
+    row.start, row.end, row.date,
+    row.baselineStart, row.baselineEnd, row.baselineDate, row.baseline,
+    row.actualStart, row.actualEnd, row.actualDate
+  ].map(timestamp).filter(Number.isFinite);
+  return values;
+}
+
+function taskDatum(row, analytics, recordId) {
+  return {
+    ...row,
+    ...(analytics ? {
+      critical: analytics.critical,
+      float: analytics.float,
+      slack: analytics.slack,
+      adjustedStart: analytics.adjustedStart,
+      adjustedEnd: analytics.adjustedEnd,
+      baselineVarianceDays: analytics.baselineVarianceDays,
+      startVarianceDays: analytics.startVarianceDays,
+      endVarianceDays: analytics.endVarianceDays
+    } : {}),
+    recordId
+  };
+}
+
+export function criticalSchedule(rows, options = {}) {
+  const analysis = analyzeSchedule(rows, options);
+  if (analysis.warnings.some(item => item.code === 'CYCLIC_DEPENDENCY')) throw new Error('Cyclic task dependencies');
+  return {
+    duration: analysis.duration,
+    criticalIds: analysis.criticalIds,
+    criticalEdges: analysis.criticalEdges,
+    tasks: analysis.tasks.map(task => ({
+      id: task.id,
+      dependencies: task.dependencies.map(dependencyId).filter(Boolean),
+      earliestStart: task.earliestStart,
+      earliestFinish: task.earliestFinish,
+      latestStart: task.latestStart,
+      latestFinish: task.latestFinish,
+      float: task.float,
+      critical: task.critical
+    })),
+    calendar: analysis.calendar,
+    assumptions: analysis.assumptions,
+    warnings: analysis.warnings
+  };
+}
+
+export function analyzeBurndown(rows, options = {}) {
+  return analyzeBurndownSeries(rows, options);
+}
+
 function tasksScene(scene, spec, rows, state) {
   const plot = state.plot;
-  const times = rows.flatMap(row => [timestamp(row.start ?? row.date ?? row.end), timestamp(row.end ?? row.date ?? row.start)]);
-  let min = Math.min(...times), max = Math.max(...times);
+  const overlays = projectOverlays(spec);
+  const values = rows.flatMap(rowWindow);
+  let min = Math.min(...(values.length ? values : [Date.now()])), max = Math.max(...(values.length ? values : [Date.now() + day]));
   if (min === max) { min -= day; max += day; }
   const map = timeAxis(scene, plot, min, max), positions = new Map();
-  if (spec.type === 'gantt') state.schedule = criticalSchedule(rows);
-  const highlighted = new Set(spec.criticalPath === false ? [] : Array.isArray(spec.criticalPath) ? spec.criticalPath : state.schedule?.criticalIds || []);
-  const rowHeight = Math.max(32, plot.height / rows.length);
+  const analyticsMap = new Map((state.schedule?.tasks || []).map(task => [task.id, task]));
+  const highlighted = new Set(spec.criticalPath === false || !overlays.criticalPath ? [] : Array.isArray(spec.criticalPath) ? spec.criticalPath : state.schedule?.criticalIds || []);
+  const selected = projectSelection(spec, state);
+  const rowHeight = Math.max(32, plot.height / Math.max(1, rows.length));
   rows.forEach((row, index) => {
-    const start = map(row.start ?? row.date ?? row.end), end = map(row.end ?? row.date ?? row.start);
-    const y = plot.y + (index + 0.5) * rowHeight, milestone = spec.type === 'milestone' || row.milestone || start === end;
+    const analytics = analyticsMap.get(row.id);
+    const recordId = linkedRecordId(row, index);
+    const startValue = row.start ?? row.date ?? row.end;
+    const endValue = row.end ?? row.date ?? row.start;
+    const baselineStart = row.baselineStart || row.baselineDate || row.baseline || null;
+    const baselineEnd = row.baselineEnd || row.baselineDate || baselineStart;
+    const actualStart = row.actualStart || row.actualDate || null;
+    const actualEnd = row.actualEnd || row.actualDate || actualStart;
+    const start = map(startValue), end = map(endValue);
+    const y = plot.y + (index + 0.5) * rowHeight;
+    const milestone = spec.type === 'milestone' || row.milestone || start === end;
+    if (overlays.baseline && baselineStart) {
+      const baselineStartX = map(baselineStart), baselineEndX = map(baselineEnd || baselineStart);
+      if (milestone) scene.add({ id: `project-baseline-${index}`, type: 'circle', geometry: { cx: baselineStartX, cy: y, r: 4 }, bounds: { x: baselineStartX - 4, y: y - 4, width: 8, height: 8 }, style: { fill: '#ffffff', stroke: '#94a3b8', strokeWidth: 1.5 }, zIndex: 1 });
+      else scene.add({ id: `project-baseline-${index}`, type: 'rect', geometry: { x: baselineStartX, y: y - 14, width: Math.max(2, baselineEndX - baselineStartX), height: 6 }, style: { fill: '#cbd5e1' }, zIndex: 1 });
+    }
+    if (overlays.actual && actualStart) {
+      const actualStartX = map(actualStart), actualEndX = map(actualEnd || actualStart);
+      if (milestone) scene.add({ id: `project-actual-${index}`, type: 'circle', geometry: { cx: actualStartX, cy: y, r: 3 }, bounds: { x: actualStartX - 3, y: y - 3, width: 6, height: 6 }, style: { fill: '#0f172a' }, zIndex: 3 });
+      else scene.add({ id: `project-actual-${index}`, type: 'rect', geometry: { x: actualStartX, y: y + 8, width: Math.max(2, actualEndX - actualStartX), height: 4 }, style: { fill: '#0f172a', opacity: 0.35 }, zIndex: 3 });
+    }
     const geometry = milestone ? { cx: start, cy: y, r: 7 } : { x: start, y: y - 10, width: Math.max(2, end - start), height: 20 };
     const bounds = milestone ? { x: start - 8, y: y - 8, width: 16, height: 16 } : { ...geometry };
-    const schedule = state.schedule?.tasks.find(task => task.id === row.id);
-    const datum = { ...row, ...(schedule ? { critical: schedule.critical, float: schedule.float } : {}) };
-    scene.add({ id: `project-item-${index}`, type: milestone ? 'circle' : 'rect', geometry, bounds, style: { fill: highlighted.has(row.id) ? '#dc2626' : row.status === 'done' ? '#16a34a' : spec.colors[index % spec.colors.length] }, dataRef: { dataIndex: index, taskId: row.id, datum }, interactive: true, zIndex: 2 });
-    positions.set(row.id, { start, end, y });
+    const datum = taskDatum(row, analytics, recordId);
+    scene.add({
+      id: `project-item-${index}`,
+      type: milestone ? 'circle' : 'rect',
+      geometry,
+      bounds,
+      style: {
+        fill: highlighted.has(row.id) ? '#dc2626' : row.status === 'done' ? '#16a34a' : spec.colors[index % spec.colors.length],
+        stroke: selected.has(recordId) ? '#0f172a' : '#ffffff',
+        strokeWidth: selected.has(recordId) ? 2 : 1
+      },
+      dataRef: { dataIndex: index, taskId: row.id, recordId, datum },
+      interactive: true,
+      zIndex: 2
+    });
+    positions.set(row.id || recordId, { start, end, y });
     const label = row.name || row.title || row.label || row.id || `Item ${index + 1}`;
     text(scene, `project-label-${index}`, label.length > 17 ? `${label.slice(0, 16)}…` : label, plot.x - 12, y + 4, { textAnchor: 'end' });
     if (row.progress != null && !milestone) scene.add({ id: `project-progress-${index}`, type: 'rect', geometry: { ...geometry, width: geometry.width * (row.progress > 1 ? row.progress / 100 : row.progress) }, style: { fill: '#0f172a', opacity: 0.25 }, zIndex: 3 });
+    if (overlays.slack && analytics?.latestFinish && !milestone) {
+      const latestEnd = map(analytics.latestFinish);
+      scene.add({ id: `project-slack-${index}`, type: 'line', geometry: { x1: end, y1: y, x2: latestEnd, y2: y }, style: { stroke: '#f59e0b', strokeWidth: 1.5, opacity: 0.9 } });
+    }
+    if (overlays.variance) {
+      const variance = analytics?.endVarianceDays ?? analytics?.baselineVarianceDays ?? null;
+      if (variance != null) text(scene, `project-variance-${index}`, `${variance > 0 ? '+' : ''}${variance}d`, milestone ? start + 12 : end + 8, y - 12, { font: '11px system-ui', fill: variance > 0 ? '#dc2626' : variance < 0 ? '#2563eb' : '#475569' });
+    }
   });
   rows.forEach((row, index) => (row.dependencies || []).forEach((dependency, dependencyIndex) => {
-    const from = positions.get(dependency), to = positions.get(row.id);
-    const critical = highlighted.has(dependency) && highlighted.has(row.id) && (Array.isArray(spec.criticalPath) || state.schedule.criticalEdges.some(edge => edge.from === dependency && edge.to === row.id));
+    const fromId = dependencyId(dependency), toId = row.id;
+    const from = positions.get(fromId), to = positions.get(toId);
+    if (!from || !to) return;
+    const critical = highlighted.has(fromId) && highlighted.has(toId) && state.schedule?.criticalEdges?.some(edge => edge.from === fromId && edge.to === toId);
     const bend = from.end + 12;
-    arrow(scene, `dependency-${index}-${dependencyIndex}`, [{ x: from.end, y: from.y }, { x: bend, y: from.y }, { x: bend, y: to.y - 15 }, { x: to.start - 10, y: to.y - 15 }, { x: to.start - 10, y: to.y }, { x: to.start, y: to.y }], { from: dependency, to: row.id, critical }, critical);
+    arrow(scene, `dependency-${index}-${dependencyIndex}`, [{ x: from.end, y: from.y }, { x: bend, y: from.y }, { x: bend, y: to.y - 15 }, { x: to.start - 10, y: to.y - 15 }, { x: to.start - 10, y: to.y }, { x: to.start, y: to.y }], { from: fromId, to: toId, critical }, critical);
   }));
   state.timeDomain = [min, max];
 }
 
 function burndownScene(scene, spec, rows, state) {
-  const analysis = analyzeBurndown(rows, spec.burndown), { samples, forecast } = analysis, plot = state.plot;
+  const analysis = analyzeBurndown(rows, projectConfig(spec).burndown || spec.burndown || {});
+  const { samples, forecast } = analysis;
+  const plot = state.plot;
   state.burndown = analysis;
-  const min = Math.min(analysis.start, samples[0].time), max = Math.max(analysis.end, samples.at(-1).time, forecast.time || 0, min + day);
+  state.projectAnalytics = { ...(state.projectAnalytics || {}), burndown: analysis };
+  const min = Math.min(analysis.start, samples[0]?.time || analysis.start || Date.now());
+  const max = Math.max(analysis.end, samples.at(-1)?.time || analysis.end || min + day, forecast.time || 0, min + day);
   const map = timeAxis(scene, plot, min, max);
   const maxValue = Math.max(1, ...samples.flatMap(sample => [sample.remaining, sample.ideal, sample.scope]));
   const mapY = value => plot.y + plot.height - value / maxValue * plot.height;
+  const selected = projectSelection(spec, state);
   const series = [['remaining', 'actual', spec.colors[0]], ['ideal', 'ideal', '#94a3b8'], ['scope', 'scope-total', '#d97706']];
   series.forEach(([field, id, color]) => scene.add({ id: `burndown-${id}`, type: 'path', geometry: { points: samples.map(sample => ({ x: map(sample.time), y: mapY(sample[field]) })) }, style: { fill: 'none', stroke: color, strokeWidth: 2 } }));
   for (let index = 0; index <= 2; index += 1) text(scene, `burndown-y-${index}`, Number((maxValue * index / 2).toFixed(1)), plot.x - 12, mapY(maxValue * index / 2) + 4, { textAnchor: 'end' });
   samples.forEach(sample => {
     const x = map(sample.time), y = mapY(sample.remaining), index = sample.dataIndex;
+    const recordId = linkedRecordId(sample, index);
     if (sample.scopeChange) scene.add({ id: `burndown-scope-${index}`, type: 'line', geometry: { x1: x, y1: plot.y, x2: x, y2: plot.y + plot.height }, style: { stroke: '#f59e0b' } });
-    scene.add({ id: `burndown-item-${index}`, type: 'circle', geometry: { cx: x, cy: y, r: 5 }, bounds: { x: x - 8, y: y - 8, width: 16, height: 16 }, style: { fill: spec.colors[0] }, dataRef: { dataIndex: index, datum: { ...sample, forecast: forecast.date, forecastReason: forecast.reason } }, interactive: true, zIndex: 2 });
+    scene.add({ id: `burndown-item-${index}`, type: 'circle', geometry: { cx: x, cy: y, r: 5 }, bounds: { x: x - 8, y: y - 8, width: 16, height: 16 }, style: { fill: spec.colors[0], stroke: selected.has(recordId) ? '#0f172a' : '#ffffff', strokeWidth: selected.has(recordId) ? 2 : 1 }, dataRef: { dataIndex: index, recordId, datum: { ...sample, forecast: forecast.date, forecastReason: forecast.reason } }, interactive: true, zIndex: 2 });
   });
   if (forecast.reason === 'estimated') {
     const last = samples.at(-1);
@@ -138,8 +213,10 @@ function burndownScene(scene, spec, rows, state) {
 }
 
 function diagramScene(scene, spec, rows, state) {
-  const diagramSpec = normalizeDiagramData(spec), plot = state.plot, edges = diagramSpec.edges, lanes = diagramSpec.lanes, layout = layoutDiagram(diagramSpec, plot);
+  const diagramSpec = normalizeDiagramData(spec);
+  const plot = state.plot, edges = diagramSpec.edges, lanes = diagramSpec.lanes, groups = diagramSpec.groups, layout = layoutDiagram(diagramSpec, plot);
   rows = diagramSpec.nodes;
+  const collapsedGroups = new Set(groups.filter(group => group.collapsed).map(group => group.id));
   const ranks = new Map(rows.map(row => [row.id, 0]));
   const pending = new Map(rows.map(row => [row.id, edges.filter(edge => edge.to === row.id).length]));
   const queue = rows.filter(row => pending.get(row.id) === 0).map(row => row.id);
@@ -164,27 +241,44 @@ function diagramScene(scene, spec, rows, state) {
     const generated = layout[row.id];
     const geometry = { x: row.position?.x ?? generated?.x ?? plot.x + rank * gapX + 12, y: row.position?.y ?? generated?.y ?? plot.y + (lanes.length ? lane * laneHeight : 0) + (slot + 0.5) * (lanes.length ? laneHeight : Math.max(plot.height, sameCell * 64)) / sameCell - 18, width: row.size?.width || 112, height: row.size?.height || 36 };
     positions.set(row.id, geometry);
-    scene.add({ id: `node-${row.id}`, type: 'rect', geometry, bounds: { ...geometry }, style: { fill: spec.colors[lane % spec.colors.length] }, dataRef: { nodeId: row.id, dataIndex: index, datum: row }, interactive: true, zIndex: 2 });
-    (row.ports || []).forEach(port => { const point = port.side === 'left' ? { x: geometry.x, y: geometry.y + geometry.height * (port.offset ?? 0.5) } : port.side === 'top' ? { x: geometry.x + geometry.width * (port.offset ?? 0.5), y: geometry.y } : port.side === 'bottom' ? { x: geometry.x + geometry.width * (port.offset ?? 0.5), y: geometry.y + geometry.height } : { x: geometry.x + geometry.width, y: geometry.y + geometry.height * (port.offset ?? 0.5) }; scene.add({ id: `port-${row.id}-${port.id}`, type: 'circle', geometry: { cx: point.x, cy: point.y, r: 4 }, bounds: { x: point.x - 6, y: point.y - 6, width: 12, height: 12 }, style: { fill: '#ffffff', stroke: '#334155', strokeWidth: 1.5 }, dataRef: { nodeId: row.id, portId: port.id }, interactive: true, zIndex: 4 }); });
-    text(scene, `node-label-${row.id}`, row.label || row.id, geometry.x + 56, geometry.y + 23, { fill: '#ffffff', textAnchor: 'middle' });
+    if (collapsedGroups.has(row.groupId)) return;
+    scene.add({ id: `node-${row.id}`, type: 'rect', geometry, bounds: { ...geometry }, style: { fill: spec.colors[lane % spec.colors.length] }, dataRef: { nodeId: row.id, dataIndex: index, datum: row, groupId: row.groupId || null }, interactive: true, zIndex: 2 });
+    (row.ports || []).forEach(port => {
+      const point = port.side === 'left' ? { x: geometry.x, y: geometry.y + geometry.height * (port.offset ?? 0.5) } : port.side === 'top' ? { x: geometry.x + geometry.width * (port.offset ?? 0.5), y: geometry.y } : port.side === 'bottom' ? { x: geometry.x + geometry.width * (port.offset ?? 0.5), y: geometry.y + geometry.height } : { x: geometry.x + geometry.width, y: geometry.y + geometry.height * (port.offset ?? 0.5) };
+      scene.add({ id: `port-${row.id}-${port.id}`, type: 'circle', geometry: { cx: point.x, cy: point.y, r: 4 }, bounds: { x: point.x - 6, y: point.y - 6, width: 12, height: 12 }, style: { fill: '#ffffff', stroke: '#334155', strokeWidth: 1.5 }, dataRef: { nodeId: row.id, portId: port.id, groupId: row.groupId || null }, interactive: true, zIndex: 4 });
+    });
+    text(scene, `node-label-${row.id}`, row.label || row.id, geometry.x + geometry.width / 2, geometry.y + geometry.height / 2 + 5, { fill: '#ffffff', textAnchor: 'middle' });
   });
-  const groups = spec.groups ?? spec.data.groups ?? [];
+  const groupBoxes = new Map();
   groups.forEach(group => {
     const boxes = rows.filter(row => row.groupId === group.id).map(row => positions.get(row.id)).filter(Boolean);
     if (!boxes.length) return;
-    const left = Math.min(...boxes.map(box => box.x)) - 16, top = Math.min(...boxes.map(box => box.y)) - 24, right = Math.max(...boxes.map(box => box.x + box.width)) + 16, bottom = Math.max(...boxes.map(box => box.y + box.height)) + 16;
-    scene.add({ id: `group-${group.id}`, type: 'rect', geometry: { x: left, y: top, width: right - left, height: bottom - top }, bounds: { x: left, y: top, width: right - left, height: bottom - top }, style: { fill: 'none', stroke: '#94a3b8', strokeWidth: 1.5, opacity: 0.8 }, dataRef: { groupId: group.id }, interactive: false, zIndex: 0 });
-    text(scene, `group-label-${group.id}`, group.label || group.id, left + 8, top + 15, { font: '600 11px system-ui' });
+    const padding = typeof group.padding === 'number' ? { left: group.padding, right: group.padding, top: group.padding, bottom: group.padding } : { left: group.padding?.left ?? 16, right: group.padding?.right ?? 16, top: group.padding?.top ?? 24, bottom: group.padding?.bottom ?? 16 };
+    const left = Math.min(...boxes.map(box => box.x)) - padding.left, top = Math.min(...boxes.map(box => box.y)) - padding.top, right = Math.max(...boxes.map(box => box.x + box.width)) + padding.right, bottom = Math.max(...boxes.map(box => box.y + box.height)) + padding.bottom;
+    const geometry = { x: left, y: top, width: right - left, height: bottom - top };
+    groupBoxes.set(group.id, geometry);
+    scene.add({ id: `group-${group.id}`, type: 'rect', geometry, bounds: { ...geometry }, style: { fill: group.collapsed ? '#eff6ff' : 'none', stroke: group.collapsed ? '#2563eb' : '#94a3b8', strokeWidth: group.collapsed ? 2 : 1.5, opacity: 0.9 }, dataRef: { groupId: group.id, collapsed: Boolean(group.collapsed) }, interactive: true, zIndex: 0 });
+    text(scene, `group-label-${group.id}`, group.collapsed ? `${group.label || group.id} (${boxes.length})` : group.label || group.id, left + 8, top + 15, { font: '600 11px system-ui' });
+    const label = scene.find(`group-label-${group.id}`);
+    if (label) { label.bounds = { x: left, y: top, width: right - left, height: 20 }; label.dataRef = { groupId: group.id, collapsed: Boolean(group.collapsed) }; label.interactive = true; }
   });
   edges.forEach((edge, index) => {
-    const from = positions.get(edge.from), to = positions.get(edge.to);
-    if (!from || !to) return;
     const fromNode = rows.find(row => row.id === edge.from), toNode = rows.find(row => row.id === edge.to);
-    const points = routeEdge({ ...edge, fromPortDefinition: fromNode?.ports?.find(port => port.id === edge.fromPort), toPortDefinition: toNode?.ports?.find(port => port.id === edge.toPort) }, from, to, edge.routing || spec.diagram?.routing || 'orthogonal');
-    arrow(scene, `edge-${index}`, points, { from: edge.from, to: edge.to, edgeId: edge.id || `edge-${index}`, status: edge.status, routing: edge.routing || spec.diagram?.routing || 'orthogonal' }, edge.critical === true);
-    if (edge.label) { const middle = points[Math.floor(points.length / 2)]; text(scene, `edge-label-${index}`, edge.label, middle.x, middle.y - 8, { textAnchor: 'middle', font: '11px system-ui' }); }
+    if (!fromNode || !toNode) return;
+    if (fromNode.groupId && fromNode.groupId === toNode.groupId && collapsedGroups.has(fromNode.groupId)) return;
+    const from = fromNode.groupId && collapsedGroups.has(fromNode.groupId) ? groupBoxes.get(fromNode.groupId) : positions.get(edge.from);
+    const to = toNode.groupId && collapsedGroups.has(toNode.groupId) ? groupBoxes.get(toNode.groupId) : positions.get(edge.to);
+    if (!from || !to) return;
+    const obstacles = [...positions.entries()].filter(([id]) => id !== edge.from && id !== edge.to && !collapsedGroups.has(rows.find(row => row.id === id)?.groupId)).map(([, box]) => box);
+    const points = routeEdge({ ...edge, grid: spec.diagram?.grid || 8, obstacles, fromPortDefinition: fromNode.groupId && collapsedGroups.has(fromNode.groupId) ? null : fromNode?.ports?.find(port => port.id === edge.fromPort), toPortDefinition: toNode.groupId && collapsedGroups.has(toNode.groupId) ? null : toNode?.ports?.find(port => port.id === edge.toPort) }, from, to, edge.routing || spec.diagram?.routing || 'orthogonal');
+    arrow(scene, `edge-${index}`, points, { from: edge.from, to: edge.to, edgeId: edge.id || `edge-${index}`, status: edge.status, routing: edge.routing || spec.diagram?.routing || 'orthogonal', fromGroupId: fromNode.groupId || null, toGroupId: toNode.groupId || null }, edge.critical === true);
+    if (edge.label) {
+      const middle = points[Math.floor(points.length / 2)];
+      text(scene, `edge-label-${index}`, edge.label, middle.x, middle.y - 8, { textAnchor: 'middle', font: '11px system-ui' });
+    }
   });
   state.nodePositions = Object.fromEntries(positions);
+  state.groupBoxes = Object.fromEntries(groupBoxes);
 }
 
 export function projectView(spec) {
@@ -194,11 +288,21 @@ export function projectView(spec) {
 
 export function buildProjectScene(spec) {
   const diagram = ['flow', 'swimlane'].includes(spec.type);
-  const rows = diagram ? spec.nodes ?? spec.data.nodes ?? [] : spec.data.values;
-  const data = { ...normalizeData(rows), rows: rows.map(row => ({ ...row })) }, scene = new Scene(spec.width, spec.height);
+  const rawRows = diagram ? spec.nodes ?? spec.data.nodes ?? [] : spec.data.values;
+  const sourceRows = rawRows.map(row => ({ ...row }));
+  const linked = createLinkedProjectState(sourceRows, projectConfig(spec).linked || {});
+  const visibleRows = diagram ? sourceRows : filterProjectRows(sourceRows, projectConfig(spec).linked || {});
+  const data = { ...normalizeData(visibleRows), rows: visibleRows.map(row => ({ ...row })), sourceRows: sourceRows.map(row => ({ ...row })) };
+  const scene = new Scene(spec.width, spec.height);
   const left = ['gantt', 'timeline', 'milestone', 'swimlane'].includes(spec.type) ? Math.min(150, spec.width * 0.32) : spec.padding.left;
-  const state = { plot: { x: left, y: spec.padding.top + (spec.type === 'burndown' ? 16 : 0), width: Math.max(1, spec.width - left - spec.padding.right), height: Math.max(1, spec.height - spec.padding.top - spec.padding.bottom - 16) } };
-  if (!rows.length) text(scene, 'empty', spec.emptyText || 'No data', spec.width / 2, spec.height / 2, { textAnchor: 'middle' });
+  const state = { plot: { x: left, y: spec.padding.top + (spec.type === 'burndown' ? 16 : 0), width: Math.max(1, spec.width - left - spec.padding.right), height: Math.max(1, spec.height - spec.padding.top - spec.padding.bottom - 16) }, linked, projectAnalytics: { linked } };
+  if (spec.type === 'gantt') {
+    state.schedule = analyzeSchedule(data.rows, { calendar: projectConfig(spec).calendar || {} });
+    state.projectAnalytics.schedule = state.schedule;
+    state.projectAnalytics.assumptions = state.schedule.assumptions;
+    state.projectAnalytics.warnings = state.schedule.warnings;
+  }
+  if (!data.rows.length) text(scene, 'empty', sourceRows.length && linked.visibleCount === 0 ? 'No matching data' : spec.emptyText || 'No data', spec.width / 2, spec.height / 2, { textAnchor: 'middle' });
   else if (diagram) diagramScene(scene, spec, data.rows, state);
   else if (spec.type === 'burndown') burndownScene(scene, spec, data.rows, state);
   else tasksScene(scene, spec, data.rows, state);
@@ -218,8 +322,28 @@ export function buildProjectScene(spec) {
 
 export function projectTooltip(type, row) {
   if (!row) return '';
-  if (type === 'burndown') return [`Date: ${row.date}`, `Remaining: ${row.remaining ?? row.actual ?? row.value}`, `Scope change: ${row.scopeChange || 0}`, row.scope != null ? `Total scope: ${row.scope}` : null, row.completed != null ? `Completed: ${row.completed}` : null, row.forecast ? `Estimated finish: ${row.forecast}` : `Forecast: ${row.forecastReason || 'unavailable'}`].filter(Boolean).join('\n');
-  return [row.name || row.title || row.label || row.id, row.start ? `${row.start} → ${row.end || row.start}` : row.date, row.progress != null ? `Progress: ${row.progress <= 1 ? Math.round(row.progress * 100) : row.progress}%` : null, row.status ? `Status: ${row.status}` : null, row.dependencies?.length ? `Depends on: ${row.dependencies.join(', ')}` : null, row.critical != null ? `Critical: ${row.critical ? 'yes' : 'no'} · Float: ${row.float} days` : null, row.laneId ? `Lane: ${row.laneId}` : null, row.description].filter(value => value != null && value !== '').join('\n');
+  if (type === 'burndown') return [
+    `Date: ${row.date}`,
+    `Remaining: ${row.remaining ?? row.actual ?? row.value}`,
+    `Scope change: ${row.scopeChange || 0}`,
+    row.scope != null ? `Total scope: ${row.scope}` : null,
+    row.completed != null ? `Completed: ${row.completed}` : null,
+    row.forecast ? `Estimated finish: ${row.forecast}` : `Forecast: ${row.forecastReason || 'unavailable'}`
+  ].filter(Boolean).join('\n');
+  const dependencies = (row.dependencies || []).map(dependencyId).filter(Boolean);
+  const variance = row.endVarianceDays ?? row.baselineVarianceDays ?? null;
+  return [
+    row.name || row.title || row.label || row.id,
+    row.start ? `${row.start} → ${row.end || row.start}` : row.date,
+    row.progress != null ? `Progress: ${row.progress <= 1 ? Math.round(row.progress * 100) : row.progress}%` : null,
+    row.status ? `Status: ${row.status}` : null,
+    row.owner || row.resource ? `Owner: ${row.owner || row.resource}` : null,
+    dependencies.length ? `Depends on: ${dependencies.join(', ')}` : null,
+    row.critical != null ? `Critical: ${row.critical ? 'yes' : 'no'} · Float: ${row.float ?? row.slack ?? 0} days` : null,
+    variance != null ? `Variance: ${variance > 0 ? '+' : ''}${variance} days` : null,
+    row.laneId ? `Lane: ${row.laneId}` : null,
+    row.description
+  ].filter(value => value != null && value !== '').join('\n');
 }
 
 export function rerouteDiagramScene(scene) {
@@ -230,8 +354,8 @@ export function rerouteDiagramScene(scene) {
     const start = { x: source.geometry.x + source.geometry.width, y: source.geometry.y + source.geometry.height / 2 }, end = { x: destination.geometry.x, y: destination.geometry.y + destination.geometry.height / 2 };
     const middle = (start.x + end.x) / 2;
     node.geometry.points = node.dataRef.routing === 'straight' ? [start, end] : node.dataRef.routing === 'curved' ? [start, { x: start.x + Math.max(30, Math.abs(end.x - start.x) * 0.4), y: start.y }, { x: end.x - Math.max(30, Math.abs(end.x - start.x) * 0.4), y: end.y }, end] : [start, { x: middle, y: start.y }, { x: middle, y: end.y }, end];
-    const arrow = scene.find(`${node.id}-arrow`), beforeTip = node.geometry.points.at(-2);
-    if (arrow) arrow.geometry.points = [end, { x: end.x - 7 * Math.cos(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) - Math.PI / 6), y: end.y - 7 * Math.sin(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) - Math.PI / 6) }, { x: end.x - 7 * Math.cos(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) + Math.PI / 6), y: end.y - 7 * Math.sin(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) + Math.PI / 6) }, end];
+    const arrowNode = scene.find(`${node.id}-arrow`), beforeTip = node.geometry.points.at(-2);
+    if (arrowNode) arrowNode.geometry.points = [end, { x: end.x - 7 * Math.cos(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) - Math.PI / 6), y: end.y - 7 * Math.sin(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) - Math.PI / 6) }, { x: end.x - 7 * Math.cos(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) + Math.PI / 6), y: end.y - 7 * Math.sin(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) + Math.PI / 6) }, end];
     const edgeIndex = Number(node.id.slice(5)), label = scene.find(`edge-label-${edgeIndex}`), labelPoint = node.geometry.points[Math.floor(node.geometry.points.length / 2)];
     if (label && labelPoint) { label.geometry.x = labelPoint.x; label.geometry.y = labelPoint.y - 8; }
   });

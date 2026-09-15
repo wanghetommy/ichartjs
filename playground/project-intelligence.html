@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>iChart.js 2.0 - Project Intelligence</title>
+  <style>
+    :root{color-scheme:light}*{box-sizing:border-box}body{margin:0;background:#f1f5f9;color:#0f172a;font:14px system-ui,-apple-system,sans-serif}main{max-width:1400px;margin:auto;padding:24px}header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}h1{margin:0 0 6px;font-size:28px}p{margin:0;color:#475569}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.toolbar label{display:grid;gap:6px;font-size:12px;color:#475569}.toolbar select,.toolbar button{border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#0f172a;padding:10px 12px;font:inherit}.toolbar button{cursor:pointer}.layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(360px,1fr);gap:16px}.stack{display:grid;gap:16px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;box-shadow:0 2px 8px #0f172a0d}.chart{height:320px;border:1px solid #f1f5f9;border-radius:10px;overflow:hidden;background:#fff}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}h2{margin:0 0 10px;font-size:17px}h3{margin:0 0 10px;font-size:15px}.meta{display:flex;justify-content:space-between;gap:8px;color:#64748b;font-size:12px;margin-bottom:10px}pre{margin:0;max-height:260px;overflow:auto;background:#f8fafc;border-radius:10px;padding:10px;font-size:12px}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.note{font-size:12px;color:#64748b;margin-top:8px}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Project Intelligence Demo</h1>
+      <p>Iteration 6: schedule overlays, calendar rules, linked filters, capacity, release, risk, and aging.</p>
+    </div>
+    <a href="./project-gallery.html">Back to Gallery</a>
+  </header>
+
+  <section class="card">
+    <div class="toolbar">
+      <label>Owner
+        <select id="owner-filter">
+          <option value="">All owners</option>
+          <option value="Alex">Alex</option>
+          <option value="Sam">Sam</option>
+          <option value="Taylor">Taylor</option>
+        </select>
+      </label>
+      <label>Status
+        <select id="status-filter">
+          <option value="">All status</option>
+          <option value="todo">todo</option>
+          <option value="active">active</option>
+          <option value="blocked">blocked</option>
+          <option value="done">done</option>
+        </select>
+      </label>
+      <label>Linked selection
+        <select id="selection-filter">
+          <option value="">No selection</option>
+          <option value="build">build</option>
+          <option value="qa">qa</option>
+          <option value="release">release</option>
+        </select>
+      </label>
+      <button id="reset">Reset</button>
+    </div>
+    <div class="note">Filters are framework-neutral and stored by stable record IDs. Diagnostics on the right show linked state, assumptions, warnings, and transformed outputs.</div>
+  </section>
+
+  <section class="layout">
+    <div class="stack">
+      <article class="card">
+        <div class="meta"><span>Schedule intelligence</span><span id="gantt-status"></span></div>
+        <div class="chart" id="gantt"></div>
+      </article>
+      <section class="grid">
+        <article class="card">
+          <div class="meta"><span>Capacity</span><span id="capacity-status"></span></div>
+          <div class="chart" id="capacity"></div>
+        </article>
+        <article class="card">
+          <div class="meta"><span>Velocity</span><span id="velocity-status"></span></div>
+          <div class="chart" id="velocity"></div>
+        </article>
+        <article class="card">
+          <div class="meta"><span>Release forecast</span><span id="release-status"></span></div>
+          <div class="chart" id="release"></div>
+        </article>
+        <article class="card">
+          <div class="meta"><span>Risk matrix</span><span id="risk-status"></span></div>
+          <div class="chart" id="risk"></div>
+        </article>
+        <article class="card">
+          <div class="meta"><span>Issue aging</span><span id="aging-status"></span></div>
+          <div class="chart" id="aging"></div>
+        </article>
+      </section>
+    </div>
+
+    <aside class="stack">
+      <article class="card">
+        <h2>Linked State</h2>
+        <pre id="linked-state"></pre>
+      </article>
+      <article class="card">
+        <h2>Schedule Analytics</h2>
+        <pre id="schedule-state"></pre>
+      </article>
+      <article class="card">
+        <h2>Derived Outputs</h2>
+        <pre id="derived-state"></pre>
+      </article>
+    </aside>
+  </section>
+</main>
+
+<script type="module">
+import { createChart, analyzeSchedule, buildCapacityView, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, filterProjectRows, createLinkedProjectState } from '../src/index.mjs';
+
+const charts = new Map();
+const size = { width: 640, height: 320 };
+const ganttTasks = [
+  { id: 'design', name: 'Design', start: '2026-09-01', end: '2026-09-04', baselineStart: '2026-09-01', baselineEnd: '2026-09-03', actualStart: '2026-09-01', actualEnd: '2026-09-04', owner: 'Alex', resource: 'Alex', status: 'done', progress: 100, sprint: 'S1', priority: 'high', labels: ['ux'] },
+  { id: 'build', name: 'Build', start: '2026-09-05', end: '2026-09-11', baselineStart: '2026-09-04', baselineEnd: '2026-09-09', actualStart: '2026-09-05', actualEnd: '2026-09-11', owner: 'Sam', resource: 'Sam', status: 'active', progress: 60, sprint: 'S1', priority: 'critical', labels: ['core'], dependencies: [{ id: 'design', type: 'finish-to-start', lag: 1 }] },
+  { id: 'qa', name: 'QA', start: '2026-09-12', end: '2026-09-16', baselineStart: '2026-09-10', baselineEnd: '2026-09-14', actualStart: '2026-09-12', actualEnd: '2026-09-16', owner: 'Taylor', resource: 'Taylor', status: 'blocked', progress: 20, sprint: 'S2', priority: 'high', labels: ['test'], dependencies: ['build'] },
+  { id: 'release', name: 'Release', start: '2026-09-17', end: '2026-09-18', baselineStart: '2026-09-15', baselineEnd: '2026-09-16', actualStart: '2026-09-17', actualEnd: '2026-09-18', owner: 'Alex', resource: 'Alex', status: 'todo', progress: 0, sprint: 'S2', priority: 'medium', labels: ['ship'], dependencies: ['qa'] }
+];
+const velocityRows = [
+  { id: 'v1', sprint: 'S1', points: 5, status: 'done' },
+  { id: 'v2', sprint: 'S1', points: 8, status: 'done' },
+  { id: 'v3', sprint: 'S1', points: 3, status: 'active' },
+  { id: 'v4', sprint: 'S2', points: 8, status: 'done' },
+  { id: 'v5', sprint: 'S2', points: 5, status: 'blocked' }
+];
+const burndownRows = [
+  { date: '2026-09-01', remaining: 30 },
+  { date: '2026-09-05', remaining: 22, scopeChange: 2 },
+  { date: '2026-09-10', remaining: 15 },
+  { date: '2026-09-14', remaining: 8 },
+  { date: '2026-09-18', remaining: 3 }
+];
+const riskRows = [
+  { id: 'risk-1', title: 'Vendor delay', probability: 4, impact: 5, owner: 'Alex', status: 'active', priority: 'critical', sprint: 'S2', labels: ['vendor'] },
+  { id: 'risk-2', title: 'Regression spike', probability: 3, impact: 4, owner: 'Taylor', status: 'blocked', priority: 'high', sprint: 'S2', labels: ['quality'] },
+  { id: 'risk-3', title: 'Scope creep', probability: 2, impact: 3, owner: 'Sam', status: 'active', priority: 'medium', sprint: 'S1', labels: ['scope'] }
+];
+const issueRows = [
+  { id: 'issue-1', title: 'Review backlog', createdAt: '2026-09-08', owner: 'Sam', status: 'active', priority: 'high', sprint: 'S1', labels: ['core'] },
+  { id: 'issue-2', title: 'Browser bug', createdAt: '2026-08-28', owner: 'Taylor', status: 'blocked', priority: 'critical', sprint: 'S2', labels: ['test'] },
+  { id: 'issue-3', title: 'Release checklist', createdAt: '2026-09-13', owner: 'Alex', status: 'todo', priority: 'medium', sprint: 'S2', labels: ['ship'] }
+];
+
+function mountChart(key, spec) {
+  charts.get(key)?.destroy?.();
+  charts.set(key, createChart({ renderer: 'svg', interaction: { tooltip: true, hover: true, zoom: true, pan: true }, accessibility: { enabled: true }, ...size, ...spec, container: `#${key}` }));
+  document.querySelector(`#${key}-status`).textContent = 'ready';
+}
+
+function write(id, value) {
+  document.querySelector(`#${id}`).textContent = JSON.stringify(value, null, 2);
+}
+
+function currentLinked() {
+  const owner = document.querySelector('#owner-filter').value;
+  const status = document.querySelector('#status-filter').value;
+  const selection = document.querySelector('#selection-filter').value;
+  return {
+    filters: {
+      ...(owner ? { owner: [owner] } : {}),
+      ...(status ? { status: [status] } : {})
+    },
+    selection: selection ? [selection] : []
+  };
+}
+
+function render() {
+  const linked = currentLinked();
+  const filteredTasks = filterProjectRows(ganttTasks, linked);
+  const linkedState = createLinkedProjectState(ganttTasks, linked);
+  const schedule = analyzeSchedule(filteredTasks, {
+    calendar: {
+      timezone: 'UTC',
+      workingWeekdays: [1, 2, 3, 4, 5],
+      holidays: ['2026-09-10'],
+      nonWorkingDayPolicy: 'next-working-day'
+    }
+  });
+  const capacity = buildCapacityView(filteredTasks, { defaultCapacity: 8 });
+  const velocity = buildVelocitySeries(filterProjectRows(velocityRows, linked));
+  const release = buildReleaseForecast(burndownRows);
+  const risk = buildRiskMatrixSeries(filterProjectRows(riskRows, linked));
+  const aging = buildIssueAgingSeries(filterProjectRows(issueRows, linked), { today: '2026-09-15' });
+
+  mountChart('gantt', {
+    type: 'gantt',
+    title: { text: 'Schedule Intelligence' },
+    data: filteredTasks,
+    project: {
+      linked,
+      overlays: { criticalPath: true, slack: true, baseline: true, actual: true, variance: true },
+      calendar: schedule.calendar
+    }
+  });
+  mountChart('capacity', { type: 'column', title: { text: 'Capacity View' }, data: capacity.values });
+  mountChart('velocity', { type: 'column', title: { text: 'Velocity by Sprint' }, data: velocity.values });
+  mountChart('release', { type: 'burndown', title: { text: 'Release Forecast' }, data: release.values });
+  mountChart('risk', { type: 'scatter', title: { text: 'Risk Matrix' }, data: { values: risk.values }, encoding: { x: { field: 'x', type: 'quantitative' }, y: { field: 'y', type: 'quantitative' } } });
+  mountChart('aging', { type: 'bar', title: { text: 'Issue Aging' }, data: aging.values });
+
+  write('linked-state', linkedState);
+  write('schedule-state', {
+    assumptions: schedule.assumptions,
+    warnings: schedule.warnings,
+    criticalIds: schedule.criticalIds,
+    tasks: schedule.tasks
+  });
+  write('derived-state', {
+    capacity,
+    velocity,
+    release: { forecast: release.forecast, assumptions: release.assumptions },
+    risk,
+    aging
+  });
+}
+
+document.querySelectorAll('select').forEach(select => select.addEventListener('change', render));
+document.querySelector('#reset').addEventListener('click', () => {
+  document.querySelector('#owner-filter').value = '';
+  document.querySelector('#status-filter').value = '';
+  document.querySelector('#selection-filter').value = '';
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

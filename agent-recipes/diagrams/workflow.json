@@ -14,5 +14,6 @@
     { "type": "layout-edit", "operations": [{ "op": "resizeNode", "nodeId": "review", "size": { "width": 180, "height": 56 } }] },
     { "type": "layout-edit", "reason": "Align selected workflow nodes", "operations": [{ "op": "alignNodes", "nodeIds": ["review", "qa"], "alignment": "left" }] },
     { "type": "layout-edit", "reason": "Snap selected workflow nodes to grid", "operations": [{ "op": "snapNodes", "nodeIds": ["review", "qa"] }] }
+    ,{ "type": "layout-edit", "reason": "Resize the delivery group member bounds", "operations": [{ "op": "resizeGroup", "groupId": "delivery", "size": { "width": 320, "height": 180 } }] }
   ]
 }

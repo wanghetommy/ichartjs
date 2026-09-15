@@ -14,6 +14,17 @@ Agent usage and development guide for generic data analysis and metric visualiza
 | `scatter` | Relationship between two numeric variables | `canvas` |
 | `funnel` | Conversion stages | `svg` |
 | `gauge` | Single-metric completion | `canvas` |
+| `heatmap` | Matrix intensity and calendar patterns | `canvas` or `svg` |
+| `radar` | Multidimensional profile comparison | `svg` |
+
+## Foundational Modes
+
+- Use `stack: "stacked"` or `stack: "percent"` with Bar, Column, or Area rather than a separate stacked type.
+- Use `type: "pie"` with `innerRadius` for Donut charts.
+- Use per-series `mark: "column"` or `mark: "line"` and optional `axis: "right"` for Combo charts.
+- Use `transform: { type: "bin", field, thresholds | step, extent }` for Histogram workflows.
+- Heatmap treats missing values separately from numeric zero through `colorScale.missing`.
+- Radar should declare `min` and `max` for every indicator; omitted or mixed-unit domains produce warnings.
 
 ## Agent Workflow
 
@@ -53,6 +64,7 @@ Agent usage and development guide for generic data analysis and metric visualiza
 - Canvas/SVG renderers: `src/renderer.mjs`
 - Tests: `tests/core.test.mjs`
 - Full gallery: `playground/project-gallery.html`
+- Iteration 7 gallery: `playground/foundational-gallery.html`
 
 ## Development Checklist
 

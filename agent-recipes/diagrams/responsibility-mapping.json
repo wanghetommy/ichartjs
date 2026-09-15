@@ -1,0 +1,13 @@
+{
+  "name": "responsibility-mapping-diagram",
+  "version": "2.0",
+  "intent": "responsibility",
+  "spec": {
+    "type": "swimlane",
+    "renderer": "svg",
+    "diagram": { "layout": "layered", "routing": "orthogonal", "grid": 8 },
+    "lanes": [{ "id": "product", "label": "Product" }, { "id": "engineering", "label": "Engineering" }],
+    "nodes": [{ "id": "scope", "label": "Define Scope", "laneId": "product" }, { "id": "build", "label": "Build", "laneId": "engineering" }, { "id": "accept", "label": "Accept", "laneId": "product" }],
+    "edges": [{ "from": "scope", "to": "build" }, { "from": "build", "to": "accept" }]
+  }
+}

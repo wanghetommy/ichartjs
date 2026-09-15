@@ -8,6 +8,8 @@
 - Iteration 2: Data transforms, scales, multi-series axes, plugins, responsive behavior, touch basics, and chart gallery foundations.
 - Iteration 3: Project management and process visualization foundations, including Gantt, timeline, milestone, burndown, flow, and swimlane.
 - Iteration 3 core functionality is complete; browser/mobile gesture verification remains a release acceptance item.
+- Iteration 6 project intelligence local runtime and browser acceptance are complete.
+- Iteration 7 local runtime and desktop browser acceptance are complete for foundational composition, Heatmap, and Radar; true mobile viewport and physical-device checks remain release gates.
 
 ## Iteration 4 — Agent Data Contract and Business Editing
 
@@ -59,7 +61,7 @@ Make the runtime reliable for production Agent integrations and allow safe, expl
 
 ### Current status
 
-Initial Iteration 5 runtime is implemented: normalized diagram models, deterministic layouts, routing modes, node size support, diagram validation, Agent capability discovery, shared edit history, and a viewable editor demo at `http://localhost:3000/playground/diagram-editor`. Advanced group/port editing, multi-select, copy/paste, and full routing obstacle avoidance remain later Iteration 5 increments.
+Iteration 5 local runtime scope is complete: normalized models, deterministic layouts, routing modes, node and member-derived group resizing, validation, capability discovery, shared history, group lifecycle operations, clipboard editing, pointer and keyboard port connections, typed edges, deterministic multi-obstacle orthogonal routing, recipes, and a viewable editor demo at `http://localhost:3000/playground/diagram-editor.html`. Cross-browser and physical-device mobile acceptance remain release gates.
 
 ### Goal
 
@@ -100,7 +102,7 @@ Turn Flow and Swimlane into a reusable diagram runtime with controlled editing, 
 
 ### Goal
 
-Add higher-level project analytics that Agents can generate from task and delivery data.
+Add higher-level project analytics that Agents can generate from task and delivery data. The phased plan and chart-type admission policy are defined in `docs/agent/development/iteration-6.md`.
 
 ### Tasks
 
@@ -133,6 +135,37 @@ Add higher-level project analytics that Agents can generate from task and delive
 - Project analytics recipes.
 - Agent data-quality and assumption documentation.
 
+## Iteration 7 — Foundational Chart Coverage
+
+### Goal
+
+Complete high-frequency foundational composition modes, then add Heatmap and Radar as fully supported public chart types. The phased implementation and admission policy are defined in `docs/agent/development/iteration-7.md`.
+
+### Tasks
+
+1. Add grouped, stacked, and percent-stacked modes to Bar, Column, and Area.
+2. Add Donut as `pie.innerRadius`, without creating a separate public type.
+3. Add mixed line/column multi-series composition and dual-axis rules.
+4. Add deterministic bin transforms for Histogram workflows.
+5. Add Heatmap with matrix encodings, color scales, missing-value semantics, and keyboard navigation.
+6. Add Radar with explicit indicator domains, multi-series comparison, and mixed-unit warnings.
+7. Complete SVG/Canvas parity, accessibility, responsive behavior, export, recipes, tests, and Gallery coverage.
+
+### Verification
+
+- Composition modes preserve backward compatibility and stable source record references.
+- Stack totals, percentage normalization, pie radii, and bin boundaries are deterministic.
+- Heatmap distinguishes missing values from zero and supports semantic keyboard navigation.
+- Radar requires explicit domains when inputs use mixed units.
+- `npm run agent:check`, `git diff --check`, and browser acceptance pass.
+
+### Deliverables
+
+- Reusable stack, mixed-mark, Donut, and bin-transform contracts.
+- Public `heatmap` and `radar` chart types.
+- `playground/foundational-gallery.html`.
+- Updated capabilities, types, recipes, documentation, tests, and acceptance record.
+
 ## Deferred Scope
 
 The following remain deferred beyond this roadmap baseline:
@@ -152,4 +185,5 @@ They should only be scheduled after the core runtime, diagram model, and project
 2. Execute Iteration 4 before adding more chart types.
 3. Execute Iteration 5 if diagram editing is a primary product direction.
 4. Execute Iteration 6 if project analytics and Agent reporting are primary use cases.
-5. Re-evaluate geographic and 3D scope only after usage data confirms demand.
+5. Execute Iteration 7 foundations before considering additional specialized chart types.
+6. Re-evaluate geographic and 3D scope only after usage data confirms demand.
