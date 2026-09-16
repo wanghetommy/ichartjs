@@ -1,5 +1,13 @@
 export type Renderer = 'canvas' | 'svg' | 'auto';
 export type ChartType = 'line' | 'area' | 'bar' | 'column' | 'pie' | 'scatter' | 'funnel' | 'gauge' | 'heatmap' | 'radar' | 'gantt' | 'timeline' | 'milestone' | 'burndown' | 'flow' | 'swimlane';
+export interface Diagnostic { code: string; path?: string; message: string; expected?: unknown; suggestion?: string; [key: string]: unknown; }
+export interface DataFieldInfo { name: string; type: 'quantitative' | 'temporal' | 'category' | 'unknown'; role: 'identifier' | 'measure' | 'temporal-dimension' | 'dimension'; unit: string | null; cardinality: number; validCount: number; nullCount: number; min?: number; max?: number; temporalMin?: string; temporalMax?: string; }
+export interface DataInspection { version: '1.0'; rows: number; fields: DataFieldInfo[]; dimensions: string[]; measures: string[]; temporalFields: string[]; missingValueCount: number; warnings: Diagnostic[]; }
+export interface ChartCapability { type: ChartType; family: string; intents: string[]; required: string[]; optional: string[]; dataShapes: string[]; interactions: string[]; features: Record<string, 'supported' | 'not-applicable' | 'degraded'>; renderers: Array<'canvas' | 'svg'>; exports: string[]; limits: Record<string, number>; }
+export interface RuntimeCapabilities { version: '2.0'; contractVersion: '1.0'; chartTypes: ChartType[]; charts: Record<ChartType, ChartCapability>; intents: string[]; renderers: Array<'canvas' | 'svg'>; interactions: string[]; exports: string[]; [key: string]: unknown; }
+export interface ChartPlan { version: '1.0'; intent: string; primary: ChartType; alternatives: ChartType[]; confidence: number; reasons: string[]; requiredFields: string[]; suggestedEncodings: { dimension: string | null; measure: string | null; secondaryMeasure: string | null }; assumptions: string[]; warnings: Diagnostic[]; unsupportedRequests: string[]; nextActions: string[]; capability: ChartCapability; data: DataInspection; }
+export interface ChartExplanation { version: '1.0'; type: ChartType; family: string; purpose: string; renderer: Renderer; dataCount: number; encodings: Record<string, string | string[]>; transforms: string[]; interactions: string[]; assumptions: string[]; warnings: Diagnostic[]; lineage: { recordIds: string[]; sourcePreserved: boolean }; accessibility: { enabled: boolean; summary: string }; }
+export interface ChartSpec { type: ChartType; renderer?: Renderer; container?: string | Element; width?: number; height?: number; data?: Array<Record<string, unknown>> | { values?: Array<Record<string, unknown>>; [key: string]: unknown }; encoding?: Record<string, unknown>; title?: { text?: string; subtitle?: string }; legend?: { visible?: boolean; position?: string }; grid?: { visible?: boolean; color?: string }; labels?: { enabled?: boolean; format?: string | Record<string, unknown>; color?: string; font?: string }; interaction?: Record<string, boolean>; accessibility?: { enabled?: boolean; description?: string }; theme?: 'light' | 'dark' | 'contrast' | Record<string, unknown>; [key: string]: unknown; }
 export interface BinTransform { type: 'bin'; field: string; output?: string; thresholds?: number; step?: number; extent?: [number, number]; }
 export interface RadarIndicator { name: string; field: string; min?: number; max?: number; }
 export type BusinessFieldType = 'string' | 'number' | 'boolean' | 'date' | 'enum' | 'array' | 'object';
@@ -22,6 +30,18 @@ export interface EditCommand { version?: '1.0'; type: 'edit' | 'layout-edit'; re
 export interface EditPreview { valid: boolean; id: string; command: EditCommand; changes: Array<{ path: string; before: unknown; after: unknown; operation: string }>; patches: Array<{ op: string; path: string; value: unknown }>; affectedRecords: string[]; warnings: Array<Record<string, unknown>>; requiresConfirmation: boolean; before: unknown[]; after: unknown[]; }
 
 export interface Chart {
+  getSpec(): ChartSpec;
+  describe(): Record<string, unknown>;
+  explain(): ChartExplanation;
+  update(spec: Partial<ChartSpec>): this;
+  setData(data: Array<Record<string, unknown>>): this;
+  resize(width?: number, height?: number): this;
+  resetZoom(): this;
+  zoomTo(view: Record<string, number>): this;
+  panBy(delta: { x?: number; y?: number }): this;
+  clearSelection(): this;
+  export(options?: { type?: 'json' | 'application/json' | 'image/png' | 'image/svg+xml' }): string | Record<string, unknown>;
+  destroy(): void;
   inspectDataSchema(): ReturnType<typeof inspectDataSchema>;
   validateData(): Record<string, unknown>;
   validateEdit(command: EditCommand): Record<string, unknown>;
@@ -48,7 +68,16 @@ export interface Chart {
   redo(): Record<string, unknown>;
 }
 
-export function createChart(spec: Record<string, unknown>): Chart;
+export function createChart(spec: ChartSpec): Chart;
+export function normalizeSpec(spec: Partial<ChartSpec>): ChartSpec;
+export function validateSpec(spec: Partial<ChartSpec>): { valid: boolean; errors: Diagnostic[]; warnings: Diagnostic[]; normalizations: Diagnostic[]; spec: ChartSpec };
+export function normalizeData(input: unknown): { rows: Array<Record<string, unknown>>; fields: DataFieldInfo[]; warnings: Diagnostic[] };
+export function inspectData(input: unknown): DataInspection;
+export function getCapabilities(): RuntimeCapabilities;
+export function getChartCapability(type: ChartType | string): ChartCapability | null;
+export function planChart(input: unknown, options?: { intent?: string; renderer?: Renderer }): ChartPlan;
+export function recommend(input: unknown, options?: { intent?: string; renderer?: Renderer }): { primary: ChartType; alternatives: ChartType[]; reason: string; reasons: string[]; confidence: number; requiredFields: string[]; assumptions: string[]; warnings: Diagnostic[]; nextActions: string[] };
+export function explainChart(spec: ChartSpec, model?: Record<string, unknown>): ChartExplanation;
 export function binData(rows: Array<Record<string, unknown>>, options: Omit<BinTransform, 'type'>): { rows: Array<Record<string, unknown>>; warnings: Array<Record<string, unknown>>; assumptions: string[] };
 export function applyTransforms(rows: Array<Record<string, unknown>>, transforms: BinTransform | BinTransform[]): { rows: Array<Record<string, unknown>>; warnings: Array<Record<string, unknown>>; assumptions: string[] };
 export function getBusinessSchema(name: string): BusinessDataSchema;

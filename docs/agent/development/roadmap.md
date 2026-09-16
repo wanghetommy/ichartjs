@@ -10,6 +10,8 @@
 - Iteration 3 core functionality is complete; browser/mobile gesture verification remains a release acceptance item.
 - Iteration 6 project intelligence local runtime and browser acceptance are complete.
 - Iteration 7 local runtime and desktop browser acceptance are complete for foundational composition, Heatmap, and Radar; true mobile viewport and physical-device checks remain release gates.
+- Iteration 8A–8D is locally implemented and accepted in automated tests, Chromium, Firefox 144, WebKit 26, and a 390 px touch viewport. Native Safari automation, physical iOS/Android, and representative release-host measurements remain final 2.0 release gates. No new public chart type was introduced.
+- Final `2.0.0` release readiness is tracked in `docs/agent/development/2.0-release-readiness.md`; strict TypeScript and Node.js 18/20/22 checks pass, while the release commit, final tagging, native Safari, and physical-device gates remain open. npm publication is tracked separately.
 
 ## Iteration 4 — Agent Data Contract and Business Editing
 
@@ -166,6 +168,38 @@ Complete high-frequency foundational composition modes, then add Heatmap and Rad
 - `playground/foundational-gallery.html`.
 - Updated capabilities, types, recipes, documentation, tests, and acceptance record.
 
+## Iteration 8 — Chart Completeness and Agent Experience
+
+### Goal
+
+Finish the commonly expected behavior of the existing 16 chart types, improve machine-discoverable planning and diagnostics for Agents, and close the runtime, browser, packaging, performance, and 2.0 release gates. The phased plan is defined in `docs/agent/development/iteration-8.md`; the browser demo and acceptance-page architecture is defined in `docs/agent/development/playground-plan.md`.
+
+### Tasks
+
+1. Build and audit a per-chart feature matrix for common presentation, interaction, accessibility, responsive, state, export, and renderer behavior.
+2. Complete missing applicable behavior across existing charts without adding public chart types.
+3. Align interaction correctness, SVG/Canvas semantics, hit testing, keyboard behavior, lifecycle cleanup, and module loading.
+4. Expand capability discovery to per-chart data, option, interaction, renderer, limit, and export profiles.
+5. Add explainable Agent planning with alternatives, confidence, reasons, assumptions, warnings, unsupported requests, and safe next actions.
+6. Improve inspection, validation, repair diagnostics, chart descriptions, data lineage, recipes, and Agent self-check contracts.
+7. Complete cross-browser, mobile-device, accessibility, performance, package-consumer, documentation, and release acceptance.
+
+### Verification
+
+- Every declared chart feature has automated or recorded browser evidence.
+- An Agent can discover, plan, validate, render, explain, and self-check through public contracts alone.
+- Capability manifests, runtime behavior, documentation, recipes, and TypeScript declarations agree.
+- All 16 chart types pass full Gallery acceptance without uncaught errors.
+- `npm run agent:check`, `git diff --check`, browser, mobile, lifecycle, and performance gates have explicit results.
+
+### Deliverables
+
+- Chart-by-feature capability matrix and completed feature-gap fixes.
+- Per-chart Agent capability and option metadata.
+- Agent planning, diagnostics, explanation, recipes, and contract tests.
+- Browser, mobile, accessibility, performance, lifecycle, packaging, and 2.0 release records.
+- Updated full Gallery and exact preview acceptance instructions.
+
 ## Deferred Scope
 
 The following remain deferred beyond this roadmap baseline:
@@ -186,4 +220,5 @@ They should only be scheduled after the core runtime, diagram model, and project
 3. Execute Iteration 5 if diagram editing is a primary product direction.
 4. Execute Iteration 6 if project analytics and Agent reporting are primary use cases.
 5. Execute Iteration 7 foundations before considering additional specialized chart types.
-6. Re-evaluate geographic and 3D scope only after usage data confirms demand.
+6. Execute Iteration 8 to complete existing chart behavior, Agent adaptation, and the 2.0 release gates.
+7. Re-evaluate geographic and 3D scope only after usage data confirms demand.

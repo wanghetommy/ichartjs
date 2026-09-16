@@ -1,6 +1,13 @@
 {
   "version": "2.0",
+  "contractVersion": "1.0",
   "source": "src/index.mjs#getCapabilities",
+  "perChartProfiles": "src/index.mjs#getChartCapability",
+  "agentPlanning": "src/index.mjs#planChart",
+  "agentExplanation": "Chart#explain",
+  "agentQuickstart": "docs/agent/quickstart.md",
+  "agentWorkflowExample": "examples/agent-workflow.mjs",
+  "officialSkill": "skills/ichartjs/SKILL.md",
   "scenarios": {
     "charting": ["line", "area", "bar", "column", "pie", "scatter", "funnel", "gauge", "heatmap", "radar"],
     "project": ["gantt", "timeline", "milestone", "burndown"],
@@ -11,6 +18,13 @@
   "renderers": ["canvas", "svg"],
   "excluded": ["map", "3d"],
   "gallery": "playground/project-gallery.html",
+  "playgroundHome": "playground/index.html",
+  "agentWorkbench": "playground/agent-workbench.html",
+  "interactionLab": "playground/interaction-lab.html",
+  "accessibilityLab": "playground/accessibility-lab.html",
+  "performanceLab": "playground/performance-lab.html",
+  "businessEditingDemo": "playground/editing.html",
+  "diagramEditor": "playground/diagram-editor.html",
   "projectIntelligenceDemo": "playground/project-intelligence.html",
   "foundationalGallery": "playground/foundational-gallery.html"
 }

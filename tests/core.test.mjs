@@ -467,6 +467,18 @@ test('renders collapsed groups and routes orthogonal edges around obstacles', as
   assert.ok(path.every((point, index) => index === 0 || !intersects(path[index - 1], point, { x: 120, y: 0, width: 100, height: 160 })));
 });
 
+test('keeps group backgrounds passive while group labels remain interactive', () => {
+  const scene = buildScene(normalizeSpec({
+    type: 'flow',
+    nodes: [{ id: 'review', label: 'Review', groupId: 'delivery', position: { x: 200, y: 100 } }, { id: 'qa', label: 'QA', groupId: 'delivery', position: { x: 200, y: 180 } }],
+    groups: [{ id: 'delivery', label: 'Delivery' }],
+    edges: [],
+    diagram: { layout: 'manual' }
+  })).scene;
+  assert.equal(scene.find('group-delivery').interactive, false);
+  assert.equal(scene.find('group-label-delivery').interactive, true);
+});
+
 test('moves diagram groups and changes membership through shared history', async () => {
   const { createChart, getBusinessSchema } = await import('../src/index.mjs');
   const chart = createChart({
@@ -571,4 +583,86 @@ test('resizes member-derived groups and routes through dense obstacles determini
   assert.deepEqual(first, routeEdge(input, { x: 0, y: 40, width: 60, height: 40 }, { x: 480, y: 40, width: 60, height: 40 }, 'orthogonal'));
   assert.ok(first.length >= 4);
   chart.destroy();
+});
+
+test('exposes deterministic per-chart capabilities and Agent planning', async () => {
+  const { getCapabilities, getChartCapability, planChart } = await import('../src/index.mjs');
+  const capabilities = getCapabilities();
+  assert.equal(capabilities.contractVersion, '1.0');
+  assert.equal(Object.keys(capabilities.charts).length, capabilities.chartTypes.length);
+  assert.equal(getChartCapability('heatmap').features['missing-values'], 'supported');
+  const rows = [{ month: 'Jan', revenue: 12 }, { month: 'Feb', revenue: 18 }];
+  const first = planChart(rows, { intent: 'trend' });
+  assert.deepEqual(first, planChart(rows, { intent: 'trend' }));
+  assert.equal(first.primary, 'line');
+  assert.equal(first.suggestedEncodings.dimension, 'month');
+  assert.equal(first.suggestedEncodings.measure, 'revenue');
+  assert.ok(first.confidence > 0.5);
+});
+
+test('inspects Agent field metadata and reports repair diagnostics', async () => {
+  const { inspectData, validateSpec } = await import('../src/index.mjs');
+  const report = inspectData([{ date: '2026-09-01', revenue: 12, conversionRate: .4 }, { date: '2026-09-02', revenue: 18, conversionRate: null }]);
+  assert.equal(report.fields.find(field => field.name === 'date').role, 'temporal-dimension');
+  assert.equal(report.fields.find(field => field.name === 'revenue').unit, 'currency-unknown');
+  assert.equal(report.fields.find(field => field.name === 'conversionRate').unit, 'percentage');
+  assert.equal(report.missingValueCount, 1);
+  assert.equal(inspectData([{ id: 'a', month: 'Jan', value: 1 }, { id: 'b', month: 'Feb', value: 2 }]).dimensions[0], 'month');
+  const validation = validateSpec({ type: 'pie', data: Array.from({ length: 9 }, (_, index) => ({ name: String(index), value: index + 1 })), interaction: { zoom: true } });
+  assert.ok(validation.warnings.some(item => item.code === 'HIGH_CARDINALITY_PIE' && item.suggestion));
+  assert.ok(validation.warnings.some(item => item.code === 'UNSUPPORTED_INTERACTION' && item.path === 'interaction.zoom'));
+});
+
+test('explains chart lineage, warnings, and accessible intent', async () => {
+  const { createChart } = await import('../src/index.mjs');
+  const chart = createChart({ type: 'line', renderer: 'svg', title: { text: 'Revenue' }, accessibility: { enabled: true }, data: [{ id: 'jan', name: 'Jan', value: 12 }, { id: 'feb', name: 'Feb', value: null }] });
+  const explanation = chart.explain();
+  assert.equal(explanation.type, 'line');
+  assert.deepEqual(explanation.lineage.recordIds, ['jan', 'feb']);
+  assert.equal(explanation.accessibility.summary, 'Revenue');
+  assert.ok(explanation.warnings.some(item => item.code === 'MISSING_VALUE'));
+  chart.destroy();
+});
+
+test('renders common titles, grids, legends, labels, and corrected chart geometry', async () => {
+  const { buildScene } = await import('../src/charts.mjs');
+  const area = buildScene(normalizeSpec({ type: 'area', stack: 'stacked', title: { text: 'T', subtitle: 'S' }, labels: { enabled: true }, data: [{ name: 'A', first: 2, second: 3 }, { name: 'B', first: 4, second: 2 }], encoding: { x: { field: 'name' }, y: [{ field: 'first' }, { field: 'second' }] } }));
+  assert.ok(area.scene.find('subtitle'));
+  assert.ok(area.scene.find('grid-y-1'));
+  assert.ok(area.scene.find('legend-label-1'));
+  assert.ok(area.scene.find('area-fill-1'));
+  const bar = buildScene(normalizeSpec({ type: 'bar', data: [{ name: 'Long category', value: -20 }, { name: 'Gain', value: 30 }] }));
+  assert.ok(bar.scene.find('series-0-item-0').geometry.width > 0);
+  assert.ok(bar.state.plot.x >= 120);
+  const scatter = buildScene(normalizeSpec({ type: 'scatter', data: [{ x: 100, y: 1 }, { x: 200, y: 2 }] }));
+  assert.ok(scatter.scene.find('series-0-item-1').geometry.cx > scatter.scene.find('series-0-item-0').geometry.cx);
+  const pie = buildScene(normalizeSpec({ type: 'pie', data: [{ name: 'A', value: 0 }] }));
+  assert.ok(pie.scene.find('pie-zero-total'));
+  assert.ok(pie.data.warnings.some(item => item.code === 'ZERO_TOTAL'));
+});
+
+test('keeps active Playground pages and a no-cache preview path', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const pages = ['index.html', 'project-gallery.html', 'foundational-gallery.html', 'agent-workbench.html', 'project-intelligence.html', 'editing.html', 'diagram-editor.html', 'interaction-lab.html', 'accessibility-lab.html', 'performance-lab.html'];
+  await Promise.all(pages.map(page => readFile(new URL(`../playground/${page}`, import.meta.url), 'utf8')));
+  const entry = await readFile(new URL('../src/index.mjs', import.meta.url), 'utf8');
+  assert.equal(/from ['"][^'"]+\?/.test(entry), false);
+  const browserEntry = await readFile(new URL('../playground/runtime.mjs', import.meta.url), 'utf8');
+  assert.equal(/from ['"][^'"]+\?/.test(browserEntry), false);
+  const previewServer = await readFile(new URL('../scripts/serve-playground.mjs', import.meta.url), 'utf8');
+  assert.match(previewServer, /Cache-Control.*no-store/);
+});
+
+test('exposes one package runtime entry and completes the Agent workflow', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const runtime = await import('ichartjs');
+  assert.equal(runtime.getCapabilities().chartTypes.length, 16);
+  const packageMetadata = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.equal(packageMetadata.exports['./agent'], undefined);
+  const { runAgentWorkflow, sampleRows } = await import('../examples/agent-workflow.mjs');
+  const result = runAgentWorkflow(sampleRows);
+  assert.equal(result.ok, true);
+  assert.equal(result.plan.primary, 'line');
+  assert.deepEqual(result.explanation.lineage.recordIds, sampleRows.map(row => row.id));
+  assert.deepEqual(result.selfCheck, { chartDeclared: true, recordIdsPreserved: true, warningsVisible: true });
 });

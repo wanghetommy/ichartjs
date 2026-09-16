@@ -6,11 +6,11 @@
 <style>
 body{margin:0;padding:24px;background:#f1f5f9;color:#0f172a;font:14px system-ui,sans-serif}main{max-width:1080px;margin:auto}.panel{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin:16px 0}#chart{min-height:420px;border:1px solid #e2e8f0;border-radius:8px}button{border:0;border-radius:6px;padding:9px 12px;background:#2563eb;color:#fff;cursor:pointer;margin:4px}button.secondary{background:#475569}button:disabled{opacity:.5;cursor:not-allowed}.toolbar{display:flex;flex-wrap:wrap;gap:4px}.ok{color:#15803d}.warn{color:#b45309}pre{overflow:auto;background:#f8fafc;padding:12px;font-size:12px}
 </style></head>
-<body><main><h1>Iteration 5 — Diagram Editor</h1><p>Shift/⌘ 点击多选节点；拖动 Port 连线，或用 Tab 聚焦 Port、Enter 开始/完成、Escape 取消；支持 Group 移动、复制、安全解组与级联删除。</p>
+<body><main><p><a href="./index.html">← Playground 首页</a> · <a href="./project-gallery.html">完整 Gallery</a></p><h1>Iteration 5 — Diagram Editor</h1><p>Shift/⌘ 点击多选节点；拖动 Port 连线，或用 Tab 聚焦 Port、Enter 开始/完成、Escape 取消；支持 Group 移动、复制、安全解组与级联删除。</p>
 <section class="panel"><div id="chart"></div><div class="toolbar"><button id="select">Select Review + QA</button><button id="copy">Copy</button><button id="paste">Paste</button><button id="collapse">Toggle Group</button><button id="move-group">Move Group</button><button id="resize-group">Resize Group</button><button id="duplicate-group">Duplicate Group</button><button id="delete-group">Delete Group (Ungroup)</button><button id="add-done">Add Done to Group</button><button id="remove-selected">Remove Selected from Group</button><button id="connect">Connect Start → Done</button><button id="left">Align Left</button><button id="center">Align Center</button><button id="snap">Snap 8px</button><button id="resize">Resize Review</button><button id="undo" class="secondary" disabled>Undo</button><button id="redo" class="secondary" disabled>Redo</button><button id="reset" class="secondary">Reset</button></div><p id="status" class="ok">Ready.</p></section>
 <section class="panel"><h2>Selection, clipboard, collapsed groups, and normalized state</h2><pre id="output"></pre></section></main>
 <script type="module">
-import { createChart, getBusinessSchema, validateDiagram } from '../src/index.mjs';
+import { createChart, getBusinessSchema, validateDiagram } from './runtime.mjs';
 const initialNodes = [
   { id:'start', label:'Start', position:{x:72,y:150}, ports:[{id:'out',side:'right',offset:.5}] },
   { id:'review', label:'Review', groupId:'delivery', position:{x:300,y:110}, size:{width:150,height:52}, ports:[{id:'in',side:'left',offset:.5},{id:'out',side:'right',offset:.5}] },

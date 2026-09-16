@@ -9,11 +9,11 @@
   </style>
 </head>
 <body><main>
-  <header><div><h1>Iteration 7 Foundational Gallery</h1><p>Stack、Donut、Combo、Bin、Heatmap 和 Radar 的统一验收入口。</p></div><a href="./project-gallery.html">完整 Gallery →</a></header>
+  <header><div><h1>Iteration 7 Foundational Gallery</h1><p>Stack、Donut、Combo、Bin、Heatmap 和 Radar 的统一验收入口。</p></div><div><a href="./index.html">Playground 首页</a> · <a href="./project-gallery.html">完整 Gallery →</a></div></header>
   <section class="grid" id="gallery"></section>
 </main>
 <script type="module">
-import { createChart } from '../src/index.mjs?gallery=iteration-7';
+import { createChart } from './runtime.mjs';
 const monthly=[{name:'Jan',product:24,service:12,rate:42},{name:'Feb',product:30,service:18,rate:55},{name:'Mar',product:22,service:20,rate:49},{name:'Apr',product:36,service:24,rate:68}];
 const matrix=[{id:'m-am',x:'Mon',y:'AM',value:0},{id:'t-am',x:'Tue',y:'AM',value:18},{id:'w-am',x:'Wed',y:'AM',value:35},{id:'m-pm',x:'Mon',y:'PM',value:22},{id:'t-pm',x:'Tue',y:'PM',value:null},{id:'w-pm',x:'Wed',y:'PM',value:48}];
 const indicators=[{name:'质量',field:'quality',min:0,max:100},{name:'速度',field:'speed',min:0,max:100},{name:'稳定性',field:'stability',min:0,max:100},{name:'体验',field:'ux',min:0,max:100},{name:'成本',field:'cost',min:0,max:100}];

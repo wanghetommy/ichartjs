@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.0-rc.1 Iteration 8 - 2026-09-16
+
+- Reorganized the root README around the Agent discovery, inspection, planning, validation, rendering, and self-check workflow.
+- Added one publishable ESM entry plus manifest, recipe, TypeScript, example, and official Skill package surfaces.
+- Added English and Chinese Agent quickstarts plus an executable end-to-end Agent workflow.
+- Completed common presentation and geometry behavior across the existing 16 public chart types without adding a new type.
+- Added per-chart capability profiles, deterministic Agent planning, richer data inspection, validation diagnostics, explanations, and stable lineage output.
+- Added a unified Playground home, full Gallery, Agent Workbench, Interaction Lab, Accessibility Lab, Performance Lab, and a no-cache preview server.
+- Expanded TypeScript declarations, manifests, bilingual Agent contracts, regression tests, and local browser acceptance evidence.
+- Added Node.js 18/20/22 CI, contribution guidance, private vulnerability-reporting guidance, and an Apache 2.0 license file.
+- Completed Chromium, Firefox 144, and WebKit 26 desktop/mobile-viewport regression plus local 5,000-row performance and lifecycle samples.
+- Kept native Safari automation, physical iOS/Android, and representative release-host performance checks as explicit final release gates.
+
 ## 2.0.0-alpha.1 - 2026-09-14
 
 - Added the initial 2.0 module tree under `src/`.

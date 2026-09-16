@@ -1,0 +1,4 @@
+interface:
+  display_name: "iChart.js Agent Charting"
+  short_description: "Plan, validate, render, and explain iChart.js charts"
+  default_prompt: "Use $ichartjs to inspect this dataset, choose a chart, validate the Spec, and provide a preview path."

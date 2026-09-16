@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20, 22]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install package metadata
+        run: npm install --ignore-scripts --package-lock=false
+
+      - name: Run Agent and runtime checks
+        run: npm run agent:check
+
+      - name: Run executable Agent workflow
+        run: npm run example:agent
+
+      - name: Verify publish tarball
+        run: npm pack --dry-run

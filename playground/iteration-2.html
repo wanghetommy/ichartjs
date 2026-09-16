@@ -12,7 +12,9 @@
   </style>
 </head>
 <body>
-  <h1>Iteration 2 可验收 Demo</h1>
+  <p><a href="./index.html">← Playground 首页</a> · <a href="./interaction-lab.html">新的交互实验室</a></p>
+  <h1>Iteration 2 历史验收 Demo</h1>
+  <p>此页面已冻结，不再扩展；独有交互案例迁移到 Interaction Lab，完整类型覆盖由 Complete Gallery 负责。</p>
   <p>展示新增的 Scale、主题、Agent 能力和基础新增图表类型。请通过 HTTP 服务打开本页。</p>
   <div class="grid">
     <section class="card"><h2>Scatter / SVG</h2><div id="scatter"></div></section>
@@ -21,7 +23,7 @@
     <section class="card"><h2>Dark Theme / SVG + Zoom + Crosshair</h2><div id="dark"></div></section>
   </div>
   <script type="module">
-    import { createChart, getCapabilities, inspectData } from '../src/index.mjs';
+    import { createChart, getCapabilities, inspectData } from './runtime.mjs';
     import { dataLabelsPlugin } from '../src/plugin.mjs';
     const points = Array.from({ length: 12 }, (_, index) => ({ x: index + 1, y: (index * 17) % 90 + 10 }));
     createChart({ container: '#scatter', type: 'scatter', renderer: 'svg', data: { values: points }, encoding: { x: { field: 'x' }, y: { field: 'y' } }, title: { text: 'Scatter' }, accessibility: { enabled: true } });

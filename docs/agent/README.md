@@ -10,6 +10,9 @@ This is the user-facing Agent entry point for iChart.js 2.0. Read this file firs
 
 ## Start Here
 
+- [Agent Quickstart](quickstart.md): install, import, plan, validate, render, explain, and self-check.
+- [Coding Agent Integration](coding-agent-integration.md): use from Codex and similar code-editing Agents.
+- [Frontend Integration](frontend-integration.md): use from ordinary JavaScript applications.
 - [Data Charting](charting-scenario.md): generic data analysis charts.
 - [Project Management](project-scenario.md): Gantt, Timeline, Milestone, and Burndown.
 - [Interactive Diagrams](diagram-scenario.md): Flow, Swimlane, Groups, Ports, and editing.
@@ -17,13 +20,13 @@ This is the user-facing Agent entry point for iChart.js 2.0. Read this file firs
 - [Editing Contract](editing-contract.md): schemas, commands, preview, commit, and undo/redo.
 - Machine-readable capability manifests are in `docs/manifests/` and should be loaded on demand.
 
-The 2.0 API is Spec-first. An Agent should inspect data, choose a chart, create a JSON-friendly Spec, validate it, and then render it.
+The 2.0 API is Spec-first. Import from `ichartjs`, inspect data, plan a chart, create a JSON-friendly Spec, validate it, render it, and self-check the explanation and runtime state.
 
 ## Recommended flow
 
 ```js
 const report = ichart.inspectData(data);
-const recommendation = ichart.recommend(data, { intent: 'trend' });
+const recommendation = ichart.planChart(data, { intent: 'trend' });
 const spec = {
   type: recommendation.primary,
   renderer: 'svg',
@@ -31,9 +34,10 @@ const spec = {
   data: { values: data },
   encoding: { x: { field: 'month' }, y: { field: 'sales' } }
 };
-ichart.validateSpec(spec);
-const chart = ichart.createChart(spec);
-chart.describe();
+const validation = ichart.validateSpec(spec);
+if (!validation.valid) return validation.errors;
+const chart = ichart.createChart(validation.spec);
+chart.explain();
 ```
 
 Use `getCapabilities()` to discover supported chart types, project-management views, diagrams, renderers, interactions, exports, and data operations. Use `chart.getSpec()`, `chart.getState()`, `chart.getSelectedData()`, and `chart.toDataTable()` to inspect a live chart.

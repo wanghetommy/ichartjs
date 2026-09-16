@@ -257,7 +257,7 @@ function diagramScene(scene, spec, rows, state) {
     const left = Math.min(...boxes.map(box => box.x)) - padding.left, top = Math.min(...boxes.map(box => box.y)) - padding.top, right = Math.max(...boxes.map(box => box.x + box.width)) + padding.right, bottom = Math.max(...boxes.map(box => box.y + box.height)) + padding.bottom;
     const geometry = { x: left, y: top, width: right - left, height: bottom - top };
     groupBoxes.set(group.id, geometry);
-    scene.add({ id: `group-${group.id}`, type: 'rect', geometry, bounds: { ...geometry }, style: { fill: group.collapsed ? '#eff6ff' : 'none', stroke: group.collapsed ? '#2563eb' : '#94a3b8', strokeWidth: group.collapsed ? 2 : 1.5, opacity: 0.9 }, dataRef: { groupId: group.id, collapsed: Boolean(group.collapsed) }, interactive: true, zIndex: 0 });
+    scene.add({ id: `group-${group.id}`, type: 'rect', geometry, bounds: { ...geometry }, style: { fill: group.collapsed ? '#eff6ff' : 'none', stroke: group.collapsed ? '#2563eb' : '#94a3b8', strokeWidth: group.collapsed ? 2 : 1.5, opacity: 0.9 }, dataRef: { groupId: group.id, collapsed: Boolean(group.collapsed) }, interactive: false, zIndex: 0 });
     text(scene, `group-label-${group.id}`, group.collapsed ? `${group.label || group.id} (${boxes.length})` : group.label || group.id, left + 8, top + 15, { font: '600 11px system-ui' });
     const label = scene.find(`group-label-${group.id}`);
     if (label) { label.bounds = { x: left, y: top, width: right - left, height: 20 }; label.dataRef = { groupId: group.id, collapsed: Boolean(group.collapsed) }; label.interactive = true; }
@@ -295,7 +295,8 @@ export function buildProjectScene(spec) {
   const data = { ...normalizeData(visibleRows), rows: visibleRows.map(row => ({ ...row })), sourceRows: sourceRows.map(row => ({ ...row })) };
   const scene = new Scene(spec.width, spec.height);
   const left = ['gantt', 'timeline', 'milestone', 'swimlane'].includes(spec.type) ? Math.min(150, spec.width * 0.32) : spec.padding.left;
-  const state = { plot: { x: left, y: spec.padding.top + (spec.type === 'burndown' ? 16 : 0), width: Math.max(1, spec.width - left - spec.padding.right), height: Math.max(1, spec.height - spec.padding.top - spec.padding.bottom - 16) }, linked, projectAnalytics: { linked } };
+  const plotTop = Math.max(spec.padding.top, spec.title?.subtitle ? 72 : spec.title?.text ? 56 : spec.padding.top) + (spec.type === 'burndown' ? 16 : 0);
+  const state = { plot: { x: left, y: plotTop, width: Math.max(1, spec.width - left - spec.padding.right), height: Math.max(1, spec.height - plotTop - spec.padding.bottom - 16) }, linked, projectAnalytics: { linked } };
   if (spec.type === 'gantt') {
     state.schedule = analyzeSchedule(data.rows, { calendar: projectConfig(spec).calendar || {} });
     state.projectAnalytics.schedule = state.schedule;
@@ -315,7 +316,8 @@ export function buildProjectScene(spec) {
     if (geometry.points) geometry.points = geometry.points.map(point => ({ x: mapX(point.x), y: mapY(point.y) }));
     if (node.bounds) node.bounds = { x: mapX(node.bounds.x), y: mapY(node.bounds.y), width: node.bounds.width * view.scale, height: node.bounds.height * view.scale };
   });
-  if (spec.title?.text) text(scene, 'title', spec.title.text, spec.width / 2, 24, { font: '600 16px system-ui', textAnchor: 'middle' });
+  if (spec.title?.text) text(scene, 'title', spec.title.text, spec.width / 2, 22, { fill: spec.theme?.text || '#0f172a', font: '600 16px system-ui', textAnchor: 'middle' });
+  if (spec.title?.subtitle) text(scene, 'subtitle', spec.title.subtitle, spec.width / 2, 40, { fill: spec.theme?.muted || '#64748b', font: '12px system-ui', textAnchor: 'middle' });
   state.view = view;
   return { scene, data, state };
 }

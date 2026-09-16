@@ -12,6 +12,15 @@ function typeOf(values) {
   return 'category';
 }
 
+function inferUnit(name, values) {
+  const key = String(name).toLowerCase();
+  if (/(percent|percentage|rate|ratio|progress|utilization)/.test(key)) return 'percentage';
+  if (/(date|time|day|month|year|created|updated|start|end)/.test(key) && values.some(value => typeof value === 'string' && !Number.isNaN(Date.parse(value)))) return 'date';
+  if (/(price|cost|revenue|amount|sales)/.test(key)) return 'currency-unknown';
+  if (/(duration|days|hours|minutes)/.test(key)) return 'duration-unknown';
+  return null;
+}
+
 export function normalizeData(input) {
   let values = [];
   if (Array.isArray(input)) {
@@ -36,16 +45,18 @@ export function normalizeData(input) {
   const fieldInfo = fields.map(name => {
     const valuesForField = normalized.map(row => row[name]);
     const numbers = valuesForField.filter(value => typeof value === 'number' && Number.isFinite(value));
-    return { name, type: typeOf(valuesForField), nullCount: valuesForField.length - valuesForField.filter(value => value !== null && value !== undefined && value !== '').length, min: numbers.length ? Math.min(...numbers) : undefined, max: numbers.length ? Math.max(...numbers) : undefined };
+    const usable = valuesForField.filter(value => value !== null && value !== undefined && value !== '');
+    const type = typeOf(valuesForField), dates = type === 'temporal' ? usable.map(value => Date.parse(value)).filter(Number.isFinite) : [], cardinality = new Set(usable.map(value => String(value))).size, identifier = /(^id$|[_-]id$|^key$|[_-]key$)/i.test(name);
+    return { name, type, role: identifier ? 'identifier' : type === 'quantitative' ? 'measure' : type === 'temporal' ? 'temporal-dimension' : 'dimension', unit: inferUnit(name, usable), cardinality, validCount: usable.length, nullCount: valuesForField.length - usable.length, min: numbers.length ? Math.min(...numbers) : undefined, max: numbers.length ? Math.max(...numbers) : undefined, temporalMin: dates.length ? new Date(Math.min(...dates)).toISOString() : undefined, temporalMax: dates.length ? new Date(Math.max(...dates)).toISOString() : undefined };
   });
   return { rows: normalized, fields: fieldInfo, warnings };
 }
 
 export function inspectData(input) {
   const data = normalizeData(input);
-  const dimensions = data.fields.filter(field => field.type === 'category' || field.type === 'temporal').map(field => field.name);
+  const dimensions = data.fields.filter(field => field.role === 'dimension' || field.role === 'temporal-dimension').map(field => field.name);
   const measures = data.fields.filter(field => field.type === 'quantitative').map(field => field.name);
-  return { rows: data.rows.length, fields: data.fields, dimensions, measures, warnings: data.warnings };
+  return { version: '1.0', rows: data.rows.length, fields: data.fields, dimensions, measures, temporalFields: data.fields.filter(field => field.type === 'temporal').map(field => field.name), missingValueCount: data.fields.reduce((sum, field) => sum + field.nullCount, 0), warnings: data.warnings };
 }
 
 export class DataPipeline {

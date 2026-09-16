@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>iChart.js Playground</title><link rel="stylesheet" href="./shared.css"></head>
+<body><main class="shell"><header class="topbar"><div><h1>iChart.js 2.0 Playground</h1><p>统一的能力浏览、Agent 集成与发布验收入口。所有页面均可独立打开，错误和诊断应直接显示在页面中。</p></div><div id="version" class="badge">loading…</div></header>
+<section class="grid" id="pages" aria-label="Playground pages"></section>
+<section class="panel" style="margin-top:16px"><h2>启动与验收</h2><p><code>python3 -m http.server 3000 --bind 127.0.0.1</code></p><p class="muted">每个页面状态通过 HTTP HEAD 检查；“ready”仅表示页面可访问，不代替页面内验收。</p></section></main>
+<script type="module">
+import { getCapabilities } from './runtime.mjs';
+import { runtimeVersion, setStatus } from './playground.mjs';
+const capabilities=getCapabilities();document.querySelector('#version').textContent=`${runtimeVersion} · ${capabilities.chartTypes.length} charts`;
+const pages=[
+  ['project-gallery.html','完整 Gallery','全部 16 类图表的第一视觉与渲染冒烟入口。','catalog'],
+  ['foundational-gallery.html','基础能力 Gallery','Stack、Donut、Combo、Bin、Heatmap、Radar 专项回归。','catalog'],
+  ['agent-workbench.html','Agent 工作台','检查数据、规划图表、验证 Spec、解释结果和导出。','workbench'],
+  ['project-intelligence.html','项目分析','进度、关键路径、容量、风险和联动状态。','workbench'],
+  ['editing.html','业务编辑','预览、确认、提交、审计和撤销/重做。','workbench'],
+  ['diagram-editor.html','Diagram Editor','节点、组、Port、连线、布局和历史。','workbench'],
+  ['interaction-lab.html','交互实验室','Tooltip、选择、缩放、平移、键盘和事件状态。','lab'],
+  ['accessibility-lab.html','无障碍实验室','语义、键盘、焦点、对比度和 reduced motion。','lab'],
+  ['performance-lab.html','性能实验室','渲染、更新、缩放、导出和生命周期测量。','lab']
+];
+const host=document.querySelector('#pages');
+pages.forEach(([href,name,description,kind])=>{const article=document.createElement('article');article.className='card';article.innerHTML=`<div class="row"><span class="badge">${kind}</span><span class="status" data-status>checking…</span></div><h2><a href="./${href}">${name}</a></h2><p>${description}</p><code>http://localhost:3000/playground/${href}</code>`;host.appendChild(article);fetch(`./${href}`,{method:'HEAD'}).then(response=>setStatus(article.querySelector('[data-status]'),response.ok?'ready':'error',response.ok?'ready':`HTTP ${response.status}`)).catch(error=>setStatus(article.querySelector('[data-status]'),'error',error.message));});
+</script></body></html>
