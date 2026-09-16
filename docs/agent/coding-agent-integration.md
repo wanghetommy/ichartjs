@@ -13,7 +13,7 @@ Do not add a CLI, MCP server, HTTP API, or Python adapter to complete an ordinar
 Inside a consumer project:
 
 ```bash
-npm install github:wanghetommy/ichartjs#develop
+npm install github:wanghetommy/ichartjs#v2.0.0
 ```
 
 Do not install the unscoped npm registry package named `ichartjs`; it is currently an npm security holding package. Use the GitHub source until the project publishes under a confirmed npm scope.

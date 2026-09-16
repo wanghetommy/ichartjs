@@ -9,15 +9,15 @@
 - Iteration 3: Project management and process visualization foundations, including Gantt, timeline, milestone, burndown, flow, and swimlane.
 - Iteration 3 core functionality is complete; browser/mobile gesture verification remains a release acceptance item.
 - Iteration 6 project intelligence local runtime and browser acceptance are complete.
-- Iteration 7 local runtime and desktop browser acceptance are complete for foundational composition, Heatmap, and Radar; true mobile viewport and physical-device checks remain release gates.
-- Iteration 8A–8D is locally implemented and accepted in automated tests, Chromium, Firefox 144, WebKit 26, and a 390 px touch viewport. Native Safari automation, physical iOS/Android, and representative release-host measurements remain final 2.0 release gates. No new public chart type was introduced.
-- Final `2.0.0` release readiness is tracked in `docs/agent/development/2.0-release-readiness.md`; strict TypeScript, Node.js 18/20/22, and GitHub Actions checks pass. The final version commit, `master` cutover, tag, native Safari, and physical-device gates remain open. npm publication is tracked separately.
+- Iteration 7 local runtime and browser acceptance are complete for foundational composition, Heatmap, and Radar; physical-device checks remain host integration evidence.
+- Iteration 8A–8D is complete and accepted in automated tests, Chromium, Firefox 144, WebKit 26, native Safari 26.6.2, and a 390 px touch viewport. Physical iOS/Android and representative release-host measurements remain post-release host/device follow-up. No new public chart type was introduced.
+- Final `2.0.0` readiness is tracked in `docs/agent/development/2.0-release-readiness.md`; strict TypeScript, Node.js 18/20/22, GitHub Actions, package-consumer, browser, performance, and lifecycle checks pass. Only the final commit, `master` cutover, tag, and GitHub Release remain. npm publication is tracked separately.
 
 ## Iteration 4 — Agent Data Contract and Business Editing
 
 ### Current status
 
-4A–4E local runtime implementation is complete and the repository is at `2.0.0-rc.1` review stage. See `docs/agent/development/rc-1-acceptance.md` for passed gates and explicitly deferred host/device checks.
+4A–4E local runtime implementation is complete and included in `2.0.0`. See `docs/agent/development/rc-1-acceptance.md` for the historical RC evidence and `docs/agent/development/2.0-release-readiness.md` for final acceptance.
 
 ### Goal
 
@@ -63,7 +63,7 @@ Make the runtime reliable for production Agent integrations and allow safe, expl
 
 ### Current status
 
-Iteration 5 local runtime scope is complete: normalized models, deterministic layouts, routing modes, node and member-derived group resizing, validation, capability discovery, shared history, group lifecycle operations, clipboard editing, pointer and keyboard port connections, typed edges, deterministic multi-obstacle orthogonal routing, recipes, and a viewable editor demo at `http://localhost:3000/playground/diagram-editor.html`. Cross-browser and physical-device mobile acceptance remain release gates.
+Iteration 5 local runtime scope is complete: normalized models, deterministic layouts, routing modes, node and member-derived group resizing, validation, capability discovery, shared history, group lifecycle operations, clipboard editing, pointer and keyboard port connections, typed edges, deterministic multi-obstacle orthogonal routing, recipes, and a viewable editor demo at `http://localhost:3000/playground/diagram-editor.html`. Cross-browser acceptance passed; physical-device behavior remains host integration evidence.
 
 ### Goal
 

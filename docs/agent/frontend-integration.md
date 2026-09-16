@@ -5,7 +5,7 @@ Use iChart.js as an ordinary JavaScript UI component inside a browser applicatio
 ## Install
 
 ```bash
-npm install github:wanghetommy/ichartjs#develop
+npm install github:wanghetommy/ichartjs#v2.0.0
 ```
 
 The unscoped npm registry name `ichartjs` is a security holding package. Use the GitHub source until a scoped package name is published.

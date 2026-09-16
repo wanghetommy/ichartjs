@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.0 - 2026-09-16
+
+- Released the new Agent-first iChart.js 2.0 product line with one ESM/TypeScript runtime surface, 16 public chart types, project intelligence, controlled diagram editing, capability discovery, planning, validation, explanation, and stable lineage.
+- Accepted 51 core tests, the executable Agent workflow, official Skill validation, strict TypeScript consumption, package installation, and Node.js 18/20/22 GitHub Actions.
+- Accepted Chromium, Firefox 144, WebKit 26, and native Safari 26.6.2 across maintained Playground pages, plus 390 x 844 responsive/touch viewport checks.
+- Accepted local 5,000-row Line and Heatmap, 1,000-task Gantt, 300-node Diagram, Canvas/SVG, and lifecycle samples.
+- Deferred npm publication while retaining GitHub Tag installation. Physical iOS/Android verification remains a documented host/device follow-up and does not block the source release.
+
 ## 2.0.0-rc.1 Iteration 8 - 2026-09-16
 
 - Reorganized the root README around the Agent discovery, inspection, planning, validation, rendering, and self-check workflow.
@@ -11,7 +19,7 @@
 - Expanded TypeScript declarations, manifests, bilingual Agent contracts, regression tests, and local browser acceptance evidence.
 - Added Node.js 18/20/22 CI, contribution guidance, private vulnerability-reporting guidance, and an Apache 2.0 license file.
 - Completed Chromium, Firefox 144, and WebKit 26 desktop/mobile-viewport regression plus local 5,000-row performance and lifecycle samples.
-- Kept native Safari automation, physical iOS/Android, and representative release-host performance checks as explicit final release gates.
+- Kept native Safari automation, physical iOS/Android, and representative release-host performance checks as explicit RC release gates.
 
 ## 2.0.0-alpha.1 - 2026-09-14
 

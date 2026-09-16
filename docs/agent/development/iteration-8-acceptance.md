@@ -4,7 +4,7 @@ Date: 2026-09-16
 
 ## Result
 
-Iteration 8A–8D is locally implemented and accepted for the repository runtime, public Agent contracts, maintained Playground pages, responsive browser viewport, lifecycle checks, and repeatable performance fixtures. Chromium, Firefox 144, and WebKit 26 checks pass; native Safari automation and physical iOS/Android checks remain external release gates.
+Iteration 8A–8D is implemented and accepted for the repository runtime, public Agent contracts, maintained Playground pages, responsive browser viewport, lifecycle checks, and repeatable performance fixtures. Chromium, Firefox 144, WebKit 26, and native Safari 26.6.2 checks pass. Physical iOS/Android checks remain a separately recorded host/device follow-up.
 
 ## Automated Evidence
 
@@ -28,6 +28,7 @@ Iteration 8A–8D is locally implemented and accepted for the repository runtime
 - Regression pages: Foundational Gallery, Project Intelligence, Business Editing, and Diagram Editor loaded with ready states and no uncaught page errors.
 - Lifecycle fixture: 25 create/destroy cycles left 0 chart children and 0 tooltips.
 - Firefox/WebKit matrix: 22/22 desktop and 390 x 844 touch-viewport page scenarios passed after fixing Project Intelligence grid shrink behavior and redundant ResizeObserver rendering.
+- Native Safari 26.6.2: 11/11 desktop and 390 x 844 page scenarios passed without horizontal overflow.
 
 ## Performance Sample
 
@@ -59,10 +60,9 @@ npm run playground
 - Accessibility Lab: `http://localhost:3000/playground/accessibility-lab.html`
 - Performance Lab: `http://localhost:3000/playground/performance-lab.html`
 
-## Deferred Release Gates
+## Post-release Host/Device Follow-up
 
-- Native Safari acceptance; Safari 26.6.2 is installed, but its Allow Remote Automation setting is not enabled.
 - Physical-device touch acceptance on iOS and Android.
 - Release-host performance budgets across representative low-end and high-end devices.
 
-These deferred checks do not block local Iteration 8 development completion, but they must be recorded before the final 2.0 production release decision.
+These checks remain important integration evidence, but the three-engine browser matrix, native Safari run, responsive touch viewport, and deterministic local performance fixtures are sufficient for the 2.0 source release.

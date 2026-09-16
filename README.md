@@ -32,7 +32,7 @@ getCapabilities
 ### Install
 
 ```bash
-npm install github:wanghetommy/ichartjs#develop
+npm install github:wanghetommy/ichartjs#v2.0.0
 ```
 
 The unscoped npm name `ichartjs` is currently an npm security holding package, not this project. Until an npm scope is confirmed, install from GitHub. When working directly in this repository, run `npm install`; the package export map resolves self-references during local examples and tests.

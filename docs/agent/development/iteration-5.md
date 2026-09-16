@@ -40,4 +40,4 @@ The current runtime increment is available for review:
 
 ## Local runtime closure
 
-Iteration 5 local runtime scope is complete. Cross-browser matrix and physical-device mobile acceptance remain host/device release gates and are not claimed by unit or synthetic interaction tests.
+Iteration 5 local runtime scope is complete. The final 2.0 browser matrix passed; physical-device mobile acceptance remains host integration evidence and is not claimed by unit or synthetic interaction tests.

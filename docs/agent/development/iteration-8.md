@@ -6,7 +6,7 @@ Turn the existing chart catalog into a dependable, commonly complete, and Agent-
 
 ## Current Delivery
 
-Iteration 8A–8D is locally implemented. The runtime now exposes per-chart capability profiles, deterministic Agent planning and explanation, richer data inspection and diagnostics, common chart presentation behavior, corrected chart geometry, dedicated interaction/accessibility/performance labs, and a maintained full Gallery. Local automated, Chromium, 390 px responsive, lifecycle, and performance acceptance passed; Safari, Firefox, and physical iOS/Android checks remain explicit release-host gates. See `docs/agent/development/iteration-8-acceptance.md`.
+Iteration 8A–8D is complete. The runtime exposes per-chart capability profiles, deterministic Agent planning and explanation, richer data inspection and diagnostics, common chart presentation behavior, corrected chart geometry, dedicated interaction/accessibility/performance labs, and a maintained full Gallery. Automated, Chromium, Firefox, WebKit, native Safari, 390 px responsive, lifecycle, and local performance acceptance passed. Physical iOS/Android checks remain a recorded host/device follow-up. See `docs/agent/development/iteration-8-acceptance.md`.
 
 ## Scope Policy
 
