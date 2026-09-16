@@ -11,7 +11,7 @@
 - Iteration 6 project intelligence local runtime and browser acceptance are complete.
 - Iteration 7 local runtime and desktop browser acceptance are complete for foundational composition, Heatmap, and Radar; true mobile viewport and physical-device checks remain release gates.
 - Iteration 8A–8D is locally implemented and accepted in automated tests, Chromium, Firefox 144, WebKit 26, and a 390 px touch viewport. Native Safari automation, physical iOS/Android, and representative release-host measurements remain final 2.0 release gates. No new public chart type was introduced.
-- Final `2.0.0` release readiness is tracked in `docs/agent/development/2.0-release-readiness.md`; strict TypeScript and Node.js 18/20/22 checks pass, while the release commit, final tagging, native Safari, and physical-device gates remain open. npm publication is tracked separately.
+- Final `2.0.0` release readiness is tracked in `docs/agent/development/2.0-release-readiness.md`; strict TypeScript, Node.js 18/20/22, and GitHub Actions checks pass. The final version commit, `master` cutover, tag, native Safari, and physical-device gates remain open. npm publication is tracked separately.
 
 ## Iteration 4 — Agent Data Contract and Business Editing
 
