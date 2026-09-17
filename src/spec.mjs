@@ -20,6 +20,7 @@ const defaults = {
   legend: { visible: true, position: 'top' },
   grid: { visible: true },
   labels: { enabled: false },
+  branding: { enabled: true },
   interaction: { tooltip: true, hover: true, click: true, crosshair: false, zoom: false, brush: false, keyboard: true }
   ,responsive: [], accessibility: { enabled: false }, editing: { enabled: false, mode: 'command', requireConfirmation: true, allowDelete: false, allowStructuralChanges: false }, xAxis: {}, yAxis: {}
 };
@@ -59,6 +60,12 @@ function dependencyErrors(rows) {
 
 export function normalizeSpec(input = {}) {
   const spec = merge(defaults, input);
+  if (spec.branding === false) spec.branding = { enabled: false };
+  else if (spec.branding === true) spec.branding = { enabled: true };
+  else if (spec.branding == null) spec.branding = { enabled: true };
+  else if (typeof spec.branding === 'object' && !Array.isArray(spec.branding)) {
+    if (spec.branding.enabled === undefined) spec.branding = { ...spec.branding, enabled: true };
+  }
   if (!spec.data) spec.data = { values: [] };
   if (['flow', 'swimlane'].includes(spec.type) && spec.nodes && !spec.data.values) spec.data.values = [];
   if (Array.isArray(spec.data)) spec.data = { values: spec.data };
@@ -103,6 +110,16 @@ export function validateSpec(input) {
   if (spec.type === 'radar' && Array.isArray(spec.indicators) && spec.indicators.some(indicator => !Number.isFinite(Number(indicator.min)) || !Number.isFinite(Number(indicator.max)))) warnings.push({ code: 'AMBIGUOUS_RADAR_DOMAIN', path: 'indicators', message: 'Radar indicator domains are incomplete.', expected: 'finite min and max for every indicator', suggestion: 'Declare explicit domains, especially for mixed units.' });
   const supportedInteractions = chartProfiles[spec.type]?.interactions || [];
   Object.entries(spec.interaction || {}).forEach(([name, enabled]) => { if (enabled && !supportedInteractions.includes(name) && !['hover', 'click'].includes(name)) warnings.push({ code: 'UNSUPPORTED_INTERACTION', path: `interaction.${name}`, message: `${name} is not declared for ${spec.type}.`, expected: supportedInteractions, suggestion: 'Disable the interaction or use a compatible chart type.' }); });
+  if (spec.branding != null && typeof spec.branding !== 'boolean' && !(spec.branding && typeof spec.branding === 'object')) {
+    errors.push({ code: 'INVALID_BRANDING', path: 'branding', message: 'branding must be a boolean or a { enabled: boolean } object.', suggestion: 'Use branding: true, branding: false, or branding: { enabled: false }.' });
+  } else if (spec.branding && typeof spec.branding === 'object') {
+    const keys = new Set(Object.keys(spec.branding));
+    if (keys.size > 1 || !keys.has('enabled')) {
+      errors.push({ code: 'UNSUPPORTED_BRANDING_OPTIONS', path: 'branding', message: 'This iteration of branding only supports the enabled option.', expected: ['enabled'], suggestion: 'Custom text, links, position, and font are intentionally not exposed in the current version.' });
+    } else if (typeof spec.branding.enabled !== 'boolean') {
+      errors.push({ code: 'INVALID_BRANDING_ENABLED', path: 'branding.enabled', message: 'branding.enabled must be a boolean.', suggestion: 'Use true to show the Powered by iChart.js signature or false to hide.' });
+    }
+  }
   ['width', 'height'].forEach(key => { if (!(Number(spec[key]) > 0)) errors.push({ code: 'INVALID_DIMENSION', path: key, message: `${key} must be greater than zero.`, suggestion: `Set a positive ${key}.` }); });
   return { valid: errors.length === 0, errors, warnings, normalizations, spec };
 }

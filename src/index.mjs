@@ -35,6 +35,117 @@ export function resolveZoomWindow(count, current, factor) {
   return { start: nextStart, end: nextStart + nextSpan };
 }
 
+function _svgEscape(value, mode = 'text') {
+  const raw = value == null ? '' : String(value);
+  let out = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  if (mode === 'attr') out = out.replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+  return out;
+}
+function _svgStyleFontParts(raw = '') {
+  const str = String(raw).trim();
+  let size = '', weight = '', family = '';
+  const sizeMatch = str.match(/\b(\d+(?:\.\d+)?)\s*(px|em|rem|pt|%)/i);
+  if (sizeMatch) size = `${sizeMatch[1]}${sizeMatch[2].toLowerCase()}`;
+  const weightMatch = str.match(/^\s*(\d{3}|normal|bold|lighter|bolder)\b/i);
+  if (weightMatch) weight = weightMatch[1];
+  family = str
+    .replace(/^\s*(?:(?:normal|italic|oblique)(?:\s+[^0-9\s]+)?\s+)?(?:\d{3}|normal|bold|lighter|bolder)\s+/i, '')
+    .replace(/\b\d+(?:\.\d+)?\s*(?:px|em|rem|pt|%)(?:\s*\/\s*\S+)?\s*/i, '')
+    .trim();
+  return { size, weight, family };
+}
+function sceneToSvgString(scene, spec = {}) {
+  const w = Number(scene?.width ?? spec?.width ?? 640);
+  const h = Number(scene?.height ?? spec?.height ?? 360);
+  const bg = spec.background ?? '#ffffff';
+  const lines = [`<?xml version="1.0" encoding="UTF-8"?>`, `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`];
+  if (bg) lines.push(`  <rect x="0" y="0" width="${w}" height="${h}" fill="${_svgEscape(bg, 'attr')}"/>`);
+  const renderNode = (node, indent = '  ') => {
+    if (!node || !node.visible) return;
+    if (node.type === 'root') {
+      const kids = [...node.children].sort((a, b) => a.zIndex - b.zIndex);
+      kids.forEach(k => renderNode(k, indent));
+      return;
+    }
+    const g = node.geometry || {}; const s = node.style || {};
+    const attrs = [];
+    if (node.id) attrs.push(`id="${_svgEscape(node.id, 'attr')}" data-node-id="${_svgEscape(node.id, 'attr')}"`);
+    if (node.dataRef) attrs.push(`data-data-ref="${_svgEscape(JSON.stringify(node.dataRef), 'attr')}"`);
+    const css = [];
+    let tag = node.type;
+    if (node.type === 'rect') {
+      attrs.push(`x="${g.x}" y="${g.y}" width="${g.width}" height="${g.height}"`);
+    } else if (node.type === 'line') {
+      attrs.push(`x1="${g.x1}" y1="${g.y1}" x2="${g.x2}" y2="${g.y2}"`);
+    } else if (node.type === 'circle') {
+      attrs.push(`cx="${g.cx}" cy="${g.cy}" r="${g.r}"`);
+    } else if (node.type === 'arc') {
+      tag = 'path';
+      const large = g.end - g.start > Math.PI ? 1 : 0;
+      const outerStart = `${g.cx + g.r * Math.cos(g.start)} ${g.cy + g.r * Math.sin(g.start)}`;
+      const outerEnd = `${g.cx + g.r * Math.cos(g.end)} ${g.cy + g.r * Math.sin(g.end)}`;
+      let d;
+      if (g.innerR > 0) {
+        d = [`M ${outerStart}`, `A ${g.r} ${g.r} 0 ${large} 1 ${outerEnd}`, `L ${g.cx + g.innerR * Math.cos(g.end)} ${g.cy + g.innerR * Math.sin(g.end)}`, `A ${g.innerR} ${g.innerR} 0 ${large} 0 ${g.cx + g.innerR * Math.cos(g.start)} ${g.cy + g.innerR * Math.sin(g.start)}`, 'Z'].join(' ');
+      } else {
+        d = [`M ${g.cx} ${g.cy}`, `L ${outerStart}`, `A ${g.r} ${g.r} 0 ${large} 1 ${outerEnd}`, 'Z'].join(' ');
+      }
+      attrs.push(`d="${_svgEscape(d, 'attr')}"`);
+    } else if (node.type === 'path') {
+      const d = `${(g.points || []).map((p, i) => `${i ? 'L' : 'M'} ${p.x} ${p.y}`).join(' ')}${g.closed ? ' Z' : ''}`;
+      attrs.push(`d="${_svgEscape(d, 'attr')}"`);
+    } else if (node.type === 'text') {
+      attrs.push(`x="${g.x}" y="${g.y}"`);
+      const anchor = s.textAnchor || (s.textAlign === 'end' ? 'end' : s.textAlign === 'center' ? 'middle' : s.textAlign === 'right' ? 'end' : s.textAlign === 'left' ? 'start' : 'start');
+      if (anchor) attrs.push(`text-anchor="${anchor}"`);
+      const baseline = s.textBaseline || s.baseline || 'alphabetic';
+      if (baseline === 'top') { attrs.push(`dominant-baseline="text-before-edge"`); attrs.push(`alignment-baseline="before-edge"`); }
+      else if (baseline === 'middle' || baseline === 'central') { attrs.push(`dominant-baseline="middle"`); attrs.push(`alignment-baseline="middle"`); }
+      else if (baseline === 'bottom' || baseline === 'hanging') { attrs.push(`dominant-baseline="text-after-edge"`); attrs.push(`alignment-baseline="after-edge"`); }
+      else { attrs.push(`dominant-baseline="alphabetic"`); attrs.push(`alignment-baseline="alphabetic"`); }
+      if (s.font) {
+        const rawFont = String(s.font).trim();
+        attrs.push(`font="${_svgEscape(rawFont, 'attr')}"`);
+        const { size, weight, family } = _svgStyleFontParts(rawFont);
+        if (size) css.push(`font-size:${size}`);
+        if (weight) css.push(`font-weight:${weight}`);
+        if (family) css.push(`font-family:${family}`);
+      }
+    } else {
+      tag = 'g';
+    }
+    if (node.type === 'path' && !s.fill) attrs.push(`fill="none"`);
+    else if (s.fill) attrs.push(`fill="${_svgEscape(s.fill, 'attr')}"`);
+    if (s.stroke) attrs.push(`stroke="${_svgEscape(s.stroke, 'attr')}"`);
+    if (s.strokeWidth) attrs.push(`stroke-width="${s.strokeWidth}"`);
+    if (s.opacity != null) {
+      const opacity = (node.highlighted || node.selected) ? 1 : s.opacity;
+      attrs.push(`opacity="${opacity}"`);
+    }
+    if (node.highlighted || node.selected) attrs.push(`filter="brightness(1.2)"`);
+    if (node.interactive) css.push('cursor:pointer');
+    if (s.pointerEvents === 'none') css.push('pointer-events:none');
+    if (s.ariaHidden === 'true') attrs.push(`aria-hidden="true"`);
+    if (s.role === 'presentation') attrs.push(`role="presentation"`);
+    if (node.decorative) {
+      attrs.push(`aria-hidden="true"`);
+      attrs.push(`role="presentation"`);
+      css.push('pointer-events:none', 'user-select:none');
+    }
+    if (css.length) attrs.push(`style="${_svgEscape(css.join(';'), 'attr')}"`);
+    if (node.type === 'text') {
+      lines.push(`${indent}<${tag} ${attrs.join(' ')}>${_svgEscape(g.text ?? '')}</${tag}>`);
+    } else {
+      lines.push(`${indent}<${tag} ${attrs.join(' ')}/>`);
+    }
+    const kids = [...(node.children || [])].sort((a, b) => a.zIndex - b.zIndex);
+    kids.forEach(k => renderNode(k, indent + '  '));
+  };
+  renderNode(scene.root);
+  lines.push(`</svg>`);
+  return lines.join('\n');
+}
+
 export class Chart {
   constructor(input = {}) {
     const result = validateSpec(input);
@@ -164,7 +275,7 @@ export class Chart {
   getTheme() { return clone(this.spec.theme); }
   resize(width = this.spec.width, height = this.spec.height) { this.spec.width = width; this.spec.height = height; this.render(); this.emit('resize', { chart: this, width, height }); return this; }
   getSpec() { return JSON.parse(JSON.stringify(this.spec)); }
-  getState() { return { renderer: this.renderer.constructor.name, width: this.spec.width, height: this.spec.height, dataCount: this.model.data.rows.length, selected: [...this._selected.values()], revision: this._revision, history: this._history.state(), view: clone(this.spec.view || null), style: clone({ name: this.spec.theme.name, mode: this.spec.theme.mode, resolvedMode: this.spec.theme.resolvedMode, preset: this.spec.theme.preset, palette: this.spec.theme.palette, reasons: this.spec.theme.reasons }), warnings: clone([...(this._specDiagnostics?.warnings || []), ...(this.model.data?.warnings || []), ...(this.spec.theme?.warnings || [])]), assumptions: clone(this.model.data?.assumptions || []), normalizations: clone(this._specDiagnostics?.normalizations || []), collapsedGroups: this.getCollapsedGroupIds(), clipboard: { nodes: this._clipboard?.nodes?.length || 0, edges: this._clipboard?.edges?.length || 0 }, projectAnalytics: clone(this.model.state?.projectAnalytics || null), linked: clone(this.model.state?.linked || null) }; }
+  getState() { const brandingSignature = discoverCapabilities().branding.signature; return { renderer: this.renderer.constructor.name, width: this.spec.width, height: this.spec.height, dataCount: this.model.data.rows.length, selected: [...this._selected.values()], revision: this._revision, history: this._history.state(), view: clone(this.spec.view || null), style: clone({ name: this.spec.theme.name, mode: this.spec.theme.mode, resolvedMode: this.spec.theme.resolvedMode, preset: this.spec.theme.preset, palette: this.spec.theme.palette, reasons: this.spec.theme.reasons }), branding: { enabled: Boolean(this.spec.branding?.enabled), signature: brandingSignature, text: this.spec.branding?.enabled === true ? brandingSignature : null }, warnings: clone([...(this._specDiagnostics?.warnings || []), ...(this.model.data?.warnings || []), ...(this.spec.theme?.warnings || [])]), assumptions: clone(this.model.data?.assumptions || []), normalizations: clone(this._specDiagnostics?.normalizations || []), collapsedGroups: this.getCollapsedGroupIds(), clipboard: { nodes: this._clipboard?.nodes?.length || 0, edges: this._clipboard?.edges?.length || 0 }, projectAnalytics: clone(this.model.state?.projectAnalytics || null), linked: clone(this.model.state?.linked || null) }; }
   getProjectAnalytics() { return clone(this.model.state?.projectAnalytics || null); }
   getLinkedState() { return clone(this.model.state?.linked || null); }
   setLinkedFilters(filters = {}) { this.spec.project = { ...(this.spec.project || {}), linked: { ...(this.spec.project?.linked || {}), filters: normalizeLinkedFilters(filters) } }; this.emit('linkedstatechange', { chart: this, linked: this.spec.project.linked }); return this.render(); }
@@ -251,7 +362,191 @@ export class Chart {
   resetZoom() { delete this.spec.view; return this.render(); }
   zoomTo(view) { this.spec.view = { ...view }; this.emit('zoomchange', { chart: this, view: this.spec.view }); return this.render(); }
   panBy(delta) { const current = this.spec.view || {}; this.spec.view = { ...current, offsetX: (current.offsetX || 0) + (delta.x || 0), offsetY: (current.offsetY || 0) + (delta.y || 0) }; this.emit('zoomchange', { chart: this, view: this.spec.view }); return this.render(); }
-  export(options = {}) { const type = options.type || (this.renderer instanceof CanvasRenderer ? 'image/png' : 'image/svg+xml'); if (type === 'application/json' || type === 'json') return JSON.stringify({ version: '2.0', spec: this.getSpec(), state: this.getState() }, null, 2); if (!this.renderer.container) return { valid: false, code: 'HEADLESS_EXPORT_UNSUPPORTED', message: `${type} export requires a mounted renderer.` }; if (this.renderer instanceof CanvasRenderer) return this.renderer.exportImage(type); return this.renderer.exportString(); }
+  toDataURL(type = 'image/png') {
+    const rawType = String(type || 'image/png').toLowerCase();
+    const wantsSvg = rawType.includes('svg') || rawType.includes('xml');
+    if (this.renderer instanceof SVGRenderer) {
+      if (wantsSvg) {
+        const headlessEnv = typeof document === 'undefined' || typeof XMLSerializer === 'undefined';
+        const string = headlessEnv ? sceneToSvgString(this.model.scene, this.spec) : this.renderer.exportString();
+        return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(string)}`;
+      }
+      if (typeof document !== 'undefined') {
+        const cv = document.createElement('canvas');
+        const r = new CanvasRenderer({ ...this.spec, container: undefined });
+        r.canvas = cv; r.ctx = cv.getContext('2d');
+        r.resize(this.spec.width, this.spec.height);
+        if (this.spec.background) { r.ctx.fillStyle = this.spec.background; r.ctx.fillRect(0, 0, this.spec.width, this.spec.height); }
+        r.render(this.model.scene);
+        return r.exportImage(type);
+      }
+      return { valid: false, code: 'HEADLESS_EXPORT_UNSUPPORTED', rasterCode: 'RASTER_EXPORT_UNSUPPORTED', message: `SVG renderer raster ('${type}') in headless requires npm i canvas, or fall back to chart.export({type:"svg"}).`, suggestion: 'Use chart.export({type:"svg"}) for headless, or render with { renderer: "canvas" }.' };
+    }
+    if (this.renderer instanceof CanvasRenderer && typeof this.renderer.exportImage === 'function') return this.renderer.exportImage(type);
+    return { valid: false, code: 'EXPORT_UNSUPPORTED', message: `toDataURL('${type}') is not supported with renderer ${this.renderer?.constructor?.name || 'unknown'}.`, suggestion: 'Mount the chart to a DOM container, or switch renderer=canvas for PNG export.' };
+  }
+  toBlob(type = 'image/png') {
+    if (typeof document === 'undefined') return { valid: false, code: 'BLOB_HEADLESS', message: 'toBlob() requires a browser document. Use toDataURL() or export({type:"svg"}) in headless.', suggestion: 'Use chart.export({type:"svg"}) or chart.toDataURL() which both return strings usable in headless.' };
+    const url = this.toDataURL(type);
+    if (!url || typeof url !== 'string') return { valid: false, code: 'EXPORT_UNSUPPORTED', message: "Couldn't produce a data URL for export.", suggestion: (url && url.message) || url };
+    const mime = type.includes('svg') ? 'image/svg+xml' : /^image\//i.test(type) ? type : 'image/png';
+    const comma = url.indexOf(',');
+    const base64 = comma >= 0 && /;base64$/i.test(url.slice(0, comma));
+    const payload = comma >= 0 ? url.slice(comma + 1) : url;
+    const bytes = base64 ? Uint8Array.from(atob(payload), c => c.charCodeAt(0)) : (new TextEncoder()).encode(decodeURIComponent(payload));
+    return new Blob([bytes], { type: mime });
+  }
+  export(options = {}) {
+    const rawType = String(options.type || (this.renderer instanceof CanvasRenderer ? 'image/png' : 'image/svg+xml')).toLowerCase();
+    const normalizeType = t => {
+      if (t === 'json' || t === 'application/json' || t.endsWith('/json')) return 'json';
+      if (t.includes('svg')) return 'svg';
+      if (t.includes('png')) return 'png';
+      if (t.includes('jpeg') || t.includes('jpg')) return 'jpeg';
+      return 'auto';
+    };
+    const kind = normalizeType(rawType);
+    if (kind === 'json') {
+      const payload = { version: '2.0', spec: this.getSpec(), state: this.getState() };
+      return options.as === 'object' ? payload : JSON.stringify(payload, null, 2);
+    }
+    if (kind === 'svg') {
+      const svgRendererReady = this.renderer instanceof SVGRenderer && this.renderer.container;
+      const headlessEnv = typeof document === 'undefined' || typeof XMLSerializer === 'undefined';
+      if (headlessEnv) {
+        const string = sceneToSvgString(this.model.scene, this.spec);
+        if (options.as === 'dataurl') return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(string)}`;
+        if (options.as === 'blob') return { valid: false, code: 'BLOB_HEADLESS', message: 'as=blob requires a browser runtime (Blob). Use as=string or as=dataurl in headless.', suggestion: 'chart.export({type:"svg"}) returns the SVG string directly.' };
+        return string;
+      }
+      const svgRenderer = svgRendererReady
+        ? this.renderer
+        : (() => { const r = new SVGRenderer(this.spec); r.resize(this.spec.width, this.spec.height); r.render(this.model.scene); return r; })();
+      const string = svgRenderer.exportString();
+      if (options.as === 'dataurl') return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(string)}`;
+      if (options.as === 'blob') {
+        if (typeof Blob === 'undefined') return { valid: false, code: 'BLOB_HEADLESS', message: 'as=blob requires a browser runtime. Use as=string or as=dataurl in headless.', suggestion: 'chart.export({type:"svg"}) returns the SVG string directly.' };
+        return new Blob([string], { type: 'image/svg+xml' });
+      }
+      return string;
+    }
+    const rasterType = kind === 'jpeg' ? 'image/jpeg' : 'image/png';
+    if (this.renderer instanceof CanvasRenderer && typeof this.renderer.exportImage === 'function' && this.renderer.canvas) {
+      const dataUrl = this.renderer.exportImage(rasterType);
+      if (options.as === 'blob') {
+        if (typeof document === 'undefined' || typeof Blob === 'undefined' || typeof atob !== 'function') return { valid: false, code: 'BLOB_HEADLESS', message: 'PNG as=blob requires a browser runtime (atob + Blob). Use as=dataurl or as=string in headless.', suggestion: 'In Node headless, install the canvas package and render via a mounted CanvasRenderer, or fall back to chart.export({type:"svg"}).' };
+        const comma = dataUrl.indexOf(',');
+        const bytes = Uint8Array.from(atob(dataUrl.slice(comma + 1)), c => c.charCodeAt(0));
+        return new Blob([bytes], { type: rasterType });
+      }
+      return dataUrl;
+    }
+    if (this.renderer instanceof SVGRenderer && typeof document !== 'undefined') {
+      const cv = document.createElement('canvas');
+      const r = new CanvasRenderer({ ...this.spec, container: undefined });
+      r.canvas = cv; r.ctx = cv.getContext('2d');
+      r.resize(this.spec.width, this.spec.height);
+      if (this.spec.background) { r.ctx.fillStyle = this.spec.background; r.ctx.fillRect(0, 0, this.spec.width, this.spec.height); }
+      r.render(this.model.scene);
+      const dataUrl = r.exportImage(rasterType);
+      if (options.as === 'blob') {
+        if (typeof Blob === 'undefined' || typeof atob !== 'function') return { valid: false, code: 'BLOB_UNSUPPORTED', message: 'as=blob requires Blob + atob.' };
+        const comma = dataUrl.indexOf(',');
+        const bytes = Uint8Array.from(atob(dataUrl.slice(comma + 1)), c => c.charCodeAt(0));
+        return new Blob([bytes], { type: rasterType });
+      }
+      return dataUrl;
+    }
+    if (this.renderer instanceof SVGRenderer) {
+      try {
+        const c = require('canvas');
+        if (c && c.createCanvas) {
+          const cv = c.createCanvas(this.spec.width, this.spec.height);
+          const r = new CanvasRenderer({ ...this.spec });
+          r.canvas = cv; r.ctx = cv.getContext('2d'); r.resize(this.spec.width, this.spec.height); r.render(this.model.scene);
+          const out = r.exportImage(rasterType);
+          return options.as === 'blob' ? (typeof Blob !== 'undefined' ? new Blob([Uint8Array.from(atob(out.slice(out.indexOf(',') + 1)), x => x.charCodeAt(0))], { type: rasterType }) : out) : out;
+        }
+      } catch (_) { /* ignore */ }
+      return { valid: false, code: 'HEADLESS_EXPORT_UNSUPPORTED', rasterCode: 'RASTER_EXPORT_UNSUPPORTED', message: `Raster export (${rasterType}) with SVG renderer in headless requires npm i canvas.`, suggestion: 'Install the `canvas` package, or fall back to chart.export({type:"svg"}) which works browser+headless with zero dependencies.' };
+    }
+    const canvasUnavailable = { valid: false, code: 'HEADLESS_EXPORT_UNSUPPORTED', rasterCode: 'RASTER_EXPORT_UNSUPPORTED', message: `Raster export (${rasterType}) requires a mounted CanvasRenderer with a real canvas element.`, suggestion: 'Mount the chart with { renderer: "canvas", container: "#id" } in a browser, or fall back to chart.export({type:"svg"}) which works browser+headless.' };
+    if (typeof document === 'undefined') {
+      try {
+        const c = require('canvas');
+        if (c && c.createCanvas) {
+          const cv = c.createCanvas(this.spec.width, this.spec.height);
+          const r = new CanvasRenderer({ ...this.spec });
+          r.canvas = cv; r.ctx = cv.getContext('2d'); r.resize(this.spec.width, this.spec.height); r.render(this.model.scene);
+          const out = r.exportImage(rasterType);
+          return options.as === 'blob' ? (typeof Blob !== 'undefined' ? new Blob([Uint8Array.from(atob(out.slice(out.indexOf(',') + 1)), x => x.charCodeAt(0))], { type: rasterType }) : out) : out;
+        }
+      } catch (_) { /* ignore: continue to structured error */ }
+      return { ...canvasUnavailable, headless: true, note: 'In Node headless, run `npm i canvas` and ensure createCanvas() is available, or use chart.export({type:"svg"}).' };
+    }
+    return canvasUnavailable;
+  }
+  async exportAsync(options = {}) {
+    const rawType = String(options.type || (this.renderer instanceof CanvasRenderer ? 'image/png' : 'image/svg+xml')).toLowerCase();
+    const normalizeType = t => {
+      if (t === 'json' || t === 'application/json' || t.endsWith('/json')) return 'json';
+      if (t.includes('svg')) return 'svg';
+      if (t.includes('png')) return 'png';
+      if (t.includes('jpeg') || t.includes('jpg')) return 'jpeg';
+      return 'auto';
+    };
+    const kind = normalizeType(rawType);
+    if (kind === 'json' || kind === 'svg' || kind === 'png' || kind === 'jpeg') {
+      const out = this.export(options);
+      if (out && typeof out === 'object' && out.valid === false) return Promise.reject(out);
+      return Promise.resolve(out);
+    }
+    return Promise.reject({ valid: false, code: 'EXPORT_TYPE_UNSUPPORTED', message: `Unknown export type: ${rawType}`, suggestion: 'Use png, svg, jpeg, or json.' });
+  }
+  _safeFilename(prefix = 'ichart') {
+    const sanitize = s => String(s == null ? '' : s).replace(/[\\/:*?"<>|\s]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || prefix;
+    const title = sanitize(this.spec.title?.text || this.spec.type || 'chart');
+    const ts = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
+    return `${prefix}-${title}-${ts}`;
+  }
+  download(options = {}) {
+    if (typeof document === 'undefined' || typeof URL === 'undefined') {
+      const kind = (options.type || options.format || 'auto').toString().toLowerCase();
+      if (kind.includes('svg')) return this.export({ type: 'svg' });
+      if (kind.includes('json')) return this.export({ type: 'json' });
+      return { valid: false, code: 'DOWNLOAD_HEADLESS', message: 'chart.download*() triggers a browser save-as dialog; in headless, use chart.export() directly.', suggestion: 'Use chart.export({type:"svg|json"}) (strings) or chart.toDataURL() (data URL) in headless.' };
+    }
+    const kind = (options.type || options.format || 'png').toString().toLowerCase();
+    if (kind.includes('svg')) {
+      const svg = this.export({ type: 'svg' });
+      if (!svg || typeof svg !== 'string') return svg;
+      return this._downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), `${this._safeFilename('ichartjs')}.svg`);
+    }
+    if (kind.includes('json')) {
+      const json = this.export({ type: 'json' });
+      return this._downloadBlob(new Blob([json], { type: 'application/json' }), `${this._safeFilename('ichartjs')}.json`);
+    }
+    const rasterType = kind.includes('jpeg') || kind.includes('jpg') ? 'image/jpeg' : 'image/png';
+    const ext = kind.includes('jpeg') || kind.includes('jpg') ? 'jpg' : 'png';
+    const blob = this.toBlob(rasterType);
+    if (!blob || blob instanceof Blob === false) return blob;
+    return this._downloadBlob(blob, `${this._safeFilename('ichartjs')}.${ext}`);
+  }
+  downloadPNG() { return this.download({ type: 'png' }); }
+  downloadSVG() { return this.download({ type: 'svg' }); }
+  downloadJSON() { return this.download({ type: 'json' }); }
+  _downloadBlob(blob, filename) {
+    try {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.rel = 'noopener';
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 0);
+      return { valid: true, filename, size: blob.size, type: blob.type };
+    } catch (err) {
+      return { valid: false, code: 'DOWNLOAD_FAILED', message: String(err && err.message || err), suggestion: 'Try chart.export() and write the result manually.' };
+    }
+  }
   destroy() { if (this._resizeObserver) this._resizeObserver.disconnect(); this._colorSchemeQuery?.removeEventListener?.('change', this._colorSchemeHandler); if (this._eventsBound) { const { target, handler, start, move, end, leave, touchStart, touchMove, touchEnd, wheel } = this._eventsBound; target.removeEventListener('mousemove', handler); target.removeEventListener('click', handler); target.removeEventListener('pointerdown', start); target.removeEventListener('pointermove', move); target.removeEventListener('pointerup', end); target.removeEventListener('pointercancel', end); target.removeEventListener('pointerleave', leave); target.removeEventListener('touchstart', touchStart); target.removeEventListener('touchmove', touchMove); target.removeEventListener('touchend', touchEnd); target.removeEventListener('wheel', wheel); } const target = this.renderer.svg || this.renderer.canvas; if (this._keyboardHandler) target?.removeEventListener('keydown', this._keyboardHandler); this._tooltip?.remove(); this.plugins.destroy(); this.renderer.destroy(); this.listeners.clear(); this._eventsBound = null; this._selected.clear(); this._clipboard = { nodes: [], edges: [] }; }
 }
 

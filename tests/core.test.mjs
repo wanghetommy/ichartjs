@@ -498,6 +498,90 @@ test('renders collapsed groups and routes orthogonal edges around obstacles', as
   assert.ok(path.every((point, index) => index === 0 || !intersects(path[index - 1], point, { x: 120, y: 0, width: 100, height: 160 })));
 });
 
+test('branding: defaults to enabled and normalizes both shorthand and object forms', () => {
+  const defaults = normalizeSpec({ type: 'line', data: [{ name: 'A', value: 1 }] });
+  assert.equal(defaults.branding?.enabled, true);
+  const offShort = normalizeSpec({ type: 'line', data: [{ name: 'A', value: 1 }], branding: false });
+  assert.equal(offShort.branding?.enabled, false);
+  const onShort = normalizeSpec({ type: 'line', data: [{ name: 'A', value: 1 }], branding: true });
+  assert.equal(onShort.branding?.enabled, true);
+  const offObject = normalizeSpec({ type: 'line', data: [{ name: 'A', value: 1 }], branding: { enabled: false } });
+  assert.equal(offObject.branding?.enabled, false);
+});
+
+test('branding: validates the enabled-only surface and rejects unknown options', () => {
+  const okShortOff = validateSpec({ type: 'line', data: [{ name: 'A', value: 1 }], branding: false });
+  assert.equal(okShortOff.valid, true);
+  const okObjectOff = validateSpec({ type: 'line', data: [{ name: 'A', value: 1 }], branding: { enabled: false } });
+  assert.equal(okObjectOff.valid, true);
+  const okDefault = validateSpec({ type: 'line', data: [{ name: 'A', value: 1 }] });
+  assert.equal(okDefault.valid, true);
+  const badKeys = validateSpec({ type: 'line', data: [{ name: 'A', value: 1 }], branding: { text: 'Custom Corp', enabled: true } });
+  assert.equal(badKeys.valid, false);
+  assert.ok(badKeys.errors.some(err => err.code === 'UNSUPPORTED_BRANDING_OPTIONS'));
+  const badEnabled = validateSpec({ type: 'line', data: [{ name: 'A', value: 1 }], branding: { enabled: 'yes' } });
+  assert.equal(badEnabled.valid, false);
+  assert.ok(badEnabled.errors.some(err => err.code === 'INVALID_BRANDING_ENABLED'));
+  const wrongType = validateSpec({ type: 'line', data: [{ name: 'A', value: 1 }], branding: 123 });
+  assert.equal(wrongType.valid, false);
+  assert.ok(wrongType.errors.some(err => err.code === 'INVALID_BRANDING'));
+});
+
+test('branding: capabilities declare defaultEnabled and expose signature', () => {
+  const caps = getCapabilities();
+  assert.equal(caps.branding?.defaultEnabled, true);
+  assert.equal(caps.branding?.signature, 'Powered by iChart.js');
+  assert.deepEqual(caps.branding?.options, [{ name: 'enabled', type: 'boolean', default: true }]);
+  const lineFeatures = caps.charts?.line?.features || {};
+  assert.equal(lineFeatures.branding, 'supported');
+});
+
+test('branding: scene graph includes branding-watermark only when enabled', () => {
+  const defaultScene = buildScene(normalizeSpec({ type: 'line', data: [{ name: 'A', value: 1 }] }));
+  const mark = defaultScene.scene.find('branding-watermark');
+  assert.ok(mark);
+  assert.equal(mark.type, 'text');
+  assert.equal(String(mark.geometry.text).includes('Powered by iChart.js'), true);
+  assert.equal(mark.style.pointerEvents, 'none');
+  assert.equal(mark.interactive, false);
+  assert.equal(mark.decorative, true);
+  const offScene = buildScene(normalizeSpec({ type: 'line', data: [{ name: 'A', value: 1 }], branding: false }));
+  assert.equal(offScene.scene.find('branding-watermark'), undefined);
+  const ganttScene = buildScene(normalizeSpec({ type: 'gantt', data: [{ id: 'a', name: 'A', start: '2026-09-01', end: '2026-09-03' }], branding: { enabled: true } }));
+  assert.ok(ganttScene.scene.find('branding-watermark'));
+  const flowScene = buildScene(normalizeSpec({ type: 'flow', nodes: [{ id: 'x', label: 'X' }], edges: [] }));
+  assert.ok(flowScene.scene.find('branding-watermark'));
+  const emptyScene = buildScene(normalizeSpec({ type: 'bar', data: [], branding: { enabled: true } }));
+  assert.ok(emptyScene.scene.find('branding-watermark'));
+});
+
+test('branding: Chart.getState() reports branding state, explain() omits it as business data', async () => {
+  const { createChart } = await import('../src/index.mjs');
+  const chartOn = createChart({ type: 'line', renderer: 'svg', data: [{ name: 'A', value: 1 }], branding: { enabled: true } });
+  const stateOn = chartOn.getState();
+  assert.equal(stateOn.branding?.enabled, true);
+  assert.equal(stateOn.branding?.signature, 'Powered by iChart.js');
+  assert.equal(stateOn.branding?.text, 'Powered by iChart.js');
+  const explainKeys = Object.keys(chartOn.explain());
+  assert.equal(explainKeys.includes('branding'), false);
+  const chartOff = createChart({ type: 'line', renderer: 'svg', data: [{ name: 'A', value: 1 }], branding: false });
+  const stateOff = chartOff.getState();
+  assert.equal(stateOff.branding?.enabled, false);
+  assert.equal(stateOff.branding?.text, null);
+  chartOn.destroy();
+  chartOff.destroy();
+});
+
+test('branding: headless JSON export syncs branding state', async () => {
+  const { createChart } = await import('../src/index.mjs');
+  const chartOn = createChart({ type: 'line', renderer: 'svg', data: [{ name: 'A', value: 1 }] });
+  const jsonOn = JSON.parse(chartOn.export({ type: 'json' }));
+  assert.equal(jsonOn.state?.branding?.enabled, true);
+  assert.equal(jsonOn.state?.branding?.signature, 'Powered by iChart.js');
+  assert.equal(jsonOn.spec?.branding?.enabled, true);
+  chartOn.destroy();
+});
+
 test('keeps group backgrounds passive while group labels remain interactive', () => {
   const scene = buildScene(normalizeSpec({
     type: 'flow',

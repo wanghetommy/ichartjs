@@ -178,6 +178,8 @@ The public package includes ESM exports, TypeScript declarations, Agent document
 - Diagrams: Flow and Swimlane with groups, ports, routing, and controlled editing.
 - Renderers: SVG and Canvas.
 - Agent contracts: capability discovery, data inspection, planning, validation, explanation, lineage, diagnostics, and safe editing.
+- Branding signature: low-contrast `Powered by iChart.js` bottom-right watermark, consistent across live view and all export formats; controlled via `branding` on Spec/Theme.
+- Exports: JSON (spec + runtime state, all environments), SVG (vector, zero-dependency headless), PNG/JPEG (raster, dual-engine, browser native + headless with optional `canvas` dependency), plus browser `downloadPNG/SVG/JSON` helpers.
 - Deferred: geographic charts and 3D rendering.
 
 ## Development

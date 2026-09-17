@@ -10,7 +10,7 @@ const cartesian = ['line', 'area', 'bar', 'column', 'scatter'];
 const project = ['gantt', 'timeline', 'milestone', 'burndown'];
 const diagrams = ['flow', 'swimlane'];
 const status = (supported, notApplicable = []) => Object.fromEntries(supported.map(name => [name, 'supported']).concat(notApplicable.map(name => [name, 'not-applicable'])));
-const commonPresentation = ['title', 'subtitle', 'theme', 'responsive', 'empty-state', 'invalid-data-state', 'export'];
+const commonPresentation = ['title', 'subtitle', 'theme', 'responsive', 'empty-state', 'invalid-data-state', 'export', 'branding'];
 
 const definitions = {
   line: { family: 'cartesian', intents: ['trend', 'time-series'], required: ['dimension', 'measure'], optional: ['series'], interactions: ['hover', 'tooltip', 'selection', 'crosshair', 'zoom', 'pan', 'keyboard'], features: status([...commonPresentation, 'axes', 'grid', 'legend', 'labels', 'formatting', 'multi-series', 'dual-axis']) },
@@ -132,5 +132,59 @@ export function explainChart(spec, model = {}) {
 
 export function getCapabilities() {
   const intents = [...new Set(Object.values(chartProfiles).flatMap(profile => profile.intents))];
-  return { version: '2.0', contractVersion: '1.0', chartTypes, charts: JSON.parse(JSON.stringify(chartProfiles)), intents, chartModes: { stack: ['stacked', 'percent'], pie: ['standard', 'donut'], composition: ['multi-series', 'mixed-line-column', 'dual-axis'], transforms: ['bin'] }, projectManagement: project, projectIntelligence: { intents: ['schedule', 'milestone', 'progress', 'variance', 'capacity', 'release', 'risk', 'aging', 'workflow', 'responsibility'], views: ['gantt', 'burndown', 'column', 'area', 'scatter', 'bar'], analytics: ['calendar', 'dependency-normalization', 'critical-path', 'slack', 'baseline-actual-variance', 'capacity', 'cumulative-flow', 'velocity', 'release-forecast', 'risk-matrix', 'issue-aging'], linkedState: ['owner', 'status', 'priority', 'sprint', 'label'] }, diagrams, excluded: ['map', '3d'], renderers: ['canvas', 'svg'], interactions: [...new Set(Object.values(chartProfiles).flatMap(profile => profile.interactions))], exports: ['png', 'svg', 'json'], headless: { preview: true, json: true, svg: false, png: false }, data: ['normalize', 'inspect', 'filter', 'sort', 'groupBy', 'sum', 'average', 'topN', 'percentage', 'bin'], themes: [...styleCapabilities.modes], styleSystem: JSON.parse(JSON.stringify(styleCapabilities)), plugins: true };
+  const exp = {
+    types: ['png', 'jpeg', 'svg', 'json'],
+    mime: { png: 'image/png', jpeg: 'image/jpeg', svg: 'image/svg+xml', json: 'application/json' },
+    browser: { png: true, jpeg: true, svg: true, json: true },
+    headless: {
+      png: 'optional: install the `canvas` npm package for createCanvas',
+      jpeg: 'same as png',
+      svg: true,
+      json: true,
+    },
+    methods: {
+      exportPNG: 'chart.export({ type:"png" }) returns base64 data URL (browser); pass as:"blob" for a Blob. In Node headless either install the canvas package or fall back to SVG.',
+      exportSVG: 'chart.export({ type:"svg" }) returns the SVG string in both browser and headless; as:"dataurl" for embeds, as:"blob" for a Blob (browser).',
+      exportJSON: 'chart.export({ type:"json" }) returns pretty JSON; use as:"object" to get the parsed {version,spec,state}.',
+      downloadPNG: 'chart.downloadPNG() triggers a browser save-as dialog (filename derived from title + timestamp).',
+      downloadSVG: 'chart.downloadSVG() same semantics as downloadPNG but for SVG.',
+      downloadJSON: 'chart.downloadJSON() saves {version,spec,state} as a .json document.',
+      toDataURL: 'chart.toDataURL("image/png"|"image/svg+xml") returns a data URL string.',
+      toBlob: 'chart.toBlob("image/png"|"image/svg+xml") returns a Blob (browser-only).',
+    },
+    options: { as: ['string', 'object', 'dataurl', 'blob'] },
+    branding: 'By default PNG/SVG exports include the Powered by iChart.js branding watermark. Pass branding: { enabled: false } or branding: false to remove it for white-label output.',
+  };
+  return {
+    version: '2.0',
+    contractVersion: '1.0',
+    chartTypes,
+    charts: JSON.parse(JSON.stringify(chartProfiles)),
+    intents,
+    chartModes: { stack: ['stacked', 'percent'], pie: ['standard', 'donut'], composition: ['multi-series', 'mixed-line-column', 'dual-axis'], transforms: ['bin'] },
+    projectManagement: project,
+    projectIntelligence: {
+      intents: ['schedule', 'milestone', 'progress', 'variance', 'capacity', 'release', 'risk', 'aging', 'workflow', 'responsibility'],
+      views: ['gantt', 'burndown', 'column', 'area', 'scatter', 'bar'],
+      analytics: ['calendar', 'dependency-normalization', 'critical-path', 'slack', 'baseline-actual-variance', 'capacity', 'cumulative-flow', 'velocity', 'release-forecast', 'risk-matrix', 'issue-aging'],
+      linkedState: ['owner', 'status', 'priority', 'sprint', 'label'],
+    },
+    diagrams,
+    excluded: ['map', '3d'],
+    renderers: ['canvas', 'svg'],
+    interactions: [...new Set(Object.values(chartProfiles).flatMap(profile => profile.interactions))],
+    exports: ['png', 'svg', 'json'],
+    headless: {
+      preview: true,
+      json: true,
+      svg: true,
+      png: 'Node headless PNG requires the optional `canvas` npm package (createCanvas). Otherwise use chart.export({type:"svg"}).',
+    },
+    export: exp,
+    data: ['normalize', 'inspect', 'filter', 'sort', 'groupBy', 'sum', 'average', 'topN', 'percentage', 'bin'],
+    themes: [...styleCapabilities.modes],
+    styleSystem: JSON.parse(JSON.stringify(styleCapabilities)),
+    plugins: true,
+    branding: { defaultEnabled: true, signature: 'Powered by iChart.js', options: [{ name: 'enabled', type: 'boolean', default: true }] },
+  };
 }

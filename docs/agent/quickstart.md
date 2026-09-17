@@ -19,7 +19,7 @@ Agents and developers use the same `ichartjs` ESM entry. Agent behavior comes fr
 
 Additional package resources:
 
-- `ichartjs/capabilities.json`: machine-readable catalog and entry points.
+- `ichartjs/capabilities.json`: machine-readable catalog, including per-chart exports, branding, and interaction declarations.
 - `ichartjs/recipes/foundational-analysis`: foundational chart recipes.
 - `ichartjs/recipes/project-management`: project intelligence recipes.
 - `ichartjs/recipes/diagrams/workflow`: diagram editing recipe.
@@ -32,7 +32,7 @@ For coding environments such as Codex, read [Coding Agent Integration](coding-ag
 ## Standard Workflow
 
 ```text
-discover → inspect → plan → build → validate → render → explain
+discover → inspect → plan → build → validate → render → explain, export, self-check
 ```
 
 ### 1. Discover
@@ -60,7 +60,7 @@ Call `planChart(rows, { intent, renderer })`. Read the full result rather than o
 - `requiredFields`;
 - `assumptions` and `warnings`;
 - `unsupportedRequests` and `nextActions`;
-- the selected per-chart capability profile.
+- the selected per-chart capability profile;
 - `styleRecommendation`, including the resolved preset, mode, palette, reasons, and warnings.
 
 Stop before rendering when `requiredFields` is not empty. Ask for the missing information or choose a supported alternative without fabricating data.
@@ -84,6 +84,7 @@ const spec = {
   },
   interaction: { tooltip: true, hover: true, keyboard: true },
   accessibility: { enabled: true },
+  // branding: true is the default; set explicitly branding: false to disable signature + extra bottom padding
   theme: {
     mode: 'auto',
     preset: plan.styleRecommendation.preset,
@@ -124,16 +125,40 @@ Headless planning and scene creation:
 const chart = createChart(validation.spec);
 ```
 
-Headless JSON export is supported. PNG and SVG string export require a mounted renderer.
+Headless environment capabilities:
+- JSON and SVG string export work with zero dependencies.
+- PNG/JPEG raster export requires the optional `canvas` npm package; otherwise a structured `HEADLESS_EXPORT_UNSUPPORTED` error is returned.
+- The on-screen renderer is decoupled from the export backend; any mounted renderer can export any supported format.
 
-### 7. Explain and Self-Check
+### 7. Explain, Export, and Self-Check
 
 ```js
+// JSON export (zero-dependency, all environments)
+const jsonPayload = chart.export({ type: 'json', as: 'object' });
+const jsonString = chart.export({ type: 'json' });
+
+// SVG vector export (zero-dependency, browser + headless)
+const svgString = chart.export({ type: 'svg' });
+
+// PNG raster (browser always works; headless requires the canvas package)
+const pngDataUrl = typeof document !== 'undefined'
+  ? chart.toDataURL('image/png')
+  : null;
+
+// Browser-only convenience downloads
+if (typeof document !== 'undefined') {
+  chart.downloadPNG();
+  chart.downloadSVG();
+  chart.downloadJSON();
+}
+
 const result = {
   plan,
   explanation: chart.explain(),
   state: chart.getState(),
-  json: JSON.parse(chart.export({ type: 'json' }))
+  json: jsonPayload,
+  svg: svgString,
+  png: pngDataUrl
 };
 
 chart.destroy();
@@ -146,7 +171,14 @@ Before returning a result, verify:
 - source record IDs remain present in explanation lineage;
 - warnings and assumptions are visible;
 - requested interactions are supported;
-- the preview URL or output artifact is provided to the user.
+- the branding on/off state is documented so live view and exports stay consistent;
+- the preview URL or output artifact (JSON/SVG/PNG/JPEG) is provided to the user.
+
+## Branding (Signature) Defaults
+
+- Default `branding: true`: a low-contrast `Powered by iChart.js` signature appears in the bottom-right corner, synchronized across live rendering, PNG/SVG raster export, and JSON state persistence.
+- Disable explicitly with `branding: false` on the Spec or Theme: the signature text is removed from all surfaces, and the reserved bottom padding is released.
+- Consistency is enforced by a single gate inside `buildScene()`; live view and every export format remain 100% aligned.
 
 ## Complete Executable Example
 
@@ -158,7 +190,7 @@ npm run example:agent
 
 Read [`../../examples/agent-workflow.mjs`](../../examples/agent-workflow.mjs) for a complete inspect, plan, build, validate, render, explain, export, and destroy workflow.
 
-For interactive verification, start `npm run playground` and open `http://localhost:3000/playground/agent-workbench.html`.
+For interactive verification, start `npm run playground` and open `http://localhost:3000/playground/agent-workbench.html`. The top-right Export buttons on every Gallery page exercise the PNG, SVG, and JSON download flows.
 
 For visual style selection and live switching, read [Visual Style and Themes](theme-guide.md) and open `http://localhost:3000/playground/theme-gallery.html`.
 
@@ -170,3 +202,4 @@ For visual style selection and live switching, read [Visual Style and Themes](th
 - Do not infer schedule dates, dependencies, working calendars, or forecast confidence.
 - Do not enable interactions that the chart capability does not declare.
 - Do not generate Map or 3D Specs; those types are outside the current contract.
+- Treat structured export errors (valid=false, code=...) as first-class diagnostics; do not silently fall back to a different format.

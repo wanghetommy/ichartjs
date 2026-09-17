@@ -146,9 +146,49 @@ function addProjectScene(scene, spec, data, state, colors) {
   }
 }
 
+function addBranding(scene, spec) {
+  if (spec.branding?.enabled !== true) return;
+  const x = Math.max(12, Number(spec.width) - 4);
+  const y = Math.max(12, Number(spec.height) - 4);
+  const fontFamily = spec.theme?.typography?.axis?.font ? `500 9px ${String(spec.theme.typography.axis.font).split(/px\s*/).slice(1).join('px ').trim() || 'system-ui'}` : '500 9px system-ui, sans-serif';
+  scene.add(new SceneNode({
+    id: 'branding-watermark',
+    type: 'text',
+    geometry: { text: 'Powered by iChart.js', x, y },
+    style: {
+      fill: spec.theme?.muted || '#536274',
+      opacity: 0.35,
+      font: fontFamily,
+      textAnchor: 'end',
+      textAlign: 'end',
+      textBaseline: 'bottom',
+      baseline: 'bottom',
+      pointerEvents: 'none',
+      ariaHidden: 'true',
+      role: 'presentation'
+    },
+    interactive: false,
+    zIndex: 9999,
+    decorative: true
+  }));
+}
+
 export function buildScene(spec) {
-  spec = styledSpec(spec);
-  if (['gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane'].includes(spec.type)) return buildProjectScene(spec);
+  const baseSpec = styledSpec(spec);
+  const brandingEnabled = baseSpec.branding?.enabled === true;
+  const effectivePadding = {
+    top: Number(baseSpec.padding?.top ?? 48),
+    right: Number(baseSpec.padding?.right ?? 24) + (brandingEnabled ? 2 : 0),
+    bottom: Number(baseSpec.padding?.bottom ?? 48) + (brandingEnabled ? 18 : 0),
+    left: Number(baseSpec.padding?.left ?? 56),
+  };
+  spec = { ...baseSpec, padding: effectivePadding };
+  const isProjectFamily = ['gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane'].includes(spec.type);
+  if (isProjectFamily) {
+    const result = buildProjectScene(spec);
+    addBranding(result.scene, spec);
+    return result;
+  }
   const data = spec.transform ? applyTransforms(spec.data, spec.transform) : normalizeData(spec.data);
   if (spec.view && (spec.view.start !== undefined || spec.view.end !== undefined)) {
     const start = Math.max(0, Number(spec.view.start) || 0), end = Math.min(data.rows.length, spec.view.end === undefined ? data.rows.length : Number(spec.view.end));
@@ -159,10 +199,9 @@ export function buildScene(spec) {
   const state = layout(spec, data);
   const colors = spec.colors;
   addTitles(scene, spec);
-  if (!['pie', 'funnel', 'gauge', 'heatmap', 'radar', 'gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane'].includes(spec.type)) addAxes(scene, spec, state);
+  if (!['pie', 'funnel', 'gauge', 'heatmap', 'radar'].includes(spec.type)) addAxes(scene, spec, state);
   const hasDiagramNodes = ['flow', 'swimlane'].includes(spec.type) && (spec.nodes || spec.data.nodes)?.length;
-  if (!data.rows.length && !hasDiagramNodes) { addText(scene, 'empty', spec.emptyText || 'No data', spec.width / 2, spec.height / 2, { fill: spec.theme.muted, font: font(spec, 'subtitle'), textAnchor: 'middle' }); return { scene, data, state }; }
-  if (['gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane'].includes(spec.type)) { addProjectScene(scene, spec, data, state, colors); return { scene, data, state }; }
+  if (!data.rows.length && !hasDiagramNodes) { addText(scene, 'empty', spec.emptyText || 'No data', spec.width / 2, spec.height / 2, { fill: spec.theme.muted, font: font(spec, 'subtitle'), textAnchor: 'middle' }); addBranding(scene, spec); return { scene, data, state }; }
   const yField = state.yField;
   const series = Array.isArray(spec.encoding.y) ? spec.encoding.y : [{ ...spec.encoding.y, name: spec.encoding.y?.name || spec.encoding.y?.field }];
   if (spec.type === 'heatmap') addHeatmapScene(scene, spec, data, state, colors);
@@ -190,5 +229,6 @@ export function buildScene(spec) {
     const valueField = spec.encoding.value?.field || 'value', domain = spec.domain || [0, 100], rawValue = Number(data.rows[0]?.[valueField]) || 0, value = Math.max(Number(domain[0]), Math.min(Number(domain[1]), rawValue)), ratio = (value - Number(domain[0])) / (Number(domain[1]) - Number(domain[0]) || 1), cx = spec.width / 2, cy = spec.height * 0.62, radius = Math.min(spec.width, spec.height) * 0.3, start = Math.PI, end = start + Math.PI * ratio;
     scene.add(new SceneNode({ id: 'gauge-background', type: 'arc', geometry: { cx, cy, r: radius, start: Math.PI, end: Math.PI * 2 }, style: { fill: spec.theme.grid } })); scene.add(new SceneNode({ id: 'gauge-value', type: 'arc', geometry: { cx, cy, r: radius, start, end }, style: { fill: colors[0] }, dataRef: { seriesIndex: 0, dataIndex: 0, value }, interactive: true })); addText(scene, 'gauge-label', formatValue(value, spec.labels?.format || spec.encoding.value?.format || { style: 'percent', ratio: false }), cx, cy - 12, { fill: spec.theme.text, font: font(spec, 'metric'), textAnchor: 'middle' });
   }
+  addBranding(scene, spec);
   return { scene, data, state };
 }
