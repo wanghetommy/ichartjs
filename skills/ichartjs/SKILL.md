@@ -44,6 +44,7 @@ Use `ichartjs` for package imports. Use `examples/agent-workflow.mjs` as the exe
 - For Flow or Swimlane, preserve node, edge, lane, group, and port IDs; use diagram recipes and validated edit commands.
 - For business edits, preview first, preserve the preview ID and revision, require confirmation when declared, then commit or reject atomically.
 - For browser deliverables, start `npm run playground` and return the exact maintained Playground URL.
+- Release workflow (npm publish + develop→master merge) is **AUTHOR ONLY**. Read the 13-step SOP in [`docs/agent/development/release-sop.md`](../../../docs/agent/development/release-sop.md). Never initiate any release step unless the author explicitly instructs.
 
 ## Guardrails
 
