@@ -184,10 +184,23 @@ The public package includes ESM exports, TypeScript declarations, Agent document
 
 ## Development
 
+Checks + playground (for all contributors):
+
 ```bash
 npm run agent:check
 npm run playground
 ```
+
+### Release (AUTHOR ONLY)
+
+Publishing to npm (`@taylorwong/ichartjs`) and merging `develop → master` are restricted to the package author (GitHub + npm account `taylorwong`) due to 2FA and access control.
+
+Contributors should:
+1. Open PRs / commit only to `develop`
+2. Ensure `npm run agent:check` and `npm test` are green
+
+Full author-only release SOP (exact 13-step sequence + must-not rules + rollback procedure):
+👉 [`docs/agent/development/release-sop.md`](docs/agent/development/release-sop.md)
 
 Start with [`docs/agent/quickstart.md`](docs/agent/quickstart.md). Detailed runtime, charting, project, diagram, and editing contracts live in [`docs/agent/`](docs/agent/).
 
