@@ -23,8 +23,63 @@ Iteration 8 通过 `getChartCapability(type)` 提供逐图表能力档案，包�
 - 布局和数据语义不依赖 Renderer。
 - 通用图表使用 `data.values`；Flow/Swimlane 使用 `nodes/edges/lanes`。
 - `svg` 适合 DOM 交互和可访问性；`canvas` 适合大量图元和绘制性能。
-- Headless 支持 JSON；PNG/SVG 导出需要挂载 Renderer。
 
-公共 API：`inspectData`、`normalizeData`、`planChart`、`recommend`、`validateSpec`、`createChart`、`getCapabilities`、`getChartCapability`、`chart.describe`、`chart.explain`、`chart.getState`、`chart.export`。
+## 品牌署名（Branding）
 
-实现位置：`src/index.mjs`、`src/spec.mjs`、`src/scene.mjs`、`src/renderer.mjs`、`src/plugin.mjs`、`src/scale.mjs`。
+iChart.js 默认在所有图表右下角显示低对比度的品牌署名（`Powered by iChart.js`），用于提升项目可见性。
+
+### 配置项
+
+- 在 Spec 或 Theme 中通过 `branding` 字段控制：
+  - `branding: true`（默认）：开启署名。
+  - `branding: false`：关闭署名。
+  - `branding: { enabled: true }`：细粒度配置形式。
+
+### 一致性保证
+
+署名开关由 `buildScene()` 内统一总闸判定，以下四个面必然同步：
+1. 浏览器 Canvas/SVG 画面渲染。
+2. `chart.export({ type:'png|jpeg' })` 光栅导出。
+3. `chart.export({ type:'svg' })` 矢量导出。
+4. `chart.export({ type:'json' })` 中 `spec.branding` + `state` 持久化状态。
+
+关闭 `branding:false` 时，画面和所有导出产物都不会出现署名文字，同时不会再额外预留底部 padding。
+
+## 导出与下载
+
+iChart.js 导出采用**双底层单源架构**，所有产物共享 `buildScene()` 生成的同一份 Scene Graph，**画面显示用的 renderer 和导出底层完全解耦**：
+1. **PNG/JPEG（光栅）**：底层用 `CanvasRenderer` 重绘 Scene Graph，同步输出真光栅文件；无头环境安装 `canvas` npm 包即可支持。
+2. **SVG（矢量）**：底层用 `SVGRenderer` DOM 序列化（浏览器）或纯字符串拼装（无头零依赖），支持 XML 1.0 头部、字体拆分、无障碍属性。
+3. **JSON（可重建）**：序列化当前 `spec` + `getState()` 结果，用于持久化、Agent 自检和跨端重建。
+
+### Branding 一致性
+
+开关由 `buildScene()` 内统一总闸判定，画面渲染 / SVG 导出 / PNG 导出 / JSON state 必然同步。
+
+### Headless 支持矩阵
+
+| 类型       | 浏览器环境（任意 renderer） | Node 无头零依赖 | Node 无头 + `canvas` 依赖 |
+|------------|----------------------------|----------------|--------------------------|
+| JSON       | ✅                          | ✅              | ✅                        |
+| SVG        | ✅                          | ✅              | ✅                        |
+| PNG / JPEG | ✅ 同步真光栅               | ❌ 返回结构化 `HEADLESS_EXPORT_UNSUPPORTED` | ✅ |
+
+### 公共导出 API
+
+- `chart.toDataURL(type='image/png')` → data URL 字符串或结构化 ExportError。
+- `chart.toBlob(type='image/png')` → Blob 或 ExportError（无头返回 `BLOB_HEADLESS`）。
+- `chart.export({ type, as })` → 同步返回字符串 / JSON 对象 / Blob / ExportError，`as` 支持 `string`、`dataurl`、`blob`、`object`（仅 JSON）。
+- `chart.exportAsync({ type, as })` → Promise 包装，适配未来异步场景。
+- `chart.download({ type })` / `downloadPNG()` / `downloadSVG()` / `downloadJSON()` → 触发浏览器保存（无头回落到返回字符串或结构化错误）。
+
+### 错误结构
+
+所有导出/下载方法失败时统一返回 `{ valid:false, code, message?, suggestion?, rasterCode? }` 稳定结构，便于 Agent 自动化判断，常见 `code`：
+- `HEADLESS_EXPORT_UNSUPPORTED`：当前无头环境缺少光栅所需依赖（`canvas`）。
+- `BLOB_HEADLESS`：`toBlob` / `as=blob` 需要浏览器 Blob。
+- `DOWNLOAD_HEADLESS`：`chart.download*()` 仅在浏览器有 DOM 时可用，无头用 `export`。
+- `EXPORT_TYPE_UNSUPPORTED`：不支持的导出类型。
+
+公共 API：`inspectData`、`normalizeData`、`planChart`、`recommend`、`validateSpec`、`createChart`、`getCapabilities`、`getChartCapability`、`chart.describe`、`chart.explain`、`chart.getState`、`chart.export`、`chart.exportAsync`、`chart.toDataURL`、`chart.toBlob`、`chart.download`、`chart.downloadPNG`、`chart.downloadSVG`、`chart.downloadJSON`。
+
+实现位置：`src/index.mjs`、`src/spec.mjs`、`src/scene.mjs`、`src/renderer.mjs`、`src/plugin.mjs`、`src/scale.mjs`、`src/charts.mjs`、`src/capabilities.mjs`。

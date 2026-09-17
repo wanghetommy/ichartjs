@@ -3,14 +3,17 @@ export type ChartType = 'line' | 'area' | 'bar' | 'column' | 'pie' | 'scatter' |
 export type ThemeMode = 'auto' | 'light' | 'dark' | 'contrast';
 export type ThemePreset = 'auto' | 'analysis' | 'dashboard' | 'report' | 'presentation' | 'project' | 'diagram';
 export type ThemePalette = 'auto' | 'categorical' | 'sequential' | 'diverging' | 'status';
-export interface ThemeConfig { mode?: ThemeMode; preset?: ThemePreset; palette?: ThemePalette; tokens?: Record<string, unknown>; [key: string]: unknown; }
+export type ExportKind = 'json' | 'svg' | 'png' | 'jpeg' | 'jpg' | 'image/png' | 'image/jpeg' | 'image/svg+xml' | 'application/json';
+export type ExportAs = 'string' | 'dataurl' | 'blob' | 'object';
+export interface ExportError { valid: false; code: string; rasterCode?: string; message?: string; suggestion?: string; [key: string]: unknown }
+export interface ThemeConfig { mode?: ThemeMode; preset?: ThemePreset; palette?: ThemePalette; tokens?: Record<string, unknown>; branding?: boolean | { enabled?: boolean; [key: string]: unknown }; [key: string]: unknown; }
 export interface StyleRecommendation { version: '1.0'; preset: Exclude<ThemePreset, 'auto'>; mode: ThemeMode; resolvedMode: Exclude<ThemeMode, 'auto'>; palette: Exclude<ThemePalette, 'auto'>; reasons: string[]; warnings: Diagnostic[]; userOverride: boolean; }
 export interface ResolvedTheme extends ThemeConfig { name: string; resolvedMode: Exclude<ThemeMode, 'auto'>; background: string; surface: string; text: string; muted: string; axis: string; grid: string; border: string; focus: string; selection: string; colors: string[]; palettes: Record<string, unknown>; status: Record<string, string>; typography: Record<string, { size: number; weight: number; lineHeight: number; font: string }>; layout: Record<string, unknown>; marks: Record<string, unknown>; reasons: string[]; warnings: Diagnostic[]; }
 export interface Diagnostic { code: string; path?: string; message: string; expected?: unknown; suggestion?: string; [key: string]: unknown; }
 export interface DataFieldInfo { name: string; type: 'quantitative' | 'temporal' | 'category' | 'unknown'; role: 'identifier' | 'measure' | 'temporal-dimension' | 'dimension'; unit: string | null; cardinality: number; validCount: number; nullCount: number; min?: number; max?: number; temporalMin?: string; temporalMax?: string; }
 export interface DataInspection { version: '1.0'; rows: number; fields: DataFieldInfo[]; dimensions: string[]; measures: string[]; temporalFields: string[]; missingValueCount: number; warnings: Diagnostic[]; }
 export interface ChartCapability { type: ChartType; family: string; intents: string[]; required: string[]; optional: string[]; dataShapes: string[]; interactions: string[]; features: Record<string, 'supported' | 'not-applicable' | 'degraded'>; renderers: Array<'canvas' | 'svg'>; exports: string[]; limits: Record<string, number>; }
-export interface RuntimeCapabilities { version: '2.0'; contractVersion: '1.0'; chartTypes: ChartType[]; charts: Record<ChartType, ChartCapability>; intents: string[]; renderers: Array<'canvas' | 'svg'>; interactions: string[]; exports: string[]; styleSystem: { modes: ThemeMode[]; presets: ThemePreset[]; palettes: ThemePalette[]; switchable: boolean; automatic: boolean; [key: string]: unknown }; [key: string]: unknown; }
+export interface RuntimeCapabilities { version: '2.0'; contractVersion: '1.0'; chartTypes: ChartType[]; charts: Record<ChartType, ChartCapability>; intents: string[]; renderers: Array<'canvas' | 'svg'>; interactions: string[]; exports: Array<'png' | 'svg' | 'json' | 'jpeg'>; styleSystem: { modes: ThemeMode[]; presets: ThemePreset[]; palettes: ThemePalette[]; switchable: boolean; automatic: boolean; [key: string]: unknown }; headless: { preview?: boolean; json: boolean; svg: boolean; png: boolean | string }; export: { types: string[]; mime: Record<string, string>; browser: Record<string, boolean>; headless: Record<string, string | boolean>; methods: string[]; options: Record<string, unknown>; branding: Record<string, unknown> }; branding: { defaultEnabled: boolean; signature: string; options: Record<string, unknown> }; [key: string]: unknown; }
 export interface ChartPlan { version: '1.0'; intent: string; primary: ChartType; alternatives: ChartType[]; confidence: number; reasons: string[]; requiredFields: string[]; suggestedEncodings: { dimension: string | null; measure: string | null; secondaryMeasure: string | null }; assumptions: string[]; warnings: Diagnostic[]; unsupportedRequests: string[]; nextActions: string[]; capability: ChartCapability; styleRecommendation: StyleRecommendation; data: DataInspection; }
 export interface ChartExplanation { version: '1.0'; type: ChartType; family: string; purpose: string; renderer: Renderer; dataCount: number; encodings: Record<string, string | string[]>; transforms: string[]; interactions: string[]; assumptions: string[]; warnings: Diagnostic[]; style: Partial<StyleRecommendation> & { name?: string }; lineage: { recordIds: string[]; sourcePreserved: boolean }; accessibility: { enabled: boolean; summary: string }; }
 export interface ChartSpec { type: ChartType; renderer?: Renderer; container?: string | Element; width?: number; height?: number; data?: Array<Record<string, unknown>> | { values?: Array<Record<string, unknown>>; [key: string]: unknown }; encoding?: Record<string, unknown>; title?: { text?: string; subtitle?: string }; legend?: { visible?: boolean; position?: string }; grid?: { visible?: boolean; color?: string }; labels?: { enabled?: boolean; format?: string | Record<string, unknown>; color?: string; font?: string }; interaction?: Record<string, boolean>; accessibility?: { enabled?: boolean; description?: string }; theme?: ThemeMode | ThemePreset | ThemeConfig | ResolvedTheme; [key: string]: unknown; }
@@ -48,7 +51,14 @@ export interface Chart {
   zoomTo(view: Record<string, number>): this;
   panBy(delta: { x?: number; y?: number }): this;
   clearSelection(): this;
-  export(options?: { type?: 'json' | 'application/json' | 'image/png' | 'image/svg+xml' }): string | Record<string, unknown>;
+  toDataURL(type?: 'image/png' | 'image/jpeg' | 'image/svg+xml'): string | ExportError;
+  toBlob(type?: 'image/png' | 'image/jpeg' | 'image/svg+xml'): Blob | ExportError;
+  export(options?: { type?: ExportKind; as?: ExportAs }): string | { version: string; spec: unknown; state: unknown } | Blob | ExportError;
+  exportAsync(options?: { type?: ExportKind; as?: ExportAs }): Promise<string | { version: string; spec: unknown; state: unknown } | Blob>;
+  download(options?: { type?: ExportKind | 'json' }): { valid: boolean; filename?: string; size?: number; type?: string; code?: string; message?: string } | ExportError | string;
+  downloadPNG(): ReturnType<Chart['download']>;
+  downloadSVG(): ReturnType<Chart['download']>;
+  downloadJSON(): ReturnType<Chart['download']>;
   destroy(): void;
   inspectDataSchema(): ReturnType<typeof inspectDataSchema>;
   validateData(): Record<string, unknown>;
