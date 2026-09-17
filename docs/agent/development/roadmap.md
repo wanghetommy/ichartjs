@@ -11,6 +11,7 @@
 - Iteration 6 project intelligence local runtime and browser acceptance are complete.
 - Iteration 7 local runtime and browser acceptance are complete for foundational composition, Heatmap, and Radar; physical-device checks remain host integration evidence.
 - Iteration 8A–8D is complete and accepted in automated tests, Chromium, Firefox 144, WebKit 26, native Safari 26.6.2, and a 390 px touch viewport. Physical iOS/Android and representative release-host measurements remain post-release host/device follow-up. No new public chart type was introduced.
+- Iteration 9A–9D implements the lightweight visual style system, adaptive theme planning, runtime switching, renderer integration, and bilingual Agent guidance without adding a chart type or changing version `2.0.0`.
 - Final `2.0.0` readiness is tracked in `docs/agent/development/2.0-release-readiness.md`; strict TypeScript, Node.js 18/20/22, GitHub Actions, package-consumer, browser, performance, and lifecycle checks pass. Only the final commit, `master` cutover, tag, and GitHub Release remain. npm publication is tracked separately.
 
 ## Iteration 4 — Agent Data Contract and Business Editing
@@ -200,6 +201,39 @@ Finish the commonly expected behavior of the existing 16 chart types, improve ma
 - Browser, mobile, accessibility, performance, lifecycle, packaging, and 2.0 release records.
 - Updated full Gallery and exact preview acceptance instructions.
 
+## Iteration 9 — Visual Style System and Adaptive Theming
+
+### Goal
+
+Give all existing chart families a consistent, accessible built-in visual language that Agents can select semantically and users can switch without chart recreation. The detailed 9A–9D plan is in `docs/agent/development/iteration-9.md`.
+
+### Tasks
+
+1. Define shared visual tokens, typography roles, layout density, mark styling, and semantic colors.
+2. Add automatic, light, dark, and contrast modes.
+3. Add analysis, dashboard, report, presentation, project, and diagram presets.
+4. Add categorical, sequential, diverging, and status palettes.
+5. Add deterministic Agent style planning, reasons, warnings, and capability discovery.
+6. Add live theme switching, host color-scheme following, and explicit override preservation.
+7. Apply resolved tokens across SVG, Canvas, charts, project views, diagrams, and tooltips.
+8. Add bilingual guidance, TypeScript declarations, regression tests, and Theme Gallery acceptance.
+
+### Verification
+
+- Built-in modes satisfy declared contrast thresholds.
+- Automatic choices are deterministic and visible in plan, state, and explanation output.
+- User mode, preset, palette, and custom token overrides take precedence.
+- Theme switching does not recreate a chart or lose explicit Spec overrides.
+- `npm run agent:check`, `git diff --check`, and Theme Gallery acceptance pass.
+
+### Deliverables
+
+- Lightweight style engine in `src/theme.mjs`.
+- Public style-planning and runtime-switching APIs.
+- English and Chinese theme guides.
+- `playground/theme-gallery.html` and enhanced full Gallery controls.
+- Iteration 9 remains within version `2.0.0` and adds no chart type.
+
 ## Deferred Scope
 
 The following remain deferred beyond this roadmap baseline:
@@ -221,4 +255,5 @@ They should only be scheduled after the core runtime, diagram model, and project
 4. Execute Iteration 6 if project analytics and Agent reporting are primary use cases.
 5. Execute Iteration 7 foundations before considering additional specialized chart types.
 6. Execute Iteration 8 to complete existing chart behavior, Agent adaptation, and the 2.0 release gates.
-7. Re-evaluate geographic and 3D scope only after usage data confirms demand.
+7. Execute Iteration 9 to standardize adaptive visual styling without expanding chart count.
+8. Re-evaluate geographic and 3D scope only after usage data confirms demand.

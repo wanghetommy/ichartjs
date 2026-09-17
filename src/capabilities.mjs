@@ -2,6 +2,7 @@
  * Machine-readable chart capabilities and deterministic Agent planning.
  */
 import { inspectData } from './data.mjs';
+import { planStyle, styleCapabilities } from './theme.mjs';
 
 export const chartTypes = ['line', 'area', 'bar', 'column', 'pie', 'scatter', 'funnel', 'gauge', 'heatmap', 'radar', 'gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane'];
 
@@ -86,6 +87,8 @@ export function planChart(input, options = {}) {
   if (warnings.length) nextActions.push('Review warnings before rendering.');
   nextActions.push(`Validate the ${primary} Spec with validateSpec().`);
   const confidence = !report.rows || requiredFields.length ? 0.35 : warnings.some(item => item.code !== 'MISSING_VALUE') ? 0.65 : 0.9;
+  const styleRecommendation = planStyle({ type: primary, intent: requestedIntent, data: Array.isArray(input) ? input : input?.values || input, encoding: { x: report.dimensions[0] ? { field: report.dimensions[0] } : undefined, y: report.measures.map(field => ({ field })) } }, options);
+  warnings.push(...styleRecommendation.warnings);
   return {
     version: '1.0',
     intent: requestedIntent,
@@ -100,6 +103,7 @@ export function planChart(input, options = {}) {
     unsupportedRequests: options.renderer && !profile.renderers.includes(options.renderer) ? [`renderer:${options.renderer}`] : [],
     nextActions,
     capability: getChartCapability(primary),
+    styleRecommendation,
     data: report
   };
 }
@@ -120,6 +124,7 @@ export function explainChart(spec, model = {}) {
     interactions: Object.keys(spec.interaction || {}).filter(key => spec.interaction[key]),
     assumptions: [...(model.data?.assumptions || []), ...(model.state?.projectAnalytics?.assumptions || [])],
     warnings,
+    style: spec.theme && typeof spec.theme === 'object' ? { name: spec.theme.name, preset: spec.theme.preset, mode: spec.theme.mode, resolvedMode: spec.theme.resolvedMode, palette: spec.theme.palette, reasons: spec.theme.reasons || [], warnings: spec.theme.warnings || [] } : planStyle(spec),
     lineage: { recordIds: (model.data?.rows || []).map((row, index) => String(row.id ?? row.key ?? `record-${index}`)), sourcePreserved: true },
     accessibility: { enabled: Boolean(spec.accessibility?.enabled), summary: spec.accessibility?.description || spec.title?.text || `${spec.type} chart with ${model.data?.rows?.length || 0} data items.` }
   };
@@ -127,5 +132,5 @@ export function explainChart(spec, model = {}) {
 
 export function getCapabilities() {
   const intents = [...new Set(Object.values(chartProfiles).flatMap(profile => profile.intents))];
-  return { version: '2.0', contractVersion: '1.0', chartTypes, charts: JSON.parse(JSON.stringify(chartProfiles)), intents, chartModes: { stack: ['stacked', 'percent'], pie: ['standard', 'donut'], composition: ['multi-series', 'mixed-line-column', 'dual-axis'], transforms: ['bin'] }, projectManagement: project, projectIntelligence: { intents: ['schedule', 'milestone', 'progress', 'variance', 'capacity', 'release', 'risk', 'aging', 'workflow', 'responsibility'], views: ['gantt', 'burndown', 'column', 'area', 'scatter', 'bar'], analytics: ['calendar', 'dependency-normalization', 'critical-path', 'slack', 'baseline-actual-variance', 'capacity', 'cumulative-flow', 'velocity', 'release-forecast', 'risk-matrix', 'issue-aging'], linkedState: ['owner', 'status', 'priority', 'sprint', 'label'] }, diagrams, excluded: ['map', '3d'], renderers: ['canvas', 'svg'], interactions: [...new Set(Object.values(chartProfiles).flatMap(profile => profile.interactions))], exports: ['png', 'svg', 'json'], headless: { preview: true, json: true, svg: false, png: false }, data: ['normalize', 'inspect', 'filter', 'sort', 'groupBy', 'sum', 'average', 'topN', 'percentage', 'bin'], themes: ['light', 'dark', 'contrast'], plugins: true };
+  return { version: '2.0', contractVersion: '1.0', chartTypes, charts: JSON.parse(JSON.stringify(chartProfiles)), intents, chartModes: { stack: ['stacked', 'percent'], pie: ['standard', 'donut'], composition: ['multi-series', 'mixed-line-column', 'dual-axis'], transforms: ['bin'] }, projectManagement: project, projectIntelligence: { intents: ['schedule', 'milestone', 'progress', 'variance', 'capacity', 'release', 'risk', 'aging', 'workflow', 'responsibility'], views: ['gantt', 'burndown', 'column', 'area', 'scatter', 'bar'], analytics: ['calendar', 'dependency-normalization', 'critical-path', 'slack', 'baseline-actual-variance', 'capacity', 'cumulative-flow', 'velocity', 'release-forecast', 'risk-matrix', 'issue-aging'], linkedState: ['owner', 'status', 'priority', 'sprint', 'label'] }, diagrams, excluded: ['map', '3d'], renderers: ['canvas', 'svg'], interactions: [...new Set(Object.values(chartProfiles).flatMap(profile => profile.interactions))], exports: ['png', 'svg', 'json'], headless: { preview: true, json: true, svg: false, png: false }, data: ['normalize', 'inspect', 'filter', 'sort', 'groupBy', 'sum', 'average', 'topN', 'percentage', 'bin'], themes: [...styleCapabilities.modes], styleSystem: JSON.parse(JSON.stringify(styleCapabilities)), plugins: true };
 }

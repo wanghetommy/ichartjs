@@ -26,5 +26,12 @@
   "businessEditingDemo": "playground/editing.html",
   "diagramEditor": "playground/diagram-editor.html",
   "projectIntelligenceDemo": "playground/project-intelligence.html",
-  "foundationalGallery": "playground/foundational-gallery.html"
+  "foundationalGallery": "playground/foundational-gallery.html",
+  "themeGallery": "playground/theme-gallery.html",
+  "themeGuide": "docs/agent/theme-guide.md",
+  "styleSystem": {
+    "modes": ["auto", "light", "dark", "contrast"],
+    "presets": ["auto", "analysis", "dashboard", "report", "presentation", "project", "diagram"],
+    "palettes": ["auto", "categorical", "sequential", "diverging", "status"]
+  }
 }

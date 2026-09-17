@@ -7,19 +7,21 @@ import { normalizeData } from './data.mjs';
 import { layoutDiagram, normalizeDiagramData, routeEdge } from './diagram.mjs';
 import { analyzeBurndownSeries, analyzeSchedule } from './project-analytics.mjs';
 import { createLinkedProjectState, filterProjectRows, linkedRecordId } from './project-linking.mjs';
+import { contrastRatio, resolveTheme } from './theme.mjs';
 
 export const projectTypes = ['gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane'];
 const day = 86400000;
 export const timestamp = value => value == null || value === '' ? NaN : new Date(value).getTime();
 const dateLabel = value => new Date(value).toISOString().slice(0, 10);
 const dependencyId = dependency => typeof dependency === 'string' ? dependency : dependency?.id || null;
+const markText = (theme, background) => (contrastRatio(theme.text, background) || 0) >= (contrastRatio(theme.background, background) || 0) ? theme.text : theme.background;
 
 function text(scene, id, content, x, y, style = {}) {
-  scene.add({ id, type: 'text', geometry: { text: String(content), x, y }, style: { fill: '#334155', font: '12px system-ui', ...style }, zIndex: 4 });
+  scene.add({ id, type: 'text', geometry: { text: String(content), x, y }, style: { fill: scene.theme?.text || '#334155', font: scene.theme?.typography?.label?.font || '12px system-ui', ...style }, zIndex: 4 });
 }
 
 function arrow(scene, id, points, reference, critical = false) {
-  const color = critical ? '#dc2626' : '#64748b';
+  const color = critical ? scene.theme?.status?.danger || '#dc2626' : scene.theme?.axis || '#64748b';
   const tip = points.at(-1), previous = points.at(-2);
   const angle = Math.atan2(tip.y - previous.y, tip.x - previous.x), size = 7;
   scene.add({ id, type: 'path', geometry: { points }, style: { fill: 'none', stroke: color, strokeWidth: critical ? 2.5 : 1.5 }, dataRef: reference, zIndex: 1 });
@@ -31,8 +33,8 @@ function timeAxis(scene, plot, min, max) {
   const ticks = Math.max(2, Math.min(5, Math.floor(plot.width / 100)));
   for (let index = 0; index < ticks; index += 1) {
     const time = min + (max - min) * index / (ticks - 1), x = map(time);
-    scene.add({ id: `project-grid-${index}`, type: 'line', geometry: { x1: x, y1: plot.y, x2: x, y2: plot.y + plot.height }, style: { stroke: '#e2e8f0' } });
-    text(scene, `project-tick-${index}`, dateLabel(time), x, plot.y + plot.height + 22, { textAnchor: index === 0 ? 'start' : index === ticks - 1 ? 'end' : 'middle', font: '11px system-ui' });
+    scene.add({ id: `project-grid-${index}`, type: 'line', geometry: { x1: x, y1: plot.y, x2: x, y2: plot.y + plot.height }, style: { stroke: scene.theme?.grid || '#e2e8f0' } });
+    text(scene, `project-tick-${index}`, dateLabel(time), x, plot.y + plot.height + 22, { fill: scene.theme?.muted, textAnchor: index === 0 ? 'start' : index === ticks - 1 ? 'end' : 'middle', font: scene.theme?.typography?.axis?.font || '11px system-ui' });
   }
   return map;
 }
@@ -135,13 +137,13 @@ function tasksScene(scene, spec, rows, state) {
     const milestone = spec.type === 'milestone' || row.milestone || start === end;
     if (overlays.baseline && baselineStart) {
       const baselineStartX = map(baselineStart), baselineEndX = map(baselineEnd || baselineStart);
-      if (milestone) scene.add({ id: `project-baseline-${index}`, type: 'circle', geometry: { cx: baselineStartX, cy: y, r: 4 }, bounds: { x: baselineStartX - 4, y: y - 4, width: 8, height: 8 }, style: { fill: '#ffffff', stroke: '#94a3b8', strokeWidth: 1.5 }, zIndex: 1 });
-      else scene.add({ id: `project-baseline-${index}`, type: 'rect', geometry: { x: baselineStartX, y: y - 14, width: Math.max(2, baselineEndX - baselineStartX), height: 6 }, style: { fill: '#cbd5e1' }, zIndex: 1 });
+      if (milestone) scene.add({ id: `project-baseline-${index}`, type: 'circle', geometry: { cx: baselineStartX, cy: y, r: 4 }, bounds: { x: baselineStartX - 4, y: y - 4, width: 8, height: 8 }, style: { fill: spec.theme.background, stroke: spec.theme.axis, strokeWidth: 1.5 }, zIndex: 1 });
+      else scene.add({ id: `project-baseline-${index}`, type: 'rect', geometry: { x: baselineStartX, y: y - 14, width: Math.max(2, baselineEndX - baselineStartX), height: 6 }, style: { fill: spec.theme.border }, zIndex: 1 });
     }
     if (overlays.actual && actualStart) {
       const actualStartX = map(actualStart), actualEndX = map(actualEnd || actualStart);
-      if (milestone) scene.add({ id: `project-actual-${index}`, type: 'circle', geometry: { cx: actualStartX, cy: y, r: 3 }, bounds: { x: actualStartX - 3, y: y - 3, width: 6, height: 6 }, style: { fill: '#0f172a' }, zIndex: 3 });
-      else scene.add({ id: `project-actual-${index}`, type: 'rect', geometry: { x: actualStartX, y: y + 8, width: Math.max(2, actualEndX - actualStartX), height: 4 }, style: { fill: '#0f172a', opacity: 0.35 }, zIndex: 3 });
+      if (milestone) scene.add({ id: `project-actual-${index}`, type: 'circle', geometry: { cx: actualStartX, cy: y, r: 3 }, bounds: { x: actualStartX - 3, y: y - 3, width: 6, height: 6 }, style: { fill: spec.theme.text }, zIndex: 3 });
+      else scene.add({ id: `project-actual-${index}`, type: 'rect', geometry: { x: actualStartX, y: y + 8, width: Math.max(2, actualEndX - actualStartX), height: 4 }, style: { fill: spec.theme.text, opacity: 0.35 }, zIndex: 3 });
     }
     const geometry = milestone ? { cx: start, cy: y, r: 7 } : { x: start, y: y - 10, width: Math.max(2, end - start), height: 20 };
     const bounds = milestone ? { x: start - 8, y: y - 8, width: 16, height: 16 } : { ...geometry };
@@ -152,8 +154,8 @@ function tasksScene(scene, spec, rows, state) {
       geometry,
       bounds,
       style: {
-        fill: highlighted.has(row.id) ? '#dc2626' : row.status === 'done' ? '#16a34a' : spec.colors[index % spec.colors.length],
-        stroke: selected.has(recordId) ? '#0f172a' : '#ffffff',
+        fill: highlighted.has(row.id) ? spec.theme.status.danger : row.status === 'done' ? spec.theme.status.success : spec.colors[index % spec.colors.length],
+        stroke: selected.has(recordId) ? spec.theme.selection : spec.theme.background,
         strokeWidth: selected.has(recordId) ? 2 : 1
       },
       dataRef: { dataIndex: index, taskId: row.id, recordId, datum },
@@ -163,14 +165,14 @@ function tasksScene(scene, spec, rows, state) {
     positions.set(row.id || recordId, { start, end, y });
     const label = row.name || row.title || row.label || row.id || `Item ${index + 1}`;
     text(scene, `project-label-${index}`, label.length > 17 ? `${label.slice(0, 16)}…` : label, plot.x - 12, y + 4, { textAnchor: 'end' });
-    if (row.progress != null && !milestone) scene.add({ id: `project-progress-${index}`, type: 'rect', geometry: { ...geometry, width: geometry.width * (row.progress > 1 ? row.progress / 100 : row.progress) }, style: { fill: '#0f172a', opacity: 0.25 }, zIndex: 3 });
+    if (row.progress != null && !milestone) scene.add({ id: `project-progress-${index}`, type: 'rect', geometry: { ...geometry, width: geometry.width * (row.progress > 1 ? row.progress / 100 : row.progress) }, style: { fill: spec.theme.text, opacity: 0.25 }, zIndex: 3 });
     if (overlays.slack && analytics?.latestFinish && !milestone) {
       const latestEnd = map(analytics.latestFinish);
-      scene.add({ id: `project-slack-${index}`, type: 'line', geometry: { x1: end, y1: y, x2: latestEnd, y2: y }, style: { stroke: '#f59e0b', strokeWidth: 1.5, opacity: 0.9 } });
+      scene.add({ id: `project-slack-${index}`, type: 'line', geometry: { x1: end, y1: y, x2: latestEnd, y2: y }, style: { stroke: spec.theme.status.warning, strokeWidth: 1.5, opacity: 0.9 } });
     }
     if (overlays.variance) {
       const variance = analytics?.endVarianceDays ?? analytics?.baselineVarianceDays ?? null;
-      if (variance != null) text(scene, `project-variance-${index}`, `${variance > 0 ? '+' : ''}${variance}d`, milestone ? start + 12 : end + 8, y - 12, { font: '11px system-ui', fill: variance > 0 ? '#dc2626' : variance < 0 ? '#2563eb' : '#475569' });
+      if (variance != null) text(scene, `project-variance-${index}`, `${variance > 0 ? '+' : ''}${variance}d`, milestone ? start + 12 : end + 8, y - 12, { font: spec.theme.typography.axis.font, fill: variance > 0 ? spec.theme.status.danger : variance < 0 ? spec.theme.status.info : spec.theme.muted });
     }
   });
   rows.forEach((row, index) => (row.dependencies || []).forEach((dependency, dependencyIndex) => {
@@ -196,20 +198,20 @@ function burndownScene(scene, spec, rows, state) {
   const maxValue = Math.max(1, ...samples.flatMap(sample => [sample.remaining, sample.ideal, sample.scope]));
   const mapY = value => plot.y + plot.height - value / maxValue * plot.height;
   const selected = projectSelection(spec, state);
-  const series = [['remaining', 'actual', spec.colors[0]], ['ideal', 'ideal', '#94a3b8'], ['scope', 'scope-total', '#d97706']];
+  const series = [['remaining', 'actual', spec.colors[0]], ['ideal', 'ideal', spec.theme.axis], ['scope', 'scope-total', spec.theme.status.warning]];
   series.forEach(([field, id, color]) => scene.add({ id: `burndown-${id}`, type: 'path', geometry: { points: samples.map(sample => ({ x: map(sample.time), y: mapY(sample[field]) })) }, style: { fill: 'none', stroke: color, strokeWidth: 2 } }));
   for (let index = 0; index <= 2; index += 1) text(scene, `burndown-y-${index}`, Number((maxValue * index / 2).toFixed(1)), plot.x - 12, mapY(maxValue * index / 2) + 4, { textAnchor: 'end' });
   samples.forEach(sample => {
     const x = map(sample.time), y = mapY(sample.remaining), index = sample.dataIndex;
     const recordId = linkedRecordId(sample, index);
-    if (sample.scopeChange) scene.add({ id: `burndown-scope-${index}`, type: 'line', geometry: { x1: x, y1: plot.y, x2: x, y2: plot.y + plot.height }, style: { stroke: '#f59e0b' } });
-    scene.add({ id: `burndown-item-${index}`, type: 'circle', geometry: { cx: x, cy: y, r: 5 }, bounds: { x: x - 8, y: y - 8, width: 16, height: 16 }, style: { fill: spec.colors[0], stroke: selected.has(recordId) ? '#0f172a' : '#ffffff', strokeWidth: selected.has(recordId) ? 2 : 1 }, dataRef: { dataIndex: index, recordId, datum: { ...sample, forecast: forecast.date, forecastReason: forecast.reason } }, interactive: true, zIndex: 2 });
+    if (sample.scopeChange) scene.add({ id: `burndown-scope-${index}`, type: 'line', geometry: { x1: x, y1: plot.y, x2: x, y2: plot.y + plot.height }, style: { stroke: spec.theme.status.warning } });
+    scene.add({ id: `burndown-item-${index}`, type: 'circle', geometry: { cx: x, cy: y, r: 5 }, bounds: { x: x - 8, y: y - 8, width: 16, height: 16 }, style: { fill: spec.colors[0], stroke: selected.has(recordId) ? spec.theme.selection : spec.theme.background, strokeWidth: selected.has(recordId) ? 2 : 1 }, dataRef: { dataIndex: index, recordId, datum: { ...sample, forecast: forecast.date, forecastReason: forecast.reason } }, interactive: true, zIndex: 2 });
   });
   if (forecast.reason === 'estimated') {
     const last = samples.at(-1);
-    scene.add({ id: 'burndown-forecast', type: 'path', geometry: { points: [{ x: map(last.time), y: mapY(last.remaining) }, { x: map(forecast.time), y: mapY(0) }] }, style: { fill: 'none', stroke: '#dc2626', strokeWidth: 2 } });
+    scene.add({ id: 'burndown-forecast', type: 'path', geometry: { points: [{ x: map(last.time), y: mapY(last.remaining) }, { x: map(forecast.time), y: mapY(0) }] }, style: { fill: 'none', stroke: spec.theme.status.danger, strokeWidth: 2 } });
   }
-  text(scene, 'burndown-projected', forecast.date ? `Estimated finish: ${forecast.date}` : `Forecast unavailable: ${forecast.reason}`, plot.x, plot.y - 16, { font: '11px system-ui' });
+  text(scene, 'burndown-projected', forecast.date ? `Estimated finish: ${forecast.date}` : `Forecast unavailable: ${forecast.reason}`, plot.x, plot.y - 16, { font: spec.theme.typography.axis.font });
 }
 
 function diagramScene(scene, spec, rows, state) {
@@ -230,7 +232,7 @@ function diagramScene(scene, spec, rows, state) {
   const gapX = Math.max(144, plot.width / columns), laneHeight = Math.max(80, plot.height / Math.max(1, lanes.length));
   const positions = new Map(), slots = new Map();
   lanes.forEach((lane, index) => {
-    scene.add({ id: `lane-${index}`, type: 'rect', geometry: { x: plot.x, y: plot.y + index * laneHeight, width: Math.max(plot.width, columns * gapX), height: laneHeight }, style: { fill: index % 2 ? '#f1f5f9' : '#f8fafc', stroke: '#cbd5e1' }, zIndex: -1 });
+    scene.add({ id: `lane-${index}`, type: 'rect', geometry: { x: plot.x, y: plot.y + index * laneHeight, width: Math.max(plot.width, columns * gapX), height: laneHeight }, style: { fill: index % 2 ? spec.theme.surface : spec.theme.background, stroke: spec.theme.border }, zIndex: -1 });
     text(scene, `lane-label-${index}`, lane.label || lane.id, plot.x - 12, plot.y + index * laneHeight + 20, { textAnchor: 'end' });
   });
   rows.forEach((row, index) => {
@@ -245,9 +247,9 @@ function diagramScene(scene, spec, rows, state) {
     scene.add({ id: `node-${row.id}`, type: 'rect', geometry, bounds: { ...geometry }, style: { fill: spec.colors[lane % spec.colors.length] }, dataRef: { nodeId: row.id, dataIndex: index, datum: row, groupId: row.groupId || null }, interactive: true, zIndex: 2 });
     (row.ports || []).forEach(port => {
       const point = port.side === 'left' ? { x: geometry.x, y: geometry.y + geometry.height * (port.offset ?? 0.5) } : port.side === 'top' ? { x: geometry.x + geometry.width * (port.offset ?? 0.5), y: geometry.y } : port.side === 'bottom' ? { x: geometry.x + geometry.width * (port.offset ?? 0.5), y: geometry.y + geometry.height } : { x: geometry.x + geometry.width, y: geometry.y + geometry.height * (port.offset ?? 0.5) };
-      scene.add({ id: `port-${row.id}-${port.id}`, type: 'circle', geometry: { cx: point.x, cy: point.y, r: 4 }, bounds: { x: point.x - 6, y: point.y - 6, width: 12, height: 12 }, style: { fill: '#ffffff', stroke: '#334155', strokeWidth: 1.5 }, dataRef: { nodeId: row.id, portId: port.id, groupId: row.groupId || null }, interactive: true, zIndex: 4 });
+      scene.add({ id: `port-${row.id}-${port.id}`, type: 'circle', geometry: { cx: point.x, cy: point.y, r: 4 }, bounds: { x: point.x - 6, y: point.y - 6, width: 12, height: 12 }, style: { fill: spec.theme.background, stroke: spec.theme.text, strokeWidth: 1.5 }, dataRef: { nodeId: row.id, portId: port.id, groupId: row.groupId || null }, interactive: true, zIndex: 4 });
     });
-    text(scene, `node-label-${row.id}`, row.label || row.id, geometry.x + geometry.width / 2, geometry.y + geometry.height / 2 + 5, { fill: '#ffffff', textAnchor: 'middle' });
+    text(scene, `node-label-${row.id}`, row.label || row.id, geometry.x + geometry.width / 2, geometry.y + geometry.height / 2 + 5, { fill: markText(spec.theme, spec.colors[lane % spec.colors.length]), textAnchor: 'middle' });
   });
   const groupBoxes = new Map();
   groups.forEach(group => {
@@ -257,8 +259,8 @@ function diagramScene(scene, spec, rows, state) {
     const left = Math.min(...boxes.map(box => box.x)) - padding.left, top = Math.min(...boxes.map(box => box.y)) - padding.top, right = Math.max(...boxes.map(box => box.x + box.width)) + padding.right, bottom = Math.max(...boxes.map(box => box.y + box.height)) + padding.bottom;
     const geometry = { x: left, y: top, width: right - left, height: bottom - top };
     groupBoxes.set(group.id, geometry);
-    scene.add({ id: `group-${group.id}`, type: 'rect', geometry, bounds: { ...geometry }, style: { fill: group.collapsed ? '#eff6ff' : 'none', stroke: group.collapsed ? '#2563eb' : '#94a3b8', strokeWidth: group.collapsed ? 2 : 1.5, opacity: 0.9 }, dataRef: { groupId: group.id, collapsed: Boolean(group.collapsed) }, interactive: false, zIndex: 0 });
-    text(scene, `group-label-${group.id}`, group.collapsed ? `${group.label || group.id} (${boxes.length})` : group.label || group.id, left + 8, top + 15, { font: '600 11px system-ui' });
+    scene.add({ id: `group-${group.id}`, type: 'rect', geometry, bounds: { ...geometry }, style: { fill: group.collapsed ? spec.theme.surface : 'none', stroke: group.collapsed ? spec.theme.focus : spec.theme.axis, strokeWidth: group.collapsed ? 2 : 1.5, opacity: 0.9 }, dataRef: { groupId: group.id, collapsed: Boolean(group.collapsed) }, interactive: false, zIndex: 0 });
+    text(scene, `group-label-${group.id}`, group.collapsed ? `${group.label || group.id} (${boxes.length})` : group.label || group.id, left + 8, top + 15, { font: spec.theme.typography.legend.font });
     const label = scene.find(`group-label-${group.id}`);
     if (label) { label.bounds = { x: left, y: top, width: right - left, height: 20 }; label.dataRef = { groupId: group.id, collapsed: Boolean(group.collapsed) }; label.interactive = true; }
   });
@@ -274,7 +276,7 @@ function diagramScene(scene, spec, rows, state) {
     arrow(scene, `edge-${index}`, points, { from: edge.from, to: edge.to, edgeId: edge.id || `edge-${index}`, status: edge.status, routing: edge.routing || spec.diagram?.routing || 'orthogonal', fromGroupId: fromNode.groupId || null, toGroupId: toNode.groupId || null }, edge.critical === true);
     if (edge.label) {
       const middle = points[Math.floor(points.length / 2)];
-      text(scene, `edge-label-${index}`, edge.label, middle.x, middle.y - 8, { textAnchor: 'middle', font: '11px system-ui' });
+      text(scene, `edge-label-${index}`, edge.label, middle.x, middle.y - 8, { textAnchor: 'middle', font: spec.theme.typography.axis.font });
     }
   });
   state.nodePositions = Object.fromEntries(positions);
@@ -287,6 +289,8 @@ export function projectView(spec) {
 }
 
 export function buildProjectScene(spec) {
+  const theme = spec.theme && typeof spec.theme === 'object' && spec.theme.typography ? spec.theme : resolveTheme(spec.theme, spec);
+  spec = { ...spec, theme, colors: spec.colors || theme.colors, background: spec.background || theme.background, padding: spec.padding || theme.layout.padding };
   const diagram = ['flow', 'swimlane'].includes(spec.type);
   const rawRows = diagram ? spec.nodes ?? spec.data.nodes ?? [] : spec.data.values;
   const sourceRows = rawRows.map(row => ({ ...row }));
@@ -294,6 +298,7 @@ export function buildProjectScene(spec) {
   const visibleRows = diagram ? sourceRows : filterProjectRows(sourceRows, projectConfig(spec).linked || {});
   const data = { ...normalizeData(visibleRows), rows: visibleRows.map(row => ({ ...row })), sourceRows: sourceRows.map(row => ({ ...row })) };
   const scene = new Scene(spec.width, spec.height);
+  scene.theme = spec.theme;
   const left = ['gantt', 'timeline', 'milestone', 'swimlane'].includes(spec.type) ? Math.min(150, spec.width * 0.32) : spec.padding.left;
   const plotTop = Math.max(spec.padding.top, spec.title?.subtitle ? 72 : spec.title?.text ? 56 : spec.padding.top) + (spec.type === 'burndown' ? 16 : 0);
   const state = { plot: { x: left, y: plotTop, width: Math.max(1, spec.width - left - spec.padding.right), height: Math.max(1, spec.height - plotTop - spec.padding.bottom - 16) }, linked, projectAnalytics: { linked } };
@@ -316,8 +321,8 @@ export function buildProjectScene(spec) {
     if (geometry.points) geometry.points = geometry.points.map(point => ({ x: mapX(point.x), y: mapY(point.y) }));
     if (node.bounds) node.bounds = { x: mapX(node.bounds.x), y: mapY(node.bounds.y), width: node.bounds.width * view.scale, height: node.bounds.height * view.scale };
   });
-  if (spec.title?.text) text(scene, 'title', spec.title.text, spec.width / 2, 22, { fill: spec.theme?.text || '#0f172a', font: '600 16px system-ui', textAnchor: 'middle' });
-  if (spec.title?.subtitle) text(scene, 'subtitle', spec.title.subtitle, spec.width / 2, 40, { fill: spec.theme?.muted || '#64748b', font: '12px system-ui', textAnchor: 'middle' });
+  if (spec.title?.text) text(scene, 'title', spec.title.text, spec.width / 2, 22, { fill: spec.theme.text, font: spec.theme.typography.title.font, textAnchor: 'middle' });
+  if (spec.title?.subtitle) text(scene, 'subtitle', spec.title.subtitle, spec.width / 2, 40, { fill: spec.theme.muted, font: spec.theme.typography.subtitle.font, textAnchor: 'middle' });
   state.view = view;
   return { scene, data, state };
 }

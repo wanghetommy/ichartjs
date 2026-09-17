@@ -13,6 +13,7 @@ This is the user-facing Agent entry point for iChart.js 2.0. Read this file firs
 - [Agent Quickstart](quickstart.md): install, import, plan, validate, render, explain, and self-check.
 - [Coding Agent Integration](coding-agent-integration.md): use from Codex and similar code-editing Agents.
 - [Frontend Integration](frontend-integration.md): use from ordinary JavaScript applications.
+- [Visual Style and Themes](theme-guide.md): automatic matching, presets, palettes, switching, and contrast checks.
 - [Data Charting](charting-scenario.md): generic data analysis charts.
 - [Project Management](project-scenario.md): Gantt, Timeline, Milestone, and Burndown.
 - [Interactive Diagrams](diagram-scenario.md): Flow, Swimlane, Groups, Ports, and editing.
@@ -42,7 +43,7 @@ chart.explain();
 
 Use `getCapabilities()` to discover supported chart types, project-management views, diagrams, renderers, interactions, exports, and data operations. Use `chart.getSpec()`, `chart.getState()`, `chart.getSelectedData()`, and `chart.toDataTable()` to inspect a live chart.
 
-For a visual overview of all supported chart types, open `playground/project-gallery.html`.
+For a visual overview of all supported chart types, open `playground/project-gallery.html`. For style-system acceptance, open `playground/theme-gallery.html`.
 
 ## Selection rules
 

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { binData, data, getCapabilities, inspectData, normalizeSpec, recommend, resolveZoomWindow, validateSpec } from '../src/index.mjs';
-import { resolveTheme } from '../src/theme.mjs';
+import { binData, createChart, data, getCapabilities, inspectData, normalizeSpec, planStyle, recommend, resolveZoomWindow, validateSpec } from '../src/index.mjs';
+import { contrastRatio, resolveTheme, validateThemeContrast } from '../src/theme.mjs';
 import { annotationPlugin, dataLabelsPlugin, dataZoomPlugin } from '../src/plugin.mjs';
 import { buildScene } from '../src/charts.mjs';
 import { Scene, SceneNode } from '../src/scene.mjs';
@@ -124,6 +124,37 @@ test('exposes iteration 2 capabilities and themes', () => {
   assert.ok(capabilities.chartTypes.includes('scatter'));
   assert.ok(capabilities.interactions.includes('zoom'));
   assert.equal(resolveTheme('dark').background, '#0f172a');
+});
+
+test('plans adaptive styles deterministically and validates contrast', () => {
+  const plan = planStyle({ type: 'heatmap', data: [{ x: 'Mon', y: 'AM', value: 4 }] }, { preferredColorScheme: 'dark' });
+  assert.equal(plan.preset, 'analysis');
+  assert.equal(plan.palette, 'sequential');
+  assert.equal(plan.resolvedMode, 'dark');
+  assert.equal(validateThemeContrast(resolveTheme('light')).length, 0);
+  assert.equal(validateThemeContrast(resolveTheme('dark')).length, 0);
+  assert.ok(contrastRatio('#172033', '#ffffff') > 4.5);
+  assert.ok(getCapabilities().styleSystem.presets.includes('project'));
+  assert.equal(recommend([{ name: 'Loss', value: -4 }, { name: 'Gain', value: 7 }], { intent: 'comparison' }).primary, 'bar');
+  assert.equal(planStyle({ type: 'bar', data: [{ name: 'Loss', value: -4 }, { name: 'Gain', value: 7 }] }).palette, 'diverging');
+});
+
+test('switches themes without recreating charts and preserves explicit colors', () => {
+  const chart = createChart({ type: 'line', data: [{ name: 'A', value: 1 }], theme: 'light' });
+  assert.equal(chart.getTheme().resolvedMode, 'light');
+  chart.setTheme({ mode: 'dark', preset: 'dashboard' });
+  assert.equal(chart.getState().style.name, 'dashboard-dark');
+  assert.equal(chart.getSpec().background, '#0f172a');
+  const custom = createChart({ type: 'line', data: [{ name: 'A', value: 1 }], colors: ['#123456'], theme: 'light' });
+  custom.setTheme('dark');
+  assert.deepEqual(custom.getSpec().colors, ['#123456']);
+  chart.destroy();
+  custom.destroy();
+});
+
+test('validates structured style requests', () => {
+  assert.equal(validateSpec({ type: 'line', data: [], theme: { mode: 'dark', preset: 'report', palette: 'categorical' } }).valid, true);
+  assert.ok(validateSpec({ type: 'line', data: [], theme: { preset: 'unknown' } }).errors.some(error => error.code === 'INVALID_THEME_PRESET'));
 });
 
 test('builds multiple series with independent y-axis mappings', () => {
@@ -643,7 +674,7 @@ test('renders common titles, grids, legends, labels, and corrected chart geometr
 
 test('keeps active Playground pages and a no-cache preview path', async () => {
   const { readFile } = await import('node:fs/promises');
-  const pages = ['index.html', 'project-gallery.html', 'foundational-gallery.html', 'agent-workbench.html', 'project-intelligence.html', 'editing.html', 'diagram-editor.html', 'interaction-lab.html', 'accessibility-lab.html', 'performance-lab.html'];
+  const pages = ['index.html', 'project-gallery.html', 'foundational-gallery.html', 'theme-gallery.html', 'agent-workbench.html', 'project-intelligence.html', 'editing.html', 'diagram-editor.html', 'interaction-lab.html', 'accessibility-lab.html', 'performance-lab.html'];
   await Promise.all(pages.map(page => readFile(new URL(`../playground/${page}`, import.meta.url), 'utf8')));
   const entry = await readFile(new URL('../src/index.mjs', import.meta.url), 'utf8');
   assert.equal(/from ['"][^'"]+\?/.test(entry), false);
@@ -664,5 +695,5 @@ test('exposes one package runtime entry and completes the Agent workflow', async
   assert.equal(result.ok, true);
   assert.equal(result.plan.primary, 'line');
   assert.deepEqual(result.explanation.lineage.recordIds, sampleRows.map(row => row.id));
-  assert.deepEqual(result.selfCheck, { chartDeclared: true, recordIdsPreserved: true, warningsVisible: true });
+  assert.deepEqual(result.selfCheck, { chartDeclared: true, recordIdsPreserved: true, warningsVisible: true, styleExplained: true });
 });

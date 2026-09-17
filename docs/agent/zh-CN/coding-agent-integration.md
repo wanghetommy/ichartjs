@@ -1,6 +1,6 @@
 # 编码 Agent 集成
 
-本指南适用于 Codex 等能够读取仓库、编辑 JavaScript、运行测试并打开本地预览的编码 Agent。
+本指南适用于 Codex、WorkBuddy 等能够读取仓库、编辑 JavaScript、运行测试并打开本地预览的编码 Agent。
 
 ## 边界
 
@@ -16,7 +16,7 @@ npm install github:wanghetommy/ichartjs#v2.0.0
 
 npm Registry 中无作用域的 `ichartjs` 当前是安全占位包，并非本项目。正式 npm scope 确认前请从 GitHub 安装。
 
-可选安装 Codex Skill：
+Codex、WorkBuddy 和其他兼容 Agent Skills 的宿主可共同使用 `skills/ichartjs`。从仓库检出目录安装到 Codex：
 
 ```bash
 cp -R skills/ichartjs "${CODEX_HOME:-$HOME/.codex}/skills/"
@@ -25,9 +25,11 @@ cp -R skills/ichartjs "${CODEX_HOME:-$HOME/.codex}/skills/"
 推荐请求：
 
 ```text
-使用 iChart.js 检查这份数据，选择并校验合适图表，加入当前页面，
+使用 $ichartjs 检查这份数据，选择并校验合适图表，加入当前页面，
 运行相关测试，并返回准确预览地址。保留所有假设和数据质量警告。
 ```
+
+如果宿主不使用 `$skill-name` 语法，则在其 Skill 界面中选择或指定 `ichartjs`。
 
 Agent 应依次完成：读取项目约束、引用 `ichartjs`、发现能力、检查数据、规划图表、校验 Spec、挂载图表、自检 explanation/state、运行测试并返回预览地址。
 

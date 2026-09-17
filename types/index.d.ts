@@ -1,13 +1,19 @@
 export type Renderer = 'canvas' | 'svg' | 'auto';
 export type ChartType = 'line' | 'area' | 'bar' | 'column' | 'pie' | 'scatter' | 'funnel' | 'gauge' | 'heatmap' | 'radar' | 'gantt' | 'timeline' | 'milestone' | 'burndown' | 'flow' | 'swimlane';
+export type ThemeMode = 'auto' | 'light' | 'dark' | 'contrast';
+export type ThemePreset = 'auto' | 'analysis' | 'dashboard' | 'report' | 'presentation' | 'project' | 'diagram';
+export type ThemePalette = 'auto' | 'categorical' | 'sequential' | 'diverging' | 'status';
+export interface ThemeConfig { mode?: ThemeMode; preset?: ThemePreset; palette?: ThemePalette; tokens?: Record<string, unknown>; [key: string]: unknown; }
+export interface StyleRecommendation { version: '1.0'; preset: Exclude<ThemePreset, 'auto'>; mode: ThemeMode; resolvedMode: Exclude<ThemeMode, 'auto'>; palette: Exclude<ThemePalette, 'auto'>; reasons: string[]; warnings: Diagnostic[]; userOverride: boolean; }
+export interface ResolvedTheme extends ThemeConfig { name: string; resolvedMode: Exclude<ThemeMode, 'auto'>; background: string; surface: string; text: string; muted: string; axis: string; grid: string; border: string; focus: string; selection: string; colors: string[]; palettes: Record<string, unknown>; status: Record<string, string>; typography: Record<string, { size: number; weight: number; lineHeight: number; font: string }>; layout: Record<string, unknown>; marks: Record<string, unknown>; reasons: string[]; warnings: Diagnostic[]; }
 export interface Diagnostic { code: string; path?: string; message: string; expected?: unknown; suggestion?: string; [key: string]: unknown; }
 export interface DataFieldInfo { name: string; type: 'quantitative' | 'temporal' | 'category' | 'unknown'; role: 'identifier' | 'measure' | 'temporal-dimension' | 'dimension'; unit: string | null; cardinality: number; validCount: number; nullCount: number; min?: number; max?: number; temporalMin?: string; temporalMax?: string; }
 export interface DataInspection { version: '1.0'; rows: number; fields: DataFieldInfo[]; dimensions: string[]; measures: string[]; temporalFields: string[]; missingValueCount: number; warnings: Diagnostic[]; }
 export interface ChartCapability { type: ChartType; family: string; intents: string[]; required: string[]; optional: string[]; dataShapes: string[]; interactions: string[]; features: Record<string, 'supported' | 'not-applicable' | 'degraded'>; renderers: Array<'canvas' | 'svg'>; exports: string[]; limits: Record<string, number>; }
-export interface RuntimeCapabilities { version: '2.0'; contractVersion: '1.0'; chartTypes: ChartType[]; charts: Record<ChartType, ChartCapability>; intents: string[]; renderers: Array<'canvas' | 'svg'>; interactions: string[]; exports: string[]; [key: string]: unknown; }
-export interface ChartPlan { version: '1.0'; intent: string; primary: ChartType; alternatives: ChartType[]; confidence: number; reasons: string[]; requiredFields: string[]; suggestedEncodings: { dimension: string | null; measure: string | null; secondaryMeasure: string | null }; assumptions: string[]; warnings: Diagnostic[]; unsupportedRequests: string[]; nextActions: string[]; capability: ChartCapability; data: DataInspection; }
-export interface ChartExplanation { version: '1.0'; type: ChartType; family: string; purpose: string; renderer: Renderer; dataCount: number; encodings: Record<string, string | string[]>; transforms: string[]; interactions: string[]; assumptions: string[]; warnings: Diagnostic[]; lineage: { recordIds: string[]; sourcePreserved: boolean }; accessibility: { enabled: boolean; summary: string }; }
-export interface ChartSpec { type: ChartType; renderer?: Renderer; container?: string | Element; width?: number; height?: number; data?: Array<Record<string, unknown>> | { values?: Array<Record<string, unknown>>; [key: string]: unknown }; encoding?: Record<string, unknown>; title?: { text?: string; subtitle?: string }; legend?: { visible?: boolean; position?: string }; grid?: { visible?: boolean; color?: string }; labels?: { enabled?: boolean; format?: string | Record<string, unknown>; color?: string; font?: string }; interaction?: Record<string, boolean>; accessibility?: { enabled?: boolean; description?: string }; theme?: 'light' | 'dark' | 'contrast' | Record<string, unknown>; [key: string]: unknown; }
+export interface RuntimeCapabilities { version: '2.0'; contractVersion: '1.0'; chartTypes: ChartType[]; charts: Record<ChartType, ChartCapability>; intents: string[]; renderers: Array<'canvas' | 'svg'>; interactions: string[]; exports: string[]; styleSystem: { modes: ThemeMode[]; presets: ThemePreset[]; palettes: ThemePalette[]; switchable: boolean; automatic: boolean; [key: string]: unknown }; [key: string]: unknown; }
+export interface ChartPlan { version: '1.0'; intent: string; primary: ChartType; alternatives: ChartType[]; confidence: number; reasons: string[]; requiredFields: string[]; suggestedEncodings: { dimension: string | null; measure: string | null; secondaryMeasure: string | null }; assumptions: string[]; warnings: Diagnostic[]; unsupportedRequests: string[]; nextActions: string[]; capability: ChartCapability; styleRecommendation: StyleRecommendation; data: DataInspection; }
+export interface ChartExplanation { version: '1.0'; type: ChartType; family: string; purpose: string; renderer: Renderer; dataCount: number; encodings: Record<string, string | string[]>; transforms: string[]; interactions: string[]; assumptions: string[]; warnings: Diagnostic[]; style: Partial<StyleRecommendation> & { name?: string }; lineage: { recordIds: string[]; sourcePreserved: boolean }; accessibility: { enabled: boolean; summary: string }; }
+export interface ChartSpec { type: ChartType; renderer?: Renderer; container?: string | Element; width?: number; height?: number; data?: Array<Record<string, unknown>> | { values?: Array<Record<string, unknown>>; [key: string]: unknown }; encoding?: Record<string, unknown>; title?: { text?: string; subtitle?: string }; legend?: { visible?: boolean; position?: string }; grid?: { visible?: boolean; color?: string }; labels?: { enabled?: boolean; format?: string | Record<string, unknown>; color?: string; font?: string }; interaction?: Record<string, boolean>; accessibility?: { enabled?: boolean; description?: string }; theme?: ThemeMode | ThemePreset | ThemeConfig | ResolvedTheme; [key: string]: unknown; }
 export interface BinTransform { type: 'bin'; field: string; output?: string; thresholds?: number; step?: number; extent?: [number, number]; }
 export interface RadarIndicator { name: string; field: string; min?: number; max?: number; }
 export type BusinessFieldType = 'string' | 'number' | 'boolean' | 'date' | 'enum' | 'array' | 'object';
@@ -35,6 +41,8 @@ export interface Chart {
   explain(): ChartExplanation;
   update(spec: Partial<ChartSpec>): this;
   setData(data: Array<Record<string, unknown>>): this;
+  setTheme(theme?: ChartSpec['theme']): this;
+  getTheme(): ResolvedTheme;
   resize(width?: number, height?: number): this;
   resetZoom(): this;
   zoomTo(view: Record<string, number>): this;
@@ -75,9 +83,17 @@ export function normalizeData(input: unknown): { rows: Array<Record<string, unkn
 export function inspectData(input: unknown): DataInspection;
 export function getCapabilities(): RuntimeCapabilities;
 export function getChartCapability(type: ChartType | string): ChartCapability | null;
-export function planChart(input: unknown, options?: { intent?: string; renderer?: Renderer }): ChartPlan;
+export function planChart(input: unknown, options?: { intent?: string; renderer?: Renderer; context?: string; theme?: ChartSpec['theme']; preferredColorScheme?: 'light' | 'dark' }): ChartPlan;
 export function recommend(input: unknown, options?: { intent?: string; renderer?: Renderer }): { primary: ChartType; alternatives: ChartType[]; reason: string; reasons: string[]; confidence: number; requiredFields: string[]; assumptions: string[]; warnings: Diagnostic[]; nextActions: string[] };
 export function explainChart(spec: ChartSpec, model?: Record<string, unknown>): ChartExplanation;
+export function planStyle(spec?: Partial<ChartSpec>, options?: { context?: string; theme?: ChartSpec['theme']; preferredColorScheme?: 'light' | 'dark' }): StyleRecommendation;
+export function resolveTheme(theme?: ChartSpec['theme'], options?: Partial<ChartSpec> & { context?: string; preferredColorScheme?: 'light' | 'dark' }): ResolvedTheme;
+export function contrastRatio(foreground: string, background: string): number | null;
+export function validateThemeContrast(theme: ResolvedTheme): Diagnostic[];
+export const themeModes: ThemeMode[];
+export const themePresets: ThemePreset[];
+export const themePalettes: ThemePalette[];
+export const styleCapabilities: RuntimeCapabilities['styleSystem'];
 export function binData(rows: Array<Record<string, unknown>>, options: Omit<BinTransform, 'type'>): { rows: Array<Record<string, unknown>>; warnings: Array<Record<string, unknown>>; assumptions: string[] };
 export function applyTransforms(rows: Array<Record<string, unknown>>, transforms: BinTransform | BinTransform[]): { rows: Array<Record<string, unknown>>; warnings: Array<Record<string, unknown>>; assumptions: string[] };
 export function getBusinessSchema(name: string): BusinessDataSchema;
