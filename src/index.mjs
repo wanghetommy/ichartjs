@@ -7,7 +7,7 @@ import { normalizeData, inspectData, data } from './data.mjs';
 import { binData, applyTransforms } from './transforms.mjs';
 import { buildScene } from './charts.mjs';
 import { CanvasRenderer, SVGRenderer } from './renderer.mjs';
-import { resolveTheme } from './theme.mjs';
+import { contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast } from './theme.mjs';
 import { PluginHost, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin } from './plugin.mjs';
 import { projectTooltip, rerouteDiagramScene } from './project.mjs';
 import { getBusinessSchema, inspectDataSchema } from './schema.mjs';
@@ -36,10 +36,49 @@ export function resolveZoomWindow(count, current, factor) {
 }
 
 export class Chart {
-  constructor(input = {}) { const result = validateSpec(input); if (!result.valid) { const error = new Error(result.errors.map(item => item.message).join(' ')); error.details = result.errors; throw error; } this._specDiagnostics = { warnings: result.warnings, normalizations: result.normalizations }; this.spec = result.spec; this.spec.theme = resolveTheme(this.spec.theme); if (input.colors === undefined) this.spec.colors = [...this.spec.theme.colors]; if (input.background === undefined) this.spec.background = this.spec.theme.background; this.container = typeof document === 'undefined' ? null : resolveContainer(this.spec.container); this.listeners = new Map(); this._selected = new Map(); this._clipboard = { nodes: [], edges: [] }; this._history = new EditHistory(); this._revision = 0; this._lastChangeSet = null; this._editor = new EditController(this); this.plugins = new PluginHost(this, this.spec.plugins); this._mountRenderer(); this._observeResize(); this.render(); }
+  constructor(input = {}) {
+    const result = validateSpec(input);
+    if (!result.valid) { const error = new Error(result.errors.map(item => item.message).join(' ')); error.details = result.errors; throw error; }
+    this._specDiagnostics = { warnings: result.warnings, normalizations: result.normalizations };
+    this._themeInput = input.theme ?? 'auto';
+    this._styleOverrides = { colors: input.colors !== undefined, background: input.background !== undefined, padding: input.padding !== undefined };
+    this.spec = result.spec;
+    this._resolveStyle();
+    this.container = typeof document === 'undefined' ? null : resolveContainer(this.spec.container);
+    this.listeners = new Map();
+    this._selected = new Map();
+    this._clipboard = { nodes: [], edges: [] };
+    this._history = new EditHistory();
+    this._revision = 0;
+    this._lastChangeSet = null;
+    this._editor = new EditController(this);
+    this.plugins = new PluginHost(this, this.spec.plugins);
+    this._mountRenderer();
+    this._observeResize();
+    this._observeColorScheme();
+    this.render();
+  }
+  _resolveStyle() {
+    this.spec.theme = resolveTheme(this._themeInput, this.spec);
+    if (!this._styleOverrides.colors) this.spec.colors = [...this.spec.theme.colors];
+    if (!this._styleOverrides.background) this.spec.background = this.spec.theme.background;
+    if (!this._styleOverrides.padding) this.spec.padding = clone(this.spec.theme.layout.padding);
+  }
+  _observeColorScheme() {
+    if (typeof matchMedia !== 'function') return;
+    this._colorSchemeQuery = matchMedia('(prefers-color-scheme: dark)');
+    this._colorSchemeHandler = () => {
+      const requestedMode = typeof this._themeInput === 'string' ? this._themeInput : this._themeInput?.mode;
+      if ((requestedMode || 'auto') !== 'auto') return;
+      this._resolveStyle();
+      this.render();
+      this.emit('themechange', { chart: this, theme: this.getTheme(), source: 'system' });
+    };
+    this._colorSchemeQuery.addEventListener?.('change', this._colorSchemeHandler);
+  }
   _mountRenderer() { const rendererType = this.spec.renderer === 'auto' ? 'canvas' : this.spec.renderer; this.renderer = rendererType === 'svg' ? new SVGRenderer(this.spec) : new CanvasRenderer(this.spec); if (this.container && typeof document !== 'undefined') this.renderer.mount(this.container); }
-  render() { this.model = buildScene(this.spec); paintSelection(this); this._addInteractionNodes(); this.plugins.beforeRender(this.model); if (this.renderer.container) { this.renderer.resize(this.spec.width, this.spec.height); this.renderer.render(this.model.scene); this._bindEvents(); this._applyAccessibility(); } this.plugins.afterRender(this.model); this.emit('render', { chart: this }); return this; }
-  _addInteractionNodes() { if (this.spec.interaction?.crosshair && this.model.state?.plot) { const plot = this.model.state.plot; this.model.scene.add({ id: 'crosshair-x', type: 'line', geometry: { x1: plot.x, y1: plot.y, x2: plot.x, y2: plot.y + plot.height }, style: { stroke: '#64748b', strokeWidth: 1, opacity: 0 }, interactive: false, zIndex: 99 }); this.model.scene.add({ id: 'crosshair-y', type: 'line', geometry: { x1: plot.x, y1: plot.y, x2: plot.x + plot.width, y2: plot.y }, style: { stroke: '#64748b', strokeWidth: 1, opacity: 0 }, interactive: false, zIndex: 99 }); } }
+  render() { this.model = buildScene(this.spec); paintSelection(this); this._addInteractionNodes(); this.plugins.beforeRender(this.model); if (this.renderer.container) { this.renderer.options = this.spec; const target = this.renderer.svg || this.renderer.canvas; if (target) target.style.background = this.spec.background; this.renderer.resize(this.spec.width, this.spec.height); this.renderer.render(this.model.scene); this._bindEvents(); this._applyAccessibility(); } this.plugins.afterRender(this.model); this.emit('render', { chart: this }); return this; }
+  _addInteractionNodes() { if (this.spec.interaction?.crosshair && this.model.state?.plot) { const plot = this.model.state.plot, stroke = this.spec.theme?.focus || '#64748b'; this.model.scene.add({ id: 'crosshair-x', type: 'line', geometry: { x1: plot.x, y1: plot.y, x2: plot.x, y2: plot.y + plot.height }, style: { stroke, strokeWidth: 1, opacity: 0 }, interactive: false, zIndex: 99 }); this.model.scene.add({ id: 'crosshair-y', type: 'line', geometry: { x1: plot.x, y1: plot.y, x2: plot.x + plot.width, y2: plot.y }, style: { stroke, strokeWidth: 1, opacity: 0 }, interactive: false, zIndex: 99 }); } }
   _observeResize() { if (!this.container || typeof ResizeObserver === 'undefined') return; this._resizeObserver = new ResizeObserver(entries => { const width = Math.round(entries[0]?.contentRect?.width || 0); if (width && width !== this.spec.width) this.resize(width, this.spec.height); }); this._resizeObserver.observe(this.container); }
   _applyAccessibility() {
     if (!this.container) return;
@@ -114,16 +153,18 @@ export class Chart {
   _touchDistance(event) { if (!event.touches || event.touches.length < 2) return null; const [first, second] = event.touches; return Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY); }
   _eventPoint(event, target) { const rect = target.getBoundingClientRect(); return { x: (event.clientX - rect.left) * this.spec.width / (rect.width || this.spec.width), y: (event.clientY - rect.top) * this.spec.height / (rect.height || this.spec.height) }; }
   _updateCrosshair(x, y) { const vertical = this.model.scene.find('crosshair-x'), horizontal = this.model.scene.find('crosshair-y'); if (!vertical || !horizontal) return; vertical.geometry.x1 = vertical.geometry.x2 = x; vertical.style.opacity = 0.7; horizontal.geometry.y1 = horizontal.geometry.y2 = y; horizontal.style.opacity = 0.7; this.renderer.render(this.model.scene); }
-  _showTooltip(payload) { if (typeof document === 'undefined' || !this.container || !payload.datum) return; let tip = this._tooltip; if (!tip) { tip = this._tooltip = document.createElement('div'); tip.className = 'ichart-v2-tooltip'; Object.assign(tip.style, { position: 'fixed', pointerEvents: 'none', zIndex: 9999, padding: '8px 10px', background: '#0f172a', color: '#fff', borderRadius: '6px', font: '12px system-ui', maxWidth: 'min(320px, calc(100vw - 24px))', whiteSpace: 'pre-line', boxShadow: '0 4px 12px #0f172a55' }); document.body.appendChild(tip); } const text = ['gantt', 'timeline', 'milestone', 'burndown'].includes(this.spec.type) || ['flow', 'swimlane'].includes(this.spec.type) ? projectTooltip(this.spec.type, payload.datum) : Object.entries(payload.datum).map(([key, value]) => `${key}: ${value}`).join(' · '); tip.textContent = text; const left = Math.min((payload.nativeEvent.clientX || 0) + 12, window.innerWidth - tip.offsetWidth - 12); const top = Math.min((payload.nativeEvent.clientY || 0) + 12, window.innerHeight - tip.offsetHeight - 12); tip.style.left = `${Math.max(12, left)}px`; tip.style.top = `${Math.max(12, top)}px`; }
+  _showTooltip(payload) { if (typeof document === 'undefined' || !this.container || !payload.datum) return; let tip = this._tooltip; if (!tip) { tip = this._tooltip = document.createElement('div'); tip.className = 'ichart-v2-tooltip'; Object.assign(tip.style, { position: 'fixed', pointerEvents: 'none', zIndex: 9999, padding: '8px 10px', borderRadius: '6px', maxWidth: 'min(320px, calc(100vw - 24px))', whiteSpace: 'pre-line' }); document.body.appendChild(tip); } Object.assign(tip.style, { background: this.spec.theme.surface, color: this.spec.theme.text, border: `1px solid ${this.spec.theme.border}`, font: this.spec.theme.typography.tooltip.font, boxShadow: `0 4px 12px ${this.spec.theme.border}88` }); const text = ['gantt', 'timeline', 'milestone', 'burndown'].includes(this.spec.type) || ['flow', 'swimlane'].includes(this.spec.type) ? projectTooltip(this.spec.type, payload.datum) : Object.entries(payload.datum).map(([key, value]) => `${key}: ${value}`).join(' · '); tip.textContent = text; const left = Math.min((payload.nativeEvent.clientX || 0) + 12, window.innerWidth - tip.offsetWidth - 12); const top = Math.min((payload.nativeEvent.clientY || 0) + 12, window.innerHeight - tip.offsetHeight - 12); tip.style.left = `${Math.max(12, left)}px`; tip.style.top = `${Math.max(12, top)}px`; }
   _hideTooltip() { if (this._tooltip) this._tooltip.style.left = '-10000px'; }
   on(type, listener) { if (!this.listeners.has(type)) this.listeners.set(type, new Set()); this.listeners.get(type).add(listener); return this; }
   off(type, listener) { this.listeners.get(type)?.delete(listener); return this; }
   emit(type, event) { this.listeners.get(type)?.forEach(listener => listener(event)); }
-  update(next = {}) { this._editor.invalidate(); this.spec = normalizeSpec({ ...this.spec, ...next, data: next.data === undefined ? this.spec.data : next.data }); return this.render(); }
-  setData(data) { this._editor.invalidate(); this.spec = normalizeSpec({ ...this.spec, data: { values: data } }); return this.render(); }
+  update(next = {}) { this._editor.invalidate(); if (next.theme !== undefined) this._themeInput = next.theme; ['colors', 'background', 'padding'].forEach(key => { if (next[key] !== undefined) this._styleOverrides[key] = true; }); this.spec = normalizeSpec({ ...this.spec, ...next, theme: this._themeInput, data: next.data === undefined ? this.spec.data : next.data }); this._resolveStyle(); return this.render(); }
+  setData(data) { this._editor.invalidate(); this.spec = normalizeSpec({ ...this.spec, theme: this._themeInput, data: { values: data } }); this._resolveStyle(); return this.render(); }
+  setTheme(theme = 'auto') { this._themeInput = theme; this._resolveStyle(); this.render(); this.emit('themechange', { chart: this, theme: this.getTheme(), source: 'user' }); return this; }
+  getTheme() { return clone(this.spec.theme); }
   resize(width = this.spec.width, height = this.spec.height) { this.spec.width = width; this.spec.height = height; this.render(); this.emit('resize', { chart: this, width, height }); return this; }
   getSpec() { return JSON.parse(JSON.stringify(this.spec)); }
-  getState() { return { renderer: this.renderer.constructor.name, width: this.spec.width, height: this.spec.height, dataCount: this.model.data.rows.length, selected: [...this._selected.values()], revision: this._revision, history: this._history.state(), view: clone(this.spec.view || null), warnings: clone([...(this._specDiagnostics?.warnings || []), ...(this.model.data?.warnings || [])]), assumptions: clone(this.model.data?.assumptions || []), normalizations: clone(this._specDiagnostics?.normalizations || []), collapsedGroups: this.getCollapsedGroupIds(), clipboard: { nodes: this._clipboard?.nodes?.length || 0, edges: this._clipboard?.edges?.length || 0 }, projectAnalytics: clone(this.model.state?.projectAnalytics || null), linked: clone(this.model.state?.linked || null) }; }
+  getState() { return { renderer: this.renderer.constructor.name, width: this.spec.width, height: this.spec.height, dataCount: this.model.data.rows.length, selected: [...this._selected.values()], revision: this._revision, history: this._history.state(), view: clone(this.spec.view || null), style: clone({ name: this.spec.theme.name, mode: this.spec.theme.mode, resolvedMode: this.spec.theme.resolvedMode, preset: this.spec.theme.preset, palette: this.spec.theme.palette, reasons: this.spec.theme.reasons }), warnings: clone([...(this._specDiagnostics?.warnings || []), ...(this.model.data?.warnings || []), ...(this.spec.theme?.warnings || [])]), assumptions: clone(this.model.data?.assumptions || []), normalizations: clone(this._specDiagnostics?.normalizations || []), collapsedGroups: this.getCollapsedGroupIds(), clipboard: { nodes: this._clipboard?.nodes?.length || 0, edges: this._clipboard?.edges?.length || 0 }, projectAnalytics: clone(this.model.state?.projectAnalytics || null), linked: clone(this.model.state?.linked || null) }; }
   getProjectAnalytics() { return clone(this.model.state?.projectAnalytics || null); }
   getLinkedState() { return clone(this.model.state?.linked || null); }
   setLinkedFilters(filters = {}) { this.spec.project = { ...(this.spec.project || {}), linked: { ...(this.spec.project?.linked || {}), filters: normalizeLinkedFilters(filters) } }; this.emit('linkedstatechange', { chart: this, linked: this.spec.project.linked }); return this.render(); }
@@ -211,7 +252,7 @@ export class Chart {
   zoomTo(view) { this.spec.view = { ...view }; this.emit('zoomchange', { chart: this, view: this.spec.view }); return this.render(); }
   panBy(delta) { const current = this.spec.view || {}; this.spec.view = { ...current, offsetX: (current.offsetX || 0) + (delta.x || 0), offsetY: (current.offsetY || 0) + (delta.y || 0) }; this.emit('zoomchange', { chart: this, view: this.spec.view }); return this.render(); }
   export(options = {}) { const type = options.type || (this.renderer instanceof CanvasRenderer ? 'image/png' : 'image/svg+xml'); if (type === 'application/json' || type === 'json') return JSON.stringify({ version: '2.0', spec: this.getSpec(), state: this.getState() }, null, 2); if (!this.renderer.container) return { valid: false, code: 'HEADLESS_EXPORT_UNSUPPORTED', message: `${type} export requires a mounted renderer.` }; if (this.renderer instanceof CanvasRenderer) return this.renderer.exportImage(type); return this.renderer.exportString(); }
-  destroy() { if (this._resizeObserver) this._resizeObserver.disconnect(); if (this._eventsBound) { const { target, handler, start, move, end, leave, touchStart, touchMove, touchEnd, wheel } = this._eventsBound; target.removeEventListener('mousemove', handler); target.removeEventListener('click', handler); target.removeEventListener('pointerdown', start); target.removeEventListener('pointermove', move); target.removeEventListener('pointerup', end); target.removeEventListener('pointercancel', end); target.removeEventListener('pointerleave', leave); target.removeEventListener('touchstart', touchStart); target.removeEventListener('touchmove', touchMove); target.removeEventListener('touchend', touchEnd); target.removeEventListener('wheel', wheel); } const target = this.renderer.svg || this.renderer.canvas; if (this._keyboardHandler) target?.removeEventListener('keydown', this._keyboardHandler); this._tooltip?.remove(); this.plugins.destroy(); this.renderer.destroy(); this.listeners.clear(); this._eventsBound = null; this._selected.clear(); this._clipboard = { nodes: [], edges: [] }; }
+  destroy() { if (this._resizeObserver) this._resizeObserver.disconnect(); this._colorSchemeQuery?.removeEventListener?.('change', this._colorSchemeHandler); if (this._eventsBound) { const { target, handler, start, move, end, leave, touchStart, touchMove, touchEnd, wheel } = this._eventsBound; target.removeEventListener('mousemove', handler); target.removeEventListener('click', handler); target.removeEventListener('pointerdown', start); target.removeEventListener('pointermove', move); target.removeEventListener('pointerup', end); target.removeEventListener('pointercancel', end); target.removeEventListener('pointerleave', leave); target.removeEventListener('touchstart', touchStart); target.removeEventListener('touchmove', touchMove); target.removeEventListener('touchend', touchEnd); target.removeEventListener('wheel', wheel); } const target = this.renderer.svg || this.renderer.canvas; if (this._keyboardHandler) target?.removeEventListener('keydown', this._keyboardHandler); this._tooltip?.remove(); this.plugins.destroy(); this.renderer.destroy(); this.listeners.clear(); this._eventsBound = null; this._selected.clear(); this._clipboard = { nodes: [], edges: [] }; }
 }
 
 export function createChart(spec) { return new Chart(spec); }
@@ -222,5 +263,5 @@ export { diagramLayoutModes, edgeRoutingModes, normalizeDiagramSpec, validateDia
 export { normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries };
 export { normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };
 
-export { resolveTheme, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin };
-export const iChart = { version: '2.0.0', createChart, inspectData, normalizeData, binData, applyTransforms, normalizeSpec, validateSpec, data, getCapabilities, getChartCapability, planChart, recommend, explainChart, resolveTheme, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };
+export { contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin };
+export const iChart = { version: '2.0.0', createChart, inspectData, normalizeData, binData, applyTransforms, normalizeSpec, validateSpec, data, getCapabilities, getChartCapability, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };

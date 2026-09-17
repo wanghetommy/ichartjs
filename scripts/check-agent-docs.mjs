@@ -11,7 +11,7 @@ const capabilities = getCapabilities();
 const manifest = readJSON('docs/manifests/capabilities.json');
 const commands = readJSON('docs/manifests/commands.json');
 const schemas = readJSON('docs/manifests/schemas.json');
-const expectedDocs = ['README.md', 'quickstart.md', 'coding-agent-integration.md', 'frontend-integration.md', 'charting-scenario.md', 'project-scenario.md', 'diagram-scenario.md', 'runtime-contract.md', 'editing-contract.md', 'development-guide.md'];
+const expectedDocs = ['README.md', 'quickstart.md', 'coding-agent-integration.md', 'frontend-integration.md', 'theme-guide.md', 'charting-scenario.md', 'project-scenario.md', 'diagram-scenario.md', 'runtime-contract.md', 'editing-contract.md', 'development-guide.md'];
 expectedDocs.forEach(file => { if (!fs.existsSync(`docs/agent/${file}`)) failures.push(`Missing Agent document: docs/agent/${file}`); });
 expectedDocs.forEach(file => { if (!fs.existsSync(`docs/agent/zh-CN/${file}`)) failures.push(`Missing Chinese Agent document: docs/agent/zh-CN/${file}`); });
 fs.readdirSync('docs/agent', { withFileTypes: true })

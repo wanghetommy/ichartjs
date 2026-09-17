@@ -27,7 +27,8 @@ getCapabilities
 | Chinese quickstart | [`docs/agent/zh-CN/quickstart.md`](docs/agent/zh-CN/quickstart.md) |
 | Coding Agent integration | [`docs/agent/coding-agent-integration.md`](docs/agent/coding-agent-integration.md) |
 | Frontend integration | [`docs/agent/frontend-integration.md`](docs/agent/frontend-integration.md) |
-| Official Codex-compatible Skill | [`skills/ichartjs/SKILL.md`](skills/ichartjs/SKILL.md) |
+| Visual style and themes | [`docs/agent/theme-guide.md`](docs/agent/theme-guide.md) |
+| Official Agent Skill for Codex and WorkBuddy | [`skills/ichartjs/SKILL.md`](skills/ichartjs/SKILL.md) |
 
 ### Install
 
@@ -37,15 +38,21 @@ npm install github:wanghetommy/ichartjs#v2.0.0
 
 The unscoped npm name `ichartjs` is currently an npm security holding package, not this project. Until an npm scope is confirmed, install from GitHub. When working directly in this repository, run `npm install`; the package export map resolves self-references during local examples and tests.
 
-### Optional Codex Skill
+### Optional Agent Skill
 
-The runtime API remains the source of truth; the Skill only teaches and orchestrates the workflow. From a repository checkout, install the official Skill into Codex with:
+The runtime API remains the source of truth; the Skill only teaches and orchestrates the workflow. Codex, WorkBuddy, and other Agent Skills-compatible hosts can import the same versioned Skill from:
+
+```text
+https://github.com/wanghetommy/ichartjs/tree/master/skills/ichartjs
+```
+
+From a repository checkout, install it into Codex with:
 
 ```bash
 cp -R skills/ichartjs "${CODEX_HOME:-$HOME/.codex}/skills/"
 ```
 
-Package consumers can copy the same folder from `node_modules/ichartjs/skills/ichartjs` into their Agent host's Skill directory.
+WorkBuddy users can import or register the same `skills/ichartjs` folder through the host's Skill interface. Package consumers can copy it from `node_modules/ichartjs/skills/ichartjs` into their Agent host's Skill directory. After installation, invoke it as `$ichartjs` when the host supports named Skill invocation, or select the `ichartjs` Skill in the host UI.
 
 ### Agent workflow
 
@@ -76,7 +83,12 @@ const candidate = {
     x: { field: plan.suggestedEncodings.dimension },
     y: { field: plan.suggestedEncodings.measure }
   },
-  accessibility: { enabled: true }
+  accessibility: { enabled: true },
+  theme: {
+    mode: 'auto',
+    preset: plan.styleRecommendation.preset,
+    palette: plan.styleRecommendation.palette
+  }
 };
 
 const validation = validateSpec(candidate);
@@ -128,6 +140,7 @@ npm run playground
 - Playground Home: `http://localhost:3000/playground/index.html`
 - Agent Workbench: `http://localhost:3000/playground/agent-workbench.html`
 - Complete Gallery: `http://localhost:3000/playground/project-gallery.html`
+- Theme Gallery: `http://localhost:3000/playground/theme-gallery.html`
 - Project Intelligence: `http://localhost:3000/playground/project-intelligence.html`
 - Diagram Editor: `http://localhost:3000/playground/diagram-editor.html`
 

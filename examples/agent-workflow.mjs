@@ -27,7 +27,12 @@ function buildCandidate(rows, plan, renderer) {
       y: measureFields.length === 1 ? { field: measureFields[0], type: 'quantitative' } : measureFields.map(field => ({ field, type: 'quantitative' }))
     },
     interaction: { tooltip: true, hover: true, keyboard: true },
-    accessibility: { enabled: true }
+    accessibility: { enabled: true },
+    theme: {
+      mode: 'auto',
+      preset: plan.styleRecommendation.preset,
+      palette: plan.styleRecommendation.palette
+    }
   };
 }
 
@@ -36,7 +41,7 @@ export function runAgentWorkflow(rows, options = {}) {
   const renderer = options.renderer || 'svg';
   const capabilities = getCapabilities();
   const inspection = inspectData(rows);
-  const plan = planChart(rows, { intent, renderer });
+  const plan = planChart(rows, { intent, renderer, context: options.context || 'analysis' });
 
   if (plan.requiredFields.length) {
     return { ok: false, stage: 'planning', capabilitiesContract: capabilities.contractVersion, inspection, plan };
@@ -65,7 +70,8 @@ export function runAgentWorkflow(rows, options = {}) {
       selfCheck: {
         chartDeclared: capabilities.chartTypes.includes(plan.primary),
         recordIdsPreserved: rows.every(row => explanation.lineage.recordIds.includes(row.id)),
-        warningsVisible: state.warnings.length === plan.warnings.length
+        warningsVisible: plan.warnings.every(warning => state.warnings.some(item => item.code === warning.code)),
+        styleExplained: explanation.style?.preset === plan.styleRecommendation.preset
       },
       export: JSON.parse(chart.export({ type: 'json' }))
     };

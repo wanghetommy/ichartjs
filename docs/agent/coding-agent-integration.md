@@ -1,6 +1,6 @@
 # Coding Agent Integration
 
-Use this guide with Codex and similar Agents that can read a repository, edit JavaScript, execute tests, and open a local browser preview.
+Use this guide with Codex, WorkBuddy, and similar Agents that can read a repository, edit JavaScript, execute tests, and open a local browser preview.
 
 ## Responsibility Boundary
 
@@ -25,7 +25,7 @@ npm install
 npm run playground
 ```
 
-Optional Codex Skill installation from a repository checkout:
+The same official Skill can be imported by Codex, WorkBuddy, and other Agent Skills-compatible hosts from `skills/ichartjs`. Install it into Codex from a repository checkout with:
 
 ```bash
 cp -R skills/ichartjs "${CODEX_HOME:-$HOME/.codex}/skills/"
@@ -41,7 +41,7 @@ add it to the current web page, run the focused tests, and return the exact prev
 Keep assumptions and data-quality warnings visible.
 ```
 
-If the Skill is installed, the request may start with `Use $ichartjs`.
+If the host supports named Skill invocation, the request may start with `Use $ichartjs`; otherwise select or name the `ichartjs` Skill through the host interface.
 
 ## Required Workflow
 

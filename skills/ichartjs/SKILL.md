@@ -7,18 +7,33 @@ description: Plan, validate, render, explain, and safely edit iChart.js visualiz
 
 Use the public Agent contract as the source of truth. Do not infer capabilities from renderer internals or duplicate chart-selection logic in generated code.
 
+## Source and Runtime Setup
+
+- Official repository: `https://github.com/wanghetommy/ichartjs`
+- Official Skill source: `https://github.com/wanghetommy/ichartjs/tree/master/skills/ichartjs`
+- Supported Skill hosts include Codex, WorkBuddy, and other Agent Skills-compatible environments.
+
+The Skill is a workflow adapter, not the chart runtime. If the current JavaScript or TypeScript project does not already depend on iChart.js, install the matching runtime from GitHub:
+
+```bash
+npm install github:wanghetommy/ichartjs#v2.0.0
+```
+
+Do not install the unscoped npm registry package named `ichartjs`; it is currently a security holding package and is not this project.
+
 ## Workflow
 
 1. Locate the package or repository root. Read `docs/agent/quickstart.md` when available.
 2. Call `getCapabilities()` before selecting a chart or interaction.
 3. Call `inspectData()` and preserve stable record IDs.
-4. Call `planChart(data, { intent, renderer })` and inspect the complete result.
+4. Call `planChart(data, { intent, renderer, context })` and inspect the complete result, including `styleRecommendation`.
 5. Stop when `requiredFields` is non-empty; request data or explain a supported alternative.
 6. Build a JSON-serializable Spec using `suggestedEncodings`, the selected capability, and an applicable recipe.
 7. Call `validateSpec()` before rendering. Repair only from structured diagnostics.
 8. Call `createChart()` only after validation succeeds.
 9. Self-check with `chart.explain()`, `chart.getState()`, and JSON export.
 10. Provide an exact preview URL or artifact path and report assumptions, warnings, and deferred checks.
+11. Prefer `theme: { mode: 'auto', preset, palette }`; preserve explicit user style choices and use `chart.setTheme()` for live switching.
 
 Use `ichartjs` for package imports. Use `examples/agent-workflow.mjs` as the executable baseline when working in the repository.
 
@@ -37,6 +52,8 @@ Use `ichartjs` for package imports. Use `examples/agent-workflow.mjs` as the exe
 - Avoid Pie for high-cardinality categories; prefer Bar for comparison.
 - Require explicit Radar domains when units differ.
 - Distinguish missing Heatmap values from zero.
+- Use categorical, sequential, diverging, or status palettes by data semantics; do not invent arbitrary color sets or rely on color alone.
+- Surface theme contrast diagnostics and high-cardinality color warnings.
 - Do not generate Map or 3D Specs unless capabilities explicitly add them.
 - Prefer SVG for accessibility, DOM interaction, and diagram editing; prefer Canvas for larger mark counts when supported.
 - Destroy replaced charts and verify lifecycle cleanup.

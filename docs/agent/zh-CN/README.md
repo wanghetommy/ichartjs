@@ -7,6 +7,7 @@
 - [Agent 快速上手](quickstart.md)
 - [编码 Agent 集成](coding-agent-integration.md)
 - [前端项目集成](frontend-integration.md)
+- [视觉样式与主题](theme-guide.md)
 - [数据分析图表](charting-scenario.md)
 - [项目管理图表](project-scenario.md)
 - [交互式 Diagram](diagram-scenario.md)
@@ -22,4 +23,4 @@ getCapabilities → inspectData → planChart → 生成 Spec → validateSpec �
 
 API 名称、字段名、命令名、错误码和 JSON Manifest 统一使用英文标识符；其语义以英文技术契约为标准，本文提供中文辅助说明。
 
-全部已支持图表的浏览入口：`playground/project-gallery.html`。
+全部已支持图表的浏览入口：`playground/project-gallery.html`；主题样式验收入口：`playground/theme-gallery.html`。

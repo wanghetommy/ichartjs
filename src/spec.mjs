@@ -3,6 +3,7 @@
  * The normalized Spec is the stable contract shared by all renderers.
  */
 import { chartProfiles } from './capabilities.mjs';
+import { themeModes, themePalettes, themePresets } from './theme.mjs';
 
 const chartTypes = new Set(Object.keys(chartProfiles));
 
@@ -14,6 +15,7 @@ const defaults = {
   padding: { top: 48, right: 24, bottom: 48, left: 56 },
   colors: ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2'],
   background: '#ffffff',
+  theme: 'auto',
   title: { text: '', subtitle: '' },
   legend: { visible: true, position: 'top' },
   grid: { visible: true },
@@ -78,6 +80,12 @@ export function validateSpec(input) {
   const errors = [], warnings = [], normalizations = [];
   if (!chartTypes.has(spec.type)) errors.push({ code: 'INVALID_TYPE', path: 'type', message: `Unsupported chart type: ${spec.type}`, suggestion: 'Use a type returned by getCapabilities().' });
   if (!['canvas', 'svg', 'auto'].includes(spec.renderer)) errors.push({ code: 'INVALID_RENDERER', path: 'renderer', message: `Unsupported renderer: ${spec.renderer}`, suggestion: 'Use canvas, svg, or auto.' });
+  if (typeof spec.theme === 'string' && !themeModes.includes(spec.theme) && !themePresets.includes(spec.theme)) errors.push({ code: 'INVALID_THEME', path: 'theme', message: `Unsupported theme: ${spec.theme}`, suggestion: 'Use auto, light, dark, contrast, or a named style preset.' });
+  if (spec.theme && typeof spec.theme === 'object') {
+    if (spec.theme.mode && !themeModes.includes(spec.theme.mode)) errors.push({ code: 'INVALID_THEME_MODE', path: 'theme.mode', message: `Unsupported theme mode: ${spec.theme.mode}`, suggestion: `Use ${themeModes.join(', ')}.` });
+    if (spec.theme.preset && !themePresets.includes(spec.theme.preset)) errors.push({ code: 'INVALID_THEME_PRESET', path: 'theme.preset', message: `Unsupported theme preset: ${spec.theme.preset}`, suggestion: `Use ${themePresets.join(', ')}.` });
+    if (spec.theme.palette && !themePalettes.includes(spec.theme.palette)) errors.push({ code: 'INVALID_THEME_PALETTE', path: 'theme.palette', message: `Unsupported theme palette: ${spec.theme.palette}`, suggestion: `Use ${themePalettes.join(', ')}.` });
+  }
   if (Array.isArray(spec.encoding.y) && spec.encoding.y.length > 2) errors.push({ code: 'TOO_MANY_AXES', path: 'encoding.y', message: 'Only two quantitative axes are supported in this iteration.', suggestion: 'Use at most two y encodings.' });
   if (spec.stack && !['bar', 'column', 'area'].includes(spec.type)) errors.push({ code: 'INVALID_STACK', path: 'stack', message: 'Stacking is supported by bar, column, and area charts.', suggestion: 'Remove stack or use a supported chart type.' });
   if (spec.stack && !['stacked', 'percent'].includes(typeof spec.stack === 'string' ? spec.stack : spec.stack.mode)) errors.push({ code: 'INVALID_STACK_MODE', path: 'stack', message: 'Stack mode must be stacked or percent.', suggestion: 'Use stack: "stacked" or stack: "percent".' });

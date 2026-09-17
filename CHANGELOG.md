@@ -2,6 +2,7 @@
 
 ## 2.0.0 - 2026-09-16
 
+- Added Iteration 9's lightweight visual style system with adaptive modes, semantic presets and palettes, live switching, contrast diagnostics, Agent recommendations, bilingual guidance, and Theme Gallery while retaining version `2.0.0`.
 - Released the new Agent-first iChart.js 2.0 product line with one ESM/TypeScript runtime surface, 16 public chart types, project intelligence, controlled diagram editing, capability discovery, planning, validation, explanation, and stable lineage.
 - Accepted 51 core tests, the executable Agent workflow, official Skill validation, strict TypeScript consumption, package installation, and Node.js 18/20/22 GitHub Actions.
 - Accepted Chromium, Firefox 144, WebKit 26, and native Safari 26.6.2 across maintained Playground pages, plus 390 x 844 responsive/touch viewport checks.

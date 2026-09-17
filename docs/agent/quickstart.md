@@ -23,7 +23,7 @@ Additional package resources:
 - `ichartjs/recipes/foundational-analysis`: foundational chart recipes.
 - `ichartjs/recipes/project-management`: project intelligence recipes.
 - `ichartjs/recipes/diagrams/workflow`: diagram editing recipe.
-- `skills/ichartjs/SKILL.md`: optional Codex-compatible workflow adapter.
+- `skills/ichartjs/SKILL.md`: optional workflow adapter for Codex, WorkBuddy, and other Agent Skills-compatible hosts.
 
 The Skill is not the runtime. Install or register it only when the Agent host supports Skills; it must still call the package's public APIs and capability contract.
 
@@ -61,6 +61,7 @@ Call `planChart(rows, { intent, renderer })`. Read the full result rather than o
 - `assumptions` and `warnings`;
 - `unsupportedRequests` and `nextActions`;
 - the selected per-chart capability profile.
+- `styleRecommendation`, including the resolved preset, mode, palette, reasons, and warnings.
 
 Stop before rendering when `requiredFields` is not empty. Ask for the missing information or choose a supported alternative without fabricating data.
 
@@ -82,7 +83,12 @@ const spec = {
     y: y.length === 1 ? y[0] : y
   },
   interaction: { tooltip: true, hover: true, keyboard: true },
-  accessibility: { enabled: true }
+  accessibility: { enabled: true },
+  theme: {
+    mode: 'auto',
+    preset: plan.styleRecommendation.preset,
+    palette: plan.styleRecommendation.palette
+  }
 };
 ```
 
@@ -153,6 +159,8 @@ npm run example:agent
 Read [`../../examples/agent-workflow.mjs`](../../examples/agent-workflow.mjs) for a complete inspect, plan, build, validate, render, explain, export, and destroy workflow.
 
 For interactive verification, start `npm run playground` and open `http://localhost:3000/playground/agent-workbench.html`.
+
+For visual style selection and live switching, read [Visual Style and Themes](theme-guide.md) and open `http://localhost:3000/playground/theme-gallery.html`.
 
 ## Guardrails
 
