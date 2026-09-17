@@ -12,7 +12,7 @@ import {
   inspectData,
   planChart,
   validateSpec
-} from 'ichartjs';
+} from '@taylorwong/ichartjs';
 ```
 
 - `ichartjs`：统一的 Agent 规划与 Runtime API。

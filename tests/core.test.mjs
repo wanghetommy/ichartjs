@@ -770,7 +770,7 @@ test('keeps active Playground pages and a no-cache preview path', async () => {
 
 test('exposes one package runtime entry and completes the Agent workflow', async () => {
   const { readFile } = await import('node:fs/promises');
-  const runtime = await import('ichartjs');
+  const runtime = await import('@taylorwong/ichartjs');
   assert.equal(runtime.getCapabilities().chartTypes.length, 16);
   const packageMetadata = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
   assert.equal(packageMetadata.exports['./agent'], undefined);

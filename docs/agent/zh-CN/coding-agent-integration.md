@@ -11,7 +11,7 @@ iChart.js 是 JavaScript UI 图表组件库。编码 Agent 负责修改宿主前
 ## 使用方式
 
 ```bash
-npm install github:wanghetommy/ichartjs#v2.0.0
+npm install @taylorwong/ichartjs@^2
 ```
 
 npm Registry 中无作用域的 `ichartjs` 当前是安全占位包，并非本项目。正式 npm scope 确认前请从 GitHub 安装。

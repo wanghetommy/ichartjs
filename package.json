@@ -1,6 +1,6 @@
 {
-  "name": "ichartjs",
-  "version": "2.0.0",
+  "name": "@taylorwong/ichartjs",
+  "version": "2.0.2",
   "description": "Agent-first, renderer-independent charting and project visualization runtime",
   "type": "module",
   "main": "./src/index.mjs",
@@ -29,6 +29,10 @@
     "CHANGELOG.md"
   ],
   "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "check": "for file in src/*.mjs; do node --check \"$file\" || exit 1; done",
@@ -46,6 +50,6 @@
   "bugs": "https://github.com/wanghetommy/ichartjs/issues",
   "keywords": ["chart", "visualization", "agent", "svg", "canvas", "gantt", "diagram"],
   "engines": { "node": ">=18" },
-  "author": "taylor",
+  "author": "taylorwong <wanghetommy@gmail.com>",
   "license": "Apache-2.0"
 }

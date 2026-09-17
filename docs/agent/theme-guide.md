@@ -15,7 +15,7 @@ The system composes three independent choices:
 ## Agent Workflow
 
 ```js
-import { createChart, planChart, planStyle, validateSpec } from 'ichartjs';
+import { createChart, planChart, planStyle, validateSpec } from '@taylorwong/ichartjs';
 
 const plan = planChart(rows, { intent: 'comparison', context: 'dashboard' });
 const style = planStyle({ type: plan.primary, data: rows }, { context: 'dashboard' });

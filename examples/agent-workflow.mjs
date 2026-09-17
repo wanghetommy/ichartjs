@@ -5,9 +5,9 @@ import {
   getChartCapability,
   inspectData,
   planChart,
+  recommend,
   validateSpec
-} from 'ichartjs';
-
+} from '@taylorwong/ichartjs';
 export const sampleRows = [
   { id: 'jan', month: 'Jan', revenue: 120, cost: 82 },
   { id: 'feb', month: 'Feb', revenue: 148, cost: 91 },

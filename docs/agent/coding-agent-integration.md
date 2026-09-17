@@ -13,7 +13,7 @@ Do not add a CLI, MCP server, HTTP API, or Python adapter to complete an ordinar
 Inside a consumer project:
 
 ```bash
-npm install github:wanghetommy/ichartjs#v2.0.0
+npm install @taylorwong/ichartjs@^2
 ```
 
 Do not install the unscoped npm registry package named `ichartjs`; it is currently an npm security holding package. Use the GitHub source until the project publishes under a confirmed npm scope.
@@ -59,7 +59,7 @@ If the host supports named Skill invocation, the request may start with `Use $ic
 ## Minimal Coding-Agent Example
 
 ```js
-import { createChart, inspectData, planChart, validateSpec } from 'ichartjs';
+import { createChart, inspectData, planChart, validateSpec } from '@taylorwong/ichartjs';
 
 const inspection = inspectData(rows);
 const plan = planChart(rows, { intent: 'comparison' });

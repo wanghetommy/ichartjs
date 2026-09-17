@@ -3,13 +3,13 @@
 iChart.js 应作为普通 JavaScript UI 组件运行在浏览器应用中。数据加载、登录、持久化、路由以及自然语言交互都由宿主应用负责。
 
 ```bash
-npm install github:wanghetommy/ichartjs#v2.0.0
+npm install @taylorwong/ichartjs@^2
 ```
 
-npm Registry 中无作用域的 `ichartjs` 是安全占位包，正式 scoped package 发布前请使用 GitHub 安装方式。
+无法访问 npm Registry 的环境请用 GitHub 源作为后备：`npm install github:wanghetommy/ichartjs#v2.0.1`。
 
 ```js
-import { createChart } from 'ichartjs';
+import { createChart } from '@taylorwong/ichartjs';
 
 const chart = createChart({
   container: '#chart',

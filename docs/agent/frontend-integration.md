@@ -5,15 +5,15 @@ Use iChart.js as an ordinary JavaScript UI component inside a browser applicatio
 ## Install
 
 ```bash
-npm install github:wanghetommy/ichartjs#v2.0.0
+npm install @taylorwong/ichartjs@^2
 ```
 
-The unscoped npm registry name `ichartjs` is a security holding package. Use the GitHub source until a scoped package name is published.
+For environments without npm registry access, install from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.1`.
 
 Use the package through a bundler or another environment that resolves npm ESM imports:
 
 ```js
-import { createChart } from 'ichartjs';
+import { createChart } from '@taylorwong/ichartjs';
 
 const chart = createChart({
   container: '#chart',
