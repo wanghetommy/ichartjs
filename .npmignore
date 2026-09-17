@@ -1,0 +1,10 @@
+node_modules/
+playground/
+tests/
+scripts/
+.trae/
+.git/
+.github/
+*.log
+CONTRIBUTING.md
+SECURITY.md

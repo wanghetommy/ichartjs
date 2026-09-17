@@ -12,7 +12,7 @@ import {
   inspectData,
   planChart,
   validateSpec
-} from 'ichartjs';
+} from '@taylorwong/ichartjs';
 ```
 
 Agents and developers use the same `ichartjs` ESM entry. Agent behavior comes from the public planning APIs and optional Skill, not from a second runtime.

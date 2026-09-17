@@ -16,7 +16,7 @@ Use the public Agent contract as the source of truth. Do not infer capabilities 
 The Skill is a workflow adapter, not the chart runtime. If the current JavaScript or TypeScript project does not already depend on iChart.js, install the matching runtime from GitHub:
 
 ```bash
-npm install github:wanghetommy/ichartjs#v2.0.0
+npm install @taylorwong/ichartjs@^2
 ```
 
 Do not install the unscoped npm registry package named `ichartjs`; it is currently a security holding package and is not this project.

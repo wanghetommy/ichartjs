@@ -33,10 +33,10 @@ getCapabilities
 ### Install
 
 ```bash
-npm install github:wanghetommy/ichartjs#v2.0.0
+npm install @taylorwong/ichartjs@^2
 ```
 
-The unscoped npm name `ichartjs` is currently an npm security holding package, not this project. Until an npm scope is confirmed, install from GitHub. When working directly in this repository, run `npm install`; the package export map resolves self-references during local examples and tests.
+As a fallback for environments without npm access, install directly from GitHub: `npm install github:wanghetommy/ichartjs#v2.0.1`.
 
 ### Optional Agent Skill
 
@@ -63,7 +63,7 @@ import {
   inspectData,
   planChart,
   validateSpec
-} from 'ichartjs';
+} from '@taylorwong/ichartjs';
 
 const rows = [
   { id: 'jan', month: 'Jan', revenue: 120 },
@@ -149,7 +149,7 @@ npm run playground
 Use the main package entry when the chart type and Spec are already known:
 
 ```js
-import { createChart } from 'ichartjs';
+import { createChart } from '@taylorwong/ichartjs';
 
 const chart = createChart({
   container: '#chart',
