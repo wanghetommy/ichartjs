@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.6 - 2026-09-18
+
+- Added compact per-chart visual settings with explicit default font sizing, capability-aware visibility toggles, bilingual labels, and theme-aware hamburger icon contrast.
+- Added shared page-level preferences with localStorage persistence and Agent JSON patch support through the Preferences API and Playground settings page.
+- Synchronized Runtime, Playground, package metadata, release-pinned installation guidance, and roadmap status for the `v2.0.6` release.
+
 ## 2.0.5 - 2026-09-18
 
 - Hardened JSON, SVG, PNG, and JPEG export contracts with deterministic type errors, JSON output representations, and an explicit optional Node `canvas` path through `exportAsync()`.

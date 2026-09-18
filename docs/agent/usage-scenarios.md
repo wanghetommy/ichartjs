@@ -35,6 +35,22 @@ The Skill is not a second renderer or service. A Skill-enabled Agent still needs
 
 JSON is the machine-readable source of truth. SVG and PNG/JPEG are presentation artifacts. Code is the integration artifact. An interactive page is the product artifact.
 
+## Visual Preferences: UI and Agent
+
+For post-creation visual adjustments, share a `createPreferencesStore()` with the page's charts. Use `storage: 'localStorage'` only in a browser when the host wants preferences to survive refreshes. `mountChartSettings(chart)` adds an optional accessible quick-settings button outside the export surface; keep the full page-level settings surface as a separate host route.
+
+The host or Agent can use the same patch contract:
+
+```js
+chart.setPreferences({
+  theme: { preset: 'dashboard', palette: 'status' },
+  typography: { scale: 1.15 },
+  components: { grid: false }
+}, { source: 'agent' });
+```
+
+Keep the quick menu limited to theme, palette, font scale, and capability-supported visibility toggles. Use `scope: 'global'` for a page-wide update, the default chart scope for a single chart, and `chart.getState().preferences` for an auditable effective result. Preview both layers at `http://localhost:3000/playground/project-gallery.html` and `http://localhost:3000/playground/preferences-lab.html`.
+
 ## Scenario 1: Integrate into a Web Project
 
 Install the runtime in the host application:
@@ -90,7 +106,28 @@ For a consumer project, return that project's own development URL.
 
 ## Scenario 3: Use the Official Skill
 
-Install or select `skills/ichartjs` in Codex, WorkBuddy, or another Agent Skills-compatible host. Then ask:
+Install the latest Skill with the standard Agent Skills CLI:
+
+```bash
+npx skills add wanghetommy/ichartjs --skill ichartjs
+```
+
+Install globally for Codex without prompts:
+
+```bash
+npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --yes
+```
+
+For reproducible installation, pin the released Skill directory:
+
+```bash
+npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.6/skills/ichartjs \
+  --agent codex --global --yes
+```
+
+WorkBuddy users can import the same tagged GitHub directory through the host's Skill interface. Do not assume that `--agent workbuddy` exists unless the installed Skills CLI lists that adapter. A manual copy from `node_modules/@taylorwong/ichartjs/skills/ichartjs` remains a fallback for hosts with custom Skill directories.
+
+After installation or selection, ask:
 
 ```text
 Use the iChart.js Skill. Read this dataset, create a project Burndown,

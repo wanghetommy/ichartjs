@@ -20,11 +20,14 @@ import { diagramLayoutModes, edgeRoutingModes, normalizeDiagramSpec, validateDia
 import { normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries } from './project-analytics.mjs';
 import { normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId } from './project-linking.mjs';
 import { explainChart, getCapabilities as discoverCapabilities, getChartCapability, planChart } from './capabilities.mjs';
+import { applyPreferencesToSpec, createPreferencesStore, defaultPreferences, mergePreferences, mergeThemePreference, normalizePreferences } from './preferences.mjs';
+import { mountChartSettings } from './preferences-ui.mjs';
 
 import { isDiagram, paintSelection, diagramPointer, diagramKeyboard } from './diagram-interaction.mjs';
 
 function resolveContainer(container) { return typeof container === 'string' ? document.querySelector(container) : container; }
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
+function isPreferencesStore(value) { return Boolean(value && typeof value.getEffective === 'function' && typeof value.setChart === 'function' && typeof value.subscribe === 'function'); }
 export function resolveZoomWindow(count, current, factor) {
   const total = Math.max(0, Math.round(Number(count) || 0));
   if (total <= 1) return { start: 0, end: total };
@@ -178,12 +181,23 @@ function renderRasterWithCanvas(createCanvas, spec, scene, rasterType, as) {
 
 export class Chart {
   constructor(input = {}) {
-    const result = validateSpec(input);
+    const specInput = { ...input };
+    delete specInput.preferences;
+    delete specInput.preferencesStore;
+    delete specInput.chartId;
+    const result = validateSpec(specInput);
     if (!result.valid) { const error = new Error(result.errors.map(item => item.message).join(' ')); error.details = result.errors; throw error; }
     this._specDiagnostics = { warnings: result.warnings, normalizations: result.normalizations };
+    this.chartId = input.chartId ?? input.id ?? null;
+    this._preferencesStore = isPreferencesStore(input.preferencesStore) ? input.preferencesStore : isPreferencesStore(input.preferences) ? input.preferences : null;
+    this._localPreferences = this._preferencesStore ? null : normalizePreferences(input.preferences || {});
+    delete result.spec.preferences;
+    delete result.spec.preferencesStore;
+    delete result.spec.chartId;
     this._themeInput = input.theme ?? 'auto';
     this._styleOverrides = { colors: input.colors !== undefined, background: input.background !== undefined, padding: input.padding !== undefined };
     this.spec = result.spec;
+    this._preferenceBase = Object.fromEntries(['legend', 'labels', 'grid', 'branding', 'padding'].map(key => [key, clone(this.spec[key])]));
     this._resolveStyle();
     this.container = typeof document === 'undefined' ? null : resolveContainer(this.spec.container);
     this.listeners = new Map();
@@ -198,12 +212,26 @@ export class Chart {
     this._observeResize();
     this._observeColorScheme();
     this.render();
+    this._preferencesSnapshot = JSON.stringify(this.getPreferences());
+    if (this._preferencesStore) this._preferencesUnsubscribe = this._preferencesStore.subscribe(event => {
+      const next = this._preferencesStore.getEffective(this.chartId);
+      const serialized = JSON.stringify(next);
+      if (serialized === this._preferencesSnapshot) return;
+      this._preferencesSnapshot = serialized;
+      this._resolveStyle();
+      this.render();
+      this.emit('preferenceschange', { chart: this, preferences: clone(next), source: event.source, scope: event.scope, persisted: event.persisted });
+    });
   }
   _resolveStyle() {
-    this.spec.theme = resolveTheme(this._themeInput, this.spec);
+    ['legend', 'labels', 'grid', 'branding'].forEach(key => { this.spec[key] = clone(this._preferenceBase[key]); });
+    if (this._styleOverrides.padding) this.spec.padding = clone(this._preferenceBase.padding);
+    const preferences = this.getPreferences();
+    this.spec.theme = resolveTheme(mergeThemePreference(this._themeInput, preferences.theme), this.spec);
     if (!this._styleOverrides.colors) this.spec.colors = [...this.spec.theme.colors];
     if (!this._styleOverrides.background) this.spec.background = this.spec.theme.background;
     if (!this._styleOverrides.padding) this.spec.padding = clone(this.spec.theme.layout.padding);
+    this.spec = applyPreferencesToSpec(this.spec, preferences);
   }
   _observeColorScheme() {
     if (typeof matchMedia !== 'function') return;
@@ -299,13 +327,16 @@ export class Chart {
   on(type, listener) { if (!this.listeners.has(type)) this.listeners.set(type, new Set()); this.listeners.get(type).add(listener); return this; }
   off(type, listener) { this.listeners.get(type)?.delete(listener); return this; }
   emit(type, event) { this.listeners.get(type)?.forEach(listener => listener(event)); }
-  update(next = {}) { this._editor.invalidate(); if (next.theme !== undefined) this._themeInput = next.theme; ['colors', 'background', 'padding'].forEach(key => { if (next[key] !== undefined) this._styleOverrides[key] = true; }); this.spec = normalizeSpec({ ...this.spec, ...next, theme: this._themeInput, data: next.data === undefined ? this.spec.data : next.data }); this._resolveStyle(); return this.render(); }
+  update(next = {}) { this._editor.invalidate(); const { preferences, preferencesStore, chartId, ...specUpdate } = next || {}; if (preferences !== undefined) this.setPreferences(preferences); if (specUpdate.theme !== undefined) this._themeInput = specUpdate.theme; ['colors', 'background', 'padding'].forEach(key => { if (specUpdate[key] !== undefined) this._styleOverrides[key] = true; }); this.spec = normalizeSpec({ ...this.spec, ...specUpdate, theme: this._themeInput, data: specUpdate.data === undefined ? this.spec.data : specUpdate.data }); ['legend', 'labels', 'grid', 'branding', 'padding'].forEach(key => { if (specUpdate[key] !== undefined) this._preferenceBase[key] = clone(this.spec[key]); }); this._resolveStyle(); return this.render(); }
   setData(data) { this._editor.invalidate(); this.spec = normalizeSpec({ ...this.spec, theme: this._themeInput, data: { values: data } }); this._resolveStyle(); return this.render(); }
   setTheme(theme = 'auto') { this._themeInput = theme; this._resolveStyle(); this.render(); this.emit('themechange', { chart: this, theme: this.getTheme(), source: 'user' }); return this; }
   getTheme() { return clone(this.spec.theme); }
+  getPreferences() { return this._preferencesStore ? this._preferencesStore.getEffective(this.chartId) : clone(this._localPreferences || defaultPreferences); }
+  setPreferences(patch = {}, options = {}) { if (this._preferencesStore) { const scope = options.scope === 'global' ? 'global' : 'chart'; if (scope === 'global') this._preferencesStore.setGlobal(patch, { ...options, source: options.source || 'user' }); else this._preferencesStore.setChart(this.chartId || 'default', patch, { ...options, source: options.source || 'user' }); return this; } this._localPreferences = mergePreferences(this._localPreferences, patch); this._preferencesSnapshot = JSON.stringify(this._localPreferences); this._resolveStyle(); this.render(); this.emit('preferenceschange', { chart: this, preferences: this.getPreferences(), source: options.source || 'user', scope: 'chart', persisted: false }); return this; }
+  resetPreferences(options = {}) { if (this._preferencesStore) { this._preferencesStore.reset({ ...options, scope: options.scope || 'chart', chartId: this.chartId || 'default' }); return this; } this._localPreferences = normalizePreferences({}); this._preferencesSnapshot = JSON.stringify(this._localPreferences); this._resolveStyle(); this.render(); this.emit('preferenceschange', { chart: this, preferences: this.getPreferences(), source: options.source || 'user', scope: 'chart', persisted: false }); return this; }
   resize(width = this.spec.width, height = this.spec.height) { this.spec.width = width; this.spec.height = height; this.render(); this.emit('resize', { chart: this, width, height }); return this; }
   getSpec() { return JSON.parse(JSON.stringify(this.spec)); }
-  getState() { const brandingSignature = discoverCapabilities().branding.signature; return { renderer: this.renderer.constructor.name, width: this.spec.width, height: this.spec.height, dataCount: this.model.data.rows.length, selected: [...this._selected.values()], revision: this._revision, history: this._history.state(), view: clone(this.spec.view || null), style: clone({ name: this.spec.theme.name, mode: this.spec.theme.mode, resolvedMode: this.spec.theme.resolvedMode, preset: this.spec.theme.preset, palette: this.spec.theme.palette, reasons: this.spec.theme.reasons }), branding: { enabled: Boolean(this.spec.branding?.enabled), signature: brandingSignature, text: this.spec.branding?.enabled === true ? brandingSignature : null }, warnings: clone([...(this._specDiagnostics?.warnings || []), ...(this.model.data?.warnings || []), ...(this.spec.theme?.warnings || [])]), assumptions: clone(this.model.data?.assumptions || []), normalizations: clone(this._specDiagnostics?.normalizations || []), collapsedGroups: this.getCollapsedGroupIds(), clipboard: { nodes: this._clipboard?.nodes?.length || 0, edges: this._clipboard?.edges?.length || 0 }, projectAnalytics: clone(this.model.state?.projectAnalytics || null), linked: clone(this.model.state?.linked || null) }; }
+  getState() { const brandingSignature = discoverCapabilities().branding.signature; return { renderer: this.renderer.constructor.name, width: this.spec.width, height: this.spec.height, dataCount: this.model.data.rows.length, selected: [...this._selected.values()], revision: this._revision, history: this._history.state(), view: clone(this.spec.view || null), style: clone({ name: this.spec.theme.name, mode: this.spec.theme.mode, resolvedMode: this.spec.theme.resolvedMode, preset: this.spec.theme.preset, palette: this.spec.theme.palette, reasons: this.spec.theme.reasons }), preferences: this.getPreferences(), branding: { enabled: Boolean(this.spec.branding?.enabled), signature: brandingSignature, text: this.spec.branding?.enabled === true ? brandingSignature : null }, warnings: clone([...(this._specDiagnostics?.warnings || []), ...(this.model.data?.warnings || []), ...(this.spec.theme?.warnings || [])]), assumptions: clone(this.model.data?.assumptions || []), normalizations: clone(this._specDiagnostics?.normalizations || []), collapsedGroups: this.getCollapsedGroupIds(), clipboard: { nodes: this._clipboard?.nodes?.length || 0, edges: this._clipboard?.edges?.length || 0 }, projectAnalytics: clone(this.model.state?.projectAnalytics || null), linked: clone(this.model.state?.linked || null) }; }
   getProjectAnalytics() { return clone(this.model.state?.projectAnalytics || null); }
   getLinkedState() { return clone(this.model.state?.linked || null); }
   setLinkedFilters(filters = {}) { this.spec.project = { ...(this.spec.project || {}), linked: { ...(this.spec.project?.linked || {}), filters: normalizeLinkedFilters(filters) } }; this.emit('linkedstatechange', { chart: this, linked: this.spec.project.linked }); return this.render(); }
@@ -567,7 +598,7 @@ export class Chart {
       return { valid: false, code: 'DOWNLOAD_FAILED', message: String(err && err.message || err), suggestion: 'Try chart.export() and write the result manually.' };
     }
   }
-  destroy() { if (this._resizeObserver) this._resizeObserver.disconnect(); this._colorSchemeQuery?.removeEventListener?.('change', this._colorSchemeHandler); if (this._eventsBound) { const { target, handler, start, move, end, leave, touchStart, touchMove, touchEnd, wheel } = this._eventsBound; target.removeEventListener('mousemove', handler); target.removeEventListener('click', handler); target.removeEventListener('pointerdown', start); target.removeEventListener('pointermove', move); target.removeEventListener('pointerup', end); target.removeEventListener('pointercancel', end); target.removeEventListener('pointerleave', leave); target.removeEventListener('touchstart', touchStart); target.removeEventListener('touchmove', touchMove); target.removeEventListener('touchend', touchEnd); target.removeEventListener('wheel', wheel); } const target = this.renderer.svg || this.renderer.canvas; if (this._keyboardHandler) target?.removeEventListener('keydown', this._keyboardHandler); this._tooltip?.remove(); this.plugins.destroy(); this.renderer.destroy(); this.listeners.clear(); this._eventsBound = null; this._selected.clear(); this._clipboard = { nodes: [], edges: [] }; }
+  destroy() { this._preferencesUnsubscribe?.(); if (this._resizeObserver) this._resizeObserver.disconnect(); this._colorSchemeQuery?.removeEventListener?.('change', this._colorSchemeHandler); if (this._eventsBound) { const { target, handler, start, move, end, leave, touchStart, touchMove, touchEnd, wheel } = this._eventsBound; target.removeEventListener('mousemove', handler); target.removeEventListener('click', handler); target.removeEventListener('pointerdown', start); target.removeEventListener('pointermove', move); target.removeEventListener('pointerup', end); target.removeEventListener('pointercancel', end); target.removeEventListener('pointerleave', leave); target.removeEventListener('touchstart', touchStart); target.removeEventListener('touchmove', touchMove); target.removeEventListener('touchend', touchEnd); target.removeEventListener('wheel', wheel); } const target = this.renderer.svg || this.renderer.canvas; if (this._keyboardHandler) target?.removeEventListener('keydown', this._keyboardHandler); this._tooltip?.remove(); this.plugins.destroy(); this.renderer.destroy(); this.listeners.clear(); this._eventsBound = null; this._selected.clear(); this._clipboard = { nodes: [], edges: [] }; }
 }
 
 export function createChart(spec) { return new Chart(spec); }
@@ -579,4 +610,5 @@ export { normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, 
 export { normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };
 
 export { contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin };
-export const iChart = { version: '2.0.5', createChart, inspectData, normalizeData, binData, applyTransforms, normalizeSpec, validateSpec, data, getCapabilities, getChartCapability, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };
+export { applyPreferencesToSpec, createPreferencesStore, defaultPreferences, mergePreferences, mergeThemePreference, mountChartSettings, normalizePreferences };
+export const iChart = { version: '2.0.6', createChart, inspectData, normalizeData, binData, applyTransforms, normalizeSpec, validateSpec, data, getCapabilities, getChartCapability, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, createPreferencesStore, defaultPreferences, normalizePreferences, mergePreferences, applyPreferencesToSpec, mountChartSettings, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };

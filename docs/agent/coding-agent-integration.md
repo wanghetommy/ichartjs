@@ -27,11 +27,15 @@ npm install
 npm run playground
 ```
 
-The same official Skill can be imported by Codex, WorkBuddy, and other Agent Skills-compatible hosts from `skills/ichartjs`. Install it into Codex from a repository checkout with:
+Install the official Skill with the standard Agent Skills CLI:
 
 ```bash
-cp -R skills/ichartjs "${CODEX_HOME:-$HOME/.codex}/skills/"
+npx skills add wanghetommy/ichartjs --skill ichartjs
 ```
+
+For global non-interactive Codex setup, append `--agent codex --global --yes`. To pin the released workflow, install `https://github.com/wanghetommy/ichartjs/tree/v2.0.6/skills/ichartjs`. WorkBuddy can import that tagged directory through its Skill interface; only use a host-specific `--agent` value when the installed CLI declares it.
+
+Verify discovery with `npx skills add wanghetommy/ichartjs --list`; the result should include `ichartjs`.
 
 ## Agent Request Pattern
 

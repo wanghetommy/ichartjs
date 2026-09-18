@@ -48,3 +48,34 @@ const resolved = chart.getTheme();
 
 预览与验收：`http://localhost:3000/playground/theme-gallery.html`。
 
+## 单图表与页面级偏好
+
+偏好用于图表创建后的视觉调整，适合用户操作和 Agent 对话调整。业务数据、编码和图表类型不应放进这个配置面。
+
+```js
+import { createChart, createPreferencesStore, mountChartSettings } from '@taylorwong/ichartjs';
+
+const pagePreferences = createPreferencesStore({
+  storage: 'localStorage',
+  storageKey: 'my-app:chart-preferences'
+});
+const chart = createChart({
+  chartId: 'revenue',
+  container: '#revenue',
+  type: 'line',
+  data: { values: rows },
+  preferences: pagePreferences
+});
+mountChartSettings(chart, { locale: 'zh-CN' });
+
+// Agent 对话也使用同一套 API。
+chart.setPreferences({
+  theme: { preset: 'dashboard', palette: 'status' },
+  typography: { scale: 1.15 },
+  components: { grid: false }
+}, { source: 'agent' });
+```
+
+单图表快捷菜单使用紧凑的汉堡图标，只保留高频操作：主题模式、配色、字号，以及当前图表真正支持的图例、数据标签和网格线。能力检测会自动隐藏无效设置；修改即时生效，并支持 `zh-CN`、`en` 和按文档语言自动识别。
+
+低频选项和页面级配置应放在图表弹出菜单之外的独立设置页。页面内图表共享同一个 store，并使用 `store.setGlobal()` 或 `chart.setPreferences(patch, { scope: 'global' })` 更新全局。完整设置页可提供 preset、密度、署名等白名单能力，而不挤占每张图表。Node/SSR 默认使用内存，浏览器需要显式选择 `localStorage` 或宿主存储适配器。快捷菜单验收地址：`http://localhost:3000/playground/project-gallery.html`；完整页面设置验收地址：`http://localhost:3000/playground/preferences-lab.html`。

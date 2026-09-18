@@ -7,13 +7,21 @@ description: Plan, validate, render, explain, and safely edit iChart.js visualiz
 
 Use the public Agent contract as the source of truth. Do not infer capabilities from renderer internals or duplicate chart-selection logic in generated code.
 
-Read [`docs/agent/usage-scenarios.md`](../../docs/agent/usage-scenarios.md) when the request is ambiguous about whether the output should be a live project component, a Coding Agent change, a Skill-generated artifact, or a scheduled report.
+Read the [usage scenarios](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/usage-scenarios.md) when the request is ambiguous about whether the output should be a live project component, a Coding Agent change, a Skill-generated artifact, or a scheduled report.
 
 ## Source and Runtime Setup
 
 - Official repository: `https://github.com/wanghetommy/ichartjs`
 - Official Skill source: `https://github.com/wanghetommy/ichartjs/tree/master/skills/ichartjs`
 - Supported Skill hosts include Codex, WorkBuddy, and other Agent Skills-compatible environments.
+
+Recommended installation:
+
+```bash
+npx skills add wanghetommy/ichartjs --skill ichartjs
+```
+
+Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.6/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
 
 The Skill is a workflow adapter, not the chart runtime. If the current JavaScript or TypeScript project does not already depend on iChart.js, install the matching runtime from GitHub:
 
@@ -54,7 +62,7 @@ Route by requested output:
 - For Flow or Swimlane, preserve node, edge, lane, group, and port IDs; use diagram recipes and validated edit commands.
 - For business edits, preview first, preserve the preview ID and revision, require confirmation when declared, then commit or reject atomically.
 - For browser deliverables, start `npm run playground` and return the exact maintained Playground URL.
-- Release workflow (npm publish + develop→master merge) is **AUTHOR ONLY**. Read the release SOP in [`docs/agent/development/release-sop.md`](../../docs/agent/development/release-sop.md). Never initiate any release step unless the author explicitly instructs.
+- Release workflow (npm publish + develop→master merge) is **AUTHOR ONLY**. Read the [release SOP](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/development/release-sop.md). Never initiate any release step unless the author explicitly instructs.
 
 ## Guardrails
 

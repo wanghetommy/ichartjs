@@ -1,6 +1,6 @@
 # iChart.js 2.0 Roadmap
 
-> Roadmap baseline: 2026-09-14. Current release status: `v2.0.4` is published and `v2.0.5` is prepared as the Iteration 10A export-contract and usage-guidance patch release. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
+> Roadmap baseline: 2026-09-14. Current release status: `v2.0.6` is prepared from the completed Iteration 11 visual preference work. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
 
 ## Current Status
 
@@ -12,7 +12,8 @@
 - Iteration 7 local runtime and browser acceptance are complete for foundational composition, Heatmap, and Radar; physical-device checks remain host integration evidence.
 - Iteration 8A–8D is complete and accepted in automated tests, Chromium, Firefox 144, WebKit 26, native Safari 26.6.2, and a 390 px touch viewport. Physical iOS/Android and representative release-host measurements remain post-release host/device follow-up. No new public chart type was introduced.
 - Iteration 9A–9D implemented the lightweight visual style system, adaptive theme planning, runtime switching, renderer integration, and bilingual Agent guidance without adding a chart type; these capabilities remain in the `2.0.x` line.
-- Iteration 10A Export Contract Hardening is implemented on `develop`: export representations and type errors are deterministic, optional Node raster export uses `exportAsync()`, Canvas/SVG paint semantics are aligned, and the playground server has safer port/path handling. No chart behavior or public chart type was added.
+- Iteration 10A Export Contract Hardening was implemented and released in `v2.0.5`: export representations and type errors are deterministic, optional Node raster export uses `exportAsync()`, Canvas/SVG paint semantics are aligned, and the playground server has safer port/path handling. No chart behavior or public chart type was added.
+- Iteration 11 visual preference controls are included in the `v2.0.6` release: compact per-chart settings, capability-aware visibility controls, theme-aware icon contrast, explicit font-size defaults, shared page preferences, and Agent-adjustable global settings.
 - The original `2.0.0` readiness record is historical and superseded by the published `2.0.x` releases. Current release checks are defined by `docs/agent/development/release-sop.md`.
 
 ## Iteration 4 — Agent Data Contract and Business Editing
@@ -248,6 +249,29 @@ The following remain deferred beyond this roadmap baseline:
 
 They should only be scheduled after the core runtime, diagram model, and project analytics contracts are stable.
 
+## Iteration 11 — Chart Preferences and Agent Adjustments
+
+### Goal
+
+Allow users and Agents to adjust a chart's visual presentation after creation through one small, auditable contract. The detailed 11A–11D plan is in `docs/agent/development/iteration-11.md`.
+
+### Tasks
+
+1. Add allowlisted preferences for theme, typography scale, density, components, branding, and motion.
+2. Support chart-scoped and page-global inheritance through an explicit Preferences Store.
+3. Persist only versioned preference state through browser `localStorage` or a host adapter.
+4. Add an optional accessible settings button outside the SVG/Canvas export surface.
+5. Let Agents apply natural-language intent as a validated preference patch with source and scope metadata.
+6. Add Playground and bilingual guidance for UI and Agent adjustment workflows.
+
+### Verification
+
+- Global changes reach all charts sharing a store; chart overrides remain isolated.
+- UI, Agent, and host code use the same `preferenceschange` event path.
+- Invalid patches do not mutate preferences or business data.
+- Settings UI is excluded from SVG, PNG, and JSON chart exports.
+- `npm run agent:check`, `git diff --check`, and `http://localhost:3000/playground/preferences-lab.html` acceptance pass.
+
 ## Recommended Execution Order
 
 1. Finish Iteration 3 browser acceptance.
@@ -257,4 +281,5 @@ They should only be scheduled after the core runtime, diagram model, and project
 5. Execute Iteration 7 foundations before considering additional specialized chart types.
 6. Execute Iteration 8 to complete existing chart behavior, Agent adaptation, and the 2.0 release gates.
 7. Execute Iteration 9 to standardize adaptive visual styling without expanding chart count.
-8. Re-evaluate geographic and 3D scope only after usage data confirms demand.
+8. Execute Iteration 11 to add post-creation chart and page preferences without expanding chart count.
+9. Re-evaluate geographic and 3D scope only after usage data confirms demand.

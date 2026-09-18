@@ -59,7 +59,15 @@
   "projectIntelligenceDemo": "playground/project-intelligence.html",
   "foundationalGallery": "playground/foundational-gallery.html",
   "themeGallery": "playground/theme-gallery.html",
+  "preferencesLab": "playground/preferences-lab.html",
   "themeGuide": "docs/agent/theme-guide.md",
+  "preferences": {
+    "version": "1.0",
+    "scopes": ["global", "chart"],
+    "persistence": ["memory", "localStorage", "adapter"],
+    "agentAdjustable": true,
+    "interactiveSettingsUI": true
+  },
   "styleSystem": {
     "modes": ["auto", "light", "dark", "contrast"],
     "presets": ["auto", "analysis", "dashboard", "report", "presentation", "project", "diagram"],
