@@ -48,7 +48,7 @@ iChart.js 默认在所有图表右下角显示低对比度的品牌署名（`Pow
 ## 导出与下载
 
 iChart.js 导出采用**双底层单源架构**，所有产物共享 `buildScene()` 生成的同一份 Scene Graph，**画面显示用的 renderer 和导出底层完全解耦**：
-1. **PNG/JPEG（光栅）**：底层用 `CanvasRenderer` 重绘 Scene Graph，同步输出真光栅文件；无头环境安装 `canvas` npm 包即可支持。
+1. **PNG/JPEG（光栅）**：底层用 `CanvasRenderer` 重绘 Scene Graph；浏览器同步输出真光栅文件，无头环境通过 `exportAsync()` 加载可选的 `canvas` npm 包。
 2. **SVG（矢量）**：底层用 `SVGRenderer` DOM 序列化（浏览器）或纯字符串拼装（无头零依赖），支持 XML 1.0 头部、字体拆分、无障碍属性。
 3. **JSON（可重建）**：序列化当前 `spec` + `getState()` 结果，用于持久化、Agent 自检和跨端重建。
 
@@ -62,21 +62,21 @@ iChart.js 导出采用**双底层单源架构**，所有产物共享 `buildScene
 |------------|----------------------------|----------------|--------------------------|
 | JSON       | ✅                          | ✅              | ✅                        |
 | SVG        | ✅                          | ✅              | ✅                        |
-| PNG / JPEG | ✅ 同步真光栅               | ❌ 返回结构化 `HEADLESS_EXPORT_UNSUPPORTED` | ✅ |
+| PNG / JPEG | ✅ 同步真光栅               | ❌ 返回结构化 `HEADLESS_EXPORT_UNSUPPORTED` | ✅ 通过 `exportAsync()` |
 
 ### 公共导出 API
 
 - `chart.toDataURL(type='image/png')` → data URL 字符串或结构化 ExportError。
-- `chart.toBlob(type='image/png')` → Blob 或 ExportError（无头返回 `BLOB_HEADLESS`）。
+- `chart.toBlob(type='image/png')` → Blob 或 ExportError（无头同步路径不提供光栅 Blob）。
 - `chart.export({ type, as })` → 同步返回字符串 / JSON 对象 / Blob / ExportError，`as` 支持 `string`、`dataurl`、`blob`、`object`（仅 JSON）。
-- `chart.exportAsync({ type, as })` → Promise 包装，适配未来异步场景。
+- `chart.exportAsync({ type, as })` → Promise 导出路径；Node 无头环境可通过可选 `canvas` 依赖生成 PNG/JPEG。
 - `chart.download({ type })` / `downloadPNG()` / `downloadSVG()` / `downloadJSON()` → 触发浏览器保存（无头回落到返回字符串或结构化错误）。
 
 ### 错误结构
 
 所有导出/下载方法失败时统一返回 `{ valid:false, code, message?, suggestion?, rasterCode? }` 稳定结构，便于 Agent 自动化判断，常见 `code`：
 - `HEADLESS_EXPORT_UNSUPPORTED`：当前无头环境缺少光栅所需依赖（`canvas`）。
-- `BLOB_HEADLESS`：`toBlob` / `as=blob` 需要浏览器 Blob。
+- `BLOB_HEADLESS`：同步 `toBlob` 无法在当前无头 renderer 上生成光栅 Blob；Node 光栅场景改用 `exportAsync()`。
 - `DOWNLOAD_HEADLESS`：`chart.download*()` 仅在浏览器有 DOM 时可用，无头用 `export`。
 - `EXPORT_TYPE_UNSUPPORTED`：不支持的导出类型。
 

@@ -2,13 +2,15 @@
 
 Use iChart.js as an ordinary JavaScript UI component inside a browser application. The host application owns data loading, authentication, persistence, routing, and any assistant or natural-language interface.
 
+This is the production component path. For one-off files or Agent-led repository changes, use [Usage Scenarios](usage-scenarios.md) and the [Coding Agent Integration](coding-agent-integration.md) guide instead.
+
 ## Install
 
 ```bash
 npm install @taylorwong/ichartjs@^2
 ```
 
-For environments without npm registry access, install from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.4`.
+For environments without npm registry access, install from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.5`.
 
 Use the package through a bundler or another environment that resolves npm ESM imports:
 
@@ -64,3 +66,5 @@ Add these only in an application that has a demonstrated requirement. Do not dup
 ## Preview
 
 Within this repository, run `npm run playground` and open `http://localhost:3000/playground/project-gallery.html` to inspect every public chart type.
+
+In a consumer application, use that application's own development server and return its URL. The Playground is an example and acceptance surface, not a required production dependency.

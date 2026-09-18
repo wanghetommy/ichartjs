@@ -4,6 +4,7 @@
 
 ## 选择场景
 
+- [使用场景与输出](usage-scenarios.md)
 - [Agent 快速上手](quickstart.md)
 - [编码 Agent 集成](coding-agent-integration.md)
 - [前端项目集成](frontend-integration.md)

@@ -4,6 +4,8 @@ Use this guide when an Agent needs to turn user data or project information into
 
 ## Import Surface
 
+Choose the integration mode before starting: use the Runtime for a product component, the Coding Agent guide when modifying a repository, or the official Skill when an Agent must repeatedly plan and deliver charts. See [Usage Scenarios](usage-scenarios.md) for the input/output contract.
+
 ```js
 import {
   createChart,
@@ -140,10 +142,11 @@ const jsonString = chart.export({ type: 'json' });
 // SVG vector export (zero-dependency, browser + headless)
 const svgString = chart.export({ type: 'svg' });
 
-// PNG raster (browser always works; headless requires the canvas package)
+// PNG raster (browser sync; Node headless uses the optional canvas package)
 const pngDataUrl = typeof document !== 'undefined'
   ? chart.toDataURL('image/png')
   : null;
+const headlessPng = await chart.exportAsync({ type: 'png' });
 
 // Browser-only convenience downloads
 if (typeof document !== 'undefined') {

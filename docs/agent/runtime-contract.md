@@ -50,7 +50,7 @@ When `branding:false`, no signature text appears on the chart or any exported ar
 ## Exports and Downloads
 
 iChart.js exports use a **dual-engine single-source architecture**. Every artifact shares the same Scene Graph produced by `buildScene()`, and the on-screen renderer is fully decoupled from the export backend:
-1. **PNG / JPEG (raster)**: always drawn by a `CanvasRenderer` replaying the shared Scene Graph synchronously. In headless Node, install the optional `canvas` npm package to enable.
+1. **PNG / JPEG (raster)**: always drawn by a `CanvasRenderer` replaying the shared Scene Graph. Browser export is synchronous; Node headless export uses `exportAsync()` with the optional `canvas` npm package.
 2. **SVG (vector)**: serialized from an `SVGRenderer` DOM tree (browser) or assembled as a pure string with zero dependencies (headless). Includes XML 1.0 header, expanded font properties, and accessibility attributes.
 3. **JSON (reconstructable)**: serializes the current `spec` plus `getState()`, used for persistence, agent self-check, and cross-environment rebuild.
 
@@ -64,21 +64,21 @@ The signature gate inside `buildScene()` guarantees that live rendering, SVG exp
 |-------------|------------------------|--------------------------|------------------------------|
 | JSON        | ✅                      | ✅                        | ✅                            |
 | SVG         | ✅                      | ✅                        | ✅                            |
-| PNG / JPEG  | ✅ true raster, sync    | ❌ structured `HEADLESS_EXPORT_UNSUPPORTED` | ✅ |
+| PNG / JPEG  | ✅ true raster, sync    | ❌ structured `HEADLESS_EXPORT_UNSUPPORTED` | ✅ via `exportAsync()` |
 
 ### Public Export APIs
 
 - `chart.toDataURL(type='image/png')` → data URL string or structured ExportError.
 - `chart.toBlob(type='image/png')` → Blob or ExportError (headless returns `BLOB_HEADLESS`).
 - `chart.export({ type, as })` → sync string / JSON object / Blob / ExportError. `as` accepts `string`, `dataurl`, `blob`, `object` (JSON only).
-- `chart.exportAsync({ type, as })` → Promise wrapper for future async scenarios.
+- `chart.exportAsync({ type, as })` → Promise export path; enables optional Node `canvas` raster output.
 - `chart.download({ type })` / `downloadPNG()` / `downloadSVG()` / `downloadJSON()` → triggers a browser save-as. In headless, falls back to returning the raw string or structured error.
 
 ### Structured Error Shape
 
 All export/download methods return a stable `{ valid:false, code, message?, suggestion?, rasterCode? }` object on failure for reliable agent automation. Common `code` values:
-- `HEADLESS_EXPORT_UNSUPPORTED`: raster export requested in headless without the optional `canvas` package.
-- `BLOB_HEADLESS`: `toBlob` or `as=blob` used in headless (Blob requires a browser runtime).
+- `HEADLESS_EXPORT_UNSUPPORTED`: synchronous raster export in headless, or raster export without a usable canvas adapter.
+- `BLOB_HEADLESS`: synchronous `toBlob` or headless SVG `as=blob` has no mounted/browser serialization surface; use `exportAsync()` for Node raster or `as=dataurl`/`as=string`.
 - `DOWNLOAD_HEADLESS`: `chart.download*()` in headless; use `chart.export()` instead.
 - `EXPORT_TYPE_UNSUPPORTED`: unrecognized export type.
 

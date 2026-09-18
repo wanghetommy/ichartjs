@@ -12,7 +12,7 @@ const capabilities = getCapabilities();
 const manifest = readJSON('docs/manifests/capabilities.json');
 const commands = readJSON('docs/manifests/commands.json');
 const schemas = readJSON('docs/manifests/schemas.json');
-const expectedDocs = ['README.md', 'quickstart.md', 'coding-agent-integration.md', 'frontend-integration.md', 'theme-guide.md', 'charting-scenario.md', 'project-scenario.md', 'diagram-scenario.md', 'runtime-contract.md', 'editing-contract.md', 'development-guide.md'];
+const expectedDocs = ['README.md', 'usage-scenarios.md', 'quickstart.md', 'coding-agent-integration.md', 'frontend-integration.md', 'theme-guide.md', 'charting-scenario.md', 'project-scenario.md', 'diagram-scenario.md', 'runtime-contract.md', 'editing-contract.md', 'development-guide.md'];
 expectedDocs.forEach(file => { if (!fs.existsSync(`docs/agent/${file}`)) failures.push(`Missing Agent document: docs/agent/${file}`); });
 expectedDocs.forEach(file => { if (!fs.existsSync(`docs/agent/zh-CN/${file}`)) failures.push(`Missing Chinese Agent document: docs/agent/zh-CN/${file}`); });
 fs.readdirSync('docs/agent', { withFileTypes: true })
@@ -25,6 +25,8 @@ fs.readdirSync('docs/agent', { withFileTypes: true })
   });
 const manifestCharts = Object.values(manifest.scenarios).flat();
 if (JSON.stringify(manifestCharts) !== JSON.stringify(capabilities.chartTypes)) failures.push('Manifest chart scenarios do not match getCapabilities().chartTypes.');
+if (JSON.stringify(manifest.export) !== JSON.stringify(capabilities.export)) failures.push('Manifest export contract does not match getCapabilities().export.');
+if (manifest.usageScenarios !== 'docs/agent/usage-scenarios.md') failures.push('Manifest is missing the canonical usage-scenarios entry.');
 if (JSON.stringify(Object.keys(commands.commands)) !== JSON.stringify(capabilities.editing.operations)) failures.push('Manifest commands do not match getCapabilities().editing.operations.');
 if (JSON.stringify(Object.keys(schemas.models)) !== JSON.stringify(Object.keys({ 'project-task': 1, 'timeline-event': 1, milestone: 1, 'burndown-sample': 1, 'flow-node': 1, 'flow-edge': 1, swimlane: 1 }))) failures.push('Manifest schema model coverage is incomplete.');
 const gallery = fs.readFileSync('playground/project-gallery.html', 'utf8') + fs.readFileSync('playground/gallery-cases.mjs', 'utf8');
@@ -65,10 +67,17 @@ currentDocs.forEach(file => {
 });
 const versionChecks = [
   ['src/index.mjs', `version: '${currentVersion}'`],
-  ['playground/playground.mjs', `runtimeVersion = '${currentVersion}'`]
+  ['playground/playground.mjs', `runtimeVersion = '${currentVersion}'`],
+  ['docs/index.html', `iChart.js ${currentVersion}`]
 ];
 versionChecks.forEach(([file, token]) => {
   if (!fs.readFileSync(file, 'utf8').includes(token)) failures.push(`${file}: does not expose package version ${currentVersion}.`);
+});
+currentDocs.forEach(file => {
+  if (!fs.existsSync(file)) return;
+  for (const match of fs.readFileSync(file, 'utf8').matchAll(/github:wanghetommy\/ichartjs#v(\d+\.\d+\.\d+)/g)) {
+    if (match[1] !== currentVersion) failures.push(`${file}: GitHub fallback tag v${match[1]} does not match package version ${currentVersion}.`);
+  }
 });
 const previewPages = ['index.html', 'agent-workbench.html', 'project-gallery.html', 'foundational-gallery.html', 'theme-gallery.html', 'editing.html', 'project-intelligence.html', 'diagram-editor.html', 'interaction-lab.html', 'accessibility-lab.html', 'performance-lab.html'];
 previewPages.forEach(file => { if (!fs.existsSync(`playground/${file}`)) failures.push(`Missing maintained Playground page: playground/${file}`); });

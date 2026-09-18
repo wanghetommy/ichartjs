@@ -2,6 +2,8 @@
 
 Use this guide with Codex, WorkBuddy, and similar Agents that can read a repository, edit JavaScript, execute tests, and open a local browser preview.
 
+For the complete choice between project integration, one-off artifacts, Skill orchestration, and CI output, read [Usage Scenarios](usage-scenarios.md).
+
 ## Responsibility Boundary
 
 iChart.js is a JavaScript UI component library. The coding Agent writes or updates the host application and calls the public `@taylorwong/ichartjs` ESM API. The optional Skill provides workflow guidance only; it does not introduce a second runtime or service.
@@ -86,3 +88,5 @@ Use `examples/agent-workflow.mjs` for the full executable lifecycle.
 - Warnings and assumptions remain visible.
 - Stable source IDs remain in explanation lineage.
 - The user receives a working preview URL.
+
+The final Agent response should also state whether the deliverable is a live component, code change, SVG/PNG/JPEG artifact, JSON checkpoint, or a combination of these.

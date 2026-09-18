@@ -137,15 +137,15 @@ export function getCapabilities() {
     mime: { png: 'image/png', jpeg: 'image/jpeg', svg: 'image/svg+xml', json: 'application/json' },
     browser: { png: true, jpeg: true, svg: true, json: true },
     headless: {
-      png: 'optional: install the `canvas` npm package for createCanvas',
+      png: 'optional: install the `canvas` npm package for createCanvas and use exportAsync',
       jpeg: 'same as png',
       svg: true,
       json: true,
     },
     methods: {
-      exportPNG: 'chart.export({ type:"png" }) returns base64 data URL (browser); pass as:"blob" for a Blob. In Node headless either install the canvas package or fall back to SVG.',
+      exportPNG: 'chart.export({ type:"png" }) returns a browser data URL. In Node headless use chart.exportAsync({ type:"png" }) after installing the optional canvas package, or fall back to SVG.',
       exportSVG: 'chart.export({ type:"svg" }) returns the SVG string in both browser and headless; as:"dataurl" for embeds, as:"blob" for a Blob (browser).',
-      exportJSON: 'chart.export({ type:"json" }) returns pretty JSON; use as:"object" to get the parsed {version,spec,state}.',
+      exportJSON: 'chart.export({ type:"json" }) returns pretty JSON; use as:"object", as:"dataurl", or as:"blob" for the corresponding representation.',
       downloadPNG: 'chart.downloadPNG() triggers a browser save-as dialog (filename derived from title + timestamp).',
       downloadSVG: 'chart.downloadSVG() same semantics as downloadPNG but for SVG.',
       downloadJSON: 'chart.downloadJSON() saves {version,spec,state} as a .json document.',

@@ -2,6 +2,8 @@
 
 iChart.js is an Agent-first, renderer-independent visualization runtime. An Agent can inspect data, choose an appropriate chart, generate and validate a JSON-friendly Spec, render it with SVG or Canvas, and explain the result through public APIs.
 
+Use it in one of three ways: integrate the Runtime into a web project, let a Coding Agent modify a project, or install the official Skill so an Agent can orchestrate chart selection and delivery. The Runtime produces interactive pages, SVG/PNG/JPEG artifacts, JSON checkpoints, and integration code; the Skill does not replace the Runtime.
+
 ## For AI Agents
 
 Do not guess chart types or configuration fields from source code. Use the public planning contract:
@@ -24,6 +26,7 @@ getCapabilities
 | Machine-readable capability manifest | `@taylorwong/ichartjs/capabilities.json` |
 | Intent and chart recipes | `@taylorwong/ichartjs/recipes/*` |
 | Agent quickstart | [`docs/agent/quickstart.md`](docs/agent/quickstart.md) |
+| Usage scenarios and output formats | [`docs/agent/usage-scenarios.md`](docs/agent/usage-scenarios.md) |
 | Chinese quickstart | [`docs/agent/zh-CN/quickstart.md`](docs/agent/zh-CN/quickstart.md) |
 | Coding Agent integration | [`docs/agent/coding-agent-integration.md`](docs/agent/coding-agent-integration.md) |
 | Frontend integration | [`docs/agent/frontend-integration.md`](docs/agent/frontend-integration.md) |
@@ -36,7 +39,7 @@ getCapabilities
 npm install @taylorwong/ichartjs@^2
 ```
 
-As a fallback for environments without npm access, install directly from GitHub: `npm install github:wanghetommy/ichartjs#v2.0.4`.
+As a fallback for environments without npm access, install directly from GitHub: `npm install github:wanghetommy/ichartjs#v2.0.5`.
 
 ### Optional Agent Skill
 

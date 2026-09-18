@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.5 - 2026-09-18
+
+- Hardened JSON, SVG, PNG, and JPEG export contracts with deterministic type errors, JSON output representations, and an explicit optional Node `canvas` path through `exportAsync()`.
+- Aligned Canvas and SVG background, fill, stroke, and transparent-paint behavior; normalized `theme.branding` into the shared branding contract.
+- Hardened the Playground server's port detection, path containment, malformed URI handling, and escaped 404 responses.
+- Added bilingual usage-scenario guidance for Runtime integration, Coding Agents, the official Skill, one-off artifacts, project/diagram workflows, and CI reports.
+- Expanded export, headless Canvas, branding, documentation, and package regression coverage.
+
 ## 2.0.4 - 2026-09-18
 
 - Synchronized current Agent documentation, scoped package paths, GitHub fallback instructions, Skill links, Playground links, and release status.

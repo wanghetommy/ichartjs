@@ -7,6 +7,8 @@ description: Plan, validate, render, explain, and safely edit iChart.js visualiz
 
 Use the public Agent contract as the source of truth. Do not infer capabilities from renderer internals or duplicate chart-selection logic in generated code.
 
+Read [`docs/agent/usage-scenarios.md`](../../docs/agent/usage-scenarios.md) when the request is ambiguous about whether the output should be a live project component, a Coding Agent change, a Skill-generated artifact, or a scheduled report.
+
 ## Source and Runtime Setup
 
 - Official repository: `https://github.com/wanghetommy/ichartjs`
@@ -38,6 +40,14 @@ Do not install the unscoped npm registry package named `ichartjs`; it is current
 Use `@taylorwong/ichartjs` for package imports. Use `examples/agent-workflow.mjs` as the executable baseline when working in the repository.
 
 ## Task Routing
+
+Route by requested output:
+
+- **Live product component**: modify the host JavaScript project and mount `createChart()`; return changed files and the host preview URL.
+- **Coding Agent change**: inspect the repository, use the Runtime, run focused checks, and return the validated Spec plus changed files.
+- **One-off artifact**: generate SVG/JSON directly; use browser PNG export or `exportAsync()` with optional `canvas` for Node PNG/JPEG.
+- **Project or Diagram workflow**: load the matching scenario guide and preserve all stable IDs.
+- **CI/report output**: keep JSON as the reproducible checkpoint and SVG/PNG as presentation artifacts.
 
 - For standard data analysis, read `references/chart-selection.md` and use foundational recipes.
 - For Gantt, Timeline, Milestone, Burndown, capacity, release, risk, or aging, use project capabilities and `agent-recipes/project-management.json`.
