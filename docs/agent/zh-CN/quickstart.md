@@ -15,9 +15,9 @@ import {
 } from '@taylorwong/ichartjs';
 ```
 
-- `ichartjs`：统一的 Agent 规划与 Runtime API。
-- `ichartjs/capabilities.json`：机器可读能力清单，包含逐图表导出、署名和交互声明。
-- `ichartjs/recipes/*`：基础分析、项目管理和 Diagram Recipes。
+- `@taylorwong/ichartjs`：统一的 Agent 规划与 Runtime API。
+- `@taylorwong/ichartjs/capabilities.json`：机器可读能力清单，包含逐图表导出、署名和交互声明。
+- `@taylorwong/ichartjs/recipes/*`：基础分析、项目管理和 Diagram Recipes。
 - `skills/ichartjs/SKILL.md`：适用于 Codex、WorkBuddy 等 Agent Skills 兼容宿主的可选编排层。
 
 Agent 与开发者使用同一个 ESM 入口。编码 Agent 的完整方式见 [编码 Agent 集成](coding-agent-integration.md)，普通应用集成见 [前端项目集成](frontend-integration.md)。

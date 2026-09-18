@@ -1,6 +1,6 @@
 # iChart.js 2.0 Roadmap
 
-> Roadmap baseline: 2026-09-14. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
+> Roadmap baseline: 2026-09-14. Current release status: `v2.0.3` is published and `v2.0.4` is the documentation/version-consistency patch release. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
 
 ## Current Status
 
@@ -11,8 +11,8 @@
 - Iteration 6 project intelligence local runtime and browser acceptance are complete.
 - Iteration 7 local runtime and browser acceptance are complete for foundational composition, Heatmap, and Radar; physical-device checks remain host integration evidence.
 - Iteration 8A–8D is complete and accepted in automated tests, Chromium, Firefox 144, WebKit 26, native Safari 26.6.2, and a 390 px touch viewport. Physical iOS/Android and representative release-host measurements remain post-release host/device follow-up. No new public chart type was introduced.
-- Iteration 9A–9D implements the lightweight visual style system, adaptive theme planning, runtime switching, renderer integration, and bilingual Agent guidance without adding a chart type or changing version `2.0.0`.
-- Final `2.0.0` readiness is tracked in `docs/agent/development/2.0-release-readiness.md`; strict TypeScript, Node.js 18/20/22, GitHub Actions, package-consumer, browser, performance, and lifecycle checks pass. Only the final commit, `master` cutover, tag, and GitHub Release remain. npm publication is tracked separately.
+- Iteration 9A–9D implemented the lightweight visual style system, adaptive theme planning, runtime switching, renderer integration, and bilingual Agent guidance without adding a chart type; these capabilities remain in the `2.0.x` line.
+- The original `2.0.0` readiness record is historical and superseded by the published `2.0.x` releases. Current release checks are defined by `docs/agent/development/release-sop.md`.
 
 ## Iteration 4 — Agent Data Contract and Business Editing
 

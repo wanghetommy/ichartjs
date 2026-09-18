@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.0.4 - 2026-09-18
+
+- Synchronized current Agent documentation, scoped package paths, GitHub fallback instructions, Skill links, Playground links, and release status.
+- Corrected Runtime and Playground version displays to `2.0.4`.
+- Marked the original `2.0.0` release-readiness document as historical and added stronger documentation consistency checks.
+
+## 2.0.3 - 2026-09-17
+
+- Completed Iteration 8 acceptance documentation and added the author-only release SOP.
+- Added README and official Skill release guardrails for the scoped npm package and controlled publishing workflow.
+
+## 2.0.2 - 2026-09-17
+
+- Fixed Line and Area rendering so `fill: 'none'` does not create an unintended filled area.
+
+## 2.0.1 - 2026-09-17
+
+- Added dual-engine raster export, branding signature support, and synchronized documentation and TypeScript declarations.
+
 ## 2.0.0 - 2026-09-16
 
 - Added Iteration 9's lightweight visual style system with adaptive modes, semantic presets and palettes, live switching, contrast diagnostics, Agent recommendations, bilingual guidance, and Theme Gallery while retaining version `2.0.0`.

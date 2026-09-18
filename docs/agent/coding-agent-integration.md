@@ -4,7 +4,7 @@ Use this guide with Codex, WorkBuddy, and similar Agents that can read a reposit
 
 ## Responsibility Boundary
 
-iChart.js is a JavaScript UI component library. The coding Agent writes or updates the host application and calls the public `ichartjs` ESM API. The optional Skill provides workflow guidance only; it does not introduce a second runtime or service.
+iChart.js is a JavaScript UI component library. The coding Agent writes or updates the host application and calls the public `@taylorwong/ichartjs` ESM API. The optional Skill provides workflow guidance only; it does not introduce a second runtime or service.
 
 Do not add a CLI, MCP server, HTTP API, or Python adapter to complete an ordinary charting task.
 
@@ -16,7 +16,7 @@ Inside a consumer project:
 npm install @taylorwong/ichartjs@^2
 ```
 
-Do not install the unscoped npm registry package named `ichartjs`; it is currently an npm security holding package. Use the GitHub source until the project publishes under a confirmed npm scope.
+Do not install the unscoped npm registry package named `ichartjs`; it is an npm security holding package and is not this project. The published package is `@taylorwong/ichartjs`.
 
 Inside this repository:
 
@@ -46,7 +46,7 @@ If the host supports named Skill invocation, the request may start with `Use $ic
 ## Required Workflow
 
 1. Inspect existing application structure and local instructions.
-2. Import public APIs from `ichartjs`.
+2. Import public APIs from `@taylorwong/ichartjs`.
 3. Call `getCapabilities()`, `inspectData()`, and `planChart()`.
 4. Stop or ask for input when required fields are missing.
 5. Build a JSON-friendly Spec and call `validateSpec()`.
@@ -80,7 +80,7 @@ Use `examples/agent-workflow.mjs` for the full executable lifecycle.
 
 ## Acceptance
 
-- The application imports only `ichartjs`, not source internals.
+- The application imports only `@taylorwong/ichartjs`, not source internals.
 - The chosen chart exists in capabilities.
 - Validation passes before rendering.
 - Warnings and assumptions remain visible.

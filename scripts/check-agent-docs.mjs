@@ -3,6 +3,7 @@
  * Presence and identifier checks do not establish translation or browser correctness.
  */
 import fs from 'node:fs';
+import path from 'node:path';
 import { getCapabilities } from '../src/index.mjs';
 
 const readJSON = path => JSON.parse(fs.readFileSync(path, 'utf8'));
@@ -29,9 +30,50 @@ if (JSON.stringify(Object.keys(schemas.models)) !== JSON.stringify(Object.keys({
 const gallery = fs.readFileSync('playground/project-gallery.html', 'utf8') + fs.readFileSync('playground/gallery-cases.mjs', 'utf8');
 capabilities.chartTypes.forEach(type => { if (!gallery.includes(`type:'${type}'`)) failures.push(`Gallery is missing chart type: ${type}`); });
 const packageMetadata = readJSON('package.json');
+const currentVersion = packageMetadata.version;
 if (packageMetadata.exports?.['.']?.types !== './types/index.d.ts') failures.push('Package root export is missing TypeScript declarations.');
 if (packageMetadata.exports?.['./agent']) failures.push('Package must expose one runtime entry instead of a duplicate Agent alias.');
 if (!packageMetadata.files?.includes('skills/ichartjs/')) failures.push('Published files do not include the official iChart.js Skill.');
 ['skills/ichartjs/SKILL.md', 'skills/ichartjs/agents/openai.yaml', 'examples/agent-workflow.mjs'].forEach(path => { if (!fs.existsSync(path)) failures.push(`Missing Agent integration artifact: ${path}`); });
+const currentDocs = [
+  'README.md',
+  'docs/agent/README.md',
+  ...expectedDocs.slice(1).map(file => `docs/agent/${file}`),
+  ...expectedDocs.map(file => `docs/agent/zh-CN/${file}`),
+  'skills/ichartjs/SKILL.md'
+];
+const staleCurrentDocTokens = [
+  'github:wanghetommy/ichartjs#v2.0.1',
+  'node_modules/ichartjs/',
+  '`ichartjs/capabilities.json`',
+  '`ichartjs/recipes',
+  '正式 npm scope',
+  '13-step SOP'
+];
+currentDocs.forEach(file => {
+  if (!fs.existsSync(file)) return;
+  const content = fs.readFileSync(file, 'utf8');
+  staleCurrentDocTokens.forEach(token => {
+    if (content.includes(token)) failures.push(`${file}: stale release or package reference: ${token}`);
+  });
+  for (const match of content.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
+    const target = match[1].split('#')[0].trim();
+    if (!target || /^(https?:|mailto:)/.test(target)) continue;
+    const resolved = path.resolve(path.dirname(file), target);
+    if (!fs.existsSync(resolved)) failures.push(`${file}: broken local link: ${match[1]}`);
+  }
+});
+const versionChecks = [
+  ['src/index.mjs', `version: '${currentVersion}'`],
+  ['playground/playground.mjs', `runtimeVersion = '${currentVersion}'`]
+];
+versionChecks.forEach(([file, token]) => {
+  if (!fs.readFileSync(file, 'utf8').includes(token)) failures.push(`${file}: does not expose package version ${currentVersion}.`);
+});
+const previewPages = ['index.html', 'agent-workbench.html', 'project-gallery.html', 'foundational-gallery.html', 'theme-gallery.html', 'editing.html', 'project-intelligence.html', 'diagram-editor.html', 'interaction-lab.html', 'accessibility-lab.html', 'performance-lab.html'];
+previewPages.forEach(file => { if (!fs.existsSync(`playground/${file}`)) failures.push(`Missing maintained Playground page: playground/${file}`); });
+const playgroundHome = fs.readFileSync('playground/index.html', 'utf8');
+if (!playgroundHome.includes('npm run playground')) failures.push('Playground Home must direct users to npm run playground.');
+if (playgroundHome.includes('python3 -m http.server')) failures.push('Playground Home must not direct users to the Python static server.');
 if (failures.length) { console.error(failures.join('\n')); process.exit(1); }
 console.log(`Agent documentation check passed: ${capabilities.chartTypes.length} charts, ${Object.keys(commands.commands).length} commands, ${Object.keys(schemas.models).length} schemas.`);

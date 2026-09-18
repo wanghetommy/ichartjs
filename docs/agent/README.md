@@ -21,7 +21,7 @@ This is the user-facing Agent entry point for iChart.js 2.0. Read this file firs
 - [Editing Contract](editing-contract.md): schemas, commands, preview, commit, and undo/redo.
 - Machine-readable capability manifests are in `docs/manifests/` and should be loaded on demand.
 
-The 2.0 API is Spec-first. Import from `ichartjs`, inspect data, plan a chart, create a JSON-friendly Spec, validate it, render it, and self-check the explanation and runtime state.
+The 2.0 API is Spec-first. Import from `@taylorwong/ichartjs`, inspect data, plan a chart, create a JSON-friendly Spec, validate it, render it, and self-check the explanation and runtime state.
 
 ## Recommended flow
 

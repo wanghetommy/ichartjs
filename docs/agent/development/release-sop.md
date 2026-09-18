@@ -8,7 +8,7 @@
 >
 > **Agent Policy:** An Agent MUST NOT initiate any step in this SOP on its own.
 > It MAY execute the sequence **only when explicitly instructed** by the author
-> (e.g. "publish v2.0.3", "commit and release patch", or equivalent intent).
+> (e.g. "publish v2.0.4", "commit and release patch", or equivalent intent).
 
 ## 0. Preconditions (MUST ALL be green)
 

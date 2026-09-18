@@ -20,9 +20,9 @@ getCapabilities
 
 | Need | Entry point |
 | --- | --- |
-| Runtime and Agent planning APIs | `ichartjs` |
-| Machine-readable capability manifest | `ichartjs/capabilities.json` |
-| Intent and chart recipes | `ichartjs/recipes/*` |
+| Runtime and Agent planning APIs | `@taylorwong/ichartjs` |
+| Machine-readable capability manifest | `@taylorwong/ichartjs/capabilities.json` |
+| Intent and chart recipes | `@taylorwong/ichartjs/recipes/*` |
 | Agent quickstart | [`docs/agent/quickstart.md`](docs/agent/quickstart.md) |
 | Chinese quickstart | [`docs/agent/zh-CN/quickstart.md`](docs/agent/zh-CN/quickstart.md) |
 | Coding Agent integration | [`docs/agent/coding-agent-integration.md`](docs/agent/coding-agent-integration.md) |
@@ -36,7 +36,7 @@ getCapabilities
 npm install @taylorwong/ichartjs@^2
 ```
 
-As a fallback for environments without npm access, install directly from GitHub: `npm install github:wanghetommy/ichartjs#v2.0.1`.
+As a fallback for environments without npm access, install directly from GitHub: `npm install github:wanghetommy/ichartjs#v2.0.4`.
 
 ### Optional Agent Skill
 
@@ -52,7 +52,7 @@ From a repository checkout, install it into Codex with:
 cp -R skills/ichartjs "${CODEX_HOME:-$HOME/.codex}/skills/"
 ```
 
-WorkBuddy users can import or register the same `skills/ichartjs` folder through the host's Skill interface. Package consumers can copy it from `node_modules/ichartjs/skills/ichartjs` into their Agent host's Skill directory. After installation, invoke it as `$ichartjs` when the host supports named Skill invocation, or select the `ichartjs` Skill in the host UI.
+WorkBuddy users can import or register the same `skills/ichartjs` folder through the host's Skill interface. Package consumers can copy it from `node_modules/@taylorwong/ichartjs/skills/ichartjs` into their Agent host's Skill directory. After installation, invoke it as `$ichartjs` when the host supports named Skill invocation, or select the `ichartjs` Skill in the host UI.
 
 ### Agent workflow
 
@@ -140,9 +140,14 @@ npm run playground
 - Playground Home: `http://localhost:3000/playground/index.html`
 - Agent Workbench: `http://localhost:3000/playground/agent-workbench.html`
 - Complete Gallery: `http://localhost:3000/playground/project-gallery.html`
+- Foundational Gallery: `http://localhost:3000/playground/foundational-gallery.html`
 - Theme Gallery: `http://localhost:3000/playground/theme-gallery.html`
+- Business Editing: `http://localhost:3000/playground/editing.html`
 - Project Intelligence: `http://localhost:3000/playground/project-intelligence.html`
 - Diagram Editor: `http://localhost:3000/playground/diagram-editor.html`
+- Interaction Lab: `http://localhost:3000/playground/interaction-lab.html`
+- Accessibility Lab: `http://localhost:3000/playground/accessibility-lab.html`
+- Performance Lab: `http://localhost:3000/playground/performance-lab.html`
 
 ## For Developers
 
@@ -199,7 +204,7 @@ Contributors should:
 1. Open PRs / commit only to `develop`
 2. Ensure `npm run agent:check` and `npm test` are green
 
-Full author-only release SOP (exact 13-step sequence + must-not rules + rollback procedure):
+Full author-only release SOP (preconditions, release sequence, must-not rules, and rollback procedure):
 👉 [`docs/agent/development/release-sop.md`](docs/agent/development/release-sop.md)
 
 Start with [`docs/agent/quickstart.md`](docs/agent/quickstart.md). Detailed runtime, charting, project, diagram, and editing contracts live in [`docs/agent/`](docs/agent/).
