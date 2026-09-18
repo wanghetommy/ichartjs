@@ -53,10 +53,10 @@ const obj = chart.export({ type: 'json', as: 'object' });
 const svg = chart.export({ type: 'svg' });
 const svgDataUrl = chart.export({ type: 'svg', as: 'dataurl' });
 
-// 3. PNG / JPEG：同步真光栅
-//    浏览器：任意 renderer 均可
-//    无头：需安装 npm i canvas，否则返回结构化错误 code=HEADLESS_EXPORT_UNSUPPORTED
+// 3. PNG / JPEG：浏览器同步真光栅；Node 无头使用异步导出
+//    Node 无头：安装 npm i canvas 后，exportAsync() 可生成真光栅
 const png = typeof document !== 'undefined' ? chart.toDataURL('image/png') : null;
+const headlessPng = await chart.exportAsync({ type: 'png' });
 ```
 
 ## Agent 输出要求

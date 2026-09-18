@@ -351,7 +351,20 @@ test('supports headless JSON export and reports unavailable raster export', asyn
   assert.equal(exported.version, '2.0');
   assert.equal(exported.spec.type, 'line');
   assert.equal(exported.state.dataCount, 1);
+  assert.match(chart.export({ type: 'json', as: 'dataurl' }), /^data:application\/json/);
+  const blob = chart.export({ type: 'json', as: 'blob' });
+  assert.equal(blob instanceof Blob, true);
+  assert.equal(blob.type, 'application/json');
+  assert.equal(chart.export({ type: 'tiff' }).code, 'EXPORT_TYPE_UNSUPPORTED');
   assert.equal(chart.export({ type: 'image/png' }).code, 'HEADLESS_EXPORT_UNSUPPORTED');
+  assert.equal((await chart.exportAsync({ type: 'png' })).code, 'HEADLESS_EXPORT_UNSUPPORTED');
+  chart.destroy();
+});
+
+test('returns structured errors for an unmounted headless canvas renderer', async () => {
+  const { createChart } = await import('../src/index.mjs');
+  const chart = createChart({ type: 'line', renderer: 'canvas', data: [{ name: 'A', value: 1 }] });
+  assert.equal(chart.toDataURL('image/png').code, 'HEADLESS_EXPORT_UNSUPPORTED');
   chart.destroy();
 });
 
@@ -507,6 +520,8 @@ test('branding: defaults to enabled and normalizes both shorthand and object for
   assert.equal(onShort.branding?.enabled, true);
   const offObject = normalizeSpec({ type: 'line', data: [{ name: 'A', value: 1 }], branding: { enabled: false } });
   assert.equal(offObject.branding?.enabled, false);
+  const offTheme = normalizeSpec({ type: 'line', data: [{ name: 'A', value: 1 }], theme: { branding: false } });
+  assert.equal(offTheme.branding?.enabled, false);
 });
 
 test('branding: validates the enabled-only surface and rejects unknown options', () => {

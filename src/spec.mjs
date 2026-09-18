@@ -60,6 +60,7 @@ function dependencyErrors(rows) {
 
 export function normalizeSpec(input = {}) {
   const spec = merge(defaults, input);
+  if (input.branding === undefined && input.theme && typeof input.theme === 'object' && input.theme.branding !== undefined) spec.branding = clone(input.theme.branding);
   if (spec.branding === false) spec.branding = { enabled: false };
   else if (spec.branding === true) spec.branding = { enabled: true };
   else if (spec.branding == null) spec.branding = { enabled: true };
@@ -92,6 +93,8 @@ export function validateSpec(input) {
     if (spec.theme.mode && !themeModes.includes(spec.theme.mode)) errors.push({ code: 'INVALID_THEME_MODE', path: 'theme.mode', message: `Unsupported theme mode: ${spec.theme.mode}`, suggestion: `Use ${themeModes.join(', ')}.` });
     if (spec.theme.preset && !themePresets.includes(spec.theme.preset)) errors.push({ code: 'INVALID_THEME_PRESET', path: 'theme.preset', message: `Unsupported theme preset: ${spec.theme.preset}`, suggestion: `Use ${themePresets.join(', ')}.` });
     if (spec.theme.palette && !themePalettes.includes(spec.theme.palette)) errors.push({ code: 'INVALID_THEME_PALETTE', path: 'theme.palette', message: `Unsupported theme palette: ${spec.theme.palette}`, suggestion: `Use ${themePalettes.join(', ')}.` });
+    if (spec.theme.branding != null && typeof spec.theme.branding !== 'boolean' && !(spec.theme.branding && typeof spec.theme.branding === 'object')) errors.push({ code: 'INVALID_BRANDING', path: 'theme.branding', message: 'theme.branding must be a boolean or a { enabled: boolean } object.', suggestion: 'Use theme: { branding: false } or theme: { branding: { enabled: false } }.' });
+    else if (spec.theme.branding && typeof spec.theme.branding === 'object' && (Object.keys(spec.theme.branding).some(key => key !== 'enabled') || typeof spec.theme.branding.enabled !== 'boolean')) errors.push({ code: 'INVALID_BRANDING', path: 'theme.branding', message: 'theme.branding objects only support a boolean enabled property.', suggestion: 'Use theme: { branding: { enabled: false } }.' });
   }
   if (Array.isArray(spec.encoding.y) && spec.encoding.y.length > 2) errors.push({ code: 'TOO_MANY_AXES', path: 'encoding.y', message: 'Only two quantitative axes are supported in this iteration.', suggestion: 'Use at most two y encodings.' });
   if (spec.stack && !['bar', 'column', 'area'].includes(spec.type)) errors.push({ code: 'INVALID_STACK', path: 'stack', message: 'Stacking is supported by bar, column, and area charts.', suggestion: 'Remove stack or use a supported chart type.' });

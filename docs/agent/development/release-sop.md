@@ -8,13 +8,13 @@
 >
 > **Agent Policy:** An Agent MUST NOT initiate any step in this SOP on its own.
 > It MAY execute the sequence **only when explicitly instructed** by the author
-> (e.g. "publish v2.0.4", "commit and release patch", or equivalent intent).
+> (e.g. "publish vX.Y.Z", "commit and release patch", or equivalent intent).
 
 ## 0. Preconditions (MUST ALL be green)
 
 0.  `git status -sb` → on `develop`, working tree clean
 1.  `npm run check` → exit 0
-2.  `npm test` → exit 0 (60/60)
+2.  `npm test` → exit 0 (all current tests pass)
 3.  `npm run docs:check` → exit 0
 4.  `npm run agent:check` → exit 0
 5.  `npm whoami` → output = `taylorwong`

@@ -1,6 +1,6 @@
 import { createReadStream } from 'node:fs';
 import { access, stat, unlink } from 'node:fs/promises';
-import { extname, join, normalize } from 'node:path';
+import { extname, isAbsolute, join, normalize, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'node:http';
 import { spawn, spawnSync } from 'node:child_process';
@@ -40,7 +40,7 @@ function findListeningPid(targetPort) {
     const result = spawnSync('lsof', args, { encoding: 'utf8' });
     if (result.status !== 0) return null;
     const lines = (result.stdout || '').trim().split(/\r?\n/).filter(Boolean);
-    for (let i = 1; i < lines.length; i++) {
+    for (let i = 0; i < lines.length; i++) {
       const parts = lines[i].split(/\s+/);
       if (!parts[1]) continue;
       const pid = Number(parts[1]);
@@ -62,8 +62,14 @@ function processCommand(pid) {
   }
 }
 
-function isLikelySimpleHttpServer(command) {
-  if (!command) return false;
+function isLikelySimpleHttpServer(command, pidOrNameHint = '') {
+  if (!command) {
+    // ps output is empty; fall back to any python process on the assumption that
+    // `ps -o command=` truncated to just "python3" (a frequent macOS sandbox case).
+    return /\bpython/.test(pidOrNameHint || '');
+  }
+  const text = `${command} ${pidOrNameHint}`;
+  if (/(python|python3|python3\.|py\b)/.test(text)) return true;
   return /(python|python3).*http\.server|python3?\s+-m\s+http\.server/.test(command);
 }
 
@@ -92,28 +98,48 @@ async function ensurePortReady(targetPort) {
   const command = processCommand(existing);
   const sameProcess = Number(process.env.PLAYGROUND_PID || '') === existing;
   if (sameProcess) return;
-  if (!isLikelySimpleHttpServer(command)) {
+  if (!isLikelySimpleHttpServer(command, command || '')) {
     console.warn(`[warn] 端口 ${targetPort} 已被 PID ${existing} 占用：${command || 'unknown'}`);
     console.warn(`  如果这是之前的本地服务，请先手动关闭后再运行 npm run playground，或改用 PORT=xxxx npm run playground。`);
     return;
   }
-  console.warn(`[playground] 端口 ${targetPort} 上运行的是简单静态服务（PID ${existing}：${command}），已为你自动回收。`);
+  console.warn(`[playground] 端口 ${targetPort} 上运行的是简单静态服务（PID ${existing}：${command || 'python static server（ps output truncated）'}），已为你自动回收。`);
   await killPid(existing);
 }
 
 async function resolveFile(pathname) {
-  const decoded = decodeURIComponent(pathname).replace(/^\/+/, '');
-  const relative = decoded || 'playground/index.html';
-  const candidates = extname(relative) ? [relative] : [`${relative}.html`, join(relative, 'index.html')];
+  let decoded;
+  try {
+    decoded = decodeURIComponent(pathname).replace(/^\/+/, '');
+  } catch {
+    return null;
+  }
+  const requestPath = decoded || 'playground/index.html';
+  const candidates = extname(requestPath) ? [requestPath] : [`${requestPath}.html`, join(requestPath, 'index.html')];
   for (const candidate of candidates) {
     const file = normalize(join(root, candidate));
-    if (!file.startsWith(root)) continue;
+    const relativePath = relativePathFromRoot(file);
+    if (relativePath.startsWith('..') || isAbsolute(relativePath)) continue;
     try {
       await access(file);
       if ((await stat(file)).isFile()) return file;
     } catch {}
   }
   return null;
+}
+
+function relativePathFromRoot(file) {
+  return relative(root, file);
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, character => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[character]));
 }
 
 const targetPortPlaceholder = String(port);
@@ -159,7 +185,7 @@ const server = createServer(async (request, response) => {
     } else if (!pathname.startsWith('/src/') && !pathname.startsWith('/playground/') && !pathname.startsWith('/docs/') && !pathname.startsWith('/tests/') && !pathname.startsWith('/examples/')) {
       hint.push('Playground 入口页面均位于 /playground/ 子路径，直接访问根目录不会跳转到 playground');
     }
-    fallbackFile(response, `找不到文件：<code>${pathname}</code>。${hint.join('；')}`);
+    fallbackFile(response, `找不到文件：<code>${escapeHtml(pathname)}</code>。${hint.join('；')}`);
     return;
   }
   response.writeHead(200, {

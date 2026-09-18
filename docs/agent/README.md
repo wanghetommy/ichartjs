@@ -11,6 +11,7 @@ This is the user-facing Agent entry point for iChart.js 2.0. Read this file firs
 ## Start Here
 
 - [Agent Quickstart](quickstart.md): install, import, plan, validate, render, explain, and self-check.
+- [Usage Scenarios](usage-scenarios.md): choose Runtime, Coding Agent, Skill, one-off artifact, project, diagram, or CI usage and select the right output.
 - [Coding Agent Integration](coding-agent-integration.md): use from Codex and similar code-editing Agents.
 - [Frontend Integration](frontend-integration.md): use from ordinary JavaScript applications.
 - [Visual Style and Themes](theme-guide.md): automatic matching, presets, palettes, switching, and contrast checks.
