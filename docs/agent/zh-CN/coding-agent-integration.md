@@ -14,7 +14,7 @@ iChart.js 是 JavaScript UI 图表组件库。编码 Agent 负责修改宿主前
 npm install @taylorwong/ichartjs@^2
 ```
 
-npm Registry 中无作用域的 `ichartjs` 当前是安全占位包，并非本项目。正式 npm scope 确认前请从 GitHub 安装。
+npm Registry 中无作用域的 `ichartjs` 是安全占位包，并非本项目。正式包名是 `@taylorwong/ichartjs`，优先从 npm 安装。
 
 Codex、WorkBuddy 和其他兼容 Agent Skills 的宿主可共同使用 `skills/ichartjs`。从仓库检出目录安装到 Codex：
 

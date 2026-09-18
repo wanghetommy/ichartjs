@@ -8,7 +8,7 @@ Use iChart.js as an ordinary JavaScript UI component inside a browser applicatio
 npm install @taylorwong/ichartjs@^2
 ```
 
-For environments without npm registry access, install from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.1`.
+For environments without npm registry access, install from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.4`.
 
 Use the package through a bundler or another environment that resolves npm ESM imports:
 

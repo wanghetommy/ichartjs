@@ -35,7 +35,7 @@ Do not install the unscoped npm registry package named `ichartjs`; it is current
 10. Provide an exact preview URL or artifact path and report assumptions, warnings, and deferred checks.
 11. Prefer `theme: { mode: 'auto', preset, palette }`; preserve explicit user style choices and use `chart.setTheme()` for live switching.
 
-Use `ichartjs` for package imports. Use `examples/agent-workflow.mjs` as the executable baseline when working in the repository.
+Use `@taylorwong/ichartjs` for package imports. Use `examples/agent-workflow.mjs` as the executable baseline when working in the repository.
 
 ## Task Routing
 
@@ -44,7 +44,7 @@ Use `ichartjs` for package imports. Use `examples/agent-workflow.mjs` as the exe
 - For Flow or Swimlane, preserve node, edge, lane, group, and port IDs; use diagram recipes and validated edit commands.
 - For business edits, preview first, preserve the preview ID and revision, require confirmation when declared, then commit or reject atomically.
 - For browser deliverables, start `npm run playground` and return the exact maintained Playground URL.
-- Release workflow (npm publish + develop→master merge) is **AUTHOR ONLY**. Read the 13-step SOP in [`docs/agent/development/release-sop.md`](../../../docs/agent/development/release-sop.md). Never initiate any release step unless the author explicitly instructs.
+- Release workflow (npm publish + develop→master merge) is **AUTHOR ONLY**. Read the release SOP in [`docs/agent/development/release-sop.md`](../../docs/agent/development/release-sop.md). Never initiate any release step unless the author explicitly instructs.
 
 ## Guardrails
 

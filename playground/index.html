@@ -2,7 +2,7 @@
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>iChart.js Playground</title><link rel="stylesheet" href="./shared.css"></head>
 <body><main class="shell"><header class="topbar"><div><h1>iChart.js 2.0 Playground</h1><p>统一的能力浏览、Agent 集成与发布验收入口。所有页面均可独立打开，错误和诊断应直接显示在页面中。</p></div><div id="version" class="badge">loading…</div></header>
 <section class="grid" id="pages" aria-label="Playground pages"></section>
-<section class="panel" style="margin-top:16px"><h2>启动与验收</h2><p><code>python3 -m http.server 3000 --bind 127.0.0.1</code></p><p class="muted">每个页面状态通过 HTTP HEAD 检查；“ready”仅表示页面可访问，不代替页面内验收。</p></section></main>
+<section class="panel" style="margin-top:16px"><h2>启动与验收</h2><p><code>npm run playground</code></p><p class="muted">每个页面状态通过 HTTP HEAD 检查；“ready”仅表示页面可访问，不代替页面内验收。</p></section></main>
 <script type="module">
 import { getCapabilities } from './runtime.mjs';
 import { runtimeVersion, setStatus } from './playground.mjs';

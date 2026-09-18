@@ -15,14 +15,14 @@ import {
 } from '@taylorwong/ichartjs';
 ```
 
-Agents and developers use the same `ichartjs` ESM entry. Agent behavior comes from the public planning APIs and optional Skill, not from a second runtime.
+Agents and developers use the same `@taylorwong/ichartjs` ESM entry. Agent behavior comes from the public planning APIs and optional Skill, not from a second runtime.
 
 Additional package resources:
 
-- `ichartjs/capabilities.json`: machine-readable catalog, including per-chart exports, branding, and interaction declarations.
-- `ichartjs/recipes/foundational-analysis`: foundational chart recipes.
-- `ichartjs/recipes/project-management`: project intelligence recipes.
-- `ichartjs/recipes/diagrams/workflow`: diagram editing recipe.
+- `@taylorwong/ichartjs/capabilities.json`: machine-readable catalog, including per-chart exports, branding, and interaction declarations.
+- `@taylorwong/ichartjs/recipes/foundational-analysis`: foundational chart recipes.
+- `@taylorwong/ichartjs/recipes/project-management`: project intelligence recipes.
+- `@taylorwong/ichartjs/recipes/diagrams/workflow`: diagram editing recipe.
 - `skills/ichartjs/SKILL.md`: optional workflow adapter for Codex, WorkBuddy, and other Agent Skills-compatible hosts.
 
 The Skill is not the runtime. Install or register it only when the Agent host supports Skills; it must still call the package's public APIs and capability contract.

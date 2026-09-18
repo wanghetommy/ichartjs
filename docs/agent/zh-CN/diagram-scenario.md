@@ -9,13 +9,13 @@
 
 ## 当前能力
 
-已支持节点、边、泳道、Group、Port、四种布局、三种路由、节点拖动、多选、对齐、网格吸附、键盘移动和 Undo/Redo。
+已支持节点、边、泳道、Group、Port、四种布局、三种路由、节点拖动、多选、对齐、网格吸附、键盘移动、Copy/Paste、Group 折叠展开、Port 键盘连线和 Undo/Redo。
 
 当前限制：
 
 - Group 只支持平级 Group，不支持嵌套。
-- Port 可显示并参与路由，但 Port 拖拽连线尚未完成。
-- Copy/Paste 和 Group 折叠展开尚未完成。
+- Group bounds 由成员几何和 `group.padding` 推导；`resizeGroup` 会缩放成员位置和尺寸，不持久化第二个 Group 矩形。
+- Canvas 提供基础无障碍文本，SVG 提供更丰富的 Diagram 语义。
 
 ## Agent 流程
 
