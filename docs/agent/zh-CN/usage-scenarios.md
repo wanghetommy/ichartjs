@@ -35,6 +35,22 @@ Skill 不是第二套渲染器，也不是服务端。使用 Skill 的 Agent 仍
 
 JSON 是机器可读的事实来源；SVG 和 PNG/JPEG 是视觉交付物；代码是集成交付物；交互页面是产品交付物。
 
+## 视觉偏好：界面与 Agent
+
+图表创建后需要调整视觉样式时，可让页面图表共享 `createPreferencesStore()`。浏览器中只有在宿主希望刷新后保留配置时，才显式使用 `storage: 'localStorage'`。`mountChartSettings(chart)` 会在导出区域之外增加可访问的快捷设置按钮；完整的页面级设置中心应作为宿主的独立路由。
+
+宿主交互和 Agent 对话使用同一个 patch 合约：
+
+```js
+chart.setPreferences({
+  theme: { preset: 'dashboard', palette: 'status' },
+  typography: { scale: 1.15 },
+  components: { grid: false }
+}, { source: 'agent' });
+```
+
+快捷菜单只保留主题、配色、字号和当前图表支持的显示开关。使用 `scope: 'global'` 修改页面全部图表；默认只修改当前图表；使用 `chart.getState().preferences` 获取可审计的最终配置。两层体验可在 `http://localhost:3000/playground/project-gallery.html` 和 `http://localhost:3000/playground/preferences-lab.html` 验收。
+
 ## 场景一：集成到 Web 项目
 
 在宿主项目中安装 Runtime：
@@ -85,7 +101,28 @@ Agent 应返回：
 
 ## 场景三：作为官方 Skill 使用
 
-在 Codex、WorkBuddy 或其他支持 Agent Skills 的宿主中安装或选择 `skills/ichartjs`：
+使用标准 Agent Skills CLI 安装最新版：
+
+```bash
+npx skills add wanghetommy/ichartjs --skill ichartjs
+```
+
+无交互地全局安装到 Codex：
+
+```bash
+npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --yes
+```
+
+需要固定发布版本时，直接安装已发布的 Skill 目录：
+
+```bash
+npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.6/skills/ichartjs \
+  --agent codex --global --yes
+```
+
+WorkBuddy 用户可以通过宿主的 Skill 界面导入同一个带 Tag 的 GitHub 目录。在当前 Skills CLI 没有明确声明适配器时，不要假设存在 `--agent workbuddy`。具有自定义 Skill 目录的宿主仍可从 `node_modules/@taylorwong/ichartjs/skills/ichartjs` 手动复制。
+
+安装或选择 `ichartjs` 后可以这样提问：
 
 ```text
 使用 iChart.js Skill。读取这份数据，生成项目 Burndown，校验 Spec，

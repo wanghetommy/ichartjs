@@ -184,6 +184,15 @@ export function getCapabilities() {
     data: ['normalize', 'inspect', 'filter', 'sort', 'groupBy', 'sum', 'average', 'topN', 'percentage', 'bin'],
     themes: [...styleCapabilities.modes],
     styleSystem: JSON.parse(JSON.stringify(styleCapabilities)),
+    preferences: {
+      version: '1.0',
+      scopes: ['global', 'chart'],
+      persistence: ['memory', 'localStorage', 'adapter'],
+      fields: ['theme', 'typography.scale', 'density', 'components.legend', 'components.labels', 'components.grid', 'branding.enabled', 'motion'],
+      agentAdjustable: true,
+      interactiveSettingsUI: true,
+      precedence: ['defaults', 'global', 'chart', 'temporary-agent-patch']
+    },
     plugins: true,
     branding: { defaultEnabled: true, signature: 'Powered by iChart.js', options: [{ name: 'enabled', type: 'boolean', default: true }] },
   };

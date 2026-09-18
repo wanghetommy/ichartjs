@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { binData, createChart, data, getCapabilities, inspectData, normalizeSpec, planStyle, recommend, resolveZoomWindow, validateSpec } from '../src/index.mjs';
+import { binData, createChart, createPreferencesStore, data, getCapabilities, inspectData, normalizeSpec, planStyle, recommend, resolveZoomWindow, validateSpec } from '../src/index.mjs';
 import { contrastRatio, resolveTheme, validateThemeContrast } from '../src/theme.mjs';
 import { annotationPlugin, dataLabelsPlugin, dataZoomPlugin } from '../src/plugin.mjs';
 import { buildScene } from '../src/charts.mjs';
@@ -597,6 +597,31 @@ test('branding: headless JSON export syncs branding state', async () => {
   chartOn.destroy();
 });
 
+test('supports scoped chart preferences with local persistence and Agent sources', () => {
+  const values = new Map();
+  const storage = { getItem: key => values.get(key) || null, setItem: (key, value) => values.set(key, value) };
+  const store = createPreferencesStore({ storage, storageKey: 'test:preferences' });
+  const chart = createChart({ chartId: 'sales', type: 'line', renderer: 'svg', data: [{ name: 'A', value: 1 }], preferences: store });
+  const events = [];
+  chart.on('preferenceschange', event => events.push(event));
+  store.setGlobal({ theme: { preset: 'dashboard' }, density: 'compact' }, { source: 'agent' });
+  assert.equal(chart.getPreferences().theme.preset, 'dashboard');
+  assert.equal(chart.getPreferences().density, 'compact');
+  chart.setPreferences({ theme: { mode: 'dark' }, components: { grid: false } }, { source: 'agent' });
+  assert.equal(chart.getTheme().resolvedMode, 'dark');
+  assert.equal(chart.getSpec().grid.visible, false);
+  assert.equal(events.at(-1).source, 'agent');
+  assert.equal(store.getChart('sales').density, undefined);
+  assert.equal(JSON.parse(values.get('test:preferences')).charts.sales.theme.mode, 'dark');
+  store.setGlobal({ density: 'spacious' }, { source: 'agent' });
+  assert.equal(chart.getPreferences().density, 'spacious');
+  chart.resetPreferences({ source: 'agent' });
+  assert.equal(chart.getPreferences().theme.mode, null);
+  assert.equal(chart.getPreferences().theme.preset, 'dashboard');
+  assert.equal(chart.getSpec().grid.visible, true);
+  chart.destroy();
+});
+
 test('keeps group backgrounds passive while group labels remain interactive', () => {
   const scene = buildScene(normalizeSpec({
     type: 'flow',
@@ -773,8 +798,25 @@ test('renders common titles, grids, legends, labels, and corrected chart geometr
 
 test('keeps active Playground pages and a no-cache preview path', async () => {
   const { readFile } = await import('node:fs/promises');
-  const pages = ['index.html', 'project-gallery.html', 'foundational-gallery.html', 'theme-gallery.html', 'agent-workbench.html', 'project-intelligence.html', 'editing.html', 'diagram-editor.html', 'interaction-lab.html', 'accessibility-lab.html', 'performance-lab.html'];
+  const pages = ['index.html', 'project-gallery.html', 'foundational-gallery.html', 'theme-gallery.html', 'preferences-lab.html', 'agent-workbench.html', 'project-intelligence.html', 'editing.html', 'diagram-editor.html', 'interaction-lab.html', 'accessibility-lab.html', 'performance-lab.html'];
   await Promise.all(pages.map(page => readFile(new URL(`../playground/${page}`, import.meta.url), 'utf8')));
+  const preferencesUi = await readFile(new URL('../src/preferences-ui.mjs', import.meta.url), 'utf8');
+  assert.match(preferencesUi, /aria-hidden="true">≡</);
+  assert.match(preferencesUi, /root\.querySelectorAll\('select,input\[data-key\]'\).*addEventListener\('change'/s);
+  assert.ok(preferencesUi.includes("'zh-CN'") && preferencesUi.includes('Chart quick settings'));
+  assert.equal(preferencesUi.includes('data-key="preset"'), false);
+  assert.equal(preferencesUi.includes('data-key="density"'), false);
+  assert.equal(preferencesUi.includes('data-key="branding"'), false);
+  const fullGallery = await readFile(new URL('../playground/project-gallery.html', import.meta.url), 'utf8');
+  assert.equal(preferencesUi.includes('data-action="page-settings"'), false);
+  assert.equal(preferencesUi.includes('data-action="reset"'), false);
+  assert.equal(preferencesUi.includes('已应用并保存'), false);
+  assert.match(preferencesUi, /contrastRatio\('#172033', background\)/);
+  assert.match(preferencesUi, /option\(text\.defaultSize, '1'\)/);
+  assert.match(preferencesUi, /option\(text\.extraLarge, '1\.3'\)/);
+  assert.match(preferencesUi, /option\[data-current\]/);
+  assert.match(preferencesUi, /if \(normalized === 'en' \|\| normalized\.startsWith\('en-'\)\) return 'en';/);
+  assert.match(preferencesUi, /return 'en';\n\}/);
   const entry = await readFile(new URL('../src/index.mjs', import.meta.url), 'utf8');
   assert.equal(/from ['"][^'"]+\?/.test(entry), false);
   const browserEntry = await readFile(new URL('../playground/runtime.mjs', import.meta.url), 'utf8');

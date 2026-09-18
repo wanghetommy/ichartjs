@@ -37,6 +37,9 @@ if (packageMetadata.exports?.['.']?.types !== './types/index.d.ts') failures.pus
 if (packageMetadata.exports?.['./agent']) failures.push('Package must expose one runtime entry instead of a duplicate Agent alias.');
 if (!packageMetadata.files?.includes('skills/ichartjs/')) failures.push('Published files do not include the official iChart.js Skill.');
 ['skills/ichartjs/SKILL.md', 'skills/ichartjs/agents/openai.yaml', 'examples/agent-workflow.mjs'].forEach(path => { if (!fs.existsSync(path)) failures.push(`Missing Agent integration artifact: ${path}`); });
+['README.md', 'docs/agent/usage-scenarios.md', 'docs/agent/zh-CN/usage-scenarios.md', 'docs/agent/coding-agent-integration.md', 'docs/agent/zh-CN/coding-agent-integration.md', 'skills/ichartjs/SKILL.md'].forEach(file => {
+  if (!fs.readFileSync(file, 'utf8').includes('npx skills add wanghetommy/ichartjs')) failures.push(`${file}: missing canonical npx Skill installation command.`);
+});
 const currentDocs = [
   'README.md',
   'docs/agent/README.md',
@@ -75,11 +78,15 @@ versionChecks.forEach(([file, token]) => {
 });
 currentDocs.forEach(file => {
   if (!fs.existsSync(file)) return;
-  for (const match of fs.readFileSync(file, 'utf8').matchAll(/github:wanghetommy\/ichartjs#v(\d+\.\d+\.\d+)/g)) {
+  const content = fs.readFileSync(file, 'utf8');
+  for (const match of content.matchAll(/github:wanghetommy\/ichartjs#v(\d+\.\d+\.\d+)/g)) {
     if (match[1] !== currentVersion) failures.push(`${file}: GitHub fallback tag v${match[1]} does not match package version ${currentVersion}.`);
   }
+  for (const match of content.matchAll(/github\.com\/wanghetommy\/ichartjs\/tree\/v(\d+\.\d+\.\d+)\/skills\/ichartjs/g)) {
+    if (match[1] !== currentVersion) failures.push(`${file}: pinned Skill tag v${match[1]} does not match package version ${currentVersion}.`);
+  }
 });
-const previewPages = ['index.html', 'agent-workbench.html', 'project-gallery.html', 'foundational-gallery.html', 'theme-gallery.html', 'editing.html', 'project-intelligence.html', 'diagram-editor.html', 'interaction-lab.html', 'accessibility-lab.html', 'performance-lab.html'];
+const previewPages = ['index.html', 'agent-workbench.html', 'project-gallery.html', 'foundational-gallery.html', 'theme-gallery.html', 'preferences-lab.html', 'editing.html', 'project-intelligence.html', 'diagram-editor.html', 'interaction-lab.html', 'accessibility-lab.html', 'performance-lab.html'];
 previewPages.forEach(file => { if (!fs.existsSync(`playground/${file}`)) failures.push(`Missing maintained Playground page: playground/${file}`); });
 const playgroundHome = fs.readFileSync('playground/index.html', 'utf8');
 if (!playgroundHome.includes('npm run playground')) failures.push('Playground Home must direct users to npm run playground.');

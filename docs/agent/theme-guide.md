@@ -57,3 +57,34 @@ Built-in modes expose text, muted text, axis, grid, focus, selection, missing-va
 
 Preview and acceptance: `http://localhost:3000/playground/theme-gallery.html`.
 
+## Chart and Page Preferences
+
+Use preferences for visual adjustments that a user or Agent may change after the chart has been created. Keep business data, encodings, and chart selection outside this surface.
+
+```js
+import { createChart, createPreferencesStore, mountChartSettings } from '@taylorwong/ichartjs';
+
+const pagePreferences = createPreferencesStore({
+  storage: 'localStorage',
+  storageKey: 'my-app:chart-preferences'
+});
+const chart = createChart({
+  chartId: 'revenue',
+  container: '#revenue',
+  type: 'line',
+  data: { values: rows },
+  preferences: pagePreferences
+});
+mountChartSettings(chart, { locale: 'en' });
+
+// The same operation can come from an Agent conversation.
+chart.setPreferences({
+  theme: { preset: 'dashboard', palette: 'status' },
+  typography: { scale: 1.15 },
+  components: { grid: false }
+}, { source: 'agent' });
+```
+
+The optional per-chart menu uses a compact hamburger icon and intentionally exposes only high-frequency controls: theme mode, palette, font scale, and supported legend/label/grid visibility. Capability checks hide controls that do not apply to the current chart. Changes apply immediately and the UI supports `en`, `zh-CN`, and automatic document-language detection.
+
+Keep low-frequency and page-wide controls in a dedicated settings surface outside the chart popover. Share one store across the page, and call `store.setGlobal()` or `chart.setPreferences(patch, { scope: 'global' })`. The full surface may expose preset, density, branding, and other allowlisted preferences without overloading every chart. The store uses memory in Node/SSR unless `localStorage` or a host adapter is explicitly selected. Preview the quick menu in `http://localhost:3000/playground/project-gallery.html` and the full page at `http://localhost:3000/playground/preferences-lab.html`.

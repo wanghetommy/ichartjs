@@ -31,6 +31,7 @@ getCapabilities
 | Coding Agent integration | [`docs/agent/coding-agent-integration.md`](docs/agent/coding-agent-integration.md) |
 | Frontend integration | [`docs/agent/frontend-integration.md`](docs/agent/frontend-integration.md) |
 | Visual style and themes | [`docs/agent/theme-guide.md`](docs/agent/theme-guide.md) |
+| Chart and page preferences | [`docs/agent/theme-guide.md`](docs/agent/theme-guide.md#chart-and-page-preferences) |
 | Official Agent Skill for Codex and WorkBuddy | [`skills/ichartjs/SKILL.md`](skills/ichartjs/SKILL.md) |
 
 ### Install
@@ -39,7 +40,7 @@ getCapabilities
 npm install @taylorwong/ichartjs@^2
 ```
 
-As a fallback for environments without npm access, install directly from GitHub: `npm install github:wanghetommy/ichartjs#v2.0.5`.
+As a fallback for environments without npm access, install directly from GitHub: `npm install github:wanghetommy/ichartjs#v2.0.6`.
 
 ### Optional Agent Skill
 
@@ -49,13 +50,19 @@ The runtime API remains the source of truth; the Skill only teaches and orchestr
 https://github.com/wanghetommy/ichartjs/tree/master/skills/ichartjs
 ```
 
-From a repository checkout, install it into Codex with:
+Install the latest Skill with the standard Agent Skills CLI:
 
 ```bash
-cp -R skills/ichartjs "${CODEX_HOME:-$HOME/.codex}/skills/"
+npx skills add wanghetommy/ichartjs --skill ichartjs
 ```
 
-WorkBuddy users can import or register the same `skills/ichartjs` folder through the host's Skill interface. Package consumers can copy it from `node_modules/@taylorwong/ichartjs/skills/ichartjs` into their Agent host's Skill directory. After installation, invoke it as `$ichartjs` when the host supports named Skill invocation, or select the `ichartjs` Skill in the host UI.
+For a non-interactive global Codex installation:
+
+```bash
+npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --yes
+```
+
+For a release-pinned installation, use `npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.6/skills/ichartjs --agent codex --global --yes`. WorkBuddy users can import the same tagged `skills/ichartjs` URL through the host's Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it. Package consumers can still copy `node_modules/@taylorwong/ichartjs/skills/ichartjs` as a manual fallback. After installation, invoke `$ichartjs` when named Skill invocation is supported, or select `ichartjs` in the host UI.
 
 ### Agent workflow
 
