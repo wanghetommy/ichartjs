@@ -40,6 +40,8 @@ Core APIs:
 - Command validation does not mutate the input command or source data.
 - Host confirmation is required by default; `confirmed: true` is not an authorization system.
 - External persistence, permissions, and authentication belong to the host application.
+- Pointer navigation and editing are disabled by default. `editing.enabled` authorizes edit transactions; `interaction.drag`, `interaction.edgeDrag`, and `interaction.portConnect` separately expose direct-manipulation UI.
+- Diagram edge routes use JSON-safe `waypoints` and update through `updateEdge`; edge deletion uses `removeEdge` and requires structural-edit permission.
 
 ## Supported Models
 
@@ -50,6 +52,9 @@ Core APIs:
 - `flow-node`
 - `flow-edge`
 - `swimlane`
+- `architecture-node`
+- `architecture-edge`
+- `mindmap-node`
 
 ## History and Revision
 

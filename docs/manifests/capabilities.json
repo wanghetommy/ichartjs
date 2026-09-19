@@ -12,11 +12,29 @@
   "scenarios": {
     "charting": ["line", "area", "bar", "column", "pie", "scatter", "funnel", "gauge", "heatmap", "radar"],
     "project": ["gantt", "timeline", "milestone", "burndown"],
-    "diagram": ["flow", "swimlane"]
+    "diagram": ["flow", "swimlane", "architecture", "mindmap"]
   },
   "projectIntelligence": ["variance", "capacity", "release", "risk", "aging"],
-  "chartModes": ["stacked", "percent-stacked", "donut", "mixed-line-column", "bin"],
+  "chartModes": ["stacked", "percent-stacked", "donut", "mixed-line-column", "bin", "architecture-layers", "architecture-boundaries", "mindmap-tree", "mindmap-radial", "mindmap-curved-edges"],
   "renderers": ["canvas", "svg"],
+  "interactionDefaults": { "zoom": false, "pan": false, "brush": false, "drag": false, "edgeDrag": false, "portConnect": false, "editing": false },
+  "diagramEditing": {
+    "renderers": ["canvas", "svg"],
+    "edgeSelection": true,
+    "waypointDrag": true,
+    "segmentDrag": true,
+    "persistentWaypoints": true,
+    "enabledByDefault": false,
+    "activation": ["editing.enabled", "interaction.edgeDrag"]
+  },
+  "diagramCurves": {
+    "renderers": ["canvas", "svg"],
+    "type": "cubic-bezier",
+    "mindmapDefault": true,
+    "curveTension": { "minimum": 0.2, "maximum": 0.8, "default": 0.4 },
+    "obstacleFallback": "orthogonal",
+    "controlPointEditing": false
+  },
   "excluded": ["map", "3d"],
   "exports": ["png", "svg", "json"],
   "headless": {
@@ -65,8 +83,17 @@
     "version": "1.0",
     "scopes": ["global", "chart"],
     "persistence": ["memory", "localStorage", "adapter"],
+    "fields": ["theme.mode", "theme.preset", "theme.palette", "typography.scale", "density", "components.legend", "components.labels", "components.grid", "branding.enabled", "motion"],
     "agentAdjustable": true,
-    "interactiveSettingsUI": true
+    "interactiveSettingsUI": true,
+    "precedence": ["defaults", "global", "chart", "temporary-agent-patch"],
+    "discovery": {
+      "capabilities": "getPreferenceCapabilities(chartType?, { locale? })",
+      "current": "chart.getPreferences()",
+      "validate": "validatePreferences(patch, { partial: true })",
+      "apply": "chart.setPreferences(patch, { scope, source: 'agent' })",
+      "verify": "chart.getState().preferences"
+    }
   },
   "styleSystem": {
     "modes": ["auto", "light", "dark", "contrast"],

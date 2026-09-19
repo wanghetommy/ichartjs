@@ -11,11 +11,11 @@ const day = 86400000;
 const plusDays = (value, days) => { const date = new Date(`${value}T00:00:00.000Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10); };
 const equality = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 const recordId = operation => operation.recordId ?? operation.taskId ?? operation.nodeId ?? operation.edgeId;
-const diagramOperationTypes = new Set(['moveNode', 'moveNodes', 'moveNodeToLane', 'resizeNode', 'alignNodes', 'snapNodes', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'updateEdge', 'toggleGroupCollapse', 'addEdge', 'duplicateSelection', 'pasteSelection']);
-const structureOperationTypes = new Set(['assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'toggleGroupCollapse', 'addEdge', 'duplicateSelection', 'pasteSelection']);
+const diagramOperationTypes = new Set(['moveNode', 'moveNodes', 'moveNodeToLane', 'resizeNode', 'alignNodes', 'snapNodes', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'updateEdge', 'removeEdge', 'toggleGroupCollapse', 'addEdge', 'duplicateSelection', 'pasteSelection']);
+const structureOperationTypes = new Set(['assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'removeEdge', 'toggleGroupCollapse', 'addEdge', 'duplicateSelection', 'pasteSelection']);
 
 export function businessModelForType(type) {
-  return { gantt: 'project-task', timeline: 'timeline-event', milestone: 'milestone', burndown: 'burndown-sample', flow: 'flow-node', swimlane: 'flow-node' }[type] || type;
+  return { gantt: 'project-task', timeline: 'timeline-event', milestone: 'milestone', burndown: 'burndown-sample', flow: 'flow-node', swimlane: 'flow-node', architecture: 'architecture-node', mindmap: 'mindmap-node' }[type] || type;
 }
 
 function jsonValue(value) { return value === undefined ? null : copyJSON(value); }
@@ -25,8 +25,8 @@ function uniqueId(existing, preferred) { let index = 1, value = preferred; while
 function duplicateEdge(edges, edge) { return edges.some(item => item.from === edge.from && item.to === edge.to && (item.fromPort || null) === (edge.fromPort || null) && (item.toPort || null) === (edge.toPort || null)); }
 
 function previewDiagramEdit(command, options = {}) {
-  const nodeSchemaResult = validateDataSchema(options.nodeSchema || options.schema || getBusinessSchema('flow-node'));
-  const edgeSchemaResult = validateDataSchema(options.edgeSchema || getBusinessSchema('flow-edge'));
+  const nodeSchemaResult = validateDataSchema(options.nodeSchema || options.schema || getBusinessSchema(options.nodeModel || businessModelForType(options.type)));
+  const edgeSchemaResult = validateDataSchema(options.edgeSchema || getBusinessSchema(options.edgeModel || (options.type === 'architecture' ? 'architecture-edge' : 'flow-edge')));
   const errors = [...nodeSchemaResult.errors, ...edgeSchemaResult.errors], warnings = [], changes = [], patches = [], affected = new Set();
   const beforeNodes = copyJSON(options.nodes || options.values || []), beforeEdges = copyJSON(options.edges || []), beforeGroups = copyJSON(options.groups || []), lanes = copyJSON(options.lanes || []);
   if (!nodeSchemaResult.valid || !edgeSchemaResult.valid) return result({ valid: false, errors, command, changes, patches, affectedRecords: [], warnings, requiresConfirmation: false });
@@ -181,6 +181,16 @@ function previewDiagramEdit(command, options = {}) {
       return;
     }
 
+    if (operation.op === 'removeEdge') {
+      const hit = edgeIndex().get(recordId(operation));
+      if (!hit) { errors.push(issue('RECORD_NOT_FOUND', `command.operations.${opIndex}`, `Record ${recordId(operation)} was not found.`)); return; }
+      const removed = edges.splice(hit.rowIndex, 1)[0];
+      affected.add(removed.id || `edge-${hit.rowIndex}`);
+      changes.push(change(removed, undefined, `edges.${hit.rowIndex}`, operation));
+      patches.push({ op: 'remove', path: `/edges/${hit.rowIndex}` });
+      return;
+    }
+
     if (operation.op === 'addEdge') {
       const edge = {
         id: operation.id || nextId(edges, 'edge'),
@@ -265,7 +275,7 @@ function previewDiagramEdit(command, options = {}) {
   const edgeValidation = validateData(edges, edgeSchemaResult.schema, { ...options.validationOptions, references: { ...options.validationOptions?.references, 'flow-node': nodeValidation.rows.map(node => node.id) } });
   errors.push(...nodeValidation.errors, ...edgeValidation.errors);
   warnings.push(...nodeValidation.warnings, ...edgeValidation.warnings);
-  const diagramSpec = { type: 'flow', nodes: nodeValidation.rows, edges: edgeValidation.rows, groups, lanes, ...(options.diagram ? { diagram: options.diagram } : {}) };
+  const diagramSpec = { type: options.type || 'flow', nodes: nodeValidation.rows, edges: edgeValidation.rows, groups, lanes, ...(options.diagram ? { diagram: options.diagram } : {}) };
   const diagramValidation = validateDiagram(diagramSpec);
   errors.push(...diagramValidation.errors.map(error => issue(error.code, error.path, error.message, error.suggestion)));
 
@@ -274,7 +284,7 @@ function previewDiagramEdit(command, options = {}) {
   if (!equality(beforeEdges, edgeValidation.rows)) targets.edges = edgeValidation.rows;
   if (!equality(beforeGroups, groups)) targets.groups = groups;
   if (errors.length) return result({ valid: false, errors, command, changes: [], patches: [], affectedRecords: [...affected], warnings, requiresConfirmation: false, before: { nodes: beforeNodes, edges: beforeEdges, groups: beforeGroups }, after: { nodes: beforeNodes, edges: beforeEdges, groups: beforeGroups }, targets: {} });
-  const requiresConfirmation = options.requireConfirmation !== false || command.operations.some(operation => structureOperationTypes.has(operation.op) || operation.op === 'updateEdge');
+  const requiresConfirmation = options.requireConfirmation !== false || command.operations.some(operation => structureOperationTypes.has(operation.op));
   return result({
     valid: true,
     errors: [],

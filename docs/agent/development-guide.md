@@ -8,7 +8,7 @@ Unified workflow for Coding Agents developing iChart.js 2.0.
 | --- | --- | --- |
 | Generic metrics and data charts | `charting-scenario.md` | `src/charts.mjs` |
 | Schedules, milestones, and progress | `project-scenario.md` | `src/project.mjs` |
-| Processes, swimlanes, and Diagram editing | `diagram-scenario.md` | `src/diagram.mjs`, `src/diagram-interaction.mjs` |
+| Processes, swimlanes, architecture, mindmaps, and Diagram editing | `diagram-scenario.md` | `src/diagram.mjs`, `src/diagram-interaction.mjs` |
 
 ## Standard Change Flow
 

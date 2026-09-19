@@ -23,5 +23,7 @@ const result = chart.applyEdit(command, { preview, confirmed: true, source: 'age
 - 默认需要 Host 确认；确认不等同于授权。
 - 成功提交产生 ChangeSet、审计信息、revision 和 Undo 历史。
 - 外部持久化、权限和认证由 Host 应用负责。
+- 指针导航和编辑默认关闭。`editing.enabled` 授权编辑事务；`interaction.drag`、`interaction.edgeDrag`、`interaction.portConnect` 分别控制直接操作 UI。
+- Diagram 边通过 JSON-safe 的 `waypoints` 持久化；路径更新使用 `updateEdge`，删除使用 `removeEdge`，并要求结构编辑权限。
 
 Schema、命令、Preview/Commit、事务和历史的实现分别位于 `src/schema.mjs`、`src/command.mjs`、`src/edit.mjs`、`src/edit-controller.mjs` 和 `src/history.mjs`。

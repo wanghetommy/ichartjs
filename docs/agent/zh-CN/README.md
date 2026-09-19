@@ -11,7 +11,7 @@
 - [视觉样式与主题](theme-guide.md)
 - [数据分析图表](charting-scenario.md)
 - [项目管理图表](project-scenario.md)
-- [交互式 Diagram](diagram-scenario.md)
+- [交互式 Diagram](diagram-scenario.md)：Flow、Swimlane、Architecture、Mindmap 与编辑。
 - [Runtime 契约](runtime-contract.md)
 - [编辑契约](editing-contract.md)
 - 机器可读能力清单位于 `docs/manifests/`，供 Agent 按需读取。

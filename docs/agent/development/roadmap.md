@@ -1,6 +1,6 @@
 # iChart.js 2.0 Roadmap
 
-> Roadmap baseline: 2026-09-14. Current release status: `v2.0.6` is prepared from the completed Iteration 11 visual preference work. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
+> Roadmap baseline: 2026-09-14. Current release status: `v2.0.7` includes the completed Iteration 12 structured-diagram work and follow-up chart/menu fixes. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
 
 ## Current Status
 
@@ -14,6 +14,7 @@
 - Iteration 9A–9D implemented the lightweight visual style system, adaptive theme planning, runtime switching, renderer integration, and bilingual Agent guidance without adding a chart type; these capabilities remain in the `2.0.x` line.
 - Iteration 10A Export Contract Hardening was implemented and released in `v2.0.5`: export representations and type errors are deterministic, optional Node raster export uses `exportAsync()`, Canvas/SVG paint semantics are aligned, and the playground server has safer port/path handling. No chart behavior or public chart type was added.
 - Iteration 11 visual preference controls are included in the `v2.0.6` release: compact per-chart settings, capability-aware visibility controls, theme-aware icon contrast, explicit font-size defaults, shared page preferences, and Agent-adjustable global settings.
+- Iteration 12A–12G is included in `v2.0.7`: shared structured-diagram contracts, Architecture layers/boundaries, Mindmap parent-child tree/radial layouts with true cubic-Bezier edges, Agent schemas/capabilities, renderer-parity edge hit testing and selection, waypoint/segment handles, persistent manual routing, and Gallery/documentation coverage. Navigation and editing remain disabled by default and require explicit host activation.
 - The original `2.0.0` readiness record is historical and superseded by the published `2.0.x` releases. Current release checks are defined by `docs/agent/development/release-sop.md`.
 
 ## Iteration 4 — Agent Data Contract and Business Editing

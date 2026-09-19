@@ -75,7 +75,11 @@ const chart = createChart({
   data: { values: rows },
   preferences: pagePreferences
 });
-mountChartSettings(chart, { locale: 'en' });
+const settings = mountChartSettings(chart, {
+  locale: 'en',
+  placement: 'auto',
+  preferredPlacements: ['right', 'top', 'bottom']
+});
 
 // The same operation can come from an Agent conversation.
 chart.setPreferences({
@@ -83,7 +87,35 @@ chart.setPreferences({
   typography: { scale: 1.15 },
   components: { grid: false }
 }, { source: 'agent' });
+
+// Call this when the host permanently removes the chart.
+settings.destroy();
 ```
+
+The quick-settings panel is portaled outside the clipped chart surface. Automatic placement prefers the button's right side, then the top, then the bottom, and finally constrains the panel inside the browser viewport. On scroll it preserves the selected placement and follows the anchor without viewport snapping; it closes directly when the chart or anchor leaves the viewport. Resize and content changes may recompute placement.
+
+### Agent Discovery and Validation
+
+Agents should discover the allowlisted surface instead of hard-coding menu options. `getPreferenceCapabilities(chartType, { locale })` returns every preference field with its type, default value, options, scopes, chart applicability, and `menu.visible` status. Use the same contract for conversational changes and custom settings pages.
+
+```js
+import { getPreferenceCapabilities, validatePreferences } from '@taylorwong/ichartjs';
+
+const capabilities = getPreferenceCapabilities(chart.getSpec().type, { locale: 'en' });
+const menuFields = capabilities.fields.filter(field => field.menu.visible);
+const current = chart.getPreferences();
+const patch = {
+  theme: { preset: 'dashboard', palette: 'status' },
+  typography: { scale: 1.15 },
+  components: { grid: false }
+};
+const checked = validatePreferences(patch, { partial: true });
+if (!checked.valid) throw new Error(JSON.stringify(checked.errors));
+chart.setPreferences(checked.value, { scope: 'chart', source: 'agent' });
+const applied = chart.getState().preferences;
+```
+
+The quick menu fields are `theme.mode`, `theme.palette`, `typography.scale`, and capability-supported `components.legend`, `components.labels`, and `components.grid`. The full allowlist additionally includes `theme.preset`, `density`, `branding.enabled`, and `motion`. Unknown locales fall back to English.
 
 The optional per-chart menu uses a compact hamburger icon and intentionally exposes only high-frequency controls: theme mode, palette, font scale, and supported legend/label/grid visibility. Capability checks hide controls that do not apply to the current chart. Changes apply immediately and the UI supports `en`, `zh-CN`, and automatic document-language detection.
 

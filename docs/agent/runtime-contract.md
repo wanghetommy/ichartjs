@@ -10,6 +10,8 @@ getCapabilities → inspectData → planChart → create Spec → validateSpec �
 
 Agents should use `getCapabilities()` first instead of hard-coding undeclared types or operations.
 
+For post-creation visual settings, use `getPreferenceCapabilities(chartType, { locale }) → chart.getPreferences() → validatePreferences(patch) → chart.setPreferences(patch, { source: 'agent' }) → chart.getState().preferences`. This keeps Agent changes on the same allowlisted contract as the built-in settings menu.
+
 Iteration 8 adds per-chart profiles through `getChartCapability(type)`. Each profile declares required data roles, supported interactions, renderers, feature status, exports, and practical limits. Unsupported behavior must be handled from this profile or from validation diagnostics rather than guessed.
 
 `planChart(data, { intent, renderer })` returns a versioned planning result with a primary chart, alternatives, confidence, reasons, required fields, suggested encodings, assumptions, warnings, unsupported requests, safe next actions, and the selected capability profile. Planning never invents business meaning, units, dates, or missing fields.
@@ -19,7 +21,7 @@ Iteration 8 adds per-chart profiles through `getChartCapability(type)`. Each pro
 - Specs must be JSON-serializable.
 - Call `validateSpec()` before rendering.
 - Chart layout and data semantics are renderer-independent.
-- `flow` and `swimlane` use `nodes/edges/lanes`; generic charts use `data.values`.
+- `flow` and `swimlane` use `nodes/edges/lanes`; `architecture` uses `nodes/edges/layers/boundaries`; `mindmap` uses `nodes` with `parentId` and optional `edges`; generic charts use `data.values`.
 
 ## Renderer
 
@@ -93,10 +95,18 @@ validateSpec(spec)
 createChart(spec)
 getCapabilities()
 getChartCapability(type)
+getPreferenceCapabilities(type, options)
+validatePreferences(patch, options)
 chart.describe()
 chart.explain()
 chart.getState()
+chart.getPreferences()
+chart.setPreferences(patch, options)
+chart.resetPreferences(options)
 chart.getSelectedData()
+chart.selectEdges(edgeIds, options)
+chart.getSelectedEdgeIds()
+chart.deleteSelectedEdges(options)
 chart.export(options)
 chart.exportAsync(options)
 chart.toDataURL(type)

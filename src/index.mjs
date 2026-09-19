@@ -16,11 +16,11 @@ import { commitPreview, getEditCapabilities, previewEdit, validateEdit } from '.
 import { EditHistory } from './history.mjs';
 import { validateRecipe } from './recipes.mjs';
 import { EditController } from './edit-controller.mjs';
-import { diagramLayoutModes, edgeRoutingModes, normalizeDiagramSpec, validateDiagram, layoutDiagram, routeEdge } from './diagram.mjs';
+import { diagramLayoutModes, diagramModes, edgeRoutingModes, normalizeDiagramSpec, validateDiagram, layoutDiagram, routeEdge } from './diagram.mjs';
 import { normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries } from './project-analytics.mjs';
 import { normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId } from './project-linking.mjs';
-import { explainChart, getCapabilities as discoverCapabilities, getChartCapability, planChart } from './capabilities.mjs';
-import { applyPreferencesToSpec, createPreferencesStore, defaultPreferences, mergePreferences, mergeThemePreference, normalizePreferences } from './preferences.mjs';
+import { explainChart, getCapabilities as discoverCapabilities, getChartCapability, getPreferenceCapabilities, planChart } from './capabilities.mjs';
+import { applyPreferencesToSpec, createPreferencesStore, defaultPreferences, mergePreferences, mergeThemePreference, normalizePreferences, validatePreferences } from './preferences.mjs';
 import { mountChartSettings } from './preferences-ui.mjs';
 
 import { isDiagram, paintSelection, diagramPointer, diagramKeyboard } from './diagram-interaction.mjs';
@@ -101,10 +101,13 @@ function sceneToSvgString(scene, spec = {}) {
       }
       attrs.push(`d="${_svgEscape(d, 'attr')}"`);
     } else if (node.type === 'path') {
-      const d = `${(g.points || []).map((p, i) => `${i ? 'L' : 'M'} ${p.x} ${p.y}`).join(' ')}${g.closed ? ' Z' : ''}`;
+      const d = g.curve === 'cubic' && g.points?.length === 4
+        ? `M ${g.points[0].x} ${g.points[0].y} C ${g.points[1].x} ${g.points[1].y} ${g.points[2].x} ${g.points[2].y} ${g.points[3].x} ${g.points[3].y}`
+        : `${(g.points || []).map((p, i) => `${i ? 'L' : 'M'} ${p.x} ${p.y}`).join(' ')}${g.closed ? ' Z' : ''}`;
       attrs.push(`d="${_svgEscape(d, 'attr')}"`);
     } else if (node.type === 'text') {
       attrs.push(`x="${g.x}" y="${g.y}"`);
+      if (Number.isFinite(Number(s.rotation)) && Number(s.rotation) !== 0) attrs.push(`transform="rotate(${Number(s.rotation)} ${g.x} ${g.y})"`);
       const anchor = s.textAnchor || (s.textAlign === 'end' ? 'end' : s.textAlign === 'center' ? 'middle' : s.textAlign === 'right' ? 'end' : s.textAlign === 'left' ? 'start' : 'start');
       if (anchor) attrs.push(`text-anchor="${anchor}"`);
       const baseline = s.textBaseline || s.baseline || 'alphabetic';
@@ -195,7 +198,7 @@ export class Chart {
     delete result.spec.preferencesStore;
     delete result.spec.chartId;
     this._themeInput = input.theme ?? 'auto';
-    this._styleOverrides = { colors: input.colors !== undefined, background: input.background !== undefined, padding: input.padding !== undefined };
+    this._styleOverrides = { colors: input.colors !== undefined, background: input.background !== undefined, padding: input.padding !== undefined, legend: false, labels: false, grid: false, branding: false };
     this.spec = result.spec;
     this._preferenceBase = Object.fromEntries(['legend', 'labels', 'grid', 'branding', 'padding'].map(key => [key, clone(this.spec[key])]));
     this._resolveStyle();
@@ -232,6 +235,7 @@ export class Chart {
     if (!this._styleOverrides.background) this.spec.background = this.spec.theme.background;
     if (!this._styleOverrides.padding) this.spec.padding = clone(this.spec.theme.layout.padding);
     this.spec = applyPreferencesToSpec(this.spec, preferences);
+    ['legend', 'labels', 'grid', 'branding'].forEach(key => { if (this._styleOverrides[key]) this.spec[key] = clone(this._preferenceBase[key]); });
   }
   _observeColorScheme() {
     if (typeof matchMedia !== 'function') return;
@@ -265,9 +269,13 @@ export class Chart {
             element.setAttribute('role', 'group');
             element.setAttribute('aria-label', `Group ${dataRef.groupId}${dataRef.collapsed ? ', collapsed' : ', expanded'}`);
             element.setAttribute('aria-expanded', String(!dataRef.collapsed));
+          } else if (dataRef.edgeHandle) {
+            element.setAttribute('role', 'button');
+            element.setAttribute('aria-label', `${dataRef.edgeHandle === 'segment' ? 'Segment' : 'Waypoint'} handle for edge ${dataRef.edgeId}`);
           } else if (dataRef.edgeId || dataRef.from && dataRef.to) {
             element.setAttribute('role', 'img');
             element.setAttribute('aria-label', `Edge from ${dataRef.from} to ${dataRef.to}`);
+            element.setAttribute('aria-selected', String(this.getSelectedEdgeIds().includes(dataRef.edgeId)));
             if (dataRef.from) element.setAttribute('aria-describedby', `node-${dataRef.from}`);
           } else if (dataRef.nodeId && !dataRef.portId) {
             element.setAttribute('role', 'button');
@@ -288,7 +296,7 @@ export class Chart {
           const ids = [];
           this.model.scene.walk(node => { if (node.interactive && node.dataRef) ids.push(node.id); });
           if (!ids.length) return;
-          if (['flow', 'swimlane'].includes(this.spec.type) && this.spec.editing?.enabled && this._selected.size) {
+          if (isDiagram(this) && this.spec.editing?.enabled && this._selected.size) {
             const delta = { x: ['ArrowRight', 'ArrowLeft'].includes(event.key) ? (event.key === 'ArrowRight' ? 8 : -8) : 0, y: ['ArrowDown', 'ArrowUp'].includes(event.key) ? (event.key === 'ArrowDown' ? 8 : -8) : 0 };
             const result = this.moveSelectedBy(delta, { confirmed: true, source: 'keyboard' });
             if (result.valid) event.preventDefault();
@@ -318,16 +326,16 @@ export class Chart {
     const touchEnd = () => { this._touchStart = null; this._pinchStart = null; };
     const wheel = event => { if (!this.spec.interaction.zoom) return; event.preventDefault(); if (isDiagram(this)) { this.zoomTo({ scale: Math.max(0.25, Math.min(8, (this.spec.view?.scale || 1) * (event.deltaY > 0 ? 0.9 : 1.1))) }); return; } const count = normalizeData(this.spec.data).rows.length, current = this.spec.view || { start: 0, end: count }; this.zoomTo(resolveZoomWindow(count, current, event.deltaY > 0 ? 1.25 : 0.8)); };
     const leave = event => { this._hideTooltip(); if (!this._dragStart && !this._nodeDrag) end(event); };
-    if (isDiagram(this)) target.style.touchAction = 'none'; target.addEventListener('mousemove', handler); target.addEventListener('click', handler); target.addEventListener('pointerdown', start); target.addEventListener('pointermove', move); target.addEventListener('pointerup', end); target.addEventListener('pointercancel', end); target.addEventListener('pointerleave', leave); target.addEventListener('touchstart', touchStart, { passive: false }); target.addEventListener('touchmove', touchMove, { passive: false }); target.addEventListener('touchend', touchEnd); target.addEventListener('wheel', wheel, { passive: false }); this._eventsBound = { target, handler, start, move, end, leave, touchStart, touchMove, touchEnd, wheel }; }
+    if (isDiagram(this)) target.style.touchAction = ['zoom', 'pan', 'brush', 'drag', 'edgeDrag', 'portConnect'].some(name => this.spec.interaction?.[name]) ? 'none' : 'auto'; target.addEventListener('mousemove', handler); target.addEventListener('click', handler); target.addEventListener('pointerdown', start); target.addEventListener('pointermove', move); target.addEventListener('pointerup', end); target.addEventListener('pointercancel', end); target.addEventListener('pointerleave', leave); target.addEventListener('touchstart', touchStart, { passive: false }); target.addEventListener('touchmove', touchMove, { passive: false }); target.addEventListener('touchend', touchEnd); target.addEventListener('wheel', wheel, { passive: false }); this._eventsBound = { target, handler, start, move, end, leave, touchStart, touchMove, touchEnd, wheel }; }
   _touchDistance(event) { if (!event.touches || event.touches.length < 2) return null; const [first, second] = event.touches; return Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY); }
   _eventPoint(event, target) { const rect = target.getBoundingClientRect(); return { x: (event.clientX - rect.left) * this.spec.width / (rect.width || this.spec.width), y: (event.clientY - rect.top) * this.spec.height / (rect.height || this.spec.height) }; }
   _updateCrosshair(x, y) { const vertical = this.model.scene.find('crosshair-x'), horizontal = this.model.scene.find('crosshair-y'); if (!vertical || !horizontal) return; vertical.geometry.x1 = vertical.geometry.x2 = x; vertical.style.opacity = 0.7; horizontal.geometry.y1 = horizontal.geometry.y2 = y; horizontal.style.opacity = 0.7; this.renderer.render(this.model.scene); }
-  _showTooltip(payload) { if (typeof document === 'undefined' || !this.container || !payload.datum) return; let tip = this._tooltip; if (!tip) { tip = this._tooltip = document.createElement('div'); tip.className = 'ichart-v2-tooltip'; Object.assign(tip.style, { position: 'fixed', pointerEvents: 'none', zIndex: 9999, padding: '8px 10px', borderRadius: '6px', maxWidth: 'min(320px, calc(100vw - 24px))', whiteSpace: 'pre-line' }); document.body.appendChild(tip); } Object.assign(tip.style, { background: this.spec.theme.surface, color: this.spec.theme.text, border: `1px solid ${this.spec.theme.border}`, font: this.spec.theme.typography.tooltip.font, boxShadow: `0 4px 12px ${this.spec.theme.border}88` }); const text = ['gantt', 'timeline', 'milestone', 'burndown'].includes(this.spec.type) || ['flow', 'swimlane'].includes(this.spec.type) ? projectTooltip(this.spec.type, payload.datum) : Object.entries(payload.datum).map(([key, value]) => `${key}: ${value}`).join(' · '); tip.textContent = text; const left = Math.min((payload.nativeEvent.clientX || 0) + 12, window.innerWidth - tip.offsetWidth - 12); const top = Math.min((payload.nativeEvent.clientY || 0) + 12, window.innerHeight - tip.offsetHeight - 12); tip.style.left = `${Math.max(12, left)}px`; tip.style.top = `${Math.max(12, top)}px`; }
+  _showTooltip(payload) { if (typeof document === 'undefined' || !this.container || !payload.datum) return; let tip = this._tooltip; if (!tip) { tip = this._tooltip = document.createElement('div'); tip.className = 'ichart-v2-tooltip'; Object.assign(tip.style, { position: 'fixed', pointerEvents: 'none', zIndex: 9999, padding: '8px 10px', borderRadius: '6px', maxWidth: 'min(320px, calc(100vw - 24px))', whiteSpace: 'pre-line' }); document.body.appendChild(tip); } Object.assign(tip.style, { background: this.spec.theme.surface, color: this.spec.theme.text, border: `1px solid ${this.spec.theme.border}`, font: this.spec.theme.typography.tooltip.font, boxShadow: `0 4px 12px ${this.spec.theme.border}88` }); const text = ['gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane', 'architecture', 'mindmap'].includes(this.spec.type) ? projectTooltip(this.spec.type, payload.datum) : Object.entries(payload.datum).map(([key, value]) => `${key}: ${value}`).join(' · '); tip.textContent = text; const left = Math.min((payload.nativeEvent.clientX || 0) + 12, window.innerWidth - tip.offsetWidth - 12); const top = Math.min((payload.nativeEvent.clientY || 0) + 12, window.innerHeight - tip.offsetHeight - 12); tip.style.left = `${Math.max(12, left)}px`; tip.style.top = `${Math.max(12, top)}px`; }
   _hideTooltip() { if (this._tooltip) this._tooltip.style.left = '-10000px'; }
   on(type, listener) { if (!this.listeners.has(type)) this.listeners.set(type, new Set()); this.listeners.get(type).add(listener); return this; }
   off(type, listener) { this.listeners.get(type)?.delete(listener); return this; }
   emit(type, event) { this.listeners.get(type)?.forEach(listener => listener(event)); }
-  update(next = {}) { this._editor.invalidate(); const { preferences, preferencesStore, chartId, ...specUpdate } = next || {}; if (preferences !== undefined) this.setPreferences(preferences); if (specUpdate.theme !== undefined) this._themeInput = specUpdate.theme; ['colors', 'background', 'padding'].forEach(key => { if (specUpdate[key] !== undefined) this._styleOverrides[key] = true; }); this.spec = normalizeSpec({ ...this.spec, ...specUpdate, theme: this._themeInput, data: specUpdate.data === undefined ? this.spec.data : specUpdate.data }); ['legend', 'labels', 'grid', 'branding', 'padding'].forEach(key => { if (specUpdate[key] !== undefined) this._preferenceBase[key] = clone(this.spec[key]); }); this._resolveStyle(); return this.render(); }
+  update(next = {}) { this._editor.invalidate(); const { preferences, preferencesStore, chartId, ...specUpdate } = next || {}; if (preferences !== undefined) this.setPreferences(preferences); if (specUpdate.theme !== undefined) this._themeInput = specUpdate.theme; ['colors', 'background', 'padding', 'legend', 'labels', 'grid', 'branding'].forEach(key => { if (specUpdate[key] !== undefined) this._styleOverrides[key] = true; }); this.spec = normalizeSpec({ ...this.spec, ...specUpdate, theme: this._themeInput, data: specUpdate.data === undefined ? this.spec.data : specUpdate.data }); ['legend', 'labels', 'grid', 'branding', 'padding'].forEach(key => { if (specUpdate[key] !== undefined) this._preferenceBase[key] = clone(this.spec[key]); }); this._resolveStyle(); return this.render(); }
   setData(data) { this._editor.invalidate(); this.spec = normalizeSpec({ ...this.spec, theme: this._themeInput, data: { values: data } }); this._resolveStyle(); return this.render(); }
   setTheme(theme = 'auto') { this._themeInput = theme; this._resolveStyle(); this.render(); this.emit('themechange', { chart: this, theme: this.getTheme(), source: 'user' }); return this; }
   getTheme() { return clone(this.spec.theme); }
@@ -356,8 +364,10 @@ export class Chart {
   highlight(target) { if (target?.id) target.highlighted = true; this.render(); return this; }
   select(target, options = {}) { if (!options.additive) { this._selected.clear(); this.model?.scene.walk(node => { node.selected = false; }); } if (target?.id) { target.selected = true; this._selected.set(target.id, target.dataRef); } this.emit('selectionchange', { chart: this, target, selectedData: this.getSelectedData() }); return this; }
   selectNodes(nodeIds = [], options = {}) { if (!options.additive) { this._selected.clear(); this.model.scene.walk(node => { node.selected = false; }); } nodeIds.forEach(id => { const node = this.model.scene.find(`node-${id}`); if (node) { node.selected = true; this._selected.set(node.id, node.dataRef); } }); this.emit('selectionchange', { chart: this, target: null, selectedData: this.getSelectedData() }); this.render(); return this; }
+  selectEdges(edgeIds = [], options = {}) { if (!options.additive) { this._selected.clear(); this.model.scene.walk(node => { node.selected = false; }); } const selected = new Set(edgeIds); this.model.scene.walk(node => { if (node.dataRef?.edgeId && !node.dataRef?.edgeHandle && selected.has(node.dataRef.edgeId)) { node.selected = true; this._selected.set(node.id, node.dataRef); } }); this.emit('selectionchange', { chart: this, target: null, selectedData: this.getSelectedData() }); this.render(); return this; }
   selectGroup(groupId, options = {}) { return this.selectNodes(this.model.data.rows.filter(row => row.groupId === groupId).map(row => row.id), options); }
   getSelectedNodeIds() { return [...new Set([...this._selected.values()].map(ref => ref?.nodeId).filter(Boolean))]; }
+  getSelectedEdgeIds() { return [...new Set([...this._selected.values()].map(ref => ref?.edgeId).filter(Boolean))]; }
   getDiagramNodes() { return (this.spec.nodes || this.spec.data?.nodes || []).map(node => ({ ...node })); }
   getDiagramEdges() { return (this.spec.edges || this.spec.data?.edges || []).map(edge => ({ ...edge })); }
   getDiagramGroups() { return (this.spec.groups || this.spec.data?.groups || []).map(group => ({ ...group })); }
@@ -400,6 +410,15 @@ export class Chart {
     const preview = this.previewEdit({ type: 'layout-edit', reason: 'Connect diagram nodes', operations: [operation] });
     return this.applyEdit(preview.command, { ...options, preview, confirmed: options.confirmed });
   }
+  deleteSelectedEdges(options = {}) {
+    const edgeIds = this.getSelectedEdgeIds();
+    if (!edgeIds.length) return { valid: false, errors: [{ code: 'NO_SELECTION', message: 'Select one or more diagram edges first.' }] };
+    if (this.spec.editing?.allowDelete !== true) return { valid: false, errors: [{ code: 'DELETE_DISABLED', message: 'Edge deletion requires editing.allowDelete.' }] };
+    const preview = this.previewEdit({ type: 'layout-edit', reason: 'Delete selected diagram edges', operations: edgeIds.map(edgeId => ({ op: 'removeEdge', edgeId })) });
+    const result = this.applyEdit(preview.command, { ...options, preview, confirmed: options.confirmed });
+    if (result.valid) this.clearSelection();
+    return result;
+  }
   toggleGroupCollapse(groupId, options = {}) {
     const preview = this.previewEdit({ type: 'layout-edit', reason: 'Toggle group collapse', operations: [{ op: 'toggleGroupCollapse', groupId, ...(options.collapsed !== undefined ? { collapsed: options.collapsed } : {}) }] });
     const result = this.applyEdit(preview.command, { ...options, preview, confirmed: options.confirmed });
@@ -414,7 +433,7 @@ export class Chart {
   moveSelectedBy(delta, options = {}) { const nodeIds = this.getSelectedNodeIds(); if (!nodeIds.length) return { valid: false, errors: [{ code: 'NO_SELECTION', message: 'Select one or more diagram nodes first.' }] }; const preview = this.previewEdit({ type: 'layout-edit', reason: options.reason || 'Move selected nodes', operations: [{ op: 'moveNodes', nodeIds, delta }] }); return this.applyEdit(preview.command, { ...options, preview, confirmed: options.confirmed }); }
   alignSelected(alignment, options = {}) { const nodeIds = this.getSelectedNodeIds(); const preview = this.previewEdit({ type: 'layout-edit', reason: `Align selected nodes ${alignment}`, operations: [{ op: 'alignNodes', nodeIds, alignment }] }); return this.applyEdit(preview.command, { ...options, preview, confirmed: options.confirmed }); }
   snapSelected(options = {}) { const nodeIds = this.getSelectedNodeIds(); const preview = this.previewEdit({ type: 'layout-edit', reason: 'Snap selected nodes', operations: [{ op: 'snapNodes', nodeIds }] }); return this.applyEdit(preview.command, { ...options, preview, confirmed: options.confirmed }); }
-  getSelectedData() { const diagram = ['flow', 'swimlane'].includes(this.spec.type), source = diagram ? (this.spec.nodes || this.spec.data?.nodes || []) : normalizeData(this.spec.data).rows, offset = diagram ? 0 : (this.model.data.viewOffset || 0); return [...this._selected.values()].map(ref => diagram ? source.find(row => row.id === ref?.nodeId) : (ref?.dataIndex == null ? ref?.datum : source[ref.dataIndex + offset])).filter(Boolean); }
+  getSelectedData() { const diagram = isDiagram(this), source = diagram ? (this.spec.nodes || this.spec.data?.nodes || []) : normalizeData(this.spec.data).rows, edges = diagram ? (this.spec.edges || this.spec.data?.edges || []) : [], offset = diagram ? 0 : (this.model.data.viewOffset || 0); return [...this._selected.values()].map(ref => diagram ? ref?.edgeId ? edges.find((row, index) => (row.id || `edge-${index}`) === ref.edgeId) : source.find(row => row.id === ref?.nodeId) : (ref?.dataIndex == null ? ref?.datum : source[ref.dataIndex + offset])).filter(Boolean); }
   clearSelection() { this._selected.clear(); this.render(); this.emit('selectionchange', { chart: this, target: null, selectedData: [] }); return this; }
   getElementAt(x, y) { return this.model.scene.hit(x, y); }
   selectBox(start, end) { const left = Math.min(start.x, end.x), right = Math.max(start.x, end.x), top = Math.min(start.y, end.y), bottom = Math.max(start.y, end.y); this._selected.clear(); this.model.scene.walk(node => { node.selected = false; if (!node.dataRef || !node.bounds || !node.interactive || (isDiagram(this) && !node.id.startsWith('node-'))) return; const intersects = node.bounds.x <= right && node.bounds.x + node.bounds.width >= left && node.bounds.y <= bottom && node.bounds.y + node.bounds.height >= top; if (intersects) { node.selected = true; this._selected.set(node.id, node.dataRef); } }); this.emit('selectionchange', { chart: this, selectedData: this.getSelectedData(), box: { start, end } }); this.render(); return this; }
@@ -602,13 +621,13 @@ export class Chart {
 }
 
 export function createChart(spec) { return new Chart(spec); }
-export function getCapabilities() { return { ...discoverCapabilities(), diagram: { layoutModes: diagramLayoutModes, routingModes: edgeRoutingModes, entities: ['node', 'edge', 'lane', 'group', 'port'], operations: ['moveNode', 'moveNodes', 'resizeNode', 'alignNodes', 'snapNodes', 'moveNodeToLane', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'updateEdge', 'addEdge', 'toggleGroupCollapse', 'duplicateSelection', 'pasteSelection'], validation: ['duplicate-ids', 'missing-endpoints', 'missing-ports', 'missing-lanes'] }, editing: { modes: ['preview', 'commit', 'undo', 'redo'], operations: ['updateField', 'updateRecord', 'updateTask', 'shiftTask', 'updateProgress', 'addDependency', 'removeDependency', 'updateMilestone', 'moveNode', 'moveNodes', 'moveNodeToLane', 'resizeNode', 'alignNodes', 'snapNodes', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'updateEdge', 'addEdge', 'toggleGroupCollapse', 'duplicateSelection', 'pasteSelection'], confirmationRequiredByDefault: true, commit: 'local-runtime-host-persistence-required' } }; }
+export function getCapabilities() { return { ...discoverCapabilities(), interactionDefaults: { zoom: false, pan: false, brush: false, drag: false, edgeDrag: false, portConnect: false, editing: false }, diagram: { layoutModes: diagramLayoutModes, routingModes: edgeRoutingModes, entities: ['node', 'edge', 'lane', 'group', 'port', 'waypoint'], operations: ['moveNode', 'moveNodes', 'resizeNode', 'alignNodes', 'snapNodes', 'moveNodeToLane', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'updateEdge', 'removeEdge', 'addEdge', 'toggleGroupCollapse', 'duplicateSelection', 'pasteSelection'], curvedEdges: { renderers: ['canvas', 'svg'], type: 'cubic-bezier', tension: { minimum: 0.2, maximum: 0.8, default: 0.4 }, mindmapDefault: true, obstacleFallback: 'orthogonal', controlPointEditing: false }, edgeEditing: { renderers: ['canvas', 'svg'], selection: true, waypointDrag: true, segmentDrag: true, persistentWaypoints: true, enabledByDefault: false, activation: ['editing.enabled', 'interaction.edgeDrag'] }, validation: ['duplicate-ids', 'missing-endpoints', 'missing-ports', 'missing-lanes', 'invalid-waypoints', 'invalid-curve-tension'] }, editing: { modes: ['preview', 'commit', 'undo', 'redo'], operations: ['updateField', 'updateRecord', 'updateTask', 'shiftTask', 'updateProgress', 'addDependency', 'removeDependency', 'updateMilestone', 'moveNode', 'moveNodes', 'moveNodeToLane', 'resizeNode', 'alignNodes', 'snapNodes', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'updateEdge', 'removeEdge', 'addEdge', 'toggleGroupCollapse', 'duplicateSelection', 'pasteSelection'], confirmationRequiredByDefault: true, commit: 'local-runtime-host-persistence-required' } }; }
 export function recommend(input, options = {}) { const plan = planChart(input, options); return { primary: plan.primary, alternatives: plan.alternatives, reason: plan.reasons.join(' '), reasons: plan.reasons, confidence: plan.confidence, requiredFields: plan.requiredFields, assumptions: plan.assumptions, warnings: plan.warnings, nextActions: plan.nextActions }; }
-export { normalizeSpec, validateSpec, normalizeData, inspectData, binData, applyTransforms, data, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, getChartCapability, planChart, explainChart };
-export { diagramLayoutModes, edgeRoutingModes, normalizeDiagramSpec, validateDiagram, layoutDiagram, routeEdge };
+export { normalizeSpec, validateSpec, normalizeData, inspectData, binData, applyTransforms, data, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, getChartCapability, getPreferenceCapabilities, planChart, explainChart };
+export { diagramLayoutModes, diagramModes, edgeRoutingModes, normalizeDiagramSpec, validateDiagram, layoutDiagram, routeEdge };
 export { normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries };
 export { normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };
 
 export { contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin };
-export { applyPreferencesToSpec, createPreferencesStore, defaultPreferences, mergePreferences, mergeThemePreference, mountChartSettings, normalizePreferences };
-export const iChart = { version: '2.0.6', createChart, inspectData, normalizeData, binData, applyTransforms, normalizeSpec, validateSpec, data, getCapabilities, getChartCapability, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, createPreferencesStore, defaultPreferences, normalizePreferences, mergePreferences, applyPreferencesToSpec, mountChartSettings, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };
+export { applyPreferencesToSpec, createPreferencesStore, defaultPreferences, mergePreferences, mergeThemePreference, mountChartSettings, normalizePreferences, validatePreferences };
+export const iChart = { version: '2.0.7', createChart, inspectData, normalizeData, binData, applyTransforms, normalizeSpec, validateSpec, data, getCapabilities, getChartCapability, getPreferenceCapabilities, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, createPreferencesStore, defaultPreferences, normalizePreferences, mergePreferences, validatePreferences, applyPreferencesToSpec, mountChartSettings, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };
