@@ -4,6 +4,7 @@
  */
 import { chartProfiles } from './capabilities.mjs';
 import { themeModes, themePalettes, themePresets } from './theme.mjs';
+import { validateDiagram } from './diagram.mjs';
 
 const chartTypes = new Set(Object.keys(chartProfiles));
 
@@ -21,7 +22,7 @@ const defaults = {
   grid: { visible: true },
   labels: { enabled: false },
   branding: { enabled: true },
-  interaction: { tooltip: true, hover: true, click: true, crosshair: false, zoom: false, brush: false, keyboard: true }
+  interaction: { tooltip: true, hover: true, click: true, crosshair: false, zoom: false, pan: false, brush: false, drag: false, edgeDrag: false, portConnect: false, keyboard: true }
   ,responsive: [], accessibility: { enabled: false }, editing: { enabled: false, mode: 'command', requireConfirmation: true, allowDelete: false, allowStructuralChanges: false }, xAxis: {}, yAxis: {}
 };
 
@@ -68,7 +69,7 @@ export function normalizeSpec(input = {}) {
     if (spec.branding.enabled === undefined) spec.branding = { ...spec.branding, enabled: true };
   }
   if (!spec.data) spec.data = { values: [] };
-  if (['flow', 'swimlane'].includes(spec.type) && spec.nodes && !spec.data.values) spec.data.values = [];
+  if (['flow', 'swimlane', 'architecture', 'mindmap'].includes(spec.type) && spec.nodes && !spec.data.values) spec.data.values = [];
   if (Array.isArray(spec.data)) spec.data = { values: spec.data };
   if (!spec.encoding) spec.encoding = {};
   if (['pie', 'funnel', 'gauge'].includes(spec.type) && !spec.encoding.category) spec.encoding.category = { field: 'name', type: 'category' };
@@ -76,7 +77,7 @@ export function normalizeSpec(input = {}) {
   if (spec.type === 'scatter' && !input.encoding?.x) spec.encoding.x = { field: 'x', type: 'quantitative' };
   if (spec.type === 'scatter' && !input.encoding?.y) spec.encoding.y = { field: 'y', type: 'quantitative' };
   if (spec.type === 'heatmap') { spec.encoding.x ||= { field: 'x', type: 'category' }; spec.encoding.y ||= { field: 'y', type: 'category' }; spec.encoding.color ||= { field: 'value', type: 'quantitative' }; }
-  if (!['pie', 'funnel', 'gauge', 'gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane'].includes(spec.type)) {
+  if (!['pie', 'funnel', 'gauge', 'gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane', 'architecture', 'mindmap'].includes(spec.type)) {
     spec.encoding.x = spec.encoding.x || { field: 'name', type: 'category' };
     spec.encoding.y = spec.encoding.y || { field: 'value', type: 'quantitative' };
   }
@@ -102,7 +103,12 @@ export function validateSpec(input) {
   if (spec.type === 'pie' && spec.innerRadius != null && (!(Number(spec.innerRadius) >= 0) || Number(spec.innerRadius) >= 1)) errors.push({ code: 'INVALID_INNER_RADIUS', path: 'innerRadius', message: 'Pie innerRadius must be a ratio from 0 up to, but not including, 1.', suggestion: 'Use a value such as 0.55.' });
   if (spec.type === 'radar' && (!Array.isArray(spec.indicators) || spec.indicators.length < 3)) errors.push({ code: 'INVALID_INDICATORS', path: 'indicators', message: 'Radar requires at least three indicators.', suggestion: 'Declare indicator name, field, min, and max.' });
   if (!spec.data || !Array.isArray(spec.data.values)) errors.push({ code: 'INVALID_DATA', path: 'data.values', message: 'data.values must be an array.', suggestion: 'Pass an array of row objects.' });
-  if (['flow', 'swimlane'].includes(spec.type) && !Array.isArray(spec.nodes) && !Array.isArray(spec.data?.nodes)) errors.push({ code: 'INVALID_NODES', path: 'nodes', message: 'Flow and swimlane charts require nodes.', suggestion: 'Pass nodes on the Spec or in data.nodes.' });
+  if (['flow', 'swimlane', 'architecture', 'mindmap'].includes(spec.type) && !Array.isArray(spec.nodes) && !Array.isArray(spec.data?.nodes)) errors.push({ code: 'INVALID_NODES', path: 'nodes', message: `${spec.type} charts require nodes.`, suggestion: 'Pass nodes on the Spec or in data.nodes.' });
+  if (['flow', 'swimlane', 'architecture', 'mindmap'].includes(spec.type)) {
+    const diagramInput = { type: spec.type, ...(Array.isArray(spec.nodes) ? { nodes: spec.nodes } : {}), ...(Array.isArray(spec.data?.nodes) ? { nodes: spec.data.nodes } : {}), ...(Array.isArray(spec.edges) ? { edges: spec.edges } : {}), ...(Array.isArray(spec.data?.edges) ? { edges: spec.data.edges } : {}), ...(Array.isArray(spec.lanes) ? { lanes: spec.lanes } : {}), ...(Array.isArray(spec.groups) ? { groups: spec.groups } : {}), ...(Array.isArray(spec.layers) ? { layers: spec.layers } : {}), ...(Array.isArray(spec.boundaries) ? { boundaries: spec.boundaries } : {}), ...(spec.diagram ? { diagram: spec.diagram } : {}) };
+    const diagramValidation = validateDiagram(diagramInput);
+    diagramValidation.errors.forEach(error => errors.push({ ...error, path: error.path || 'diagram' }));
+  }
   if (['gantt', 'timeline', 'milestone'].includes(spec.type)) {
     const rows = spec.data.values, dateKey = spec.type === 'gantt' ? 'start/end' : 'date';
     if (!rows.some(row => row.start || row.end || row.date)) errors.push({ code: 'INVALID_INTERVALS', path: 'data.values', message: `${spec.type} rows require ${dateKey} dates.`, suggestion: 'Add ISO date values to each row.' });

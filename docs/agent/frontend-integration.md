@@ -10,7 +10,7 @@ This is the production component path. For one-off files or Agent-led repository
 npm install @taylorwong/ichartjs@^2
 ```
 
-For environments without npm registry access, install from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.6`.
+For environments without npm registry access, install from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.7`.
 
 Use the package through a bundler or another environment that resolves npm ESM imports:
 

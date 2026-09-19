@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.7 - 2026-09-20
+
+- Added Architecture and Mindmap chart types with shared diagram contracts, layers, boundaries, parent-child validation, deterministic tree/radial layouts, and Agent-readable schemas and capabilities.
+- Added renderer-parity edge selection and editing, persistent manual waypoints, obstacle-aware routing, and true cubic-Bezier Mindmap edges while keeping navigation and editing disabled by default.
+- Improved chart layout reflow, diagram connection routing, label spacing, legend and branding controls, and compact chart preference behavior.
+- Fixed chart settings placement so scrolling preserves the selected side without viewport snapping and closes the menu directly after its anchor leaves the viewport.
+
 ## 2.0.6 - 2026-09-18
 
 - Added compact per-chart visual settings with explicit default font sizing, capability-aware visibility toggles, bilingual labels, and theme-aware hamburger icon contrast.

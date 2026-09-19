@@ -33,7 +33,7 @@ Install the official Skill with the standard Agent Skills CLI:
 npx skills add wanghetommy/ichartjs --skill ichartjs
 ```
 
-For global non-interactive Codex setup, append `--agent codex --global --yes`. To pin the released workflow, install `https://github.com/wanghetommy/ichartjs/tree/v2.0.6/skills/ichartjs`. WorkBuddy can import that tagged directory through its Skill interface; only use a host-specific `--agent` value when the installed CLI declares it.
+For global non-interactive Codex setup, append `--agent codex --global --yes`. To pin the released workflow, install `https://github.com/wanghetommy/ichartjs/tree/v2.0.7/skills/ichartjs`. WorkBuddy can import that tagged directory through its Skill interface; only use a host-specific `--agent` value when the installed CLI declares it.
 
 Verify discovery with `npx skills add wanghetommy/ichartjs --list`; the result should include `ichartjs`.
 

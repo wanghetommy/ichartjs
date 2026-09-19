@@ -5,7 +5,7 @@
 import { copyJSON, issue } from './schema.mjs';
 
 export const commandVersion = '1.0';
-export const operationTypes = ['updateField', 'updateRecord', 'updateTask', 'shiftTask', 'updateProgress', 'addDependency', 'removeDependency', 'updateMilestone', 'moveNode', 'moveNodes', 'moveNodeToLane', 'resizeNode', 'alignNodes', 'snapNodes', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'updateEdge', 'toggleGroupCollapse', 'addEdge', 'duplicateSelection', 'pasteSelection'];
+export const operationTypes = ['updateField', 'updateRecord', 'updateTask', 'shiftTask', 'updateProgress', 'addDependency', 'removeDependency', 'updateMilestone', 'moveNode', 'moveNodes', 'moveNodeToLane', 'resizeNode', 'alignNodes', 'snapNodes', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'updateEdge', 'removeEdge', 'toggleGroupCollapse', 'addEdge', 'duplicateSelection', 'pasteSelection'];
 
 export function normalizeCommand(input) {
   const command = copyJSON(input);
@@ -62,8 +62,8 @@ export function validateCommand(command) {
 export function commandCapabilities(schema) {
   const fields = schema?.fields || {};
   const can = name => fields[name]?.editable !== false && fields[name]?.agentEditable !== false;
-  const flowNode = schema?.name === 'flow-node';
-  const flowEdge = schema?.name === 'flow-edge';
+  const flowNode = ['flow-node', 'architecture-node', 'mindmap-node'].includes(schema?.name);
+  const flowEdge = ['flow-edge', 'architecture-edge'].includes(schema?.name);
   return {
     updateField: Object.keys(fields).filter(can),
     updateRecord: true,
@@ -88,6 +88,7 @@ export function commandCapabilities(schema) {
     duplicateSelection: flowNode,
     pasteSelection: flowNode,
     updateEdge: flowEdge,
+    removeEdge: flowEdge,
     addEdge: flowEdge
   };
 }

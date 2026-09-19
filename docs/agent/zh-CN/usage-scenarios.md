@@ -116,7 +116,7 @@ npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --ye
 需要固定发布版本时，直接安装已发布的 Skill 目录：
 
 ```bash
-npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.6/skills/ichartjs \
+npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.7/skills/ichartjs \
   --agent codex --global --yes
 ```
 
@@ -150,6 +150,8 @@ Agent 可以创建一个 ESM 脚本或独立 HTML 页面，输出：
 - `gantt`、`timeline`、`milestone`、`burndown`：项目进度和交付计划；
 - 项目分析：capacity、velocity、release forecast、risk、issue aging；
 - `flow`、`swimlane`：流程、责任、分组、Port 和受控编辑。
+- `architecture`：业务、数据或技术架构，使用明确的层、边界和关系。
+- `mindmap`：想法层级，以 `parentId` 为事实来源，支持树形或放射布局。
 
 保留稳定的 record、node、edge、lane、group、port ID。业务编辑先返回 preview，确认后再 commit，并返回审计结果。
 

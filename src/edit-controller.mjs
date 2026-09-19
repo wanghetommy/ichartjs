@@ -27,11 +27,11 @@ export class EditController {
 
   targetEntries(command) {
     const spec = this.chart.spec;
-    const diagram = ['flow', 'swimlane'].includes(spec.type);
+    const diagram = ['flow', 'swimlane', 'architecture', 'mindmap'].includes(spec.type);
     if (!diagram) return [{ field: 'values', root: false }];
     const operations = command.operations || [];
     const wantsGroups = operations.some(operation => ['toggleGroupCollapse', 'duplicateGroup', 'deleteGroup'].includes(operation?.op));
-    const wantsEdges = operations.some(operation => ['updateEdge', 'addEdge', 'duplicateSelection', 'pasteSelection', 'duplicateGroup'].includes(operation?.op) || operation?.op === 'deleteGroup' && operation.policy === 'delete-members');
+    const wantsEdges = operations.some(operation => ['updateEdge', 'removeEdge', 'addEdge', 'duplicateSelection', 'pasteSelection', 'duplicateGroup'].includes(operation?.op) || operation?.op === 'deleteGroup' && operation.policy === 'delete-members');
     const wantsNodes = operations.some(operation => ['moveNode', 'moveNodes', 'moveNodeToLane', 'resizeNode', 'alignNodes', 'snapNodes', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'duplicateSelection', 'pasteSelection'].includes(operation?.op));
     const entries = [];
     if (wantsNodes || !wantsEdges && !wantsGroups) entries.push({ field: 'nodes', root: spec.nodes !== undefined });
@@ -42,7 +42,7 @@ export class EditController {
 
   context(command) {
     const spec = this.chart.spec;
-    const diagram = ['flow', 'swimlane'].includes(spec.type);
+    const diagram = ['flow', 'swimlane', 'architecture', 'mindmap'].includes(spec.type);
     const entries = this.targetEntries(command);
     const primary = entries[0];
     const nodes = spec.nodes ?? spec.data.nodes ?? [];
@@ -58,6 +58,9 @@ export class EditController {
       nodeSchema: spec.data.schema ?? spec.schema,
       schema: primary?.field === 'edges' ? spec.data.edgeSchema : spec.data.schema ?? spec.schema,
       edgeSchema: spec.data.edgeSchema,
+      type: spec.type,
+      nodeModel: spec.type === 'architecture' ? 'architecture-node' : spec.type === 'mindmap' ? 'mindmap-node' : 'flow-node',
+      edgeModel: spec.type === 'architecture' ? 'architecture-edge' : 'flow-edge',
       validationOptions: { ...spec.validationOptions, references: { ...spec.validationOptions?.references, ...(diagram ? { 'flow-node': nodes.map(row => row.id), swimlane: lanes.map(row => row.id) } : {}) } },
       requireConfirmation: spec.editing?.requireConfirmation,
       grid: spec.diagram?.grid || 8,

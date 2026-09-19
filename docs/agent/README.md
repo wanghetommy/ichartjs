@@ -17,7 +17,7 @@ This is the user-facing Agent entry point for iChart.js 2.0. Read this file firs
 - [Visual Style and Themes](theme-guide.md): automatic matching, presets, palettes, switching, and contrast checks.
 - [Data Charting](charting-scenario.md): generic data analysis charts.
 - [Project Management](project-scenario.md): Gantt, Timeline, Milestone, and Burndown.
-- [Interactive Diagrams](diagram-scenario.md): Flow, Swimlane, Groups, Ports, and editing.
+- [Interactive Diagrams](diagram-scenario.md): Flow, Swimlane, Architecture, Mindmap, Groups, Ports, and editing.
 - [Runtime Contract](runtime-contract.md): shared Spec, renderer, interaction, and export rules.
 - [Editing Contract](editing-contract.md): schemas, commands, preview, commit, and undo/redo.
 - Machine-readable capability manifests are in `docs/manifests/` and should be loaded on demand.
@@ -56,6 +56,8 @@ For a visual overview of all supported chart types, open `playground/project-gal
 - Prefer `canvas` when rendering many marks or targeting lower-power devices.
 - Use `gantt`, `timeline`, `milestone`, or `burndown` for project delivery views.
 - Use `flow` or `swimlane` for process, ownership, and responsibility views.
+- Use `architecture` for business, data, and technical system structures with declared layers and boundaries.
+- Use `mindmap` for hierarchical ideas, with stable `parentId` references and tree or radial layout.
 - Do not generate `map` or `3d` Specs unless `getCapabilities()` declares them.
 
 ## Error handling

@@ -66,7 +66,11 @@ const chart = createChart({
   data: { values: rows },
   preferences: pagePreferences
 });
-mountChartSettings(chart, { locale: 'zh-CN' });
+const settings = mountChartSettings(chart, {
+  locale: 'zh-CN',
+  placement: 'auto',
+  preferredPlacements: ['right', 'top', 'bottom']
+});
 
 // Agent 对话也使用同一套 API。
 chart.setPreferences({
@@ -74,7 +78,35 @@ chart.setPreferences({
   typography: { scale: 1.15 },
   components: { grid: false }
 }, { source: 'agent' });
+
+// 宿主永久移除图表时同步销毁快捷设置浮层。
+settings.destroy();
 ```
+
+快捷设置面板会通过 Portal 放到图表裁剪区域之外。自动定位优先使用按钮右侧，其次上侧、下侧；都无法完整容纳时限制在浏览器视口内。滚动时保持已经选定的方位并跟随按钮，不再被视口约束拉回；图表或菜单按钮离开视口时直接关闭。窗口缩放和内容变化时可以重新计算方位。
+
+### Agent 配置发现与验证
+
+Agent 不应硬编码菜单选项，应先调用 `getPreferenceCapabilities(chartType, { locale })`。该接口会返回每个偏好字段的类型、默认值、候选值、作用域、当前图表适用性和 `menu.visible` 状态；对话调整和宿主自定义设置页应使用同一份契约。
+
+```js
+import { getPreferenceCapabilities, validatePreferences } from '@taylorwong/ichartjs';
+
+const capabilities = getPreferenceCapabilities(chart.getSpec().type, { locale: 'zh-CN' });
+const menuFields = capabilities.fields.filter(field => field.menu.visible);
+const current = chart.getPreferences();
+const patch = {
+  theme: { preset: 'dashboard', palette: 'status' },
+  typography: { scale: 1.15 },
+  components: { grid: false }
+};
+const checked = validatePreferences(patch, { partial: true });
+if (!checked.valid) throw new Error(JSON.stringify(checked.errors));
+chart.setPreferences(checked.value, { scope: 'chart', source: 'agent' });
+const applied = chart.getState().preferences;
+```
+
+快捷菜单字段为 `theme.mode`、`theme.palette`、`typography.scale`，以及当前图表支持的 `components.legend`、`components.labels`、`components.grid`。完整白名单另外包含 `theme.preset`、`density`、`branding.enabled` 和 `motion`。无法识别语言时默认返回英文。
 
 单图表快捷菜单使用紧凑的汉堡图标，只保留高频操作：主题模式、配色、字号，以及当前图表真正支持的图例、数据标签和网格线。能力检测会自动隐藏无效设置；修改即时生效，并支持 `zh-CN`、`en` 和按文档语言自动识别。
 

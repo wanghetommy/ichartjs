@@ -6,22 +6,36 @@ Agent usage and development guide for process modeling, responsibility mapping, 
 
 - `flow`: a process graph made of nodes and edges.
 - `swimlane`: a process graph organized by responsibility lanes.
+- `architecture`: a layered business, data, or technical architecture graph with optional boundaries.
+- `mindmap`: a parent-child hierarchy of ideas rendered as a tree or radial diagram.
+
+Architecture and mindmap are both structured diagrams, but they are not interchangeable: architecture describes declared domain or system relationships, while a mindmap describes an idea hierarchy.
 
 ## Data Model
 
 ```js
 {
-  type: 'flow',
+  type: 'architecture',
+  layers: [{ id: 'business', label: 'Business' }, { id: 'technology', label: 'Technology' }],
+  boundaries: [{ id: 'platform', label: 'Platform', nodeIds: ['api'] }],
   nodes: [{
-    id: 'review',
-    label: 'Review',
-    position: { x: 240, y: 100 },
-    size: { width: 140, height: 44 },
-    ports: [{ id: 'in', side: 'left', offset: 0.5 }],
-    groupId: 'delivery'
+    id: 'api', label: 'Order API', layerId: 'technology', position: { x: 240, y: 100 }
   }],
-  edges: [{ from: 'start', to: 'review', toPort: 'in' }],
-  groups: [{ id: 'delivery', label: 'Delivery' }]
+  edges: [{ id: 'orders-api', from: 'orders', to: 'api', relation: 'realizes', waypoints: [{ x: 220, y: 80 }, { x: 220, y: 160 }] }]
+}
+```
+
+For a mindmap, prefer the compact parent contract:
+
+```js
+{
+  type: 'mindmap',
+  nodes: [
+    { id: 'root', label: 'Release plan' },
+    { id: 'scope', label: 'Scope', parentId: 'root' },
+    { id: 'risk', label: 'Risks', parentId: 'root' }
+  ],
+  diagram: { mode: 'mindmap', layout: 'tree', routing: 'curved', curveTension: 0.4 }
 }
 ```
 
@@ -31,11 +45,24 @@ Supported:
 
 - Nodes, edges, lanes, groups, and ports.
 - `manual`, `layered`, `tree`, and `radial` layouts.
-- `straight`, `orthogonal`, and `curved` routing declarations, with lightweight obstacle-aware orthogonal routing.
+- Architecture layers and boundaries, plus mindmap parent-child derivation.
+- `straight`, `orthogonal`, and true cubic-Bezier `curved` routing, with adjustable `curveTension` and obstacle-aware orthogonal fallback.
 - Node dragging, multi-selection, alignment, and grid snapping.
 - Keyboard movement, copy/paste, duplicate, group collapse/expand, undo/redo, and a shared Canvas/SVG Scene.
 - Port-aware drag-to-connect interaction and typed edge creation.
+- Geometry-aware edge selection, waypoint handles, orthogonal segment handles, persistent manual routing, and edge deletion.
 - Group collapse/expand with collapsed group summary rendering.
+
+Navigation and editing are opt-in. The default chart is static: zoom, pan, brush, node drag, edge drag, port connection, and structural editing are disabled until the host enables them.
+
+```js
+interaction: { zoom: true, pan: true, drag: true, edgeDrag: true, portConnect: true },
+editing: { enabled: true, allowDelete: true, allowStructuralChanges: true }
+```
+
+Canvas and SVG use the same Scene Graph hit testing, `waypoints` contract, commands, history, and interaction behavior.
+
+Mindmap defaults to curved parent-child edges. Set `diagram.curveTension` from `0.2` to `0.8`, override `routing` or `curveTension` on one explicit edge, or use `waypoints` when a persistent manual polyline is required. Bezier control points are not directly editable.
 
 Current limitations:
 
@@ -50,7 +77,7 @@ Current limitations:
 1. Assign stable IDs to nodes and edges.
 2. Use `validateDiagram(spec)` to check endpoints, ports, groups, lanes, and layout options.
 3. Create the chart with `createChart(spec)`.
-4. Use typed commands such as `moveNodes`, `alignNodes`, `snapNodes`, `addEdge`, `toggleGroupCollapse`, `duplicateSelection`, and `pasteSelection` for edits.
+4. Use typed commands such as `moveNodes`, `alignNodes`, `snapNodes`, `addEdge`, `updateEdge`, `removeEdge`, `toggleGroupCollapse`, `duplicateSelection`, and `pasteSelection` for edits.
 5. Follow the preview/confirm/commit flow for all business-data changes.
 
 ## Implementation Map
@@ -80,3 +107,4 @@ Current limitations:
 - Copy/paste preserves internal edges and produces deterministic new IDs.
 - Group collapse hides member nodes and keeps group-level state visible.
 - Groups, ports, and invalid references produce structured validation results.
+- Canvas and SVG produce equivalent edge selection, handle dragging, persisted waypoints, keyboard behavior, and exports.

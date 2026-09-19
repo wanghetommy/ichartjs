@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { binData, createChart, createPreferencesStore, data, getCapabilities, inspectData, normalizeSpec, planStyle, recommend, resolveZoomWindow, validateSpec } from '../src/index.mjs';
+import { binData, createChart, createPreferencesStore, data, getCapabilities, getPreferenceCapabilities, inspectData, normalizeSpec, planStyle, recommend, resolveZoomWindow, validatePreferences, validateSpec } from '../src/index.mjs';
 import { contrastRatio, resolveTheme, validateThemeContrast } from '../src/theme.mjs';
 import { annotationPlugin, dataLabelsPlugin, dataZoomPlugin } from '../src/plugin.mjs';
 import { buildScene } from '../src/charts.mjs';
-import { Scene, SceneNode } from '../src/scene.mjs';
+import { Scene, SceneNode, cubicBezierPoint } from '../src/scene.mjs';
+import { routeEdgePath } from '../src/diagram.mjs';
+import { CanvasRenderer } from '../src/renderer.mjs';
 import { Scale } from '../src/scale.mjs';
 import { analyzeBurndown, criticalSchedule, projectTooltip, rerouteDiagramScene } from '../src/project.mjs';
 import { analyzeSchedule, applyWorkingCalendar, buildCapacityView, buildIssueAgingSeries, buildReleaseForecast, buildRiskMatrixSeries, buildVelocitySeries } from '../src/project-analytics.mjs';
@@ -13,6 +15,7 @@ import { getBusinessSchema, inspectDataSchema } from '../src/schema.mjs';
 import { previewEdit, validateEdit } from '../src/edit.mjs';
 import { validateData } from '../src/validation.mjs';
 import { diagramKeyboard } from '../src/diagram-interaction.mjs';
+import { chartSettingsPlacementCoordinates, isChartSettingsAnchorVisible, resolveChartSettingsPlacement } from '../src/preferences-ui.mjs';
 
 test('normalizes and validates a v2 spec', () => {
   const spec = normalizeSpec({ type: 'line', data: [{ name: 'Jan', value: '12' }] });
@@ -73,7 +76,7 @@ test('builds interactive scene nodes for a column chart', () => {
   const model = buildScene(normalizeSpec({ type: 'column', data: [{ name: 'A', value: 10 }, { name: 'B', value: 20 }] }));
   const nodes = [];
   model.scene.walk(node => nodes.push(node));
-  assert.equal(nodes.filter(node => node.type === 'rect').length, 2);
+  assert.equal(nodes.filter(node => node.type === 'rect' && node.interactive).length, 2);
   assert.equal(model.scene.hit(190, 250)?.dataRef.dataIndex, 0);
 });
 
@@ -175,7 +178,7 @@ test('supports iteration 3 project management capabilities', () => {
   const capabilities = getCapabilities();
   assert.deepEqual(capabilities.projectManagement, ['gantt', 'timeline', 'milestone', 'burndown']);
   assert.ok(capabilities.projectIntelligence.analytics.includes('capacity'));
-  assert.deepEqual(capabilities.diagrams, ['flow', 'swimlane']);
+  assert.deepEqual(capabilities.diagrams, ['flow', 'swimlane', 'architecture', 'mindmap']);
   assert.deepEqual(recommend([{ start: '2026-09-01', end: '2026-09-03' }], { intent: 'schedule' }).primary, 'gantt');
   assert.equal(validateSpec({ type: 'gantt', data: [{ id: 'a', name: 'Design', start: '2026-09-01', end: '2026-09-03' }] }).valid, true);
 });
@@ -187,6 +190,59 @@ test('builds project and process scene nodes', () => {
   const flow = buildScene(normalizeSpec({ type: 'flow', nodes: [{ id: 'start', label: 'Start' }, { id: 'done', label: 'Done' }], edges: [{ from: 'start', to: 'done' }] }));
   assert.ok(flow.scene.find('node-start'));
   assert.ok(flow.scene.find('edge-0'));
+});
+
+test('builds architecture layers and mindmap parent-child diagrams', async () => {
+  const { validateDiagram, layoutDiagram } = await import('../src/index.mjs');
+  const architecture = { type: 'architecture', layers: [{ id: 'business', label: 'Business' }, { id: 'technology', label: 'Technology' }], boundaries: [{ id: 'platform', nodeIds: ['api'], label: 'Platform' }], nodes: [{ id: 'orders', label: 'Orders', layerId: 'business' }, { id: 'api', label: 'API', layerId: 'technology' }], edges: [{ id: 'orders-api', from: 'orders', to: 'api' }] };
+  assert.equal(validateDiagram(architecture).valid, true);
+  const architectureScene = buildScene(normalizeSpec(architecture));
+  assert.ok(architectureScene.scene.find('layer-business'));
+  assert.ok(architectureScene.scene.find('boundary-platform'));
+  assert.ok(architectureScene.scene.find('edge-0'));
+  const mindmap = { type: 'mindmap', nodes: [{ id: 'root', label: 'Root' }, { id: 'child', label: 'Child', parentId: 'root' }, { id: 'leaf', label: 'Leaf', parentId: 'child' }], diagram: { mode: 'mindmap', layout: 'tree' } };
+  const normalized = normalizeSpec(mindmap);
+  const validation = validateDiagram(normalized);
+  assert.equal(validation.valid, true);
+  assert.equal(validation.spec.edges.length, 2);
+  assert.deepEqual(layoutDiagram(normalized, { x: 0, y: 0, width: 640, height: 360 }), layoutDiagram(normalized, { x: 0, y: 0, width: 640, height: 360 }));
+  const mindmapScene = buildScene(normalized);
+  assert.ok(mindmapScene.scene.find('node-root'));
+  assert.ok(mindmapScene.scene.find('edge-0'));
+  assert.ok(validateDiagram({ ...mindmap, nodes: [{ id: 'root', label: 'Root', parentId: 'leaf' }, { id: 'leaf', label: 'Leaf', parentId: 'root' }] }).errors.some(error => error.code === 'MINDMAP_CYCLE'));
+});
+
+test('renders mindmap curved routing as cubic Bezier paths in Canvas and SVG', async () => {
+  const mindmap = { type: 'mindmap', nodes: [{ id: 'root', label: 'Root' }, { id: 'child', label: 'Child', parentId: 'root' }], edges: [{ id: 'root-child', from: 'root', to: 'child', label: 'branch' }], diagram: { mode: 'mindmap', layout: 'tree', curveTension: 0.5 } };
+  const validation = validateSpec(mindmap);
+  assert.equal(validation.valid, true);
+  const model = buildScene(normalizeSpec(mindmap)), edge = model.scene.find('edge-0'), label = model.scene.find('edge-label-0');
+  assert.equal(edge.geometry.curve, 'cubic');
+  assert.equal(edge.geometry.points.length, 4);
+  assert.deepEqual({ x: label.geometry.x, y: label.geometry.y + 8 }, cubicBezierPoint(edge.geometry.points, 0.5));
+  const middle = cubicBezierPoint(edge.geometry.points, 0.5);
+  assert.equal(model.scene.hit(middle.x, middle.y)?.dataRef.edgeId, 'root-child');
+  const chart = createChart(mindmap);
+  assert.match(chart.export({ type: 'svg' }), /d="M [^"]+ C [^"]+"/);
+  chart.destroy();
+  const calls = [];
+  const renderer = new CanvasRenderer();
+  renderer.width = 640; renderer.height = 360;
+  renderer.ctx = { clearRect() {}, save() {}, restore() {}, beginPath() {}, moveTo() {}, bezierCurveTo(...args) { calls.push(args); }, lineTo() {}, closePath() {}, fill() {}, stroke() {} };
+  const canvasScene = new Scene(640, 360);
+  canvasScene.add({ id: 'curve', type: 'path', geometry: { points: edge.geometry.points, curve: 'cubic' }, style: { fill: 'none', stroke: '#000' } });
+  renderer.render(canvasScene);
+  assert.ok(calls.length > 0);
+});
+
+test('validates curve tension and falls back around curved-edge obstacles', async () => {
+  const { validateDiagram } = await import('../src/index.mjs');
+  assert.ok(validateDiagram({ type: 'mindmap', nodes: [{ id: 'root', label: 'Root' }, { id: 'child', label: 'Child', parentId: 'root' }], diagram: { curveTension: 1 } }).errors.some(error => error.code === 'CURVE_TENSION'));
+  assert.ok(validateDiagram({ type: 'mindmap', nodes: [{ id: 'root', label: 'Root' }, { id: 'child', label: 'Child', parentId: 'root' }], edges: [{ from: 'root', to: 'child', curveTension: 0.1 }] }).errors.some(error => error.code === 'EDGE_CURVE_TENSION'));
+  const path = routeEdgePath({ curveTension: 0.4, obstacles: [{ x: 130, y: 20, width: 70, height: 90 }] }, { x: 0, y: 40, width: 60, height: 40 }, { x: 280, y: 40, width: 60, height: 40 }, 'curved');
+  assert.equal(path.curve, null);
+  const manual = routeEdgePath({ waypoints: [{ x: 150, y: 10 }, { x: 230, y: 10 }] }, { x: 0, y: 40, width: 60, height: 40 }, { x: 280, y: 40, width: 60, height: 40 }, 'curved');
+  assert.equal(manual.curve, null);
 });
 
 test('reports invalid and cyclic gantt dependencies', () => {
@@ -412,7 +468,10 @@ test('validates and lays out advanced diagram models deterministically', async (
   const first = layoutDiagram(spec, { x: 40, y: 20, width: 500, height: 280 });
   assert.deepEqual(first, layoutDiagram(spec, { x: 40, y: 20, width: 500, height: 280 }));
   assert.deepEqual(routeEdge(spec.edges[0], { x: 40, y: 20, width: 112, height: 36 }, { x: 240, y: 92, width: 112, height: 36 }, 'straight').length, 2);
+  const manual = routeEdge({ waypoints: [{ x: 180, y: 40 }, { x: 180, y: 120 }] }, { x: 40, y: 20, width: 112, height: 36 }, { x: 240, y: 92, width: 112, height: 36 }, 'orthogonal');
+  assert.deepEqual(manual.slice(1, -1), [{ x: 180, y: 40 }, { x: 180, y: 120 }]);
   assert.ok(validateDiagram({ ...spec, edges: [{ from: 'start', to: 'missing' }] }).errors.some(error => error.code === 'EDGE_ENDPOINT'));
+  assert.ok(validateDiagram({ ...spec, edges: [{ id: 'bad', from: 'start', to: 'review', waypoints: [{ x: 'bad', y: 1 }] }] }).errors.some(error => error.code === 'EDGE_WAYPOINTS'));
 });
 
 test('supports diagram node resizing through the shared edit history', async () => {
@@ -437,7 +496,9 @@ test('supports diagram groups, ports, multi-select alignment, snapping, and undo
     { id: 'b', label: 'B', groupId: 'main', position: { x: 217, y: 91 }, size: { width: 140, height: 60 }, ports: [{ id: 'in', side: 'left', offset: 0.75 }] }
   ], groups: [{ id: 'main', label: 'Main flow' }], edges: [{ id: 'ab', from: 'a', to: 'b', fromPort: 'out', toPort: 'in' }], diagram: { layout: 'manual', routing: 'orthogonal', grid: 8 } };
   assert.equal(validateDiagram(spec).valid, true);
-  const scene = buildScene(normalizeSpec(spec)).scene;
+  const staticScene = buildScene(normalizeSpec(spec)).scene;
+  assert.equal(staticScene.find('port-a-out'), undefined);
+  const scene = buildScene(normalizeSpec({ ...spec, interaction: { portConnect: true }, editing: { enabled: true } })).scene;
   assert.ok(scene.find('group-main'));
   assert.ok(scene.find('port-a-out'));
   assert.ok(scene.find('port-b-in'));
@@ -509,6 +570,20 @@ test('renders collapsed groups and routes orthogonal edges around obstacles', as
     return false;
   };
   assert.ok(path.every((point, index) => index === 0 || !intersects(path[index - 1], point, { x: 120, y: 0, width: 100, height: 160 })));
+});
+
+test('connects diagram edges to facing sides and avoids vertically aligned nodes', async () => {
+  const { routeEdge } = await import('../src/index.mjs');
+  const from = { x: 100, y: 80, width: 80, height: 40 }, obstacle = { x: 100, y: 180, width: 80, height: 40 }, to = { x: 100, y: 280, width: 80, height: 40 };
+  const path = routeEdge({ grid: 8, obstacles: [obstacle] }, from, to, 'orthogonal');
+  assert.deepEqual(path[0], { x: 180, y: 100 });
+  assert.deepEqual(path.at(-1), { x: 180, y: 300 });
+  const intersects = (first, second, box) => {
+    if (first.x === second.x) return first.x >= box.x && first.x <= box.x + box.width && Math.max(first.y, second.y) >= box.y && Math.min(first.y, second.y) <= box.y + box.height;
+    if (first.y === second.y) return first.y >= box.y && first.y <= box.y + box.height && Math.max(first.x, second.x) >= box.x && Math.min(first.x, second.x) <= box.x + box.width;
+    return false;
+  };
+  assert.ok(path.every((point, index) => index === 0 || !intersects(path[index - 1], point, obstacle)));
 });
 
 test('branding: defaults to enabled and normalizes both shorthand and object forms', () => {
@@ -597,6 +672,19 @@ test('branding: headless JSON export syncs branding state', async () => {
   chartOn.destroy();
 });
 
+test('explicit branding updates override stored presentation preferences', () => {
+  const store = createPreferencesStore({ global: { branding: { enabled: false } } });
+  const chart = createChart({ chartId: 'branding-toggle', type: 'line', renderer: 'svg', data: [{ name: 'A', value: 1 }], preferences: store });
+  assert.equal(chart.getState().branding.enabled, false);
+  chart.update({ branding: { enabled: true } });
+  assert.equal(chart.getState().branding.enabled, true);
+  assert.ok(chart.model.scene.find('branding-watermark'));
+  chart.update({ branding: { enabled: false } });
+  assert.equal(chart.getState().branding.enabled, false);
+  assert.equal(chart.model.scene.find('branding-watermark'), undefined);
+  chart.destroy();
+});
+
 test('supports scoped chart preferences with local persistence and Agent sources', () => {
   const values = new Map();
   const storage = { getItem: key => values.get(key) || null, setItem: (key, value) => values.set(key, value) };
@@ -619,6 +707,113 @@ test('supports scoped chart preferences with local persistence and Agent sources
   assert.equal(chart.getPreferences().theme.mode, null);
   assert.equal(chart.getPreferences().theme.preset, 'dashboard');
   assert.equal(chart.getSpec().grid.visible, true);
+  chart.destroy();
+});
+
+test('exposes localized Agent preference discovery and validation', () => {
+  const line = getPreferenceCapabilities('line', { locale: 'zh-CN' });
+  const architecture = getPreferenceCapabilities('architecture', { locale: 'unsupported' });
+  assert.equal(line.locale, 'zh-CN');
+  assert.equal(line.fields.find(field => field.path === 'theme.mode').label, '主题');
+  assert.deepEqual(line.fields.find(field => field.path === 'typography.scale').options.map(option => option.value), [0.85, 1, 1.15, 1.3]);
+  assert.equal(line.fields.find(field => field.path === 'components.legend').menu.visible, true);
+  assert.equal(architecture.locale, 'en');
+  assert.equal(architecture.fields.find(field => field.path === 'components.legend').supported, false);
+  assert.equal(architecture.fields.find(field => field.path === 'components.legend').menu.visible, false);
+  assert.equal(validatePreferences({ typography: { scale: 1.15 }, components: { grid: false } }, { partial: true }).valid, true);
+  assert.equal(validatePreferences({ typography: { scale: 2 } }, { partial: true }).errors[0].path, 'typography.scale');
+  assert.deepEqual(getCapabilities().preferences.fields, line.fields.map(field => field.path));
+});
+
+test('places chart settings right, top, then bottom with viewport fallback', () => {
+  const panel = { width: 320, height: 130 }, viewport = { left: 0, top: 0, width: 1000, height: 700 };
+  assert.equal(resolveChartSettingsPlacement({ left: 100, right: 132, top: 300, bottom: 332 }, panel, viewport).placement, 'right');
+  assert.equal(resolveChartSettingsPlacement({ left: 948, right: 980, top: 400, bottom: 432 }, panel, viewport).placement, 'top');
+  assert.equal(resolveChartSettingsPlacement({ left: 948, right: 980, top: 10, bottom: 42 }, panel, viewport).placement, 'bottom');
+  const constrained = resolveChartSettingsPlacement({ left: 260, right: 292, top: 10, bottom: 42 }, panel, { left: 0, top: 0, width: 300, height: 180 });
+  assert.equal(constrained.placement, 'bottom');
+  assert.equal(constrained.constrained, true);
+  assert.equal(constrained.left, 8);
+  assert.equal(isChartSettingsAnchorVisible({ left: 100, right: 132, top: 300, bottom: 332 }, { left: 80, right: 500, top: 250, bottom: 550 }, viewport), true);
+  assert.equal(isChartSettingsAnchorVisible({ left: 100, right: 132, top: -40, bottom: -8 }, { left: 80, right: 500, top: -300, bottom: -1 }, viewport), false);
+  assert.equal(isChartSettingsAnchorVisible({ left: 100, right: 132, top: -40, bottom: -8 }, { left: 80, right: 500, top: -20, bottom: 300 }, viewport), false);
+  assert.deepEqual(chartSettingsPlacementCoordinates({ right: 615, top: -6, bottom: 26 }, panel, 'right'), { left: 625, top: -6 });
+});
+
+test('reflows titles, legends, and plots after typography or legend changes', () => {
+  const chart = createChart({
+    type: 'line', renderer: 'svg', width: 360, height: 300,
+    title: { text: 'Delivery', subtitle: 'Planned and actual' },
+    data: [{ name: 'A', planned: 4, actual: 3 }, { name: 'B', planned: 6, actual: 5 }],
+    encoding: { x: { field: 'name' }, y: [{ field: 'planned', name: 'Planned work' }, { field: 'actual', name: 'Actual work' }] }
+  });
+  const defaultPlotY = chart.model.state.plot.y;
+  const defaultLegendY = chart.model.scene.find('legend-label-0').geometry.y;
+  assert.ok(defaultLegendY > chart.model.scene.find('subtitle').geometry.y);
+  assert.ok(defaultPlotY > defaultLegendY);
+
+  chart.setPreferences({ typography: { scale: 1.3 } }, { source: 'ui' });
+  const largePlotY = chart.model.state.plot.y;
+  const largeLegendY = chart.model.scene.find('legend-label-0').geometry.y;
+  assert.ok(largeLegendY > defaultLegendY);
+  assert.ok(largePlotY > defaultPlotY);
+  assert.ok(largePlotY > chart.model.state.chrome.legend.bottom);
+
+  chart.setPreferences({ components: { legend: false } }, { source: 'ui' });
+  assert.equal(chart.model.scene.find('legend-label-0'), undefined);
+  assert.ok(chart.model.state.plot.y < largePlotY);
+  assert.ok(chart.model.state.plot.y > chart.model.scene.find('subtitle').geometry.y);
+  chart.destroy();
+
+  const project = createChart({ type: 'gantt', renderer: 'svg', title: { text: 'Roadmap', subtitle: 'Current delivery plan' }, data: [{ id: 'a', name: 'A', start: '2026-09-01', end: '2026-09-03' }] });
+  const projectPlotY = project.model.state.plot.y;
+  project.setPreferences({ typography: { scale: 1.3 } }, { source: 'ui' });
+  assert.ok(project.model.state.plot.y > projectPlotY);
+  assert.equal(project.model.scene.find('title').style.textBaseline, 'middle');
+  project.destroy();
+});
+
+test('renders and toggles single-series legends for cartesian charts', () => {
+  ['line', 'bar', 'column'].forEach(type => {
+    const chart = createChart({ type, renderer: 'svg', data: [{ name: 'A', value: 1 }, { name: 'B', value: 2 }] });
+    assert.ok(chart.model.scene.find('legend-label-0'), `${type} should render its single-series legend`);
+    chart.setPreferences({ components: { legend: false } }, { source: 'ui' });
+    assert.equal(chart.model.scene.find('legend-label-0'), undefined);
+    chart.setPreferences({ components: { legend: true } }, { source: 'ui' });
+    assert.ok(chart.model.scene.find('legend-label-0'));
+    chart.destroy();
+  });
+});
+
+test('rotates dense axis labels and suppresses only impossible label collisions', () => {
+  const column = createChart({ type: 'column', renderer: 'svg', width: 280, height: 260, data: ['Architecture Review', 'Milestone Approval', 'Production Readiness', 'Release Retrospective'].map((name, index) => ({ name, value: index + 1 })) });
+  assert.ok([-30, -45].includes(column.model.state.xLabels.rotation));
+  assert.equal(column.model.scene.find('label-x-Architecture Review').style.rotation, column.model.state.xLabels.rotation);
+  assert.match(column.export({ type: 'svg' }), /transform="rotate\(-(?:30|45) /);
+  column.destroy();
+
+  const indicators = Array.from({ length: 10 }, (_, index) => ({ name: `Long capability ${index + 1}`, field: `metric${index + 1}`, min: 0, max: 100 }));
+  const values = Object.fromEntries(indicators.map((indicator, index) => [indicator.field, 40 + index * 4]));
+  const radar = createChart({ type: 'radar', renderer: 'svg', width: 320, height: 260, title: { text: 'Capability radar' }, indicators, data: [{ id: 'current', name: 'Current', ...values }] });
+  const labels = [];
+  radar.model.scene.walk(node => { if (node.id?.startsWith('radar-label-')) labels.push(node); });
+  const size = radar.getTheme().typography.axis.size;
+  const boxes = labels.map(node => { const width = Math.max(size, node.geometry.text.length * size * .58), height = size * 1.3, anchor = node.style.textAnchor; return { x: anchor === 'start' ? node.geometry.x : anchor === 'end' ? node.geometry.x - width : node.geometry.x - width / 2, y: node.geometry.y - height / 2, width, height }; });
+  boxes.forEach((box, index) => boxes.slice(index + 1).forEach(other => assert.equal(box.x < other.x + other.width && box.x + box.width > other.x && box.y < other.y + other.height && box.y + box.height > other.y, false)));
+  assert.equal(radar.model.state.labelLayout.radar.visible + radar.model.state.labelLayout.radar.hidden, indicators.length);
+  if (radar.model.state.labelLayout.radar.hidden) assert.ok(radar.getState().warnings.some(item => item.code === 'LABELS_SUPPRESSED'));
+  radar.destroy();
+});
+
+test('keeps compact chart data labels inside the plot instead of the subtitle area', () => {
+  const chart = createChart({ type: 'line', renderer: 'svg', width: 280, height: 220, title: { text: 'Monthly trend', subtitle: 'Line preserves an unfilled path' }, labels: { enabled: true }, data: [{ name: 'Jan', value: 18 }, { name: 'Feb', value: 36 }, { name: 'Mar', value: 22 }] });
+  assert.equal(chart.model.state.compact, true);
+  const labels = [];
+  chart.model.scene.walk(node => { if (node.id?.endsWith('-label') && node.id.startsWith('series-')) labels.push(node); });
+  assert.ok(labels.length > 0);
+  labels.forEach(label => assert.ok(label.geometry.y >= chart.model.state.plot.y));
+  labels.forEach(label => { const point = chart.model.scene.find(label.id.replace('-label', ''))?.geometry; if (point) assert.ok(Math.abs(label.geometry.y - point.cy) >= 18, `${label.id} should keep a readable gap from its point`); });
+  assert.ok(chart.model.state.plot.y > chart.model.scene.find('subtitle').geometry.y);
   chart.destroy();
 });
 
@@ -699,7 +894,7 @@ test('connects and cancels diagram ports using keyboard only', async () => {
     edges: [],
     data: { schema: getBusinessSchema('flow-node'), edgeSchema: getBusinessSchema('flow-edge') },
     diagram: { layout: 'manual', routing: 'orthogonal', grid: 8 },
-    interaction: { keyboard: true },
+    interaction: { keyboard: true, portConnect: true },
     editing: { enabled: true, requireConfirmation: false, allowStructuralChanges: true }
   });
   const focusable = () => { const rows = []; chart.model.scene.walk(node => { if (node.interactive && /^(node|group|port)-/.test(node.id)) rows.push(node); }); return rows; };
@@ -717,6 +912,60 @@ test('connects and cancels diagram ports using keyboard only', async () => {
   diagramKeyboard(chart, event('Escape'));
   assert.equal(chart._keyboardConnection, null);
   chart.destroy();
+});
+
+test('keeps diagram navigation and editing static by default', () => {
+  const spec = normalizeSpec({ type: 'architecture', nodes: [{ id: 'a', label: 'A' }], edges: [] });
+  assert.equal(spec.interaction.zoom, false);
+  assert.equal(spec.interaction.pan, false);
+  assert.equal(spec.interaction.drag, false);
+  assert.equal(spec.interaction.edgeDrag, false);
+  assert.equal(spec.interaction.portConnect, false);
+  assert.equal(spec.editing.enabled, false);
+  const capabilities = getCapabilities();
+  assert.equal(capabilities.interactionDefaults.edgeDrag, false);
+  assert.deepEqual(capabilities.diagram.edgeEditing.renderers, ['canvas', 'svg']);
+  assert.equal(capabilities.diagram.edgeEditing.segmentDrag, true);
+  assert.ok(capabilities.editing.operations.includes('removeEdge'));
+});
+
+test('edits diagram edge segments with Canvas and SVG parity', async () => {
+  const { diagramPointer } = await import('../src/diagram-interaction.mjs');
+  for (const renderer of ['canvas', 'svg']) {
+    const chart = createChart({
+      type: 'architecture', renderer,
+      nodes: [{ id: 'api', label: 'API', position: { x: 40, y: 70 } }, { id: 'db', label: 'DB', position: { x: 360, y: 190 } }],
+      edges: [{ id: 'api-db', from: 'api', to: 'db', routing: 'orthogonal', waypoints: [{ x: 240, y: 88 }, { x: 240, y: 208 }] }],
+      data: { schema: getBusinessSchema('architecture-node'), edgeSchema: getBusinessSchema('architecture-edge') },
+      diagram: { layout: 'manual', routing: 'orthogonal', grid: 8 },
+      interaction: { edgeDrag: true },
+      editing: { enabled: true, requireConfirmation: false, allowDelete: true, allowStructuralChanges: true }
+    });
+    const edge = chart.model.scene.find('edge-0');
+    assert.equal(edge.interactive, true);
+    assert.equal(chart.model.scene.hit(240, 145)?.dataRef.edgeId, 'api-db');
+    chart.selectEdges(['api-db']);
+    assert.deepEqual(chart.getSelectedEdgeIds(), ['api-db']);
+    assert.equal(chart.getSelectedData()[0].id, 'api-db');
+    let handle;
+    chart.model.scene.walk(node => { if (!handle && node.dataRef?.edgeHandle === 'segment') handle = node; });
+    assert.ok(handle);
+    const center = { x: handle.geometry.x + handle.geometry.width / 2, y: handle.geometry.y + handle.geometry.height / 2 };
+    chart._eventPoint = event => ({ x: event.clientX, y: event.clientY });
+    const target = { focus() {}, setPointerCapture() {}, hasPointerCapture() { return false; } };
+    diagramPointer(chart, 'start', { type: 'pointerdown', button: 0, pointerId: 1, clientX: center.x, clientY: center.y }, target);
+    diagramPointer(chart, 'move', { type: 'pointermove', pointerId: 1, clientX: center.x + 24, clientY: center.y }, target);
+    diagramPointer(chart, 'end', { type: 'pointerup', pointerId: 1, clientX: center.x + 24, clientY: center.y }, target);
+    assert.equal(chart.getDiagramEdges()[0].waypoints[0].x, 264);
+    assert.equal(chart.undo().valid, true);
+    assert.equal(chart.getDiagramEdges()[0].waypoints[0].x, 240);
+    chart.selectEdges(['api-db']);
+    assert.equal(chart.deleteSelectedEdges({ confirmed: true }).valid, true);
+    assert.equal(chart.getDiagramEdges().length, 0);
+    assert.equal(chart.undo().valid, true);
+    assert.equal(chart.getDiagramEdges()[0].id, 'api-db');
+    chart.destroy();
+  }
 });
 
 test('resizes member-derived groups and routes through dense obstacles deterministically', async () => {
@@ -794,6 +1043,12 @@ test('renders common titles, grids, legends, labels, and corrected chart geometr
   const pie = buildScene(normalizeSpec({ type: 'pie', data: [{ name: 'A', value: 0 }] }));
   assert.ok(pie.scene.find('pie-zero-total'));
   assert.ok(pie.data.warnings.some(item => item.code === 'ZERO_TOTAL'));
+  const titled = buildScene(normalizeSpec({ type: 'line', title: { text: 'T', subtitle: 'S' }, data: [{ name: 'A', value: 1 }] }));
+  assert.equal(titled.scene.find('title').style.textBaseline, 'middle');
+  assert.equal(titled.scene.find('subtitle').style.textBaseline, 'middle');
+  assert.equal(titled.scene.find('title').geometry.y, 32);
+  assert.equal(titled.scene.find('subtitle').geometry.y, 52.5);
+  assert.ok(titled.state.plot.y > titled.scene.find('subtitle').geometry.y);
 });
 
 test('keeps active Playground pages and a no-cache preview path', async () => {
@@ -802,21 +1057,26 @@ test('keeps active Playground pages and a no-cache preview path', async () => {
   await Promise.all(pages.map(page => readFile(new URL(`../playground/${page}`, import.meta.url), 'utf8')));
   const preferencesUi = await readFile(new URL('../src/preferences-ui.mjs', import.meta.url), 'utf8');
   assert.match(preferencesUi, /aria-hidden="true">≡</);
-  assert.match(preferencesUi, /root\.querySelectorAll\('select,input\[data-key\]'\).*addEventListener\('change'/s);
+  assert.match(preferencesUi, /panel\.querySelectorAll\('select,input\[data-key\]'\).*addEventListener\('change'/s);
   assert.ok(preferencesUi.includes("'zh-CN'") && preferencesUi.includes('Chart quick settings'));
   assert.equal(preferencesUi.includes('data-key="preset"'), false);
   assert.equal(preferencesUi.includes('data-key="density"'), false);
   assert.equal(preferencesUi.includes('data-key="branding"'), false);
   const fullGallery = await readFile(new URL('../playground/project-gallery.html', import.meta.url), 'utf8');
+  assert.match(fullGallery, /--gallery-viewport-width/);
+  assert.match(fullGallery, /gallery\.style\.setProperty\('--gallery-viewport-width'/);
+  assert.match(fullGallery, /模拟每张图表的容器宽度/);
   assert.equal(preferencesUi.includes('data-action="page-settings"'), false);
   assert.equal(preferencesUi.includes('data-action="reset"'), false);
   assert.equal(preferencesUi.includes('已应用并保存'), false);
   assert.match(preferencesUi, /contrastRatio\('#172033', background\)/);
-  assert.match(preferencesUi, /option\(text\.defaultSize, '1'\)/);
-  assert.match(preferencesUi, /option\(text\.extraLarge, '1\.3'\)/);
+  assert.match(preferencesUi, /optionMarkup\(scaleField\)/);
+  assert.match(preferencesUi, /getPreferenceCapabilities\(chart\.getSpec\(\)\.type/);
   assert.match(preferencesUi, /option\[data-current\]/);
   assert.match(preferencesUi, /if \(normalized === 'en' \|\| normalized\.startsWith\('en-'\)\) return 'en';/);
   assert.match(preferencesUi, /return 'en';\n\}/);
+  assert.match(preferencesUi, /preferredPlacements = placements/);
+  assert.match(preferencesUi, /panel\.dataset\.placement = result\.placement/);
   const entry = await readFile(new URL('../src/index.mjs', import.meta.url), 'utf8');
   assert.equal(/from ['"][^'"]+\?/.test(entry), false);
   const browserEntry = await readFile(new URL('../playground/runtime.mjs', import.meta.url), 'utf8');
@@ -828,7 +1088,7 @@ test('keeps active Playground pages and a no-cache preview path', async () => {
 test('exposes one package runtime entry and completes the Agent workflow', async () => {
   const { readFile } = await import('node:fs/promises');
   const runtime = await import('@taylorwong/ichartjs');
-  assert.equal(runtime.getCapabilities().chartTypes.length, 16);
+  assert.equal(runtime.getCapabilities().chartTypes.length, 18);
   const packageMetadata = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
   assert.equal(packageMetadata.exports['./agent'], undefined);
   const { runAgentWorkflow, sampleRows } = await import('../examples/agent-workflow.mjs');

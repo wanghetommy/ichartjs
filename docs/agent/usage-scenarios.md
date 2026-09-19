@@ -121,7 +121,7 @@ npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --ye
 For reproducible installation, pin the released Skill directory:
 
 ```bash
-npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.6/skills/ichartjs \
+npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.7/skills/ichartjs \
   --agent codex --global --yes
 ```
 
@@ -159,6 +159,8 @@ Use the project and diagram contracts when the data has project semantics rather
 - `gantt`, `timeline`, `milestone`, and `burndown` for delivery schedules;
 - project analytics for capacity, velocity, release forecast, risk, and issue aging;
 - `flow` and `swimlane` for process, ownership, responsibility, groups, ports, and controlled editing.
+- `architecture` for business, data, or technical architecture with explicit layers, boundaries, and relationships.
+- `mindmap` for idea hierarchies where `parentId` is the source of truth and a tree or radial layout is preferred.
 
 Preserve stable record, node, edge, lane, group, and port IDs. For business edits, return a preview before commit and include the audit result.
 

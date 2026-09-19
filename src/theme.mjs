@@ -66,7 +66,7 @@ const presets = {
 };
 
 const projectTypes = new Set(['gantt', 'timeline', 'milestone', 'burndown']);
-const diagramTypes = new Set(['flow', 'swimlane']);
+const diagramTypes = new Set(['flow', 'swimlane', 'architecture', 'mindmap']);
 const structuredKeys = new Set(['preset', 'mode', 'palette', 'tokens']);
 
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }

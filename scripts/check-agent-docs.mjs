@@ -26,9 +26,12 @@ fs.readdirSync('docs/agent', { withFileTypes: true })
 const manifestCharts = Object.values(manifest.scenarios).flat();
 if (JSON.stringify(manifestCharts) !== JSON.stringify(capabilities.chartTypes)) failures.push('Manifest chart scenarios do not match getCapabilities().chartTypes.');
 if (JSON.stringify(manifest.export) !== JSON.stringify(capabilities.export)) failures.push('Manifest export contract does not match getCapabilities().export.');
+if (JSON.stringify(manifest.preferences?.fields) !== JSON.stringify(capabilities.preferences?.fields)) failures.push('Manifest preference fields do not match getCapabilities().preferences.fields.');
+if (JSON.stringify(manifest.preferences?.precedence) !== JSON.stringify(capabilities.preferences?.precedence)) failures.push('Manifest preference precedence does not match getCapabilities().preferences.precedence.');
+if (!manifest.preferences?.discovery?.capabilities?.startsWith('getPreferenceCapabilities')) failures.push('Manifest is missing the preference discovery API.');
 if (manifest.usageScenarios !== 'docs/agent/usage-scenarios.md') failures.push('Manifest is missing the canonical usage-scenarios entry.');
 if (JSON.stringify(Object.keys(commands.commands)) !== JSON.stringify(capabilities.editing.operations)) failures.push('Manifest commands do not match getCapabilities().editing.operations.');
-if (JSON.stringify(Object.keys(schemas.models)) !== JSON.stringify(Object.keys({ 'project-task': 1, 'timeline-event': 1, milestone: 1, 'burndown-sample': 1, 'flow-node': 1, 'flow-edge': 1, swimlane: 1 }))) failures.push('Manifest schema model coverage is incomplete.');
+if (JSON.stringify(Object.keys(schemas.models)) !== JSON.stringify(Object.keys({ 'project-task': 1, 'timeline-event': 1, milestone: 1, 'burndown-sample': 1, 'flow-node': 1, 'flow-edge': 1, swimlane: 1, 'architecture-node': 1, 'architecture-edge': 1, 'mindmap-node': 1 }))) failures.push('Manifest schema model coverage is incomplete.');
 const gallery = fs.readFileSync('playground/project-gallery.html', 'utf8') + fs.readFileSync('playground/gallery-cases.mjs', 'utf8');
 capabilities.chartTypes.forEach(type => { if (!gallery.includes(`type:'${type}'`)) failures.push(`Gallery is missing chart type: ${type}`); });
 const packageMetadata = readJSON('package.json');
