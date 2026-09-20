@@ -16,7 +16,7 @@ Iteration 8 adds per-chart profiles through `getChartCapability(type)`. Each pro
 
 `planChart(data, { intent, renderer })` returns a versioned planning result with a primary chart, alternatives, confidence, reasons, required fields, suggested encodings, assumptions, warnings, unsupported requests, safe next actions, and the selected capability profile. `intent` must be one exact token from `getCapabilities().intents`; natural-language prose must be mapped before planning. An unknown token returns `UNKNOWN_INTENT` and a fallback plan, so Agents must inspect warnings before accepting `primary`. Planning never invents business meaning, units, dates, or missing fields.
 
-Unknown intent results also include `intentKnown`, `intentSuggestions`, and `fallbackUsed`. A chart Spec is chart-specific: Cartesian channels are `x`/`y`, Pie/Funnel/Gauge channels are `category`/`value`, Heatmap channels are `x`/`y`/`color`, and Radar fields live in `indicators`. `validateSpec()` rejects unsupported channels and missing fields. Gauge requires an explicit `domain` and reports `VALUE_CLAMPED` when the rendered value exceeds it.
+Unknown intent results also include `intentKnown`, `intentSuggestions`, and `fallbackUsed`. A chart Spec is chart-specific: Cartesian channels are `x`/`y`, Pie/Funnel channels are `category`/`value`, Gauge uses `value`, Heatmap channels are `x`/`y`/`color`, and Radar fields live in `indicators`. `validateSpec()` rejects unsupported channels and missing fields. Gauge requires an explicit `domain` and reports `VALUE_CLAMPED` when the rendered value exceeds it. Pie reports `NEGATIVE_VALUE_DROPPED` for negative input values and `ZERO_TOTAL` when no positive share can render.
 
 ## Spec Rules
 
@@ -25,7 +25,7 @@ Unknown intent results also include `intentKnown`, `intentSuggestions`, and `fal
 - Chart layout and data semantics are renderer-independent.
 - Keep axis titles/formats on `xAxis`/`yAxis`, labels on `labels`, and legend settings on `legend`; misplaced options return structured warnings.
 - Numeric y-axes use readable domains by default (`yAxis.nice: true`, `yAxis.ticks: "auto"`). Use `yAxis.domain: [min, max]` for an explicit range, `yAxis.nice: false` to retain the raw boundary, and `yAxis.right` for a secondary numeric axis. `chart.getState().axes` and `chart.explain().axes` expose the raw domain, resolved domain, ticks, step, and policy for Agent verification. `xAxis.min/max` and `xAxis.domain` remain unsupported for categorical/time layouts. Chart-specific domains remain available through `gauge.domain`, `heatmap.colorScale.domain`, and `radar.indicators[].min/max`.
-- `flow` and `swimlane` use `nodes/edges/lanes`; `architecture` uses `nodes/edges/layers/boundaries`; `mindmap` uses `nodes` with `parentId` and optional `edges`; generic charts use `data.values`.
+- Diagram structure is always top-level: `flow` and `swimlane` use `nodes/edges/lanes`; `architecture` uses `nodes/edges/layers/boundaries`; `mindmap` uses `nodes` with `parentId` and optional `edges`. Do not put these fields under `data`; generic charts use `data.values`.
 - `chart.getState().health` and `chart.explain().health` expose `ready`, `degraded`, or `empty`, with renderability and warning, suppressed-label, clamped-value, and rendered-mark metrics. `locale` defaults to `en-US`; set `locale: "zh-CN"` for output formatting and keep input dates as ISO-8601 strings.
 
 ## Renderer

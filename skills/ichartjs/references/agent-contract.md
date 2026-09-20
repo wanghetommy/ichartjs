@@ -37,6 +37,6 @@ Verify that:
 - validation passed without ignored errors;
 - explanation lineage preserves stable source IDs;
 - warnings and assumptions are visible in the response;
-- `health.renderable` is true and `health.status` is reported; `VALUE_CLAMPED`, `LABELS_SUPPRESSED`, and `ZERO_TOTAL` are not hidden;
+- `health.renderable` is true and `health.status` is reported; `VALUE_CLAMPED`, `LABELS_SUPPRESSED`, `NEGATIVE_VALUE_DROPPED`, and `ZERO_TOTAL` are not hidden;
 - the preview uses a maintained URL;
 - replaced charts are destroyed.

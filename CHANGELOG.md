@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.9 - 2026-09-20
+
+- Fixed Radar normalization so normalized Specs validate and render without unsupported Cartesian encodings.
+- Added explicit Pie diagnostics for dropped negative values and empty totals, with deduplicated runtime health reporting.
+- Made Gauge a true single-value contract, removed default-option false positives for non-Cartesian charts, and clarified top-level Diagram structure errors.
+- Updated minimal recipes and bilingual Agent/Skill guidance for chart-specific channels and ESM JSON recipe imports.
+
 ## 2.0.8 - 2026-09-20
 
 - Hardened chart-specific encoding and field validation, including explicit Swimlane requirements and actionable diagnostics for Agents.

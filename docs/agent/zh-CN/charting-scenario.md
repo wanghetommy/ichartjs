@@ -44,7 +44,7 @@
 
 ## Encoding 契约
 
-不同图表只接受对应的数据通道：笛卡尔图表使用 `encoding.x`/`encoding.y`；Pie、Funnel、Gauge 使用 `encoding.category`/`encoding.value`；Heatmap 使用 `encoding.x`/`encoding.y`/`encoding.color`；Radar 使用 `indicators[].field`。字段不存在或通道不支持会成为校验错误，不应静默改名。Gauge 必须提供 `domain: [min, max]`；超出范围时弧形会限制在范围内，并产生 `VALUE_CLAMPED`。全部图表的最小可执行 Spec 见 `@taylorwong/ichartjs/recipes/minimal-specs`。
+不同图表只接受对应的数据通道：笛卡尔图表使用 `encoding.x`/`encoding.y`；Pie、Funnel 使用 `encoding.category`/`encoding.value`；Gauge 只使用 `encoding.value`；Heatmap 使用 `encoding.x`/`encoding.y`/`encoding.color`；Radar 使用 `indicators[].field`。字段不存在或通道不支持会成为校验错误，不应静默改名。Gauge 必须提供 `domain: [min, max]`；超出范围时弧形会限制在范围内，并产生 `VALUE_CLAMPED`。Pie 遇到负值会报告 `NEGATIVE_VALUE_DROPPED`，没有正数占比时会报告 `ZERO_TOTAL`。全部图表的最小可执行 Spec 见 `@taylorwong/ichartjs/recipes/minimal-specs`；ESM 中用 `with { type: 'json' }` 导入，并从 `catalog.examples[type]` 取模板。
 
 ## 意图注册词
 
