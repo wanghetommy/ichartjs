@@ -16,6 +16,8 @@ Iteration 8 通过 `getChartCapability(type)` 提供逐图表能力档案，包�
 
 `planChart(data, { intent, renderer })` 返回版本化规划结果：主选图表、备选项、置信度、原因、缺失字段、建议编码、假设、警告、不支持请求和安全下一步。规划不会虚构业务含义、单位、日期或缺失字段。
 
+未知 intent 还会返回 `intentKnown`、`intentSuggestions` 和 `fallbackUsed`。Spec 的通道按图表类型约束：笛卡尔图表是 `x`/`y`，Pie/Funnel/Gauge 是 `category`/`value`，Heatmap 是 `x`/`y`/`color`，Radar 字段位于 `indicators`。`validateSpec()` 会拒绝不支持的通道和缺失字段。Gauge 必须显式声明 `domain`，超出范围时会报告 `VALUE_CLAMPED`。
+
 `validateSpec()` 分开返回 `errors`、`warnings` 和 `normalizations`；诊断包含稳定代码、JSON 路径、期望值和修复建议。`chart.explain()` 返回编码、转换、交互、假设、警告、稳定记录血缘和无障碍摘要。
 
 ## 关键规则
@@ -25,6 +27,8 @@ Iteration 8 通过 `getChartCapability(type)` 提供逐图表能力档案，包�
 - 布局和数据语义不依赖 Renderer。
 - 通用图表使用 `data.values`；Flow/Swimlane 使用 `nodes/edges/lanes`。
 - `svg` 适合 DOM 交互和可访问性；`canvas` 适合大量图元和绘制性能。
+- 数值纵轴默认使用易读域（`yAxis.nice: true`、`yAxis.ticks: "auto"`）；使用 `yAxis.domain: [min, max]` 固定范围，或使用 `yAxis.nice: false` 保留原始边界。Agent 可通过 `chart.getState().axes` 或 `chart.explain().axes` 自检原始域、计算域、刻度、步长和策略。分类/时间横轴的 `min/max` 和 `domain` 不支持，范围由数据确定。
+- `chart.getState().health` 和 `chart.explain().health` 提供 `ready`、`degraded` 或 `empty`，以及可渲染性、问题代码、警告数、隐藏标签数、限制值数和已渲染标记数。`locale` 默认 `en-US`，可设置 `zh-CN` 影响输出格式；输入日期应使用 ISO-8601 字符串。
 
 ## 品牌署名（Branding）
 

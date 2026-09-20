@@ -36,6 +36,34 @@ Agent 与开发者使用同一个 ESM 入口。编码 Agent 的完整方式见 [
 6. 仅在 `validation.valid` 为 `true` 时调用 `createChart()`。
 7. 用 `chart.explain()`、`chart.getState()`、JSON/SVG/PNG export 完成自检。需要持久化或附件生成时使用 `chart.export({type:'json'|'svg'|'png'})`，在浏览器环境可调用 `chart.downloadPNG()` / `chart.downloadSVG()` / `chart.downloadJSON()` 触发保存，最后调用 `chart.destroy()`。
 
+### 意图必须使用注册词
+
+`intent` 是精确的机器词，不是自然语言句子。先从 `getCapabilities().intents` 获取允许值，再传入 `trend`、`time-series`、`comparison`、`ranking`、`distribution`、`relationship`、`matrix`、`multidimensional`、`schedule`、`architecture` 或 `mindmap` 等值。不要直接传入 `trend over time` 或 `展示销售趋势`。未知词会返回 `UNKNOWN_INTENT` 警告并安全降级；如果忽略警告，可能选错图表。
+
+如果用户输入的是自然语言，先映射为注册词，再调用 `planChart()`，同时保留原始用户意图用于展示。
+
+### 配置项放在 Spec 正确层级
+
+`encoding` 只描述字段角色和 Series 语义，标题、格式和显示组件放在 Spec 顶层：
+
+| 需求 | 正确位置 | 常见错误 |
+| --- | --- | --- |
+| 坐标轴标题 | `xAxis.title`、`yAxis.title` | `encoding.x.title`、`encoding.y.title` |
+| 坐标轴格式 | `xAxis.format`、`yAxis.format` | `encoding.x.format`、`encoding.y.format` |
+| 数据标签 | `labels.enabled`、`labels.format` | `encoding.labels` |
+| 图例 | `legend.visible` | `encoding.legend` |
+| 主题和配色 | `theme.mode`、`theme.preset`、`theme.palette` | 随意猜测 Series 颜色 |
+
+`validateSpec()` 会把这些错误位置报告为结构化警告，应先修复再展示。单系列笛卡尔图默认会把字段名作为图例；不需要时使用 `legend: { visible: false }`。
+
+### 当前坐标域限制
+
+数值型笛卡尔图表默认使用易读的纵轴域：`yAxis.nice` 默认为 `true`，`yAxis.ticks` 默认为 `"auto"`。需要固定范围时使用 `yAxis.domain: [min, max]`，例如 `{ domain: [0, 2000], ticks: 5 }` 可稳定生成五个标签；使用 `yAxis.nice: false` 可保留原始数据边界。`yAxis.format` 只负责格式化刻度显示，`yAxis.right` 支持同样的配置。Agent 可通过 `chart.getState().axes` 或 `chart.explain().axes` 获取原始域、计算域、刻度、步长和策略进行自检。分类/时间横轴的范围仍由数据记录推导，因此 `xAxis.min/max` 和 `xAxis.domain` 不支持。图表专用域配置仍包括：`gauge.domain`、`heatmap.colorScale.domain`、`radar.indicators[].min/max`；项目图表的日期范围当前由数据记录自动计算。
+
+图表通道是严格按类型定义的：笛卡尔图表使用 `x`/`y`，Pie/Funnel/Gauge 使用 `category`/`value`，Heatmap 使用 `x`/`y`/`color`，Radar 使用 `indicators[].field`。缺失字段或不支持的通道会校验失败；Gauge 必须声明 `domain`。新建图表可直接使用 `@taylorwong/ichartjs/recipes/minimal-specs` 中的最小目录。
+
+Agent 自检使用 `chart.getState().health` 和 `chart.explain().health`，其中包含 `ready`、`degraded`、`empty`、警告数、隐藏标签数、限制值数和已渲染标记数。`locale` 默认 `en-US`，需要中文输出时设置 `locale: "zh-CN"`，输入日期仍使用 ISO-8601。
+
 ## 品牌署名（Branding）默认行为
 
 - 默认 `branding: true`：在画面与所有导出产物（PNG/SVG/JSON）右下角同步出现 `Powered by iChart.js` 低对比度署名。
@@ -72,6 +100,8 @@ const headlessPng = await chart.exportAsync({ type: 'png' });
 - 可访问的预览 URL 或导出产物（JSON/SVG/PNG/JPEG）路径。
 
 不要虚构字段、单位、日期、依赖关系、日历规则或预测置信度。Radar 使用混合单位时必须提供显式 domain；Heatmap 必须区分缺失值和零；高基数占比数据优先使用 Bar 而不是 Pie。
+
+为了让 lineage 自检和联动更新稳定，建议每条输入记录提供稳定字符串 `id`。没有 `id` 时 Runtime 会使用 `record-0` 这类位置后备值，只适合本地展示，不应当视为持久业务身份。
 
 ## 完整示例
 

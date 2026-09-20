@@ -23,7 +23,8 @@ const defaults = {
   labels: { enabled: false },
   branding: { enabled: true },
   interaction: { tooltip: true, hover: true, click: true, crosshair: false, zoom: false, pan: false, brush: false, drag: false, edgeDrag: false, portConnect: false, keyboard: true }
-  ,responsive: [], accessibility: { enabled: false }, editing: { enabled: false, mode: 'command', requireConfirmation: true, allowDelete: false, allowStructuralChanges: false }, xAxis: {}, yAxis: {}
+  ,responsive: [], accessibility: { enabled: false }, editing: { enabled: false, mode: 'command', requireConfirmation: true, allowDelete: false, allowStructuralChanges: false }, xAxis: {}, yAxis: { nice: true, ticks: 'auto' }
+  ,locale: 'en-US'
 };
 
 function clone(value) {
@@ -59,6 +60,41 @@ function dependencyErrors(rows) {
   return errors;
 }
 
+const encodingChannels = {
+  line: ['x', 'y'], area: ['x', 'y'], bar: ['x', 'y'], column: ['x', 'y'], scatter: ['x', 'y'],
+  pie: ['category', 'value'], funnel: ['category', 'value'], gauge: ['category', 'value'], heatmap: ['x', 'y', 'color'], radar: [],
+  gantt: [], timeline: [], milestone: [], burndown: [], flow: [], swimlane: [], architecture: [], mindmap: []
+};
+
+const presentationEncodingKeys = new Set(['title', 'format', 'labels', 'legend']);
+
+function finiteDomain(domain) {
+  return Array.isArray(domain) && domain.length === 2 && domain.every(value => Number.isFinite(Number(value))) && Number(domain[1]) > Number(domain[0]);
+}
+
+function validateEncodingContract(input, spec, errors) {
+  const rows = Array.isArray(spec.data?.values) ? spec.data.values : [], fields = new Set(rows.flatMap(row => Object.keys(row || {})));
+  if (!rows.length) return;
+  const rawEncoding = input.encoding && typeof input.encoding === 'object' ? input.encoding : {};
+  const allowed = new Set(encodingChannels[spec.type] || []);
+  Object.keys(rawEncoding).forEach(channel => {
+    if (presentationEncodingKeys.has(channel) || allowed.has(channel)) return;
+    errors.push({ code: 'UNSUPPORTED_ENCODING_CHANNEL', path: `encoding.${channel}`, message: `${spec.type} does not use encoding.${channel}.`, expected: [...allowed], suggestion: allowed.size ? `Use encoding.${[...allowed].join(' or encoding.')} for ${spec.type}.` : 'Remove field encodings from this chart type.' });
+  });
+  const check = (path, encoding) => {
+    const items = Array.isArray(encoding) ? encoding : [encoding];
+    items.forEach((item, index) => {
+      if (!item) return;
+      const field = item.field, itemPath = Array.isArray(encoding) ? `${path}.${index}.field` : `${path}.field`;
+      if (typeof field !== 'string' || !field) errors.push({ code: 'INVALID_ENCODING_FIELD', path: itemPath, message: 'Encoding fields must be non-empty strings.', suggestion: 'Use a field name that exists in data.values.' });
+      else if (!fields.has(field)) errors.push({ code: 'MISSING_ENCODING_FIELD', path: itemPath, message: `Field ${field} is not present in data.values.`, expected: [...fields], suggestion: 'Inspect the data schema and use an existing field.' });
+    });
+  };
+  if (['pie', 'funnel', 'gauge'].includes(spec.type) && (rawEncoding.x !== undefined || rawEncoding.y !== undefined)) return;
+  (encodingChannels[spec.type] || []).forEach(channel => check(`encoding.${channel}`, spec.encoding?.[channel]));
+  if (spec.type === 'radar') (spec.indicators || []).forEach((indicator, index) => check(`indicators.${index}`, indicator));
+}
+
 export function normalizeSpec(input = {}) {
   const spec = merge(defaults, input);
   if (input.branding === undefined && input.theme && typeof input.theme === 'object' && input.theme.branding !== undefined) spec.branding = clone(input.theme.branding);
@@ -84,7 +120,7 @@ export function normalizeSpec(input = {}) {
   return spec;
 }
 
-export function validateSpec(input) {
+export function validateSpec(input = {}) {
   const spec = normalizeSpec(input);
   const errors = [], warnings = [], normalizations = [];
   if (!chartTypes.has(spec.type)) errors.push({ code: 'INVALID_TYPE', path: 'type', message: `Unsupported chart type: ${spec.type}`, suggestion: 'Use a type returned by getCapabilities().' });
@@ -97,10 +133,44 @@ export function validateSpec(input) {
     if (spec.theme.branding != null && typeof spec.theme.branding !== 'boolean' && !(spec.theme.branding && typeof spec.theme.branding === 'object')) errors.push({ code: 'INVALID_BRANDING', path: 'theme.branding', message: 'theme.branding must be a boolean or a { enabled: boolean } object.', suggestion: 'Use theme: { branding: false } or theme: { branding: { enabled: false } }.' });
     else if (spec.theme.branding && typeof spec.theme.branding === 'object' && (Object.keys(spec.theme.branding).some(key => key !== 'enabled') || typeof spec.theme.branding.enabled !== 'boolean')) errors.push({ code: 'INVALID_BRANDING', path: 'theme.branding', message: 'theme.branding objects only support a boolean enabled property.', suggestion: 'Use theme: { branding: { enabled: false } }.' });
   }
+  if (typeof spec.locale !== 'string' || !spec.locale.trim()) errors.push({ code: 'INVALID_LOCALE', path: 'locale', message: 'locale must be a non-empty BCP 47 locale string.', suggestion: 'Use for example locale: "en-US" or locale: "zh-CN".' });
+  validateEncodingContract(input, spec, errors);
+  const axisEncodings = [['x', 'xAxis'], ['y', 'yAxis']];
+  axisEncodings.forEach(([encodingName, axisName]) => {
+    const encoding = spec.encoding?.[encodingName];
+    const encodingItems = Array.isArray(encoding) ? encoding : [encoding];
+    encodingItems.forEach((item, index) => {
+      if (!item || typeof item !== 'object') return;
+      const pathPrefix = Array.isArray(encoding) ? `encoding.${encodingName}.${index}` : `encoding.${encodingName}`;
+      if (item.title !== undefined) warnings.push({ code: 'MISPLACED_AXIS_TITLE', path: `${pathPrefix}.title`, message: `Axis titles belong on ${axisName}.title, not on an encoding.`, suggestion: `Move it to ${axisName}: { title: ... }.` });
+      if (item.format !== undefined) warnings.push({ code: 'MISPLACED_AXIS_FORMAT', path: `${pathPrefix}.format`, message: `Axis formats belong on ${axisName}.format, not on an encoding.`, suggestion: `Move it to ${axisName}: { format: ... }.` });
+    });
+  });
+  if (spec.encoding?.labels !== undefined) warnings.push({ code: 'MISPLACED_LABELS', path: 'encoding.labels', message: 'Data labels are a chart-level option.', suggestion: 'Move it to labels: { enabled: true, ... }.' });
+  if (spec.encoding?.legend !== undefined) warnings.push({ code: 'MISPLACED_LEGEND', path: 'encoding.legend', message: 'Legend visibility is a chart-level option.', suggestion: 'Move it to legend: { visible: false }.' });
+  [['xAxis', spec.xAxis], ['yAxis', spec.yAxis]].forEach(([axisName, axis]) => {
+    ['min', 'max'].forEach(bound => {
+      if (axis?.[bound] !== undefined || axis?.right?.[bound] !== undefined) warnings.push({ code: 'UNSUPPORTED_AXIS_DOMAIN', path: `${axisName}.${bound}`, message: 'Use axis.domain rather than axis.min/axis.max for an explicit numeric domain.', suggestion: 'Use yAxis: { domain: [0, 2000] } or yAxis: { nice: true }.' });
+    });
+    if (axisName === 'xAxis' && axis?.domain !== undefined) warnings.push({ code: 'UNSUPPORTED_AXIS_DOMAIN', path: 'xAxis.domain', message: 'Explicit x-axis domain is not supported by the current categorical/time layout.', suggestion: 'Use yAxis.domain for numeric value axes; x-axis ranges are derived from records.' });
+    if (axisName === 'xAxis' && (axis?.nice !== undefined || axis?.ticks !== undefined)) warnings.push({ code: 'UNSUPPORTED_AXIS_TICKS', path: 'xAxis', message: 'Nice domains and tick counts currently apply to yAxis, not categorical/time x-axis layouts.', suggestion: 'Move numeric scale controls to yAxis.' });
+    if (axisName === 'xAxis') return;
+    [axis, axis?.right].forEach((axisConfig, index) => {
+      if (!axisConfig) return;
+      const pathPrefix = index ? `${axisName}.right` : axisName;
+      if (axisConfig.domain !== undefined && !(Array.isArray(axisConfig.domain) && axisConfig.domain.length === 2 && axisConfig.domain.every(value => Number.isFinite(Number(value))) && Number(axisConfig.domain[1]) > Number(axisConfig.domain[0]))) errors.push({ code: 'INVALID_AXIS_DOMAIN', path: `${pathPrefix}.domain`, message: 'Axis domain must be [min, max] with two finite numbers and max greater than min.', suggestion: 'Use for example yAxis: { domain: [0, 2000] }.' });
+      if (axisConfig.nice !== undefined && typeof axisConfig.nice !== 'boolean') errors.push({ code: 'INVALID_AXIS_NICE', path: `${pathPrefix}.nice`, message: 'Axis nice must be a boolean.', suggestion: 'Use nice: true or nice: false.' });
+      if (axisConfig.ticks !== undefined && axisConfig.ticks !== 'auto' && !(Number.isInteger(axisConfig.ticks) && axisConfig.ticks >= 2)) errors.push({ code: 'INVALID_AXIS_TICKS', path: `${pathPrefix}.ticks`, message: 'Axis ticks must be auto or an integer of at least 2 labels.', suggestion: 'Use ticks: "auto" or ticks: 5.' });
+    });
+  });
   if (Array.isArray(spec.encoding.y) && spec.encoding.y.length > 2) errors.push({ code: 'TOO_MANY_AXES', path: 'encoding.y', message: 'Only two quantitative axes are supported in this iteration.', suggestion: 'Use at most two y encodings.' });
   if (spec.stack && !['bar', 'column', 'area'].includes(spec.type)) errors.push({ code: 'INVALID_STACK', path: 'stack', message: 'Stacking is supported by bar, column, and area charts.', suggestion: 'Remove stack or use a supported chart type.' });
   if (spec.stack && !['stacked', 'percent'].includes(typeof spec.stack === 'string' ? spec.stack : spec.stack.mode)) errors.push({ code: 'INVALID_STACK_MODE', path: 'stack', message: 'Stack mode must be stacked or percent.', suggestion: 'Use stack: "stacked" or stack: "percent".' });
   if (spec.type === 'pie' && spec.innerRadius != null && (!(Number(spec.innerRadius) >= 0) || Number(spec.innerRadius) >= 1)) errors.push({ code: 'INVALID_INNER_RADIUS', path: 'innerRadius', message: 'Pie innerRadius must be a ratio from 0 up to, but not including, 1.', suggestion: 'Use a value such as 0.55.' });
+  if (spec.type === 'gauge') {
+    if (spec.domain === undefined) errors.push({ code: 'MISSING_GAUGE_DOMAIN', path: 'domain', message: 'Gauge requires an explicit numeric domain to avoid silently clipping values.', suggestion: 'Use domain: [0, 100] for a percentage KPI or declare the business range.' });
+    else if (!finiteDomain(spec.domain)) errors.push({ code: 'INVALID_GAUGE_DOMAIN', path: 'domain', message: 'Gauge domain must be [min, max] with finite numbers and max greater than min.', suggestion: 'Use for example domain: [0, 100].' });
+  }
   if (spec.type === 'radar' && (!Array.isArray(spec.indicators) || spec.indicators.length < 3)) errors.push({ code: 'INVALID_INDICATORS', path: 'indicators', message: 'Radar requires at least three indicators.', suggestion: 'Declare indicator name, field, min, and max.' });
   if (!spec.data || !Array.isArray(spec.data.values)) errors.push({ code: 'INVALID_DATA', path: 'data.values', message: 'data.values must be an array.', suggestion: 'Pass an array of row objects.' });
   if (['flow', 'swimlane', 'architecture', 'mindmap'].includes(spec.type) && !Array.isArray(spec.nodes) && !Array.isArray(spec.data?.nodes)) errors.push({ code: 'INVALID_NODES', path: 'nodes', message: `${spec.type} charts require nodes.`, suggestion: 'Pass nodes on the Spec or in data.nodes.' });
@@ -117,6 +187,12 @@ export function validateSpec(input) {
   if (spec.type === 'gantt') errors.push(...dependencyErrors(spec.data.values));
   if (spec.type === 'pie' && spec.data.values.length > 8) warnings.push({ code: 'HIGH_CARDINALITY_PIE', path: 'data.values', message: `Pie contains ${spec.data.values.length} categories.`, expected: '8 or fewer categories', suggestion: 'Use bar/column or group smaller categories.' });
   if (spec.type === 'radar' && Array.isArray(spec.indicators) && spec.indicators.some(indicator => !Number.isFinite(Number(indicator.min)) || !Number.isFinite(Number(indicator.max)))) warnings.push({ code: 'AMBIGUOUS_RADAR_DOMAIN', path: 'indicators', message: 'Radar indicator domains are incomplete.', expected: 'finite min and max for every indicator', suggestion: 'Declare explicit domains, especially for mixed units.' });
+  const profile = chartProfiles[spec.type], inputOptions = input && typeof input === 'object' ? input : {};
+  [['legend', 'legend'], ['grid', 'grid'], ['labels', 'labels']].forEach(([option, feature]) => {
+    if (inputOptions[option] !== undefined && profile?.features?.[feature] !== 'supported') warnings.push({ code: `UNSUPPORTED_${option.toUpperCase()}`, path: option, message: `${spec.type} does not support ${option} configuration in the current contract.`, suggestion: 'Remove the option or use a chart type that declares this feature.' });
+  });
+  if ((inputOptions.xAxis !== undefined || inputOptions.yAxis !== undefined) && !['line', 'area', 'bar', 'column', 'scatter'].includes(spec.type)) warnings.push({ code: 'UNSUPPORTED_AXIS', path: inputOptions.xAxis !== undefined ? 'xAxis' : 'yAxis', message: `${spec.type} does not expose Cartesian axis configuration.`, suggestion: 'Use chart-specific options such as domain, colorScale, or indicators.' });
+  if (spec.type === 'swimlane' && !((Array.isArray(spec.lanes) && spec.lanes.length) || (Array.isArray(spec.data?.lanes) && spec.data.lanes.length))) errors.push({ code: 'MISSING_REQUIRED', path: 'lanes', message: 'Swimlane requires at least one lane.', suggestion: 'Provide lanes: [{ id, label }].' });
   const supportedInteractions = chartProfiles[spec.type]?.interactions || [];
   Object.entries(spec.interaction || {}).forEach(([name, enabled]) => { if (enabled && !supportedInteractions.includes(name) && !['hover', 'click'].includes(name)) warnings.push({ code: 'UNSUPPORTED_INTERACTION', path: `interaction.${name}`, message: `${name} is not declared for ${spec.type}.`, expected: supportedInteractions, suggestion: 'Disable the interaction or use a compatible chart type.' }); });
   if (spec.branding != null && typeof spec.branding !== 'boolean' && !(spec.branding && typeof spec.branding === 'object')) {

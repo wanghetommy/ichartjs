@@ -28,7 +28,7 @@
     const points = Array.from({ length: 12 }, (_, index) => ({ x: index + 1, y: (index * 17) % 90 + 10 }));
     createChart({ container: '#scatter', type: 'scatter', renderer: 'svg', data: { values: points }, encoding: { x: { field: 'x' }, y: { field: 'y' } }, title: { text: 'Scatter' }, accessibility: { enabled: true } });
     createChart({ container: '#funnel', type: 'funnel', renderer: 'canvas', data: { values: [{ name: 'Visits', value: 1000 }, { name: 'Leads', value: 620 }, { name: 'Deals', value: 180 }] }, title: { text: 'Funnel' } });
-    createChart({ container: '#gauge', type: 'gauge', renderer: 'svg', data: { values: [{ value: 72 }] }, title: { text: 'Gauge' }, accessibility: { enabled: true, description: '完成率 72%' } });
+    createChart({ container: '#gauge', type: 'gauge', renderer: 'svg', domain: [0, 100], labels: { enabled: true, format: { style: 'percent', ratio: false } }, data: { values: [{ value: 72 }] }, title: { text: 'Gauge' }, accessibility: { enabled: true, description: '完成率 72%' } });
     createChart({ container: '#dark', type: 'line', renderer: 'svg', theme: 'dark', background: '#0f172a', interaction: { tooltip: 'axis', hover: true, click: true, crosshair: true, zoom: true, pan: true }, plugins: [dataLabelsPlugin()], accessibility: { enabled: true }, data: { values: [{ name: 'Q1', value: 22 }, { name: 'Q2', value: 48 }, { name: 'Q3', value: 36 }, { name: 'Q4', value: 70 }, { name: 'Q5', value: 82 }, { name: 'Q6', value: 60 }] }, title: { text: 'Dark Theme' } });
     console.log('Capabilities:', getCapabilities());
     console.log('Data inspection:', inspectData(points));

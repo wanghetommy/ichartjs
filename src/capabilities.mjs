@@ -47,11 +47,26 @@ const intentMap = {
   schedule: 'gantt', variance: 'gantt', timeline: 'timeline', milestone: 'milestone', progress: 'burndown', release: 'burndown', capacity: 'column', risk: 'scatter', aging: 'bar', matrix: 'heatmap', 'correlation-grid': 'heatmap', multidimensional: 'radar', profile: 'radar', workflow: 'flow', responsibility: 'swimlane', architecture: 'architecture', 'business-architecture': 'architecture', 'data-architecture': 'architecture', 'technical-architecture': 'architecture', mindmap: 'mindmap', hierarchy: 'mindmap', brainstorm: 'mindmap', trend: 'line', 'time-series': 'line', 'part-to-whole': 'pie', distribution: 'column', relationship: 'scatter', correlation: 'scatter', funnel: 'funnel', conversion: 'funnel', 'single-value': 'gauge', ranking: 'bar', comparison: 'bar', composition: 'column'
 };
 
+const intentAliases = {
+  trend: ['trend', 'time-series'], time: ['trend', 'time-series'], compare: ['comparison', 'ranking'], rank: ['ranking', 'comparison'],
+  distribution: ['distribution', 'comparison'], relationship: ['relationship', 'correlation'], correlation: ['correlation', 'relationship'],
+  matrix: ['matrix', 'correlation-grid'], profile: ['multidimensional', 'profile'], architecture: ['architecture', 'business-architecture', 'data-architecture', 'technical-architecture'],
+  mind: ['mindmap', 'hierarchy', 'brainstorm']
+};
+
 const alternatives = {
   heatmap: ['scatter', 'column'], radar: ['bar', 'line'], gantt: ['timeline', 'milestone'], timeline: ['milestone', 'gantt'], milestone: ['timeline', 'gantt'], burndown: ['line', 'gantt'], column: ['bar', 'line'], scatter: ['bar', 'line'], bar: ['column', 'line'], flow: ['swimlane', 'architecture'], swimlane: ['flow', 'architecture'], architecture: ['flow', 'mindmap'], mindmap: ['architecture', 'flow'], line: ['area', 'column'], pie: ['bar', 'column'], funnel: ['bar', 'column'], gauge: ['column', 'bar']
 };
 
 function warning(code, path, message, suggestion) { return { code, path, message, ...(suggestion ? { suggestion } : {}) }; }
+
+function suggestIntents(requested) {
+  const value = String(requested || '').trim().toLowerCase();
+  if (!value) return ['comparison'];
+  if (intentAliases[value]) return intentAliases[value];
+  const tokens = value.split(/[^a-z0-9-]+/).filter(Boolean);
+  return [...new Set(tokens.flatMap(token => intentAliases[token] || (intentMap[token] ? [token] : [])))].slice(0, 5);
+}
 
 export function getChartCapability(type) {
   return chartProfiles[type] ? JSON.parse(JSON.stringify(chartProfiles[type])) : null;
@@ -104,10 +119,12 @@ export function planChart(input, options = {}) {
   const report = inspectData(input);
   const requestedIntent = options.intent || 'comparison';
   const warnings = [...report.warnings];
+  const intentKnown = Boolean(intentMap[requestedIntent]);
+  const intentSuggestions = intentKnown ? [] : suggestIntents(requestedIntent);
   let primary = intentMap[requestedIntent];
   if (!primary) {
     primary = report.fields.some(field => field.type === 'temporal') ? 'line' : report.measures.length >= 2 && report.dimensions.length === 0 ? 'scatter' : 'bar';
-    warnings.push(warning('UNKNOWN_INTENT', 'intent', `Intent ${requestedIntent} is not registered.`, 'Use an intent returned by getCapabilities().intents.'));
+    warnings.push(warning('UNKNOWN_INTENT', 'intent', `Intent ${requestedIntent} is not registered.`, intentSuggestions.length ? `Use one of: ${intentSuggestions.join(', ')}.` : 'Use an intent returned by getCapabilities().intents.'));
   }
   const profile = chartProfiles[primary];
   const requiredFields = [];
@@ -138,6 +155,9 @@ export function planChart(input, options = {}) {
   return {
     version: '1.0',
     intent: requestedIntent,
+    intentKnown,
+    intentSuggestions,
+    fallbackUsed: !intentKnown,
     primary,
     alternatives: alternatives[primary] || ['column', 'line'],
     confidence,
@@ -170,6 +190,7 @@ export function explainChart(spec, model = {}) {
     interactions: Object.keys(spec.interaction || {}).filter(key => spec.interaction[key]),
     assumptions: [...(model.data?.assumptions || []), ...(model.state?.projectAnalytics?.assumptions || [])],
     warnings,
+    axes: model.state?.axes || null,
     style: spec.theme && typeof spec.theme === 'object' ? { name: spec.theme.name, preset: spec.theme.preset, mode: spec.theme.mode, resolvedMode: spec.theme.resolvedMode, palette: spec.theme.palette, reasons: spec.theme.reasons || [], warnings: spec.theme.warnings || [] } : planStyle(spec),
     lineage: { recordIds: (model.data?.rows || []).map((row, index) => String(row.id ?? row.key ?? `record-${index}`)), sourcePreserved: true },
     accessibility: { enabled: Boolean(spec.accessibility?.enabled), summary: spec.accessibility?.description || spec.title?.text || `${spec.type} chart with ${model.data?.rows?.length || 0} data items.` }
@@ -208,6 +229,7 @@ export function getCapabilities() {
     chartTypes,
     charts: JSON.parse(JSON.stringify(chartProfiles)),
     intents,
+    locale: { default: 'en-US', recommended: ['en-US', 'zh-CN'], appliesTo: ['axis', 'labels', 'tooltip', 'export'], inputDates: 'ISO-8601 strings; natural-language date parsing is not supported.' },
     chartModes: { stack: ['stacked', 'percent'], pie: ['standard', 'donut'], composition: ['multi-series', 'mixed-line-column', 'dual-axis'], transforms: ['bin'], diagrams: ['process', 'architecture', 'mindmap'], mindmapLayouts: ['tree', 'radial'], mindmapEdges: ['curved', 'straight', 'orthogonal'] },
     projectManagement: project,
     projectIntelligence: {
