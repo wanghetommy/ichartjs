@@ -51,7 +51,7 @@ const currentDocs = [
   'skills/ichartjs/SKILL.md'
 ];
 const staleCurrentDocTokens = [
-  'github:wanghetommy/ichartjs#v2.0.1',
+  'github:wanghetommy/ichartjs#v2.0.1`',
   'node_modules/ichartjs/',
   '`ichartjs/capabilities.json`',
   '`ichartjs/recipes',
@@ -89,7 +89,7 @@ currentDocs.forEach(file => {
     if (match[1] !== currentVersion) failures.push(`${file}: pinned Skill tag v${match[1]} does not match package version ${currentVersion}.`);
   }
 });
-const previewPages = ['index.html', 'agent-workbench.html', 'project-gallery.html', 'foundational-gallery.html', 'theme-gallery.html', 'preferences-lab.html', 'editing.html', 'project-intelligence.html', 'diagram-editor.html', 'interaction-lab.html', 'accessibility-lab.html', 'performance-lab.html'];
+const previewPages = ['index.html', 'github-promo.html', 'agent-workbench.html', 'project-gallery.html', 'foundational-gallery.html', 'theme-gallery.html', 'preferences-lab.html', 'editing.html', 'project-intelligence.html', 'diagram-editor.html', 'interaction-lab.html', 'accessibility-lab.html', 'performance-lab.html'];
 previewPages.forEach(file => { if (!fs.existsSync(`playground/${file}`)) failures.push(`Missing maintained Playground page: playground/${file}`); });
 const playgroundHome = fs.readFileSync('playground/index.html', 'utf8');
 if (!playgroundHome.includes('npm run playground')) failures.push('Playground Home must direct users to npm run playground.');

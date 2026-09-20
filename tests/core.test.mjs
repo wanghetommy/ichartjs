@@ -9,7 +9,7 @@ import { Scene, SceneNode, cubicBezierPoint } from '../src/scene.mjs';
 import { routeEdgePath } from '../src/diagram.mjs';
 import { CanvasRenderer } from '../src/renderer.mjs';
 import { Scale } from '../src/scale.mjs';
-import { analyzeBurndown, criticalSchedule, projectTooltip, rerouteDiagramScene } from '../src/project.mjs';
+import { analyzeBurndown, buildProjectScene, criticalSchedule, projectTooltip, rerouteDiagramScene } from '../src/project.mjs';
 import { analyzeSchedule, applyWorkingCalendar, buildCapacityView, buildIssueAgingSeries, buildReleaseForecast, buildRiskMatrixSeries, buildVelocitySeries } from '../src/project-analytics.mjs';
 import { createLinkedProjectState, filterProjectRows } from '../src/project-linking.mjs';
 import { getBusinessSchema, inspectDataSchema } from '../src/schema.mjs';
@@ -117,10 +117,12 @@ test('accepts a single-value Gauge without an unused category field', () => {
 test('formats pie and heatmap labels with safe defaults', () => {
   const pie = buildScene(normalizeSpec({ type: 'pie', labels: { enabled: true }, data: [{ name: 'A', value: 25 }, { name: 'B', value: 75 }] }));
   assert.deepEqual(pie.scene.find('series-0-item-0-label').geometry.text, '25%');
+  assert.ok(contrastRatio(pie.scene.find('series-0-item-0-label').style.fill, pie.scene.find('series-0-item-0').style.fill) >= 4.5);
   const explicit = buildScene(normalizeSpec({ type: 'pie', labels: { enabled: true, format: { maximumFractionDigits: 1 } }, data: [{ name: 'A', value: 25 }, { name: 'B', value: 75 }] }));
   assert.equal(explicit.scene.find('series-0-item-0-label').geometry.text, '0.3');
   const heatmap = buildScene(normalizeSpec({ type: 'heatmap', width: 640, height: 360, labels: { enabled: true }, data: [{ x: 'Mon', y: 'AM', value: 12 }] }));
   assert.equal(heatmap.scene.find('heatmap-cell-label-0').geometry.text, '12');
+  assert.ok(contrastRatio(heatmap.scene.find('heatmap-cell-label-0').style.fill, heatmap.scene.find('heatmap-cell-0').style.fill) >= 4.5);
   const compact = buildScene(normalizeSpec({ type: 'heatmap', width: 80, height: 80, labels: { enabled: true }, data: [{ x: 'Mon', y: 'AM', value: 12 }] }));
   assert.ok(compact.data.warnings.some(error => error.code === 'LABELS_SUPPRESSED'));
 });
@@ -328,6 +330,7 @@ test('builds architecture layers and mindmap parent-child diagrams', async () =>
   assert.ok(architectureScene.scene.find('layer-business'));
   assert.ok(architectureScene.scene.find('boundary-platform'));
   assert.ok(architectureScene.scene.find('edge-0'));
+  assert.ok(architectureScene.scene.find('edge-0').geometry.points.length >= 3);
   const mindmap = { type: 'mindmap', nodes: [{ id: 'root', label: 'Root' }, { id: 'child', label: 'Child', parentId: 'root' }, { id: 'leaf', label: 'Leaf', parentId: 'child' }], diagram: { mode: 'mindmap', layout: 'tree' } };
   const normalized = normalizeSpec(mindmap);
   const validation = validateDiagram(normalized);
@@ -1187,6 +1190,24 @@ test('renders common titles, grids, legends, labels, and corrected chart geometr
   assert.equal(titled.scene.find('title').geometry.y, 32);
   assert.equal(titled.scene.find('subtitle').geometry.y, 52.5);
   assert.ok(titled.state.plot.y > titled.scene.find('subtitle').geometry.y);
+});
+
+test('keeps stacked labels clear, centers funnel content, and sizes project label reserves', () => {
+  const area = buildScene(normalizeSpec({ type: 'area', width: 560, height: 300, stack: 'stacked', labels: { enabled: true }, data: [{ name: 'Jan', product: 12, service: 8 }, { name: 'Feb', product: 24, service: 12 }], encoding: { x: { field: 'name' }, y: [{ field: 'product' }, { field: 'service' }] } }));
+  const productLabel = area.scene.find('series-0-item-0-label'), serviceLine = area.scene.find('series-1-line');
+  assert.ok(Math.abs(productLabel.geometry.y - serviceLine.geometry.points[0].y) > 12);
+
+  const column = buildScene(normalizeSpec({ type: 'column', width: 560, height: 300, labels: { enabled: true }, data: [{ name: 'Q4', value: 72 }] }));
+  const columnBar = column.scene.find('series-0-item-0'), columnLabel = column.scene.find('series-0-item-0-label');
+  assert.ok(columnLabel.geometry.y + 8 < columnBar.geometry.y);
+
+  const funnel = buildScene(normalizeSpec({ type: 'funnel', width: 560, height: 300, labels: { enabled: true }, data: [{ name: 'Visit', value: 100 }, { name: 'Paid', value: 20 }] }));
+  assert.equal(funnel.scene.find('series-0-item-0').geometry.x + funnel.scene.find('series-0-item-0').geometry.width / 2, funnel.scene.find('series-0-item-0-label').geometry.x);
+
+  const gantt = buildProjectScene(normalizeSpec({ type: 'gantt', width: 560, height: 300, data: [{ id: 'design', name: 'Design', start: '2026-09-01', end: '2026-09-05' }] }));
+  const swimlane = buildProjectScene(normalizeSpec({ type: 'swimlane', width: 560, height: 300, lanes: [{ id: 'development', label: 'Development' }], nodes: [{ id: 'ship', label: 'Ship', laneId: 'development' }] }));
+  assert.ok(gantt.state.plot.x < 120);
+  assert.ok(swimlane.state.plot.x < 120);
 });
 
 test('keeps active Playground pages and a no-cache preview path', async () => {

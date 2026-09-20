@@ -184,7 +184,7 @@ export function routeEdgePath(edge, from, to, mode = 'orthogonal') {
     if (samples.every((point, index) => index === 0 || obstacles.every(box => !segmentIntersectsBox(samples[index - 1], point, box, padding)))) return { points, curve: 'cubic' };
     return routeEdgePath({ ...edge, waypoints: [] }, from, to, 'orthogonal');
   }
-  const sidePairs = edge.fromPortDefinition || edge.toPortDefinition ? [[startSide, endSide]] : [[startSide, endSide], ...['right', 'left', 'top', 'bottom'].flatMap(fromSide => ['right', 'left', 'top', 'bottom'].map(toSide => [fromSide, toSide]))].filter((pair, index, pairs) => pairs.findIndex(item => item[0] === pair[0] && item[1] === pair[1]) === index);
+  const sidePairs = edge.preserveSides || edge.fromPortDefinition || edge.toPortDefinition ? [[startSide, endSide]] : [[startSide, endSide], ...['right', 'left', 'top', 'bottom'].flatMap(fromSide => ['right', 'left', 'top', 'bottom'].map(toSide => [fromSide, toSide]))].filter((pair, index, pairs) => pairs.findIndex(item => item[0] === pair[0] && item[1] === pair[1]) === index);
   const routeForSides = (fromSide, toSide) => {
     const fromPort = edge.fromPortDefinition || { side: fromSide }, toPort = edge.toPortDefinition || { side: toSide }, { start, end } = diagramConnectionPoints(from, to, fromPort, toPort), padding = Math.max(12, Number(edge.grid) || 8);
     const segmentIntersects = (first, second, box) => {
@@ -234,6 +234,19 @@ export function routeEdgePath(edge, from, to, mode = 'orthogonal') {
   for (const [fromSide, toSide] of sidePairs) {
     const route = routeForSides(fromSide, toSide);
     if (route) return { points: route, curve: null };
+  }
+  if (edge.preserveSides && mode === 'orthogonal') {
+    const horizontal = ['left', 'right'].includes(startSide) && ['left', 'right'].includes(endSide);
+    const vertical = ['top', 'bottom'].includes(startSide) && ['top', 'bottom'].includes(endSide);
+    const snapFallback = value => Math.round(value / (Number(edge.grid) || 8)) * (Number(edge.grid) || 8);
+    if (horizontal) {
+      const channel = snapFallback((initial.start.x + initial.end.x) / 2);
+      return { points: compact([initial.start, { x: channel, y: initial.start.y }, { x: channel, y: initial.end.y }, initial.end]), curve: null };
+    }
+    if (vertical) {
+      const channel = snapFallback((initial.start.y + initial.end.y) / 2);
+      return { points: compact([initial.start, { x: initial.start.x, y: channel }, { x: initial.end.x, y: channel }, initial.end]), curve: null };
+    }
   }
   return { points: [initial.start, initial.end], curve: null };
 }

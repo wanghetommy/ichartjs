@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>iChart.js · Agent-ready charts</title>
+  <style>
+    :root{color-scheme:light;--ink:#10213b;--muted:#64748b;--line:#dbe5f1;--blue:#2563eb;--blue-soft:#dbeafe;--cyan:#06b6d4;--green:#16a34a;--orange:#f59e0b;--purple:#7c3aed;--surface:#fff;--stage:#f8fbff;--shadow:0 18px 50px #17325b12}
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:#eaf1f9;color:var(--ink);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    body{padding:20px;display:grid;place-items:center}
+    button,a{font:inherit}
+    a{color:var(--blue)}
+    .promo{width:min(1280px,100%);aspect-ratio:16/9;min-height:640px;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:18px;padding:30px 34px 22px;background:radial-gradient(circle at 86% 0,#dbeafe 0,transparent 27%),linear-gradient(135deg,#fff 0%,var(--stage) 100%);border:1px solid #d3e0ef;border-radius:28px;box-shadow:var(--shadow);overflow:hidden}
+    .brandbar,.brand,.brand-actions,.stat-row,.workflow,.workflow-step,.card-head,.card-meta{display:flex;align-items:center}
+    .brandbar{justify-content:space-between;gap:20px}
+    .brand{gap:12px}.mark{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:linear-gradient(135deg,var(--blue),#60a5fa);color:#fff;font-size:22px;font-weight:800;box-shadow:0 8px 18px #2563eb33}.eyebrow{margin:0;color:var(--blue);font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}.brand-name{font-size:18px;font-weight:800;letter-spacing:-.02em}.brand-actions{gap:10px}.version,.preview-link{padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#ffffffb8;color:var(--muted);font-size:11px;text-decoration:none}.preview-link{color:var(--blue);font-weight:700}
+    .main{display:grid;grid-template-columns:minmax(250px,.78fr) minmax(0,2fr);gap:22px;min-height:0}
+    .intro{display:flex;flex-direction:column;justify-content:center;min-width:0;padding:8px 0 8px 4px}.intro h1{max-width:360px;margin:10px 0 14px;font-size:clamp(34px,4.3vw,62px);line-height:.98;letter-spacing:-.065em}.intro h1 span{color:var(--blue)}.intro-copy{max-width:365px;margin:0;color:#52647c;font-size:15px;line-height:1.6}.pill-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:22px}.pill{padding:6px 9px;border-radius:8px;background:#fff;border:1px solid var(--line);color:#344b68;font-size:11px;font-weight:700}.stat-row{gap:16px;margin-top:25px}.stat{display:grid;gap:1px}.stat strong{font-size:22px;letter-spacing:-.04em}.stat span{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em}
+    .visuals{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(220px,.95fr);grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:0}.chart-card{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0;padding:13px 14px 11px;background:#ffffffd9;border:1px solid var(--line);border-radius:17px;box-shadow:0 8px 22px #17325b0a;overflow:hidden}.chart-card.primary{padding:16px}.chart-card[data-active="true"]{border-color:#60a5fa;box-shadow:0 0 0 3px #bfdbfe99,0 12px 28px #2563eb18}.card-head{justify-content:space-between;flex:0 0 auto;gap:8px;margin-bottom:7px}.card-head h2{margin:0;font-size:13px;letter-spacing:-.01em}.card-tag{padding:3px 7px;border-radius:6px;background:#eff6ff;color:var(--blue);font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.chart{width:100%;height:auto;flex:1;min-height:0;border-radius:9px;overflow:hidden;background:#fff}.chart>svg,.chart>canvas{display:block;width:100%;height:100%;max-width:100%}.primary .chart,.mix .chart{height:auto}.card-meta{justify-content:space-between;flex:0 0 auto;gap:8px;min-width:0;margin-top:6px;color:var(--muted);font-size:10px}.card-meta>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.health{flex:0 0 auto;color:var(--green);font-weight:700}.health.warn{color:#b45309}.mini-legend{display:flex;flex:0 0 auto;gap:7px;align-items:center;margin:-1px 0 4px;overflow:hidden;color:var(--muted);font-size:9px;white-space:nowrap}.mini-legend span{display:inline-flex;align-items:center;gap:3px}.mini-legend i{width:6px;height:6px;border-radius:2px;background:var(--blue)}.mini-legend .product{background:#7c3aed}.mini-legend .service{background:#2563eb}.mini-legend .other{background:#0f766e}
+    .chart{display:grid;place-items:center}.chart>svg,.chart>canvas{object-fit:contain;object-position:center}
+    .workflow{justify-content:space-between;gap:10px;padding:12px 15px;background:#0e2340;border-radius:15px;color:#dbeafe}.workflow-step{gap:8px;min-width:0;color:#90a8c6;font-size:11px;font-weight:700;cursor:pointer;user-select:none;transition:color .25s ease}.workflow-step:hover{color:#dbeafe}.workflow-step.active{color:#fff}.workflow-step strong{display:grid;place-items:center;width:23px;height:23px;border:1px solid #456487;border-radius:50%;color:#a9c5e7;font-size:10px}.workflow-step.active strong{border-color:#7dd3fc;background:#0ea5e933;color:#fff}.workflow-line{height:1px;flex:1;background:#38516f}.workflow-caption{flex:0 0 150px;width:150px;margin-left:auto;overflow:hidden;color:#7dd3fc;font-size:10px;text-align:right;text-overflow:ellipsis;white-space:nowrap}
+    @media(max-width:900px){body{padding:10px}.promo{aspect-ratio:auto;min-height:0;padding:24px;overflow:visible}.main{grid-template-columns:1fr}.intro{padding:0}.intro h1{max-width:600px}.visuals{min-height:620px}.workflow{flex-wrap:wrap}.workflow-line{display:none}.workflow-caption{flex:0 0 100%;width:100%;margin:0;text-align:left}}
+    @media(max-width:620px){.brandbar{align-items:flex-start}.brand-actions{align-items:flex-end;flex-direction:column}.brand-name{font-size:16px}.main{gap:16px}.visuals{grid-template-columns:1fr;grid-template-rows:repeat(4,220px);min-height:0}.chart-card.primary{grid-row:auto}.workflow{align-items:flex-start}.workflow-step{width:calc(50% - 6px)}.workflow-caption{font-size:9px}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <main class="promo" id="promo">
+    <header class="brandbar">
+      <div class="brand"><div class="mark" aria-hidden="true">i</div><div><p class="eyebrow">Agent-first visualization runtime</p><div class="brand-name">iChart.js</div></div></div>
+      <div class="brand-actions"><span class="version" id="version">Runtime 2.0.10</span></div>
+    </header>
+    <section class="main" aria-label="iChart.js capabilities">
+      <div class="intro">
+        <p class="eyebrow">From data to trusted visuals</p>
+        <h1>Charts built for <span>real work.</span></h1>
+        <p class="intro-copy">Plan, validate, render, explain, and export charts that agents and product teams can trust.</p>
+        <div class="pill-row"><span class="pill">JSON-first Specs</span><span class="pill">SVG + Canvas</span><span class="pill">Agent diagnostics</span><span class="pill">Project intelligence</span></div>
+        <div class="stat-row"><div class="stat"><strong id="chart-count">18</strong><span>chart types</span></div><div class="stat"><strong>2</strong><span>renderers</span></div><div class="stat"><strong>1</strong><span>public runtime</span></div></div>
+      </div>
+      <div class="visuals">
+        <article class="chart-card primary" data-card="trend">
+          <div class="card-head"><h2>Trend intelligence</h2><span class="card-tag">Line · SVG</span></div>
+          <div class="chart" id="trend-chart"></div>
+          <div class="card-meta"><span>Readable axes · stable IDs</span><span class="health" id="trend-health">loading</span></div>
+        </article>
+        <article class="chart-card mix" data-card="mix">
+          <div class="card-head"><h2>Business mix</h2><span class="card-tag">Pie · Canvas</span></div>
+          <div class="mini-legend"><span><i class="product"></i>Product</span><span><i class="service"></i>Service</span><span><i class="other"></i>Other</span></div>
+          <div class="chart" id="mix-chart"></div>
+          <div class="card-meta"><span>Semantic palette</span><span class="health" id="mix-health">loading</span></div>
+        </article>
+        <article class="chart-card" data-card="delivery">
+          <div class="card-head"><h2>Delivery planning</h2><span class="card-tag">Gantt · SVG</span></div>
+          <div class="chart" id="delivery-chart"></div>
+          <div class="card-meta"><span>Dependencies · dates</span><span class="health" id="delivery-health">loading</span></div>
+        </article>
+        <article class="chart-card" data-card="architecture">
+          <div class="card-head"><h2>System thinking</h2><span class="card-tag">Architecture · SVG</span></div>
+          <div class="chart" id="architecture-chart"></div>
+          <div class="card-meta"><span>Layers · relations</span><span class="health" id="architecture-health">loading</span></div>
+        </article>
+      </div>
+    </section>
+    <footer class="workflow" aria-label="Agent workflow">
+      <div class="workflow-step active" data-step="0" role="button" tabindex="0" aria-current="step"><strong>1</strong><span>Inspect data</span></div><i class="workflow-line"></i><div class="workflow-step" data-step="1" role="button" tabindex="0"><strong>2</strong><span>Plan chart</span></div><i class="workflow-line"></i><div class="workflow-step" data-step="2" role="button" tabindex="0"><strong>3</strong><span>Validate Spec</span></div><i class="workflow-line"></i><div class="workflow-step" data-step="3" role="button" tabindex="0"><strong>4</strong><span>Render &amp; explain</span></div><i class="workflow-line"></i><div class="workflow-step" data-step="4" role="button" tabindex="0"><strong>5</strong><span>Switch theme</span></div><span class="workflow-caption" id="workflow-caption">Machine-readable by design</span>
+    </footer>
+  </main>
+  <script type="module" src="./github-promo.mjs?v=20260921-arrow-fix"></script>
+</body>
+</html>

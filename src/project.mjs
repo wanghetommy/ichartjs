@@ -8,7 +8,7 @@ import { layoutDiagram, normalizeDiagramData, routeEdgePath } from './diagram.mj
 import { analyzeBurndownSeries, analyzeSchedule } from './project-analytics.mjs';
 import { createLinkedProjectState, filterProjectRows, linkedRecordId } from './project-linking.mjs';
 import { contrastRatio, resolveTheme } from './theme.mjs';
-import { axisLabelLayout, titleLayout } from './layout.mjs';
+import { axisLabelLayout, estimateTextWidth, fontSize, titleLayout } from './layout.mjs';
 
 export const projectTypes = ['gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane', 'architecture', 'mindmap'];
 const day = 86400000;
@@ -43,6 +43,15 @@ function timeAxis(scene, plot, min, max) {
 
 function projectConfig(spec) {
   return spec.project || {};
+}
+
+function projectLabelReserve(spec, rows) {
+  const labels = spec.type === 'swimlane'
+    ? (spec.lanes || []).map(lane => lane.label || lane.id)
+    : rows.map(row => row.name || row.title || row.label || row.id);
+  const labelSize = fontSize(spec, 'label', 12);
+  const widest = Math.max(0, ...labels.filter(Boolean).map(label => estimateTextWidth(label, labelSize)));
+  return Math.min(170, Math.max(spec.padding.left, Math.ceil(widest + 20)));
 }
 
 function projectOverlays(spec) {
@@ -124,7 +133,7 @@ function tasksScene(scene, spec, rows, state) {
   const analyticsMap = new Map((state.schedule?.tasks || []).map(task => [task.id, task]));
   const highlighted = new Set(spec.criticalPath === false || !overlays.criticalPath ? [] : Array.isArray(spec.criticalPath) ? spec.criticalPath : state.schedule?.criticalIds || []);
   const selected = projectSelection(spec, state);
-  const rowHeight = Math.max(32, plot.height / Math.max(1, rows.length));
+  const rowHeight = plot.height / Math.max(1, rows.length), barHeight = Math.min(20, Math.max(10, rowHeight * 0.62)), barOffset = barHeight / 2;
   rows.forEach((row, index) => {
     const analytics = analyticsMap.get(row.id);
     const recordId = linkedRecordId(row, index);
@@ -140,14 +149,14 @@ function tasksScene(scene, spec, rows, state) {
     if (overlays.baseline && baselineStart) {
       const baselineStartX = map(baselineStart), baselineEndX = map(baselineEnd || baselineStart);
       if (milestone) scene.add({ id: `project-baseline-${index}`, type: 'circle', geometry: { cx: baselineStartX, cy: y, r: 4 }, bounds: { x: baselineStartX - 4, y: y - 4, width: 8, height: 8 }, style: { fill: spec.theme.background, stroke: spec.theme.axis, strokeWidth: 1.5 }, zIndex: 1 });
-      else scene.add({ id: `project-baseline-${index}`, type: 'rect', geometry: { x: baselineStartX, y: y - 14, width: Math.max(2, baselineEndX - baselineStartX), height: 6 }, style: { fill: spec.theme.border }, zIndex: 1 });
+      else scene.add({ id: `project-baseline-${index}`, type: 'rect', geometry: { x: baselineStartX, y: y - barOffset - 4, width: Math.max(2, baselineEndX - baselineStartX), height: 4 }, style: { fill: spec.theme.border }, zIndex: 1 });
     }
     if (overlays.actual && actualStart) {
       const actualStartX = map(actualStart), actualEndX = map(actualEnd || actualStart);
       if (milestone) scene.add({ id: `project-actual-${index}`, type: 'circle', geometry: { cx: actualStartX, cy: y, r: 3 }, bounds: { x: actualStartX - 3, y: y - 3, width: 6, height: 6 }, style: { fill: spec.theme.text }, zIndex: 3 });
-      else scene.add({ id: `project-actual-${index}`, type: 'rect', geometry: { x: actualStartX, y: y + 8, width: Math.max(2, actualEndX - actualStartX), height: 4 }, style: { fill: spec.theme.text, opacity: 0.35 }, zIndex: 3 });
+      else scene.add({ id: `project-actual-${index}`, type: 'rect', geometry: { x: actualStartX, y: y + barOffset + 2, width: Math.max(2, actualEndX - actualStartX), height: 3 }, style: { fill: spec.theme.text, opacity: 0.35 }, zIndex: 3 });
     }
-    const geometry = milestone ? { cx: start, cy: y, r: 7 } : { x: start, y: y - 10, width: Math.max(2, end - start), height: 20 };
+    const geometry = milestone ? { cx: start, cy: y, r: Math.min(7, barOffset) } : { x: start, y: y - barOffset, width: Math.max(2, end - start), height: barHeight };
     const bounds = milestone ? { x: start - 8, y: y - 8, width: 16, height: 16 } : { ...geometry };
     const datum = taskDatum(row, analytics, recordId);
     scene.add({
@@ -182,8 +191,8 @@ function tasksScene(scene, spec, rows, state) {
     const from = positions.get(fromId), to = positions.get(toId);
     if (!from || !to) return;
     const critical = highlighted.has(fromId) && highlighted.has(toId) && state.schedule?.criticalEdges?.some(edge => edge.from === fromId && edge.to === toId);
-    const bend = from.end + 12;
-    arrow(scene, `dependency-${index}-${dependencyIndex}`, [{ x: from.end, y: from.y }, { x: bend, y: from.y }, { x: bend, y: to.y - 15 }, { x: to.start - 10, y: to.y - 15 }, { x: to.start - 10, y: to.y }, { x: to.start, y: to.y }], { from: fromId, to: toId, critical }, critical);
+    const bend = from.end + 12, routeOffset = Math.max(6, barOffset + 3);
+    arrow(scene, `dependency-${index}-${dependencyIndex}`, [{ x: from.end, y: from.y }, { x: bend, y: from.y }, { x: bend, y: to.y - routeOffset }, { x: to.start - 10, y: to.y - routeOffset }, { x: to.start - 10, y: to.y }, { x: to.start, y: to.y }], { from: fromId, to: toId, critical }, critical);
   }));
   state.timeDomain = [min, max];
 }
@@ -242,7 +251,8 @@ function diagramScene(scene, spec, rows, state) {
   if (mode === 'architecture' && layers.length) layers.forEach((layer, index) => {
     const layerHeight = plot.height / layers.length;
     scene.add({ id: `layer-${layer.id}`, type: 'rect', geometry: { x: plot.x, y: plot.y + index * layerHeight, width: plot.width, height: layerHeight }, style: { fill: index % 2 ? spec.theme.surface : spec.theme.background, stroke: spec.theme.border }, zIndex: -2 });
-    text(scene, `layer-label-${layer.id}`, layer.label || layer.id, plot.x - 12, plot.y + index * layerHeight + 20, { textAnchor: 'end', font: spec.theme.typography.legend.font });
+    const compactLegendSize = Math.min(10, Number(spec.theme.typography.legend.size) || 9);
+    text(scene, `layer-label-${layer.id}`, layer.label || layer.id, plot.x - 12, plot.y + index * layerHeight + Math.min(20, layerHeight / 2 + 4), { textAnchor: 'end', font: state.compact ? `550 ${compactLegendSize}px system-ui, sans-serif` : spec.theme.typography.legend.font });
   });
   rows.forEach((row, index) => {
     const rank = ranks.get(row.id), lane = Math.max(0, lanes.findIndex(item => item.id === row.laneId));
@@ -252,10 +262,13 @@ function diagramScene(scene, spec, rows, state) {
     const generated = layout[row.id];
     const layerIndex = mode === 'architecture' && layers.length ? Math.max(0, layers.findIndex(layer => layer.id === row.layerId)) : -1;
     const layerHeight = layers.length ? plot.height / layers.length : plot.height;
+    const nodeWidth = mode === 'architecture' && layers.length ? Math.min(112, Math.max(72, plot.width / layers.length - 4)) : 112;
+    const nodeHeight = mode === 'architecture' && layers.length ? Math.min(36, Math.max(14, layerHeight - 6)) : 36;
+    const nodeFont = mode === 'architecture' && state.compact ? '550 10px system-ui, sans-serif' : null;
     const layerSlot = layerIndex >= 0 ? layerSlots.get(row.layerId) : 0;
     if (layerIndex >= 0) layerSlots.set(row.layerId, layerSlot + 1);
     const layerCount = layerIndex >= 0 ? rows.filter(item => item.layerId === row.layerId).length : 1;
-    const geometry = { x: row.position?.x ?? (layerIndex >= 0 ? plot.x + (layerIndex + 0.5) * plot.width / layers.length - 56 : generated?.x ?? plot.x + rank * gapX + 12), y: row.position?.y ?? (layerIndex >= 0 ? plot.y + layerIndex * layerHeight + (layerSlot + 0.5) * layerHeight / Math.max(1, layerCount) - 18 : generated?.y ?? plot.y + (lanes.length ? lane * laneHeight : 0) + (slot + 0.5) * (lanes.length ? laneHeight : Math.max(plot.height, sameCell * 64)) / sameCell - 18), width: row.size?.width || 112, height: row.size?.height || 36 };
+    const geometry = { x: row.position?.x ?? (layerIndex >= 0 ? plot.x + (layerIndex + 0.5) * plot.width / layers.length - nodeWidth / 2 : generated?.x ?? plot.x + rank * gapX + 12), y: row.position?.y ?? (layerIndex >= 0 ? plot.y + layerIndex * layerHeight + (layerSlot + 0.5) * layerHeight / Math.max(1, layerCount) - nodeHeight / 2 : generated?.y ?? plot.y + (lanes.length ? lane * laneHeight : 0) + (slot + 0.5) * (lanes.length ? laneHeight : Math.max(plot.height, sameCell * 64)) / sameCell - 18), width: row.size?.width || nodeWidth, height: row.size?.height || nodeHeight };
     positions.set(row.id, geometry);
     if (collapsedGroups.has(row.groupId)) return;
     const depth = row.parentId ? (ranks.get(row.id) || 0) : 0;
@@ -265,7 +278,7 @@ function diagramScene(scene, spec, rows, state) {
       const point = port.side === 'left' ? { x: geometry.x, y: geometry.y + geometry.height * (port.offset ?? 0.5) } : port.side === 'top' ? { x: geometry.x + geometry.width * (port.offset ?? 0.5), y: geometry.y } : port.side === 'bottom' ? { x: geometry.x + geometry.width * (port.offset ?? 0.5), y: geometry.y + geometry.height } : { x: geometry.x + geometry.width, y: geometry.y + geometry.height * (port.offset ?? 0.5) };
       scene.add({ id: `port-${row.id}-${port.id}`, type: 'circle', geometry: { cx: point.x, cy: point.y, r: 4 }, bounds: { x: point.x - 6, y: point.y - 6, width: 12, height: 12 }, style: { fill: spec.theme.background, stroke: spec.theme.text, strokeWidth: 1.5 }, dataRef: { nodeId: row.id, portId: port.id, groupId: row.groupId || null }, interactive: true, zIndex: 4 });
     });
-    text(scene, `node-label-${row.id}`, row.label || row.id, geometry.x + geometry.width / 2, geometry.y + geometry.height / 2 + 5, { fill: markText(spec.theme, spec.colors[lane % spec.colors.length]), textAnchor: 'middle' });
+    text(scene, `node-label-${row.id}`, row.label || row.id, geometry.x + geometry.width / 2, geometry.y + geometry.height / 2 + (geometry.height < 20 ? 3 : 5), { fill: markText(spec.theme, spec.colors[lane % spec.colors.length]), textAnchor: 'middle', ...(nodeFont ? { font: nodeFont } : {}) });
   });
   const groupBoxes = new Map();
   groups.forEach(group => {
@@ -300,7 +313,7 @@ function diagramScene(scene, spec, rows, state) {
     const fromPortDefinition = fromNode.groupId && collapsedGroups.has(fromNode.groupId) ? null : fromNode?.ports?.find(port => port.id === edge.fromPort);
     const toPortDefinition = toNode.groupId && collapsedGroups.has(toNode.groupId) ? null : toNode?.ports?.find(port => port.id === edge.toPort);
     const routing = edge.routing || diagramSpec.diagram.routing;
-    const path = routeEdgePath({ ...edge, curveTension: edge.curveTension ?? diagramSpec.diagram.curveTension, grid: diagramSpec.diagram.grid, obstacles, fromPortDefinition, toPortDefinition }, from, to, routing);
+    const path = routeEdgePath({ ...edge, curveTension: edge.curveTension ?? diagramSpec.diagram.curveTension, grid: diagramSpec.diagram.grid, obstacles, fromPortDefinition, toPortDefinition, preserveSides: mode === 'architecture' }, from, to, routing);
     const points = path.points;
     arrow(scene, `edge-${index}`, points, { from: edge.from, to: edge.to, edgeId: edge.id || `edge-${index}`, status: edge.status, routing, curveTension: edge.curveTension ?? diagramSpec.diagram.curveTension, waypoints: edge.waypoints || [], fromPortDefinition, toPortDefinition, fromGroupId: fromNode.groupId || null, toGroupId: toNode.groupId || null }, edge.critical === true, path.curve);
     if (edge.label) {
@@ -328,7 +341,7 @@ export function buildProjectScene(spec) {
   const data = { ...normalizeData(visibleRows), rows: visibleRows.map(row => ({ ...row })), sourceRows: sourceRows.map(row => ({ ...row })) };
   const scene = new Scene(spec.width, spec.height);
   scene.theme = spec.theme;
-  const left = ['gantt', 'timeline', 'milestone', 'swimlane', 'architecture'].includes(spec.type) ? Math.min(170, spec.width * 0.34) : spec.padding.left;
+  const left = spec.type === 'architecture' ? Math.min(110, spec.width * 0.2) : ['gantt', 'timeline', 'milestone', 'swimlane'].includes(spec.type) ? projectLabelReserve(spec, sourceRows) : spec.padding.left;
   const title = titleLayout(spec);
   const plotTop = Math.max(spec.padding.top, title.bottom + (title.bottom ? 12 : 0)) + (spec.type === 'burndown' ? 16 : 0);
   const plotWidth = Math.max(1, spec.width - left - spec.padding.right), xLabels = axisLabelLayout(spec, Array(Math.max(2, Math.min(5, Math.floor(plotWidth / 100)))).fill('2000-00-00'), plotWidth);

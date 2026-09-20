@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.10 - 2026-09-21
+
+- Fixed Architecture orthogonal edges so arrows preserve facing sides, use visible bends, and avoid overlapping arrow tips.
+- Made project label reserves follow the rendered label font size and synchronized System thinking and Delivery planning typography.
+- Refreshed the GitHub promotional Playground page and animated GIF, including cache-busted preview loading.
+
 ## 2.0.9 - 2026-09-20
 
 - Fixed Radar normalization so normalized Specs validate and render without unsupported Cartesian encodings.
