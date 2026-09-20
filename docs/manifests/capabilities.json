@@ -8,6 +8,7 @@
   "agentQuickstart": "docs/agent/quickstart.md",
   "usageScenarios": "docs/agent/usage-scenarios.md",
   "agentWorkflowExample": "examples/agent-workflow.mjs",
+  "minimalSpecs": "@taylorwong/ichartjs/recipes/minimal-specs",
   "officialSkill": "skills/ichartjs/SKILL.md",
   "scenarios": {
     "charting": ["line", "area", "bar", "column", "pie", "scatter", "funnel", "gauge", "heatmap", "radar"],
@@ -17,6 +18,17 @@
   "projectIntelligence": ["variance", "capacity", "release", "risk", "aging"],
   "chartModes": ["stacked", "percent-stacked", "donut", "mixed-line-column", "bin", "architecture-layers", "architecture-boundaries", "mindmap-tree", "mindmap-radial", "mindmap-curved-edges"],
   "renderers": ["canvas", "svg"],
+  "locale": {
+    "default": "en-US",
+    "recommended": ["en-US", "zh-CN"],
+    "appliesTo": ["axis", "labels", "tooltip", "export"],
+    "inputDates": "ISO-8601 strings; natural-language date parsing is not supported."
+  },
+  "health": {
+    "state": ["ready", "degraded", "empty"],
+    "apis": ["chart.getState().health", "chart.explain().health"],
+    "metrics": ["warnings", "suppressedLabels", "clampedValues", "renderedMarks"]
+  },
   "interactionDefaults": { "zoom": false, "pan": false, "brush": false, "drag": false, "edgeDrag": false, "portConnect": false, "editing": false },
   "diagramEditing": {
     "renderers": ["canvas", "svg"],

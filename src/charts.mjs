@@ -12,6 +12,58 @@ import { axisLabelLayout, boxesOverlap, estimateTextWidth, fontSize, titleLayout
 
 const pick = (row, encoding, fallback) => row?.[encoding?.field || fallback];
 const font = (spec, role, fallback = '12px system-ui') => spec.theme?.typography?.[role]?.font || fallback;
+const niceMantissas = [1, 1.2, 1.5, 1.8, 2, 2.5, 3, 4, 5, 6, 7.5, 8, 10];
+
+function nearestNiceMantissa(value) {
+  return niceMantissas.reduce((best, candidate) => Math.abs(Math.log(value / candidate)) < Math.abs(Math.log(value / best)) ? candidate : best, niceMantissas[0]);
+}
+
+function niceCeil(value) {
+  const positive = Math.abs(Number(value));
+  if (!(positive > 0) || !Number.isFinite(positive)) return 1;
+  const power = 10 ** Math.floor(Math.log10(positive));
+  const normalized = positive / power;
+  const mantissa = niceMantissas.find(candidate => candidate >= normalized) || 10;
+  return mantissa * power;
+}
+
+function validDomain(domain) {
+  return Array.isArray(domain) && domain.length === 2 && domain.every(value => Number.isFinite(Number(value))) && Number(domain[1]) > Number(domain[0]);
+}
+
+function resolveAxisDomain(rawMin, rawMax, axis = {}, type = 'linear') {
+  if (validDomain(axis.domain)) return [Number(axis.domain[0]), Number(axis.domain[1])];
+  if (type === 'log') return [rawMin, rawMax];
+  let min = rawMin, max = rawMax;
+  if (axis.nice !== false) {
+    min = min < 0 ? -niceCeil(-min) : 0;
+    max = niceCeil(max);
+  }
+  if (!(max > min)) max = min + (niceCeil(Math.abs(min) || 1) || 1);
+  return [min, max];
+}
+
+function axisTicks(min, max, axis = {}, type = 'linear') {
+  if (!(max > min)) return [min, max];
+  if (type === 'log') {
+    const start = Math.ceil(Math.log10(Math.max(min, 0.000001)));
+    const end = Math.floor(Math.log10(Math.max(max, 0.000001)));
+    const powers = Array.from({ length: Math.max(0, end - start + 1) }, (_, index) => 10 ** (start + index));
+    return [...new Set([min, ...powers.filter(value => value > min && value < max), max])];
+  }
+  const explicitCount = Number.isInteger(axis.ticks) && axis.ticks >= 2 ? axis.ticks : null;
+  const targetIntervals = explicitCount ? explicitCount - 1 : 5;
+  let intervals = explicitCount ? targetIntervals : 4, bestScore = Infinity;
+  if (!explicitCount) {
+    for (let candidate = 4; candidate <= 7; candidate += 1) {
+      const step = (max - min) / candidate;
+      const power = 10 ** Math.floor(Math.log10(Math.abs(step)));
+      const score = Math.abs(Math.log((step / power) / nearestNiceMantissa(step / power))) + Math.abs(candidate - targetIntervals) * 0.08;
+      if (score < bestScore) { bestScore = score; intervals = candidate; }
+    }
+  }
+  return Array.from({ length: intervals + 1 }, (_, index) => min + (max - min) * index / intervals);
+}
 
 function chromeLayout(spec, entries = []) {
   const title = titleLayout(spec);
@@ -62,7 +114,7 @@ function layout(spec, data, legendEntries = []) {
   const plotLeft = ['bar', 'heatmap'].includes(spec.type) ? Math.min(width * 0.35, Math.max(p.left, sideLabelLength * fontSize(spec, 'axis', 12) * 0.62 + 24)) : p.left;
   const plotTop = Math.max(p.top, chrome.bottom + (chrome.bottom ? 12 : 0));
   const plotWidth = Math.max(1, width - plotLeft - p.right);
-  const axisLabelTexts = temporal ? timeTicks(xMin, xMax, 5).map(value => formatTime(value, xMax - xMin)) : quantitativeX ? timeTicks(xMin, xMax, 5).map(value => formatValue(value, spec.xAxis?.format)) : categories;
+  const axisLabelTexts = temporal ? timeTicks(xMin, xMax, 5).map(value => formatTime(value, xMax - xMin, spec.xAxis?.format, spec.locale)) : quantitativeX ? timeTicks(xMin, xMax, 5).map(value => formatValue(value, spec.xAxis?.format, spec.locale)) : categories;
   const xLabels = axisLabelLayout(spec, spec.type === 'bar' ? [] : axisLabelTexts, plotWidth);
   const bottomReserve = Math.max(p.bottom, Math.ceil(16 + xLabels.projectedHeight + (spec.xAxis?.title ? 20 : 0)));
   const plot = { x: plotLeft, y: plotTop, width: plotWidth, height: Math.max(1, height - plotTop - bottomReserve) };
@@ -75,19 +127,23 @@ function layout(spec, data, legendEntries = []) {
     return [values.filter(value => value >= 0).reduce((sum, value) => sum + value, 0), values.filter(value => value < 0).reduce((sum, value) => sum + value, 0)];
   }) : [];
   const numbers = (stackTotals.length ? stackTotals : data.rows.flatMap(row => yEncodings.map(encoding => Number(row[encoding.field])))).filter(Number.isFinite);
-  const min = Math.min(0, ...(numbers.length ? numbers : [0]));
-  const max = Math.max(1, ...(numbers.length ? numbers : [1]));
-  const x = category => temporal ? plot.x + ((new Date(category).getTime() - xMin) / (xMax - xMin || 1)) * plot.width : quantitativeX ? plot.x + ((Number(category) - xMin) / (xMax - xMin || 1)) * plot.width : plot.x + (categories.indexOf(String(category)) + 0.5) * plot.width / Math.max(1, categories.length);
+  const rawMin = Math.min(0, ...(numbers.length ? numbers : [0]));
+  const rawMax = Math.max(1, ...(numbers.length ? numbers : [1]));
   const axisType = spec.yAxis?.type || yEncodings[0]?.type || 'linear';
+  const [min, max] = resolveAxisDomain(rawMin, rawMax, spec.yAxis || {}, axisType);
+  const x = category => temporal ? plot.x + ((new Date(category).getTime() - xMin) / (xMax - xMin || 1)) * plot.width : quantitativeX ? plot.x + ((Number(category) - xMin) / (xMax - xMin || 1)) * plot.width : plot.x + (categories.indexOf(String(category)) + 0.5) * plot.width / Math.max(1, categories.length);
   const transform = value => axisType === 'log' ? Math.log10(Math.max(0.000001, Number(value))) : Number(value);
   const transformedMin = transform(min), transformedMax = transform(max);
   const y = value => plot.y + plot.height - ((transform(value) - transformedMin) / (transformedMax - transformedMin || 1)) * plot.height;
   const yRightNumbers = data.rows.map(row => Number(row[yEncodings[1]?.field])).filter(Number.isFinite);
-  const rightMin = Math.min(0, ...(yRightNumbers.length ? yRightNumbers : [0])), rightMax = Math.max(1, ...(yRightNumbers.length ? yRightNumbers : [1]));
+  const rawRightMin = Math.min(0, ...(yRightNumbers.length ? yRightNumbers : [0])), rawRightMax = Math.max(1, ...(yRightNumbers.length ? yRightNumbers : [1]));
   const rightType = spec.yAxis?.right?.type || yEncodings[1]?.type || 'linear';
+  const [rightMin, rightMax] = resolveAxisDomain(rawRightMin, rawRightMax, spec.yAxis?.right || {}, rightType);
   const rightTransform = value => rightType === 'log' ? Math.log10(Math.max(0.000001, Number(value))) : Number(value);
   const yRight = value => plot.y + plot.height - ((rightTransform(value) - rightTransform(rightMin)) / (rightTransform(rightMax) - rightTransform(rightMin) || 1)) * plot.height;
-  return { plot, chrome, xLabels, compact: width < 360 || height < 240, recommendedSize: { minWidth: 280, minHeight: 220 }, xField, xEncoding, temporal, quantitativeX, xMin, xMax, yField, yEncodings, categories, min, max, rightMin, rightMax, x, y, yRight, axisType, rightType };
+  const yTicks = axisTicks(min, max, spec.yAxis || {}, axisType), rightTicks = axisTicks(rightMin, rightMax, spec.yAxis?.right || {}, rightType);
+  const axisInfo = (rawDomain, domain, ticks, axis) => ({ rawDomain, domain, ticks, step: ticks.length > 1 ? (ticks[1] - ticks[0]) : null, policy: validDomain(axis?.domain) ? 'explicit' : axis?.nice === false ? 'raw' : 'nice' });
+  return { plot, chrome, xLabels, compact: width < 360 || height < 240, recommendedSize: { minWidth: 280, minHeight: 220 }, xField, xEncoding, temporal, quantitativeX, xMin, xMax, yField, yEncodings, categories, rawMin, rawMax, min, max, rawRightMin, rawRightMax, rightMin, rightMax, yTicks, rightTicks, axes: { y: axisInfo([rawMin, rawMax], [min, max], yTicks, spec.yAxis || {}), right: axisInfo([rawRightMin, rawRightMax], [rightMin, rightMax], rightTicks, spec.yAxis?.right || {}) }, x, y, yRight, axisType, rightType };
 }
 
 function addText(scene, id, text, x, y, style = {}, dataRef = null) { scene.add(new SceneNode({ id, type: 'text', geometry: { text: String(text), x, y }, style, dataRef })); }
@@ -97,21 +153,21 @@ function addAxes(scene, spec, state) {
   scene.add(new SceneNode({ id: 'axis-x', type: 'line', geometry: { x1: plot.x, y1: plot.y + plot.height, x2: plot.x + plot.width, y2: plot.y + plot.height }, style: { stroke: spec.theme.axis } }));
   scene.add(new SceneNode({ id: 'axis-y', type: 'line', geometry: { x1: plot.x, y1: plot.y, x2: plot.x, y2: plot.y + plot.height }, style: { stroke: spec.theme.axis } }));
   if (spec.type === 'bar') {
-    const ticks = [min, min + (max - min) / 2, max], numericX = value => plot.x + ((value - min) / (max - min || 1)) * plot.width;
+    const ticks = state.yTicks, numericX = value => plot.x + ((value - min) / (max - min || 1)) * plot.width;
     if (spec.grid?.visible !== false) ticks.forEach((value, index) => scene.add(new SceneNode({ id: `grid-x-${index}`, type: 'line', geometry: { x1: numericX(value), y1: plot.y, x2: numericX(value), y2: plot.y + plot.height }, style: { stroke: spec.grid?.color || spec.theme.grid, strokeWidth: spec.theme.marks.gridWidth }, zIndex: -2 })));
-    ticks.forEach(value => addText(scene, `label-x-value-${value}`, formatValue(value, spec.xAxis?.format || spec.yAxis?.format), numericX(value), plot.y + plot.height + 22, { fill: spec.theme.muted, font: font(spec, 'axis'), textAnchor: 'middle' }));
+    ticks.forEach(value => addText(scene, `label-x-value-${value}`, formatValue(value, spec.xAxis?.format || spec.yAxis?.format, spec.locale), numericX(value), plot.y + plot.height + 22, { fill: spec.theme.muted, font: font(spec, 'axis'), textAnchor: 'middle' }));
     categories.forEach((category, index) => addText(scene, `label-y-category-${index}`, category, plot.x - 10, plot.y + (index + .5) * plot.height / Math.max(1, categories.length) + 4, { fill: spec.theme.muted, font: font(spec, 'axis'), textAnchor: 'end' }));
     return;
   }
   const labels = state.temporal || state.quantitativeX ? timeTicks(state.xMin, state.xMax, 5) : categories;
-  const yTicks = [min, min + (max - min) / 2, max];
+  const yTicks = state.yTicks;
   if (spec.grid?.visible !== false) yTicks.forEach((value, index) => scene.add(new SceneNode({ id: `grid-y-${index}`, type: 'line', geometry: { x1: plot.x, y1: y(value), x2: plot.x + plot.width, y2: y(value) }, style: { stroke: spec.grid?.color || spec.theme.grid, strokeWidth: spec.theme.marks.gridWidth }, zIndex: -2 })));
   labels.forEach((category, index) => {
     if (index % state.xLabels.step !== 0 && index !== labels.length - 1) return;
-    addText(scene, `label-x-${category}`, state.temporal ? formatTime(category, state.xMax - state.xMin) : state.quantitativeX ? formatValue(category, spec.xAxis?.format) : category, x(category), plot.y + plot.height + (state.xLabels.rotation ? 10 : 22), { fill: spec.theme.muted, font: font(spec, 'axis'), textAnchor: state.xLabels.rotation ? 'end' : 'middle', textBaseline: state.xLabels.rotation ? 'middle' : 'alphabetic', rotation: state.xLabels.rotation });
+    addText(scene, `label-x-${category}`, state.temporal ? formatTime(category, state.xMax - state.xMin, spec.xAxis?.format, spec.locale) : state.quantitativeX ? formatValue(category, spec.xAxis?.format, spec.locale) : category, x(category), plot.y + plot.height + (state.xLabels.rotation ? 10 : 22), { fill: spec.theme.muted, font: font(spec, 'axis'), textAnchor: state.xLabels.rotation ? 'end' : 'middle', textBaseline: state.xLabels.rotation ? 'middle' : 'alphabetic', rotation: state.xLabels.rotation });
   });
-  yTicks.forEach(value => addText(scene, `label-y-${value}`, formatValue(value, spec.yAxis?.format), plot.x - 10, y(value) + 4, { fill: spec.theme.muted, font: font(spec, 'axis'), textAnchor: 'end' }));
-  if (state.yEncodings.length > 1 && !spec.stack) [state.rightMin, (state.rightMin + state.rightMax) / 2, state.rightMax].forEach(value => addText(scene, `label-y-right-${value}`, formatValue(value, spec.yAxis?.right?.format), plot.x + plot.width + 10, yRight(value) + 4, { fill: spec.theme.muted, font: font(spec, 'axis') }));
+  yTicks.forEach(value => addText(scene, `label-y-${value}`, formatValue(value, spec.yAxis?.format, spec.locale), plot.x - 10, y(value) + 4, { fill: spec.theme.muted, font: font(spec, 'axis'), textAnchor: 'end' }));
+  if (state.yEncodings.length > 1 && !spec.stack) state.rightTicks.forEach(value => addText(scene, `label-y-right-${value}`, formatValue(value, spec.yAxis?.right?.format, spec.locale), plot.x + plot.width + 10, yRight(value) + 4, { fill: spec.theme.muted, font: font(spec, 'axis') }));
   if (spec.xAxis?.title) addText(scene, 'axis-x-title', spec.xAxis.title, plot.x + plot.width / 2, plot.y + plot.height + (state.xLabels.rotation ? state.xLabels.projectedHeight + 20 : 42), { fill: spec.theme.text, font: font(spec, 'axis'), textAnchor: 'middle' });
   if (spec.yAxis?.title) addText(scene, 'axis-y-title', spec.yAxis.title, 8, plot.y + 12, { fill: spec.theme.text, font: font(spec, 'axis') });
 }
@@ -134,9 +190,9 @@ function legendEntries(spec, data, series, colors) {
   return [];
 }
 
-function addMarkLabel(scene, spec, id, value, x, y, dataRef, bounds = null, anchor = null) {
+function addMarkLabel(scene, spec, id, value, x, y, dataRef, bounds = null, anchor = null, formatOverride = null) {
   if (!spec.labels?.enabled) return;
-  const text = formatValue(value, spec.labels.format), size = fontSize(spec, 'label', 12), width = estimateTextWidth(text, size), height = size * 1.25;
+  const text = formatValue(value, formatOverride || spec.labels.format, spec.locale), size = fontSize(spec, 'label', 12), width = estimateTextWidth(text, size), height = size * 1.25;
   const area = bounds || scene._labelArea || { x: 0, y: 0, width: spec.width, height: spec.height };
   const safeX = Math.max(area.x + width / 2, Math.min(area.x + area.width - width / 2, x));
   const safeY = Math.max(area.y + height / 2, Math.min(area.y + area.height - height / 2, y));
@@ -166,7 +222,10 @@ function addHeatmapScene(scene, spec, data, state, colors) {
   xValues.forEach((value, index) => { if (index % state.xLabels.step !== 0 && index !== xValues.length - 1) return; addText(scene, `heatmap-x-${index}`, value, state.plot.x + (index + .5) * width, state.plot.y + state.plot.height + (state.xLabels.rotation ? 10 : 20), { fill: spec.theme.muted, font: font(spec, 'axis'), textAnchor: state.xLabels.rotation ? 'end' : 'middle', textBaseline: state.xLabels.rotation ? 'middle' : 'alphabetic', rotation: state.xLabels.rotation }); });
   const yStep = Math.max(1, Math.ceil(fontSize(spec, 'axis', 12) * 1.35 / Math.max(1, height)));
   yValues.forEach((value, index) => { if (index % yStep !== 0 && index !== yValues.length - 1) return; addText(scene, `heatmap-y-${index}`, value, state.plot.x - 10, state.plot.y + (index + .5) * height, { fill: spec.theme.muted, font: font(spec, 'axis'), textAnchor: 'end', textBaseline: 'middle', baseline: 'middle' }); });
-  data.rows.forEach((row, index) => { const xIndex = xValues.indexOf(String(row[xField])), yIndex = yValues.indexOf(String(row[yField])), value = numericValue(row), geometry = { x: state.plot.x + xIndex * width + gap / 2, y: state.plot.y + yIndex * height + gap / 2, width: Math.max(1, width - gap), height: Math.max(1, height - gap) }; scene.add(new SceneNode({ id: `heatmap-cell-${index}`, type: 'rect', geometry, bounds: geometry, style: { fill: Number.isFinite(value) ? colorMix(low, high, (value - min) / (max - min || 1)) : missing, stroke: spec.theme.background, strokeWidth: 1 }, dataRef: { dataIndex: index, x: row[xField], y: row[yField], value: Number.isFinite(value) ? value : null, recordId: row.id || `record-${index}` }, interactive: true })); });
+  let hiddenLabels = 0, visibleLabels = 0;
+  data.rows.forEach((row, index) => { const xIndex = xValues.indexOf(String(row[xField])), yIndex = yValues.indexOf(String(row[yField])), value = numericValue(row), ratio = Number.isFinite(value) ? (value - min) / (max - min || 1) : 0, geometry = { x: state.plot.x + xIndex * width + gap / 2, y: state.plot.y + yIndex * height + gap / 2, width: Math.max(1, width - gap), height: Math.max(1, height - gap) }; scene.add(new SceneNode({ id: `heatmap-cell-${index}`, type: 'rect', geometry, bounds: geometry, style: { fill: Number.isFinite(value) ? colorMix(low, high, ratio) : missing, stroke: spec.theme.background, strokeWidth: 1 }, dataRef: { dataIndex: index, x: row[xField], y: row[yField], value: Number.isFinite(value) ? value : null, recordId: row.id || `record-${index}` }, interactive: true })); if (spec.labels?.enabled && Number.isFinite(value)) { const label = formatValue(value, spec.labels.format, spec.locale), size = fontSize(spec, 'label', 12); if (geometry.width >= estimateTextWidth(label, size) + 8 && geometry.height >= size * 1.35) { addText(scene, `heatmap-cell-label-${index}`, label, geometry.x + geometry.width / 2, geometry.y + geometry.height / 2, { fill: spec.labels.color || (ratio > 0.58 ? '#ffffff' : spec.theme.text), font: spec.labels.font || font(spec, 'label'), textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle' }); visibleLabels += 1; } else hiddenLabels += 1; } });
+  state.labelLayout = { ...(state.labelLayout || {}), heatmap: { hidden: hiddenLabels, visible: visibleLabels } };
+  if (hiddenLabels) data.warnings.push({ code: 'LABELS_SUPPRESSED', path: 'labels', count: hiddenLabels, message: `${hiddenLabels} heatmap labels were suppressed because cells are too small.`, suggestion: 'Increase chart width or height, reduce the matrix, or disable labels.' });
   state.matrix = { xValues, yValues, min, max };
 }
 
@@ -206,16 +265,16 @@ function addRadarScene(scene, spec, data, state, colors) {
 }
 
 function timeTicks(min, max, count) { return Array.from({ length: count }, (_, index) => min + (max - min) * index / Math.max(1, count - 1)); }
-function formatTime(value, span) { const date = new Date(value); if (span > 1000 * 86400000 * 365) return String(date.getUTCFullYear()); if (span > 1000 * 86400000 * 60) return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`; return `${date.getUTCMonth() + 1}/${date.getUTCDate()}`; }
+function formatTime(value, span, format, locale = 'en-US') { const date = new Date(value); if (format) { const options = typeof format === 'string' ? { style: format } : format; return formatValue(value, options?.style || options?.options ? { style: options.style || 'date', ...options } : { style: 'date', options }, locale); } const days = span / 86400000, nowYear = date.getUTCFullYear(), startYear = new Date(value - span).getUTCFullYear(); if (days > 365 || (nowYear !== startYear && days > 45)) return String(nowYear); if (days > 60) return `${nowYear}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`; return `${date.getUTCMonth() + 1}/${date.getUTCDate()}${nowYear !== startYear ? `/${nowYear}` : ''}`; }
 
 function projectRows(spec, data) { return data.rows.length ? data.rows : (spec.tasks || spec.events || []); }
 function projectDate(value, min, max, plot) { const time = new Date(value).getTime(); return plot.x + ((time - min) / (max - min || 1)) * plot.width; }
-function addProjectAxes(scene, plot, min, max) { scene.add(new SceneNode({ id: 'project-axis', type: 'line', geometry: { x1: plot.x, y1: plot.y + plot.height, x2: plot.x + plot.width, y2: plot.y + plot.height }, style: { stroke: '#94a3b8' } })); timeTicks(min, max, 5).forEach(value => addText(scene, `project-label-${value}`, formatTime(value, max - min), projectDate(value, min, max, plot), plot.y + plot.height + 22, { fill: '#475569', font: '12px system-ui', textAnchor: 'middle' })); }
+function addProjectAxes(scene, plot, min, max, spec = {}) { scene.add(new SceneNode({ id: 'project-axis', type: 'line', geometry: { x1: plot.x, y1: plot.y + plot.height, x2: plot.x + plot.width, y2: plot.y + plot.height }, style: { stroke: '#94a3b8' } })); timeTicks(min, max, 5).forEach(value => addText(scene, `project-label-${value}`, formatTime(value, max - min, spec.xAxis?.format, spec.locale), projectDate(value, min, max, plot), plot.y + plot.height + 22, { fill: '#475569', font: '12px system-ui', textAnchor: 'middle' })); }
 function addProjectScene(scene, spec, data, state, colors) {
   const { plot } = state;
   if (['gantt', 'timeline', 'milestone'].includes(spec.type)) {
     const rows = projectRows(spec, data), dates = rows.flatMap(row => [new Date(row.start || row.date || row.end).getTime(), new Date(row.end || row.date || row.start).getTime()]).filter(Number.isFinite), min = Math.min(...(dates.length ? dates : [Date.now()])), max = Math.max(...(dates.length ? dates : [min + 86400000]));
-    addProjectAxes(scene, plot, min, max);
+    addProjectAxes(scene, plot, min, max, spec);
     const positions = new Map(); rows.forEach((row, index) => { const y = plot.y + (index + 0.5) * plot.height / Math.max(1, rows.length), start = projectDate(row.start || row.date || row.end, min, max, plot), end = projectDate(row.end || row.date || row.start, min, max, plot), x = Math.min(start, end), width = Math.max(8, Math.abs(end - start)); positions.set(row.id, { x, y, end, row }); const milestone = spec.type === 'milestone' || row.milestone || start === end; const geometry = milestone ? { cx: start, cy: y, r: 7 } : { x, y: y - 10, width, height: 20 }; scene.add(new SceneNode({ id: `project-item-${index}`, type: milestone ? 'circle' : 'rect', geometry, bounds: milestone ? { x: start - 10, y: y - 10, width: 20, height: 20 } : geometry, style: { fill: colors[index % colors.length], stroke: '#ffffff', strokeWidth: 1 }, dataRef: { dataIndex: index, taskId: row.id, field: 'project' }, interactive: true })); addText(scene, `project-label-${index}`, row.name || row.title || row.label || row.id || `Item ${index + 1}`, plot.x - 8, y + 4, { fill: '#334155', font: '12px system-ui', textAnchor: 'end' }); if (row.progress != null && !milestone) scene.add(new SceneNode({ id: `project-progress-${index}`, type: 'rect', geometry: { x, y: y - 10, width: width * Math.max(0, Math.min(1, Number(row.progress) > 1 ? Number(row.progress) / 100 : Number(row.progress))), height: 20 }, style: { fill: '#0f172a', opacity: 0.25 }, interactive: false })); });
     const criticalPath = new Set(spec.criticalPath || []);
     rows.forEach((row, index) => (row.dependencies || []).forEach((dependency, dependencyIndex) => { const from = positions.get(dependency), to = positions.get(row.id); if (!from || !to) return; const critical = criticalPath.has(row.id) && criticalPath.has(dependency); const angle = Math.atan2(to.y - from.y, to.x - from.end), arrow = 7; scene.add(new SceneNode({ id: `dependency-${index}-${dependencyIndex}`, type: 'line', geometry: { x1: from.end, y1: from.y, x2: to.x, y2: to.y }, style: { stroke: critical ? '#dc2626' : '#64748b', strokeWidth: critical ? 2.5 : 1.5, opacity: 0.85 }, dataRef: { from: dependency, to: row.id, critical }, interactive: false, zIndex: -1 })); scene.add(new SceneNode({ id: `dependency-arrow-${index}-${dependencyIndex}`, type: 'path', geometry: { points: [{ x: to.x, y: to.y }, { x: to.x - arrow * Math.cos(angle - Math.PI / 6), y: to.y - arrow * Math.sin(angle - Math.PI / 6) }, { x: to.x - arrow * Math.cos(angle + Math.PI / 6), y: to.y - arrow * Math.sin(angle + Math.PI / 6) }] }, style: { stroke: critical ? '#dc2626' : '#64748b', fill: critical ? '#dc2626' : '#64748b', strokeWidth: 1 }, interactive: false, zIndex: -1 })); }));
@@ -303,13 +362,15 @@ export function buildScene(spec) {
   } else if (spec.type === 'pie') {
     const categoryField = spec.encoding.category?.field || 'name', valueField = spec.encoding.value?.field || 'value', total = data.rows.reduce((sum, row) => sum + Math.max(0, Number(row[valueField]) || 0), 0), cx = state.plot.x + state.plot.width / 2, cy = state.plot.y + state.plot.height / 2, radius = Math.min(state.plot.width, state.plot.height) * 0.38, innerR = radius * Number(spec.innerRadius || 0); let angle = -Math.PI / 2;
     if (!(total > 0)) { data.warnings.push({ code: 'ZERO_TOTAL', path: `encoding.value.${valueField}`, message: 'Pie requires a positive total.' }); addText(scene, 'pie-zero-total', spec.emptyText || 'No positive values', cx, cy, { fill: spec.theme.muted, font: font(spec, 'subtitle'), textAnchor: 'middle' }); }
-    else data.rows.forEach((row, index) => { const value = Math.max(0, Number(row[valueField]) || 0), end = angle + value / total * Math.PI * 2, middle = angle + (end - angle) / 2, dataRef = { seriesIndex: 0, dataIndex: index, category: row[categoryField], value }; scene.add(new SceneNode({ id: `series-0-item-${index}`, type: 'arc', geometry: { cx, cy, r: radius, innerR, start: angle, end }, bounds: { x: cx - radius, y: cy - radius, width: radius * 2, height: radius * 2 }, style: { fill: colors[index % colors.length], stroke: spec.theme.background, strokeWidth: 1 }, dataRef, interactive: true })); addMarkLabel(scene, spec, `series-0-item-${index}`, value / total, cx + Math.cos(middle) * radius * .72, cy + Math.sin(middle) * radius * .72, dataRef, state.plot); angle = end; });
+    else data.rows.forEach((row, index) => { const value = Math.max(0, Number(row[valueField]) || 0), end = angle + value / total * Math.PI * 2, middle = angle + (end - angle) / 2, dataRef = { seriesIndex: 0, dataIndex: index, category: row[categoryField], value }; scene.add(new SceneNode({ id: `series-0-item-${index}`, type: 'arc', geometry: { cx, cy, r: radius, innerR, start: angle, end }, bounds: { x: cx - radius, y: cy - radius, width: radius * 2, height: radius * 2 }, style: { fill: colors[index % colors.length], stroke: spec.theme.background, strokeWidth: 1 }, dataRef, interactive: true })); addMarkLabel(scene, spec, `series-0-item-${index}`, value / total, cx + Math.cos(middle) * radius * .72, cy + Math.sin(middle) * radius * .72, dataRef, state.plot, null, spec.labels?.format || { style: 'percent' }); angle = end; });
   } else if (spec.type === 'funnel') {
     const valueField = spec.encoding.value?.field || 'value'; const maxValue = Math.max(...data.rows.map(row => Number(row[valueField]) || 0), 1); const segmentHeight = state.plot.height / data.rows.length;
     data.rows.forEach((row, index) => { const value = Number(row[valueField]) || 0, ratio = Math.max(0.1, value / maxValue); const width = state.plot.width * ratio; const geometry = { x: state.plot.x + (state.plot.width - width) / 2, y: state.plot.y + index * segmentHeight, width, height: Math.max(2, segmentHeight - 3) }, dataRef = { seriesIndex: 0, dataIndex: index, field: valueField }; scene.add(new SceneNode({ id: `series-0-item-${index}`, type: 'rect', geometry, bounds: geometry, style: { fill: colors[index % colors.length] }, dataRef, interactive: true })); addMarkLabel(scene, spec, `series-0-item-${index}`, value, spec.width / 2, geometry.y + geometry.height / 2 + 4, dataRef, state.plot); });
   } else if (spec.type === 'gauge') {
-    const valueField = spec.encoding.value?.field || 'value', domain = spec.domain || [0, 100], rawValue = Number(data.rows[0]?.[valueField]) || 0, value = Math.max(Number(domain[0]), Math.min(Number(domain[1]), rawValue)), ratio = (value - Number(domain[0])) / (Number(domain[1]) - Number(domain[0]) || 1), cx = state.plot.x + state.plot.width / 2, cy = state.plot.y + state.plot.height * 0.62, radius = Math.min(state.plot.width, state.plot.height) * 0.36, start = Math.PI, end = start + Math.PI * ratio;
-    scene.add(new SceneNode({ id: 'gauge-background', type: 'arc', geometry: { cx, cy, r: radius, start: Math.PI, end: Math.PI * 2 }, style: { fill: spec.theme.grid } })); scene.add(new SceneNode({ id: 'gauge-value', type: 'arc', geometry: { cx, cy, r: radius, start, end }, style: { fill: colors[0] }, dataRef: { seriesIndex: 0, dataIndex: 0, value }, interactive: true })); addText(scene, 'gauge-label', formatValue(value, spec.labels?.format || spec.encoding.value?.format || { style: 'percent', ratio: false }), cx, cy - 12, { fill: spec.theme.text, font: font(spec, 'metric'), textAnchor: 'middle' });
+    const valueField = spec.encoding.value?.field || 'value', domain = Array.isArray(spec.domain) ? spec.domain : [0, 100], rawValue = Number(data.rows[0]?.[valueField]), numericValue = Number.isFinite(rawValue) ? rawValue : 0, value = Math.max(Number(domain[0]), Math.min(Number(domain[1]), numericValue)), ratio = (value - Number(domain[0])) / (Number(domain[1]) - Number(domain[0]) || 1), cx = state.plot.x + state.plot.width / 2, cy = state.plot.y + state.plot.height * 0.62, radius = Math.min(state.plot.width, state.plot.height) * 0.36, start = Math.PI, end = start + Math.PI * ratio;
+    if (!Array.isArray(spec.domain)) data.warnings.push({ code: 'MISSING_GAUGE_DOMAIN', path: 'domain', message: 'Gauge rendered with a compatibility fallback; provide an explicit domain to make the value meaningful.' });
+    if (numericValue < Number(domain[0]) || numericValue > Number(domain[1])) data.warnings.push({ code: 'VALUE_CLAMPED', path: `data.values[0].${valueField}`, count: 1, rawValue: numericValue, domain: [...domain], message: `Gauge value ${numericValue} is outside domain [${domain[0]}, ${domain[1]}] and was clamped for the arc.`, suggestion: 'Choose a domain that covers the value or review the source unit.' });
+    scene.add(new SceneNode({ id: 'gauge-background', type: 'arc', geometry: { cx, cy, r: radius, start: Math.PI, end: Math.PI * 2 }, style: { fill: spec.theme.grid } })); scene.add(new SceneNode({ id: 'gauge-value', type: 'arc', geometry: { cx, cy, r: radius, start, end }, style: { fill: colors[0] }, dataRef: { seriesIndex: 0, dataIndex: 0, value, rawValue: numericValue }, interactive: true })); addText(scene, 'gauge-label', formatValue(numericValue, spec.labels?.format || spec.encoding.value?.format || { maximumFractionDigits: 2 }, spec.locale), cx, cy - 12, { fill: spec.theme.text, font: font(spec, 'metric'), textAnchor: 'middle' });
   }
   addLegend(scene, spec, state.chrome.legend);
   addBranding(scene, spec);

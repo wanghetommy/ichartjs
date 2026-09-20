@@ -26,6 +26,47 @@ Agent usage and development guide for generic data analysis and metric visualiza
 - Heatmap treats missing values separately from numeric zero through `colorScale.missing`.
 - Radar should declare `min` and `max` for every indicator; omitted or mixed-unit domains produce warnings.
 
+## Configuration Placement
+
+`encoding` describes field roles and series semantics. Keep these options at the Spec level:
+
+| Concern | Correct location | Applies to |
+| --- | --- | --- |
+| Axis title and format | `xAxis.title/format`, `yAxis.title/format` | Line, Area, Bar, Column, Scatter |
+| Readable numeric domain | `yAxis.nice`, `yAxis.ticks`, `yAxis.domain` | Line, Area, Bar, Column, Scatter |
+| Data labels | `labels.enabled/format` | Charts that declare `labels` in capabilities |
+| Legend | `legend.visible/position` | Multi-series Cartesian, Pie, and Radar |
+| Gauge domain | `domain: [min, max]` | Gauge |
+| Heatmap color domain | `colorScale.domain` | Heatmap |
+| Radar indicator domain | `indicators[].min/max` | Radar |
+
+Do not put `title`, `format`, `labels`, or `legend` under `encoding`; `validateSpec()` reports those placements as warnings. Numeric y-axes use readable domains by default (`nice: true`, `ticks: "auto"`). Use `yAxis.domain: [min, max]` for an explicit range, or `yAxis.nice: false` to retain the raw boundary. `xAxis.min/max` and `xAxis.domain` are unsupported for categorical/time layouts and produce a structured warning.
+
+## Encoding Contracts
+
+Use only the channels declared for the selected chart: Cartesian charts use `encoding.x` and `encoding.y`; Pie, Funnel, and Gauge use `encoding.category` and `encoding.value`; Heatmap uses `encoding.x`, `encoding.y`, and `encoding.color`; Radar uses `indicators[].field`. `validateSpec()` reports `UNSUPPORTED_ENCODING_CHANNEL` for an unused channel and `MISSING_ENCODING_FIELD` when a referenced field is absent. Gauge additionally requires `domain: [min, max]`; values outside the domain are clamped for the rendered arc and report `VALUE_CLAMPED`.
+
+The complete set of small starting Specs is available at `@taylorwong/ichartjs/recipes/minimal-specs`.
+
+## Intent Vocabulary
+
+Pass an exact value from `getCapabilities().intents` to `planChart()`. Common mappings are:
+
+| User need | Registered intent | Primary chart |
+| --- | --- | --- |
+| Trend over time | `trend` or `time-series` | Line |
+| Compare categories | `comparison` | Bar |
+| Rank categories | `ranking` | Bar |
+| Distribution or histogram | `distribution` | Column with `bin` transform |
+| Relationship or correlation | `relationship` or `correlation` | Scatter |
+| Composition | `composition` | Column or Area |
+| Matrix intensity | `matrix` or `correlation-grid` | Heatmap |
+| Profile across measures | `multidimensional` or `profile` | Radar |
+
+Natural-language prose such as `trend over time` is not an intent token. Map it to `trend` first. An unknown token returns `UNKNOWN_INTENT` plus a fallback plan; never ignore that warning.
+
+Unknown intent plans expose `intentKnown: false`, `fallbackUsed: true`, and deterministic `intentSuggestions`. Use those fields to remap the request or ask for confirmation instead of silently accepting the fallback chart.
+
 ## Agent Workflow
 
 1. Call `inspectData(data)` to identify fields and missing values.
@@ -33,6 +74,10 @@ Agent usage and development guide for generic data analysis and metric visualiza
 3. Create a JSON-serializable Chart Spec.
 4. Call `validateSpec(spec)` before `createChart(spec)`.
 5. Inspect the result with `chart.describe()` and `chart.getState()`.
+6. Add stable string `id` values to rows when lineage checks, linked selection, or later updates matter.
+7. Check `chart.getState().health.renderable`, `health.status`, and `warnings` before presenting the result. `ready` means no material diagnostic is active; `degraded` means the chart rendered with a material warning; `empty` means it has no meaningful result.
+
+`locale` defaults to `en-US` and controls axis, label, tooltip, and export formatting. Set `locale: "zh-CN"` for Chinese output. Input dates should remain ISO-8601 strings; natural-language date parsing is not part of the runtime contract.
 
 ## Minimal Spec
 
@@ -41,7 +86,7 @@ Agent usage and development guide for generic data analysis and metric visualiza
   type: 'line',
   renderer: 'svg',
   container: '#chart',
-  data: { values: [{ month: 'Jan', sales: 120 }] },
+  data: { values: [{ id: 'jan', month: 'Jan', sales: 120 }] },
   encoding: {
     x: { field: 'month', type: 'category' },
     y: { field: 'sales', type: 'quantitative' }

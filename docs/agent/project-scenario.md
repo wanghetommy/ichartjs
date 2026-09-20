@@ -24,6 +24,7 @@ Agent usage and development guide for project planning, delivery tracking, and p
 - Keep derived values separate from source rows. State and tooltips may expose variance, float, warnings, and assumptions, but transforms must not mutate source data.
 - Linked filters and linked selection must use stable record IDs, not array positions.
 - Forecasts, risk scores, and aging buckets are inspectable heuristics. They are not commitments, causal claims, or hidden inference.
+- Project chart date axes are derived from `date`, `start`, and `end` records in the current contract; generic `xAxis.title/format` and `xAxis.min/max` settings do not customize them.
 
 ## Agent Workflow
 

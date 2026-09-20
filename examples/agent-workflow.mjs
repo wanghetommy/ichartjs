@@ -57,6 +57,7 @@ export function runAgentWorkflow(rows, options = {}) {
   try {
     const explanation = chart.explain();
     const state = chart.getState();
+    const expectedRecordIds = rows.map((row, index) => String(row.id ?? row.key ?? `record-${index}`));
     return {
       ok: true,
       stage: 'complete',
@@ -69,7 +70,7 @@ export function runAgentWorkflow(rows, options = {}) {
       state,
       selfCheck: {
         chartDeclared: capabilities.chartTypes.includes(plan.primary),
-        recordIdsPreserved: rows.every(row => explanation.lineage.recordIds.includes(row.id)),
+        recordIdsPreserved: expectedRecordIds.every(recordId => explanation.lineage.recordIds.includes(recordId)),
         warningsVisible: plan.warnings.every(warning => state.warnings.some(item => item.code === warning.code)),
         styleExplained: explanation.style?.preset === plan.styleRecommendation.preset
       },

@@ -67,6 +67,12 @@ Call `planChart(rows, { intent, renderer })`. Read the full result rather than o
 
 Stop before rendering when `requiredFields` is not empty. Ask for the missing information or choose a supported alternative without fabricating data.
 
+#### Use registered intents only
+
+`intent` is an exact machine token, not a natural-language sentence. Discover the allowlist from `getCapabilities().intents`, then pass values such as `trend`, `time-series`, `comparison`, `ranking`, `distribution`, `relationship`, `matrix`, `multidimensional`, `schedule`, `architecture`, or `mindmap`. Do not pass `trend over time` or `show a sales trend` directly. If an unknown token is passed, `planChart()` returns an `UNKNOWN_INTENT` warning and a safe fallback, which may select the wrong chart if the warning is ignored.
+
+If the user gives prose, map it to a registered token before calling `planChart()` and preserve the original prose separately as user intent.
+
 ### 4. Build a JSON-Friendly Spec
 
 For a trend or comparison with one dimension and one or more measures:
@@ -96,6 +102,28 @@ const spec = {
 ```
 
 Use the selected capability and recipes for Pie, Gauge, Heatmap, Radar, project views, and diagrams because their required encodings differ.
+
+#### Put options at the contract level
+
+Keep `encoding` for field roles and series semantics. Put presentation and axis options at the Spec level:
+
+| Need | Correct location | Common mistake |
+| --- | --- | --- |
+| Axis title | `xAxis.title`, `yAxis.title` | `encoding.x.title`, `encoding.y.title` |
+| Axis number/date format | `xAxis.format`, `yAxis.format` | `encoding.x.format`, `encoding.y.format` |
+| Data labels | `labels.enabled`, `labels.format` | `encoding.labels` |
+| Legend | `legend.visible` | `encoding.legend` |
+| Theme and palette | `theme.mode`, `theme.preset`, `theme.palette` | series or encoding color guesses |
+
+`validateSpec()` reports these misplaced options as structured warnings. Repair them before presenting the chart. A single-series Cartesian chart shows the encoded field name in the legend by default; set `legend: { visible: false }` when that label adds no value.
+
+#### Know the domain contract
+
+Numeric Cartesian charts use a readable y-axis domain by default: `yAxis.nice` is `true`, and `yAxis.ticks` is `"auto"`. For an explicit range, use `yAxis.domain: [min, max]`; for example, `{ domain: [0, 2000], ticks: 5 }` produces a stable five-label scale. Set `yAxis.nice: false` to retain the raw data boundary. `yAxis.format` only changes display formatting. `chart.getState().axes` and `chart.explain().axes` expose `rawDomain`, resolved `domain`, `ticks`, `step`, and `policy` for Agent self-checks. `yAxis.right` accepts the same controls for a secondary numeric axis. `xAxis.min/max` and `xAxis.domain` remain unsupported because categorical/time x-axis ranges are derived from records. The other supported domain controls are chart-specific: `gauge.domain`, `heatmap.colorScale.domain`, and `radar.indicators[].min/max`. Project chart date ranges are derived from their records in the current version.
+
+Chart-specific encoding is strict: Cartesian charts use `x`/`y`, Pie/Funnel/Gauge use `category`/`value`, Heatmap uses `x`/`y`/`color`, and Radar uses `indicators[].field`. Missing or unsupported fields are validation errors, not silent fallbacks. Gauge Specs must declare `domain`; inspect `VALUE_CLAMPED` when a value falls outside it. Use the complete minimal catalog at `@taylorwong/ichartjs/recipes/minimal-specs` when starting a new chart.
+
+For Agent self-checks, `chart.getState().health` and `chart.explain().health` expose `ready`, `degraded`, or `empty`, plus warning, suppressed-label, clamped-value, and rendered-mark metrics. `locale` defaults to `en-US`; use `locale: "zh-CN"` for localized number/date output while keeping input dates in ISO-8601 form.
 
 ### 5. Validate
 
@@ -176,6 +204,8 @@ Before returning a result, verify:
 - requested interactions are supported;
 - the branding on/off state is documented so live view and exports stay consistent;
 - the preview URL or output artifact (JSON/SVG/PNG/JPEG) is provided to the user.
+
+For deterministic lineage checks and linked updates, give every input row a stable string `id`. Without one, the runtime uses a positional fallback such as `record-0`; that is sufficient for a local render but should not be treated as a durable business identity.
 
 ## Branding (Signature) Defaults
 

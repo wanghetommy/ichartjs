@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.8 - 2026-09-20
+
+- Hardened chart-specific encoding and field validation, including explicit Swimlane requirements and actionable diagnostics for Agents.
+- Added Gauge domain contracts and clamping diagnostics, Heatmap label rendering, locale-aware temporal formatting, semantic Pie labels, and runtime health checkpoints.
+- Added intent fallback suggestions, locale capability metadata, a complete minimal Spec catalog, and synchronized Agent guidance and capability manifests.
+
 ## 2.0.7 - 2026-09-20
 
 - Added Architecture and Mindmap chart types with shared diagram contracts, layers, boundaries, parent-child validation, deterministic tree/radial layouts, and Agent-readable schemas and capabilities.

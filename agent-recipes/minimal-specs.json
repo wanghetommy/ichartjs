@@ -1,0 +1,25 @@
+{
+  "version": "2.0",
+  "name": "minimal-specs",
+  "description": "Small validated starting Specs for every public iChart.js chart type.",
+  "examples": {
+    "line": { "type": "line", "renderer": "svg", "data": [{ "id": "jan", "month": "Jan", "value": 12 }], "encoding": { "x": { "field": "month" }, "y": { "field": "value" } } },
+    "area": { "type": "area", "renderer": "svg", "data": [{ "id": "jan", "month": "Jan", "value": 12 }], "encoding": { "x": { "field": "month" }, "y": { "field": "value" } } },
+    "bar": { "type": "bar", "renderer": "svg", "data": [{ "id": "a", "name": "A", "value": 12 }], "encoding": { "x": { "field": "name" }, "y": { "field": "value" } } },
+    "column": { "type": "column", "renderer": "svg", "data": [{ "id": "a", "name": "A", "value": 12 }], "encoding": { "x": { "field": "name" }, "y": { "field": "value" } } },
+    "pie": { "type": "pie", "renderer": "svg", "data": [{ "id": "a", "name": "A", "value": 12 }] },
+    "scatter": { "type": "scatter", "renderer": "svg", "data": [{ "id": "a", "x": 1, "y": 12 }], "encoding": { "x": { "field": "x" }, "y": { "field": "y" } } },
+    "funnel": { "type": "funnel", "renderer": "svg", "data": [{ "id": "visit", "name": "Visit", "value": 100 }] },
+    "gauge": { "type": "gauge", "renderer": "svg", "domain": [0, 100], "data": [{ "id": "completion", "name": "Completion", "value": 72 }] },
+    "heatmap": { "type": "heatmap", "renderer": "svg", "data": [{ "id": "a", "x": "Mon", "y": "AM", "value": 12 }], "encoding": { "x": { "field": "x" }, "y": { "field": "y" }, "color": { "field": "value" } } },
+    "radar": { "type": "radar", "renderer": "svg", "indicators": [{ "name": "Quality", "field": "quality", "min": 0, "max": 100 }, { "name": "Speed", "field": "speed", "min": 0, "max": 100 }, { "name": "Coverage", "field": "coverage", "min": 0, "max": 100 }], "data": [{ "id": "team-a", "quality": 80, "speed": 70, "coverage": 90 }] },
+    "gantt": { "type": "gantt", "renderer": "svg", "data": [{ "id": "task-a", "name": "Task A", "start": "2026-09-01", "end": "2026-09-03" }] },
+    "timeline": { "type": "timeline", "renderer": "svg", "data": [{ "id": "event-a", "date": "2026-09-01", "title": "Kickoff" }] },
+    "milestone": { "type": "milestone", "renderer": "svg", "data": [{ "id": "release", "date": "2026-09-19", "title": "Release" }] },
+    "burndown": { "type": "burndown", "renderer": "svg", "data": [{ "id": "day-1", "date": "2026-09-01", "remaining": 10 }, { "id": "day-2", "date": "2026-09-02", "remaining": 0 }] },
+    "flow": { "type": "flow", "renderer": "svg", "nodes": [{ "id": "start", "label": "Start" }, { "id": "done", "label": "Done" }], "edges": [{ "id": "start-done", "from": "start", "to": "done" }] },
+    "swimlane": { "type": "swimlane", "renderer": "svg", "lanes": [{ "id": "team", "label": "Team" }], "nodes": [{ "id": "task", "label": "Task", "laneId": "team" }], "edges": [] },
+    "architecture": { "type": "architecture", "renderer": "svg", "nodes": [{ "id": "api", "label": "API" }, { "id": "db", "label": "Database" }], "edges": [{ "id": "api-db", "from": "api", "to": "db" }] },
+    "mindmap": { "type": "mindmap", "renderer": "svg", "nodes": [{ "id": "root", "label": "Goal" }, { "id": "child", "label": "Next step", "parentId": "root" }], "edges": [] }
+  }
+}

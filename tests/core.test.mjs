@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { binData, createChart, createPreferencesStore, data, getCapabilities, getPreferenceCapabilities, inspectData, normalizeSpec, planStyle, recommend, resolveZoomWindow, validatePreferences, validateSpec } from '../src/index.mjs';
+import { readFileSync } from 'node:fs';
+import { binData, createChart, createPreferencesStore, data, getCapabilities, getPreferenceCapabilities, inspectData, normalizeSpec, planChart, planStyle, recommend, resolveZoomWindow, validatePreferences, validateSpec } from '../src/index.mjs';
 import { contrastRatio, resolveTheme, validateThemeContrast } from '../src/theme.mjs';
 import { annotationPlugin, dataLabelsPlugin, dataZoomPlugin } from '../src/plugin.mjs';
 import { buildScene } from '../src/charts.mjs';
@@ -22,6 +23,18 @@ test('normalizes and validates a v2 spec', () => {
   assert.equal(spec.version, '2.0');
   assert.equal(spec.encoding.x.field, 'name');
   assert.equal(validateSpec(spec).valid, true);
+});
+
+test('uses readable numeric y-axis domains and explicit overrides', () => {
+  const upper = value => buildScene(normalizeSpec({ type: 'line', data: [{ name: 'A', value }] })).state;
+  assert.equal(upper(1754).max, 1800);
+  assert.equal(upper(24.5).max, 25);
+  assert.equal(upper(56.8).max, 60);
+  assert.deepEqual(buildScene(normalizeSpec({ type: 'line', yAxis: { domain: [0, 2000], ticks: 5 }, data: [{ name: 'A', value: 1754 }] })).state.yTicks, [0, 500, 1000, 1500, 2000]);
+  assert.equal(buildScene(normalizeSpec({ type: 'line', yAxis: { nice: false }, data: [{ name: 'A', value: 1754 }] })).state.max, 1754);
+  const chart = createChart({ type: 'line', data: [{ name: 'A', value: 1754 }] });
+  assert.deepEqual(chart.getState().axes.y.domain, [0, 1800]);
+  assert.equal(chart.explain().axes.y.policy, 'nice');
 });
 
 test('supports Iteration 7 chart modes and public types', () => {
@@ -63,6 +76,59 @@ test('reports invalid specs with structured errors', () => {
   assert.equal(result.valid, false);
   assert.ok(result.errors.some(error => error.code === 'INVALID_TYPE'));
   assert.ok(result.errors.some(error => error.code === 'INVALID_RENDERER'));
+});
+
+test('enforces chart-specific encodings and required diagram fields', () => {
+  const wrongPie = validateSpec({ type: 'pie', data: [{ name: 'A', value: 1 }], encoding: { x: { field: 'name' }, y: { field: 'value' } } });
+  assert.equal(wrongPie.valid, false);
+  assert.ok(wrongPie.errors.some(error => error.code === 'UNSUPPORTED_ENCODING_CHANNEL'));
+  assert.ok(validateSpec({ type: 'line', data: [{ name: 'A', value: 1 }], encoding: { x: { field: 'missing' }, y: { field: 'value' } } }).errors.some(error => error.code === 'MISSING_ENCODING_FIELD'));
+  assert.ok(validateSpec({ type: 'swimlane', nodes: [{ id: 'task', label: 'Task' }] }).errors.some(error => error.code === 'MISSING_REQUIRED'));
+});
+
+test('makes Gauge domains explicit and reports clamped values', () => {
+  assert.ok(validateSpec({ type: 'gauge', data: [{ name: 'Completion', value: 72 }] }).errors.some(error => error.code === 'MISSING_GAUGE_DOMAIN'));
+  assert.ok(validateSpec({ type: 'gauge', domain: [100, 0], data: [{ name: 'Completion', value: 72 }] }).errors.some(error => error.code === 'INVALID_GAUGE_DOMAIN'));
+  const chart = createChart({ type: 'gauge', renderer: 'svg', domain: [0, 100], labels: { enabled: true }, data: [{ name: 'Completion', value: 120 }] });
+  assert.equal(chart.model.scene.find('gauge-value').dataRef.rawValue, 120);
+  assert.equal(chart.model.scene.find('gauge-value').dataRef.value, 100);
+  assert.ok(chart.getState().warnings.some(error => error.code === 'VALUE_CLAMPED'));
+  assert.equal(chart.getState().health.status, 'degraded');
+  chart.destroy();
+});
+
+test('formats pie and heatmap labels with safe defaults', () => {
+  const pie = buildScene(normalizeSpec({ type: 'pie', labels: { enabled: true }, data: [{ name: 'A', value: 25 }, { name: 'B', value: 75 }] }));
+  assert.deepEqual(pie.scene.find('series-0-item-0-label').geometry.text, '25%');
+  const explicit = buildScene(normalizeSpec({ type: 'pie', labels: { enabled: true, format: { maximumFractionDigits: 1 } }, data: [{ name: 'A', value: 25 }, { name: 'B', value: 75 }] }));
+  assert.equal(explicit.scene.find('series-0-item-0-label').geometry.text, '0.3');
+  const heatmap = buildScene(normalizeSpec({ type: 'heatmap', width: 640, height: 360, labels: { enabled: true }, data: [{ x: 'Mon', y: 'AM', value: 12 }] }));
+  assert.equal(heatmap.scene.find('heatmap-cell-label-0').geometry.text, '12');
+  const compact = buildScene(normalizeSpec({ type: 'heatmap', width: 80, height: 80, labels: { enabled: true }, data: [{ x: 'Mon', y: 'AM', value: 12 }] }));
+  assert.ok(compact.data.warnings.some(error => error.code === 'LABELS_SUPPRESSED'));
+});
+
+test('honors locale and exposes health diagnostics to Agents', () => {
+  const capabilities = getCapabilities();
+  assert.equal(capabilities.locale.default, 'en-US');
+  assert.ok(capabilities.locale.recommended.includes('zh-CN'));
+  const chart = createChart({ type: 'line', renderer: 'svg', locale: 'zh-CN', data: [{ date: '2025-01-01', value: 10 }, { date: '2026-04-02', value: 20 }], encoding: { x: { field: 'date' }, y: { field: 'value' } } });
+  assert.equal(chart.getState().health.status, 'ready');
+  assert.equal(chart.explain().health.renderable, true);
+  assert.ok(chart.model.scene.root.children.some(node => node.id?.startsWith('label-x-') && String(node.geometry.text).includes('2025')));
+  chart.destroy();
+  assert.equal(createChart({ type: 'line', data: [] }).getState().health.status, 'empty');
+});
+
+test('provides deterministic intent fallback metadata and valid minimal Specs', () => {
+  const plan = planChart([{ month: 'Jan', value: 1 }], { intent: 'trend over time' });
+  assert.equal(plan.intentKnown, false);
+  assert.equal(plan.fallbackUsed, true);
+  assert.deepEqual(plan.intentSuggestions, ['trend', 'time-series']);
+  assert.ok(plan.warnings.some(error => error.code === 'UNKNOWN_INTENT'));
+  const catalog = JSON.parse(readFileSync(new URL('../agent-recipes/minimal-specs.json', import.meta.url), 'utf8'));
+  assert.equal(Object.keys(catalog.examples).length, 18);
+  Object.entries(catalog.examples).forEach(([type, spec]) => assert.equal(validateSpec(spec).valid, true, `${type} minimal Spec should validate`));
 });
 
 test('inspects common data and preserves missing values', () => {
@@ -1015,6 +1081,16 @@ test('inspects Agent field metadata and reports repair diagnostics', async () =>
   const validation = validateSpec({ type: 'pie', data: Array.from({ length: 9 }, (_, index) => ({ name: String(index), value: index + 1 })), interaction: { zoom: true } });
   assert.ok(validation.warnings.some(item => item.code === 'HIGH_CARDINALITY_PIE' && item.suggestion));
   assert.ok(validation.warnings.some(item => item.code === 'UNSUPPORTED_INTERACTION' && item.path === 'interaction.zoom'));
+  const misplaced = validateSpec({ type: 'line', data: [{ id: 'a', month: 'Jan', value: 1 }], encoding: { x: { field: 'month', title: 'Month', format: 'date' }, y: { field: 'value' }, labels: { enabled: true }, legend: { visible: false } }, yAxis: { min: 0, max: 10 } });
+  assert.ok(misplaced.warnings.some(item => item.code === 'MISPLACED_AXIS_TITLE' && item.path === 'encoding.x.title'));
+  assert.ok(misplaced.warnings.some(item => item.code === 'MISPLACED_AXIS_FORMAT' && item.path === 'encoding.x.format'));
+  assert.ok(misplaced.warnings.some(item => item.code === 'MISPLACED_LABELS' && item.path === 'encoding.labels'));
+  assert.ok(misplaced.warnings.some(item => item.code === 'MISPLACED_LEGEND' && item.path === 'encoding.legend'));
+  assert.equal(misplaced.warnings.filter(item => item.code === 'UNSUPPORTED_AXIS_DOMAIN').length, 2);
+  assert.equal(validateSpec({ type: 'line', data: [{ name: 'A', value: 1 }], yAxis: { domain: [0, 0] } }).errors[0].code, 'INVALID_AXIS_DOMAIN');
+  const unknownIntent = planChart([{ month: 'Jan', value: 1 }], { intent: 'trend over time' });
+  assert.equal(unknownIntent.primary, 'bar');
+  assert.ok(unknownIntent.warnings.some(item => item.code === 'UNKNOWN_INTENT'));
 });
 
 test('explains chart lineage, warnings, and accessible intent', async () => {
