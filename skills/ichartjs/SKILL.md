@@ -21,7 +21,7 @@ Recommended installation:
 npx skills add wanghetommy/ichartjs --skill ichartjs
 ```
 
-Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.8/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
+Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.9/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
 
 The Skill is a workflow adapter, not the chart runtime. If the current JavaScript or TypeScript project does not already depend on iChart.js, install the matching runtime from GitHub:
 
@@ -40,11 +40,11 @@ Do not install the unscoped npm registry package named `ichartjs`; it is current
 5. Inspect the complete planning result, including `styleRecommendation`, warnings, and fallback status.
 6. Stop when `requiredFields` is non-empty; request data or explain a supported alternative.
 7. Build a JSON-serializable Spec using `suggestedEncodings`, the selected capability, and an applicable recipe.
-8. Use chart-specific channels: Cartesian `x`/`y`, Pie/Funnel/Gauge `category`/`value`, Heatmap `x`/`y`/`color`, and Radar `indicators[].field`. Start from `@taylorwong/ichartjs/recipes/minimal-specs` when a type is unfamiliar.
+8. Use chart-specific channels: Cartesian `x`/`y`, Pie/Funnel `category`/`value`, Gauge `value`, Heatmap `x`/`y`/`color`, and Radar `indicators[].field`. To load a recipe, use `import catalog from '@taylorwong/ichartjs/recipes/minimal-specs' with { type: 'json' }` and select `catalog.examples[type]`.
 9. Keep titles/formats under `xAxis`/`yAxis`, labels under `labels`, and legend under `legend`; do not place them inside `encoding`.
 10. Call `validateSpec()` before rendering. Repair `UNSUPPORTED_ENCODING_CHANNEL`, `MISSING_ENCODING_FIELD`, `MISSING_GAUGE_DOMAIN`, `UNKNOWN_INTENT`, misplaced-option, and unsupported-axis warnings before presenting the chart.
 11. Call `createChart()` only after validation succeeds. Gauge Specs must declare a meaningful `domain`.
-12. Self-check with `chart.explain()`, `chart.getState()`, `health.renderable`, and JSON export. Treat `VALUE_CLAMPED`, `LABELS_SUPPRESSED`, and `ZERO_TOTAL` as material diagnostics to report.
+12. Self-check with `chart.explain()`, `chart.getState()`, `health.renderable`, and JSON export. Treat `VALUE_CLAMPED`, `LABELS_SUPPRESSED`, `NEGATIVE_VALUE_DROPPED`, and `ZERO_TOTAL` as material diagnostics to report.
 12. Provide an exact preview URL or artifact path and report assumptions, warnings, and deferred checks.
 13. Prefer `theme: { mode: 'auto', preset, palette }`; preserve explicit user style choices and use `chart.setTheme()` for live switching.
 14. For post-creation visual changes, call `getPreferenceCapabilities(chartType, { locale })`, validate the patch with `validatePreferences()`, apply it with `chart.setPreferences(..., { source: 'agent' })`, and verify `chart.getState().preferences`.

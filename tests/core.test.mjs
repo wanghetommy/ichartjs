@@ -86,6 +86,13 @@ test('enforces chart-specific encodings and required diagram fields', () => {
   assert.ok(validateSpec({ type: 'swimlane', nodes: [{ id: 'task', label: 'Task' }] }).errors.some(error => error.code === 'MISSING_REQUIRED'));
 });
 
+test('keeps diagram structure top-level and reports misplaced fields precisely', () => {
+  const result = validateSpec({ type: 'flow', data: { nodes: [{ id: 'review', label: 'Review' }] } });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(error => error.code === 'MISPLACED_DIAGRAM_FIELD' && error.path === 'data.nodes'));
+  assert.ok(!result.errors.some(error => error.code === 'INVALID_DATA'));
+});
+
 test('makes Gauge domains explicit and reports clamped values', () => {
   assert.ok(validateSpec({ type: 'gauge', data: [{ name: 'Completion', value: 72 }] }).errors.some(error => error.code === 'MISSING_GAUGE_DOMAIN'));
   assert.ok(validateSpec({ type: 'gauge', domain: [100, 0], data: [{ name: 'Completion', value: 72 }] }).errors.some(error => error.code === 'INVALID_GAUGE_DOMAIN'));
@@ -94,6 +101,16 @@ test('makes Gauge domains explicit and reports clamped values', () => {
   assert.equal(chart.model.scene.find('gauge-value').dataRef.value, 100);
   assert.ok(chart.getState().warnings.some(error => error.code === 'VALUE_CLAMPED'));
   assert.equal(chart.getState().health.status, 'degraded');
+  chart.destroy();
+});
+
+test('accepts a single-value Gauge without an unused category field', () => {
+  const spec = { type: 'gauge', renderer: 'svg', domain: [0, 1000], data: [{ value: 792 }] };
+  assert.equal(validateSpec(spec).valid, true);
+  assert.ok(validateSpec({ ...spec, encoding: { category: { field: 'name' } } }).errors.some(error => error.code === 'UNSUPPORTED_ENCODING_CHANNEL'));
+  const chart = createChart(spec);
+  assert.equal(chart.model.scene.find('gauge-value').dataRef.rawValue, 792);
+  assert.equal(chart.getState().health.status, 'ready');
   chart.destroy();
 });
 
@@ -106,6 +123,51 @@ test('formats pie and heatmap labels with safe defaults', () => {
   assert.equal(heatmap.scene.find('heatmap-cell-label-0').geometry.text, '12');
   const compact = buildScene(normalizeSpec({ type: 'heatmap', width: 80, height: 80, labels: { enabled: true }, data: [{ x: 'Mon', y: 'AM', value: 12 }] }));
   assert.ok(compact.data.warnings.some(error => error.code === 'LABELS_SUPPRESSED'));
+});
+
+test('reports dropped pie negatives and empty totals without duplicate diagnostics', () => {
+  const negativeSpec = { type: 'pie', renderer: 'svg', data: [{ name: 'A', value: 10 }, { name: 'B', value: -5 }, { name: 'C', value: 8 }] };
+  const validation = validateSpec(negativeSpec);
+  assert.equal(validation.valid, true);
+  assert.equal(validation.warnings.find(warning => warning.code === 'NEGATIVE_VALUE_DROPPED')?.count, 1);
+  const chart = createChart(negativeSpec);
+  assert.equal(chart.model.scene.find('series-0-item-1').dataRef.rawValue, -5);
+  assert.equal(chart.model.scene.find('series-0-item-1').dataRef.value, 0);
+  assert.equal(chart.getState().warnings.filter(warning => warning.code === 'NEGATIVE_VALUE_DROPPED').length, 1);
+  assert.equal(chart.getState().health.status, 'degraded');
+  chart.destroy();
+
+  const empty = validateSpec({ type: 'pie', data: [{ name: 'A', value: 0 }, { name: 'B', value: 0 }] });
+  assert.equal(empty.valid, true);
+  assert.ok(empty.warnings.some(warning => warning.code === 'ZERO_TOTAL'));
+});
+
+test('normalizes non-Cartesian specs without unsupported default warnings', () => {
+  const specs = [
+    { type: 'pie', renderer: 'svg', data: [{ name: 'A', value: 1 }] },
+    { type: 'funnel', renderer: 'svg', data: [{ name: 'Visit', value: 1 }] },
+    { type: 'gauge', renderer: 'svg', domain: [0, 100], data: [{ value: 72 }] },
+    { type: 'heatmap', renderer: 'svg', data: [{ x: 'Mon', y: 'AM', value: 1 }] }
+  ];
+  specs.forEach(input => {
+    const normalized = normalizeSpec(input), validation = validateSpec(normalized);
+    assert.ok(!validation.warnings.some(warning => /^UNSUPPORTED_(GRID|AXIS|LEGEND)$/.test(warning.code)), input.type);
+    const chart = createChart(normalized);
+    assert.equal(chart.getState().health.status, 'ready', input.type);
+    chart.destroy();
+  });
+  assert.ok(validateSpec({ ...specs[0], grid: { visible: false } }).warnings.some(warning => warning.code === 'UNSUPPORTED_GRID'));
+});
+
+test('keeps Radar normalization valid and renderable', () => {
+  const radar = { type: 'radar', renderer: 'svg', indicators: [{ name: 'Quality', field: 'quality', min: 0, max: 100 }, { name: 'Speed', field: 'speed', min: 0, max: 100 }, { name: 'Coverage', field: 'coverage', min: 0, max: 100 }], data: [{ quality: 80, speed: 70, coverage: 90 }] };
+  const normalized = normalizeSpec(radar);
+  assert.equal(normalized.encoding.x, undefined);
+  assert.equal(normalized.encoding.y, undefined);
+  assert.equal(validateSpec(normalized).valid, true);
+  const chart = createChart(normalized);
+  assert.equal(chart.getState().health.status, 'ready');
+  chart.destroy();
 });
 
 test('honors locale and exposes health diagnostics to Agents', () => {

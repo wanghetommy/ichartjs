@@ -60,7 +60,13 @@ Agent 与开发者使用同一个 ESM 入口。编码 Agent 的完整方式见 [
 
 数值型笛卡尔图表默认使用易读的纵轴域：`yAxis.nice` 默认为 `true`，`yAxis.ticks` 默认为 `"auto"`。需要固定范围时使用 `yAxis.domain: [min, max]`，例如 `{ domain: [0, 2000], ticks: 5 }` 可稳定生成五个标签；使用 `yAxis.nice: false` 可保留原始数据边界。`yAxis.format` 只负责格式化刻度显示，`yAxis.right` 支持同样的配置。Agent 可通过 `chart.getState().axes` 或 `chart.explain().axes` 获取原始域、计算域、刻度、步长和策略进行自检。分类/时间横轴的范围仍由数据记录推导，因此 `xAxis.min/max` 和 `xAxis.domain` 不支持。图表专用域配置仍包括：`gauge.domain`、`heatmap.colorScale.domain`、`radar.indicators[].min/max`；项目图表的日期范围当前由数据记录自动计算。
 
-图表通道是严格按类型定义的：笛卡尔图表使用 `x`/`y`，Pie/Funnel/Gauge 使用 `category`/`value`，Heatmap 使用 `x`/`y`/`color`，Radar 使用 `indicators[].field`。缺失字段或不支持的通道会校验失败；Gauge 必须声明 `domain`。新建图表可直接使用 `@taylorwong/ichartjs/recipes/minimal-specs` 中的最小目录。
+图表通道是严格按类型定义的：笛卡尔图表使用 `x`/`y`，Pie/Funnel 使用 `category`/`value`，Gauge 只使用 `value`，Heatmap 使用 `x`/`y`/`color`，Radar 使用 `indicators[].field`。缺失字段或不支持的通道会校验失败；Gauge 必须声明 `domain`。Pie 遇到负数会报告 `NEGATIVE_VALUE_DROPPED`，没有正数占比时会报告 `ZERO_TOTAL`。新建图表可直接使用 `@taylorwong/ichartjs/recipes/minimal-specs` 中的最小目录：
+
+```js
+import catalog from '@taylorwong/ichartjs/recipes/minimal-specs' with { type: 'json' };
+
+const spec = structuredClone(catalog.examples.radar);
+```
 
 Agent 自检使用 `chart.getState().health` 和 `chart.explain().health`，其中包含 `ready`、`degraded`、`empty`、警告数、隐藏标签数、限制值数和已渲染标记数。`locale` 默认 `en-US`，需要中文输出时设置 `locale: "zh-CN"`，输入日期仍使用 ISO-8601。
 

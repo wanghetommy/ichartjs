@@ -44,9 +44,9 @@ Do not put `title`, `format`, `labels`, or `legend` under `encoding`; `validateS
 
 ## Encoding Contracts
 
-Use only the channels declared for the selected chart: Cartesian charts use `encoding.x` and `encoding.y`; Pie, Funnel, and Gauge use `encoding.category` and `encoding.value`; Heatmap uses `encoding.x`, `encoding.y`, and `encoding.color`; Radar uses `indicators[].field`. `validateSpec()` reports `UNSUPPORTED_ENCODING_CHANNEL` for an unused channel and `MISSING_ENCODING_FIELD` when a referenced field is absent. Gauge additionally requires `domain: [min, max]`; values outside the domain are clamped for the rendered arc and report `VALUE_CLAMPED`.
+Use only the channels declared for the selected chart: Cartesian charts use `encoding.x` and `encoding.y`; Pie and Funnel use `encoding.category` and `encoding.value`; Gauge uses only `encoding.value`; Heatmap uses `encoding.x`, `encoding.y`, and `encoding.color`; Radar uses `indicators[].field`. `validateSpec()` reports `UNSUPPORTED_ENCODING_CHANNEL` for an unused channel and `MISSING_ENCODING_FIELD` when a referenced field is absent. Gauge additionally requires `domain: [min, max]`; values outside the domain are clamped for the rendered arc and report `VALUE_CLAMPED`. Pie reports `NEGATIVE_VALUE_DROPPED` instead of silently treating negative values as valid shares, and reports `ZERO_TOTAL` for an empty result.
 
-The complete set of small starting Specs is available at `@taylorwong/ichartjs/recipes/minimal-specs`.
+The complete set of small starting Specs is available at `@taylorwong/ichartjs/recipes/minimal-specs`. Import the JSON catalog with `with { type: 'json' }`, then select `catalog.examples[type]`.
 
 ## Intent Vocabulary
 

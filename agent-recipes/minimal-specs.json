@@ -10,7 +10,7 @@
     "pie": { "type": "pie", "renderer": "svg", "data": [{ "id": "a", "name": "A", "value": 12 }] },
     "scatter": { "type": "scatter", "renderer": "svg", "data": [{ "id": "a", "x": 1, "y": 12 }], "encoding": { "x": { "field": "x" }, "y": { "field": "y" } } },
     "funnel": { "type": "funnel", "renderer": "svg", "data": [{ "id": "visit", "name": "Visit", "value": 100 }] },
-    "gauge": { "type": "gauge", "renderer": "svg", "domain": [0, 100], "data": [{ "id": "completion", "name": "Completion", "value": 72 }] },
+    "gauge": { "type": "gauge", "renderer": "svg", "domain": [0, 100], "data": [{ "id": "completion", "value": 72 }] },
     "heatmap": { "type": "heatmap", "renderer": "svg", "data": [{ "id": "a", "x": "Mon", "y": "AM", "value": 12 }], "encoding": { "x": { "field": "x" }, "y": { "field": "y" }, "color": { "field": "value" } } },
     "radar": { "type": "radar", "renderer": "svg", "indicators": [{ "name": "Quality", "field": "quality", "min": 0, "max": 100 }, { "name": "Speed", "field": "speed", "min": 0, "max": 100 }, { "name": "Coverage", "field": "coverage", "min": 0, "max": 100 }], "data": [{ "id": "team-a", "quality": 80, "speed": 70, "coverage": 90 }] },
     "gantt": { "type": "gantt", "renderer": "svg", "data": [{ "id": "task-a", "name": "Task A", "start": "2026-09-01", "end": "2026-09-03" }] },

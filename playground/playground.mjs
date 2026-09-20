@@ -1,4 +1,4 @@
-export const runtimeVersion = '2.0.8';
+export const runtimeVersion = '2.0.9';
 
 export function pageNav(active = '') {
   const pages = [

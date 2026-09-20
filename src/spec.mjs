@@ -62,11 +62,14 @@ function dependencyErrors(rows) {
 
 const encodingChannels = {
   line: ['x', 'y'], area: ['x', 'y'], bar: ['x', 'y'], column: ['x', 'y'], scatter: ['x', 'y'],
-  pie: ['category', 'value'], funnel: ['category', 'value'], gauge: ['category', 'value'], heatmap: ['x', 'y', 'color'], radar: [],
+  pie: ['category', 'value'], funnel: ['category', 'value'], gauge: ['value'], heatmap: ['x', 'y', 'color'], radar: [],
   gantt: [], timeline: [], milestone: [], burndown: [], flow: [], swimlane: [], architecture: [], mindmap: []
 };
 
 const presentationEncodingKeys = new Set(['title', 'format', 'labels', 'legend']);
+const diagramTypes = new Set(['flow', 'swimlane', 'architecture', 'mindmap']);
+const diagramFields = ['nodes', 'edges', 'lanes', 'groups', 'layers', 'boundaries'];
+const nonCartesianAnalysisTypes = new Set(['pie', 'funnel', 'gauge', 'heatmap', 'radar']);
 
 function finiteDomain(domain) {
   return Array.isArray(domain) && domain.length === 2 && domain.every(value => Number.isFinite(Number(value))) && Number(domain[1]) > Number(domain[0]);
@@ -90,7 +93,7 @@ function validateEncodingContract(input, spec, errors) {
       else if (!fields.has(field)) errors.push({ code: 'MISSING_ENCODING_FIELD', path: itemPath, message: `Field ${field} is not present in data.values.`, expected: [...fields], suggestion: 'Inspect the data schema and use an existing field.' });
     });
   };
-  if (['pie', 'funnel', 'gauge'].includes(spec.type) && (rawEncoding.x !== undefined || rawEncoding.y !== undefined)) return;
+  if (['pie', 'funnel'].includes(spec.type) && (rawEncoding.x !== undefined || rawEncoding.y !== undefined)) return;
   (encodingChannels[spec.type] || []).forEach(channel => check(`encoding.${channel}`, spec.encoding?.[channel]));
   if (spec.type === 'radar') (spec.indicators || []).forEach((indicator, index) => check(`indicators.${index}`, indicator));
 }
@@ -105,17 +108,21 @@ export function normalizeSpec(input = {}) {
     if (spec.branding.enabled === undefined) spec.branding = { ...spec.branding, enabled: true };
   }
   if (!spec.data) spec.data = { values: [] };
-  if (['flow', 'swimlane', 'architecture', 'mindmap'].includes(spec.type) && spec.nodes && !spec.data.values) spec.data.values = [];
+  if (diagramTypes.has(spec.type) && !Array.isArray(spec.data.values)) spec.data.values = [];
   if (Array.isArray(spec.data)) spec.data = { values: spec.data };
   if (!spec.encoding) spec.encoding = {};
-  if (['pie', 'funnel', 'gauge'].includes(spec.type) && !spec.encoding.category) spec.encoding.category = { field: 'name', type: 'category' };
+  if (['pie', 'funnel'].includes(spec.type) && !spec.encoding.category) spec.encoding.category = { field: 'name', type: 'category' };
   if (['pie', 'funnel', 'gauge'].includes(spec.type) && !spec.encoding.value) spec.encoding.value = { field: 'value', type: 'quantitative' };
   if (spec.type === 'scatter' && !input.encoding?.x) spec.encoding.x = { field: 'x', type: 'quantitative' };
   if (spec.type === 'scatter' && !input.encoding?.y) spec.encoding.y = { field: 'y', type: 'quantitative' };
   if (spec.type === 'heatmap') { spec.encoding.x ||= { field: 'x', type: 'category' }; spec.encoding.y ||= { field: 'y', type: 'category' }; spec.encoding.color ||= { field: 'value', type: 'quantitative' }; }
-  if (!['pie', 'funnel', 'gauge', 'gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane', 'architecture', 'mindmap'].includes(spec.type)) {
+  if (!['pie', 'funnel', 'gauge', 'radar', 'gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane', 'architecture', 'mindmap'].includes(spec.type)) {
     spec.encoding.x = spec.encoding.x || { field: 'name', type: 'category' };
     spec.encoding.y = spec.encoding.y || { field: 'value', type: 'quantitative' };
+  }
+  if (nonCartesianAnalysisTypes.has(spec.type)) {
+    ['grid', 'xAxis', 'yAxis'].forEach(key => { if (input[key] === undefined) delete spec[key]; });
+    ['legend', 'labels'].forEach(key => { if (input[key] === undefined && chartProfiles[spec.type]?.features?.[key] !== 'supported') delete spec[key]; });
   }
   return spec;
 }
@@ -172,10 +179,12 @@ export function validateSpec(input = {}) {
     else if (!finiteDomain(spec.domain)) errors.push({ code: 'INVALID_GAUGE_DOMAIN', path: 'domain', message: 'Gauge domain must be [min, max] with finite numbers and max greater than min.', suggestion: 'Use for example domain: [0, 100].' });
   }
   if (spec.type === 'radar' && (!Array.isArray(spec.indicators) || spec.indicators.length < 3)) errors.push({ code: 'INVALID_INDICATORS', path: 'indicators', message: 'Radar requires at least three indicators.', suggestion: 'Declare indicator name, field, min, and max.' });
-  if (!spec.data || !Array.isArray(spec.data.values)) errors.push({ code: 'INVALID_DATA', path: 'data.values', message: 'data.values must be an array.', suggestion: 'Pass an array of row objects.' });
-  if (['flow', 'swimlane', 'architecture', 'mindmap'].includes(spec.type) && !Array.isArray(spec.nodes) && !Array.isArray(spec.data?.nodes)) errors.push({ code: 'INVALID_NODES', path: 'nodes', message: `${spec.type} charts require nodes.`, suggestion: 'Pass nodes on the Spec or in data.nodes.' });
-  if (['flow', 'swimlane', 'architecture', 'mindmap'].includes(spec.type)) {
-    const diagramInput = { type: spec.type, ...(Array.isArray(spec.nodes) ? { nodes: spec.nodes } : {}), ...(Array.isArray(spec.data?.nodes) ? { nodes: spec.data.nodes } : {}), ...(Array.isArray(spec.edges) ? { edges: spec.edges } : {}), ...(Array.isArray(spec.data?.edges) ? { edges: spec.data.edges } : {}), ...(Array.isArray(spec.lanes) ? { lanes: spec.lanes } : {}), ...(Array.isArray(spec.groups) ? { groups: spec.groups } : {}), ...(Array.isArray(spec.layers) ? { layers: spec.layers } : {}), ...(Array.isArray(spec.boundaries) ? { boundaries: spec.boundaries } : {}), ...(spec.diagram ? { diagram: spec.diagram } : {}) };
+  if (!diagramTypes.has(spec.type) && (!spec.data || !Array.isArray(spec.data.values))) errors.push({ code: 'INVALID_DATA', path: 'data.values', message: 'data.values must be an array.', suggestion: 'Pass an array of row objects.' });
+  const misplacedDiagramFields = diagramTypes.has(spec.type) ? diagramFields.filter(field => input.data && input.data[field] !== undefined) : [];
+  misplacedDiagramFields.forEach(field => errors.push({ code: 'MISPLACED_DIAGRAM_FIELD', path: `data.${field}`, message: `${field} belongs at the top level of a ${spec.type} Spec.`, suggestion: `Move data.${field} to ${field}.` }));
+  if (diagramTypes.has(spec.type) && !Array.isArray(spec.nodes) && !misplacedDiagramFields.includes('nodes')) errors.push({ code: 'INVALID_NODES', path: 'nodes', message: `${spec.type} charts require top-level nodes.`, suggestion: 'Pass nodes: [{ id, label }].' });
+  if (diagramTypes.has(spec.type)) {
+    const diagramInput = { type: spec.type, ...(Array.isArray(spec.nodes) ? { nodes: spec.nodes } : {}), ...(Array.isArray(spec.edges) ? { edges: spec.edges } : {}), ...(Array.isArray(spec.lanes) ? { lanes: spec.lanes } : {}), ...(Array.isArray(spec.groups) ? { groups: spec.groups } : {}), ...(Array.isArray(spec.layers) ? { layers: spec.layers } : {}), ...(Array.isArray(spec.boundaries) ? { boundaries: spec.boundaries } : {}), ...(spec.diagram ? { diagram: spec.diagram } : {}) };
     const diagramValidation = validateDiagram(diagramInput);
     diagramValidation.errors.forEach(error => errors.push({ ...error, path: error.path || 'diagram' }));
   }
@@ -185,14 +194,20 @@ export function validateSpec(input = {}) {
     rows.forEach((row, index) => { const values = spec.type === 'gantt' ? [row.start, row.end] : [row.date]; if (values.some(value => value != null && Number.isNaN(Date.parse(value)))) errors.push({ code: 'INVALID_DATE', path: `data.values[${index}]`, message: `${spec.type} contains an invalid date.`, suggestion: 'Use an ISO-8601 date such as 2026-09-14.' }); });
   }
   if (spec.type === 'gantt') errors.push(...dependencyErrors(spec.data.values));
-  if (spec.type === 'pie' && spec.data.values.length > 8) warnings.push({ code: 'HIGH_CARDINALITY_PIE', path: 'data.values', message: `Pie contains ${spec.data.values.length} categories.`, expected: '8 or fewer categories', suggestion: 'Use bar/column or group smaller categories.' });
+  const rows = Array.isArray(spec.data?.values) ? spec.data.values : [];
+  if (spec.type === 'pie' && rows.length > 8) warnings.push({ code: 'HIGH_CARDINALITY_PIE', path: 'data.values', message: `Pie contains ${rows.length} categories.`, expected: '8 or fewer categories', suggestion: 'Use bar/column or group smaller categories.' });
+  if (spec.type === 'pie') {
+    const valueField = spec.encoding.value?.field || 'value', values = rows.map(row => Number(row?.[valueField])), negativeCount = values.filter(value => Number.isFinite(value) && value < 0).length, positiveTotal = values.reduce((sum, value) => sum + (Number.isFinite(value) && value > 0 ? value : 0), 0);
+    if (negativeCount) warnings.push({ code: 'NEGATIVE_VALUE_DROPPED', path: 'encoding.value', count: negativeCount, message: `Pie ignores ${negativeCount} negative value${negativeCount === 1 ? '' : 's'} when calculating shares.`, suggestion: 'Use non-negative part-to-whole values or choose a Cartesian chart for signed measures.' });
+    if (!(positiveTotal > 0)) warnings.push({ code: 'ZERO_TOTAL', path: 'encoding.value', message: 'Pie requires a positive total.', suggestion: 'Provide at least one positive value or render an explicit empty state.' });
+  }
   if (spec.type === 'radar' && Array.isArray(spec.indicators) && spec.indicators.some(indicator => !Number.isFinite(Number(indicator.min)) || !Number.isFinite(Number(indicator.max)))) warnings.push({ code: 'AMBIGUOUS_RADAR_DOMAIN', path: 'indicators', message: 'Radar indicator domains are incomplete.', expected: 'finite min and max for every indicator', suggestion: 'Declare explicit domains, especially for mixed units.' });
   const profile = chartProfiles[spec.type], inputOptions = input && typeof input === 'object' ? input : {};
   [['legend', 'legend'], ['grid', 'grid'], ['labels', 'labels']].forEach(([option, feature]) => {
     if (inputOptions[option] !== undefined && profile?.features?.[feature] !== 'supported') warnings.push({ code: `UNSUPPORTED_${option.toUpperCase()}`, path: option, message: `${spec.type} does not support ${option} configuration in the current contract.`, suggestion: 'Remove the option or use a chart type that declares this feature.' });
   });
   if ((inputOptions.xAxis !== undefined || inputOptions.yAxis !== undefined) && !['line', 'area', 'bar', 'column', 'scatter'].includes(spec.type)) warnings.push({ code: 'UNSUPPORTED_AXIS', path: inputOptions.xAxis !== undefined ? 'xAxis' : 'yAxis', message: `${spec.type} does not expose Cartesian axis configuration.`, suggestion: 'Use chart-specific options such as domain, colorScale, or indicators.' });
-  if (spec.type === 'swimlane' && !((Array.isArray(spec.lanes) && spec.lanes.length) || (Array.isArray(spec.data?.lanes) && spec.data.lanes.length))) errors.push({ code: 'MISSING_REQUIRED', path: 'lanes', message: 'Swimlane requires at least one lane.', suggestion: 'Provide lanes: [{ id, label }].' });
+  if (spec.type === 'swimlane' && !(Array.isArray(spec.lanes) && spec.lanes.length)) errors.push({ code: 'MISSING_REQUIRED', path: 'lanes', message: 'Swimlane requires at least one top-level lane.', suggestion: 'Provide lanes: [{ id, label }].' });
   const supportedInteractions = chartProfiles[spec.type]?.interactions || [];
   Object.entries(spec.interaction || {}).forEach(([name, enabled]) => { if (enabled && !supportedInteractions.includes(name) && !['hover', 'click'].includes(name)) warnings.push({ code: 'UNSUPPORTED_INTERACTION', path: `interaction.${name}`, message: `${name} is not declared for ${spec.type}.`, expected: supportedInteractions, suggestion: 'Disable the interaction or use a compatible chart type.' }); });
   if (spec.branding != null && typeof spec.branding !== 'boolean' && !(spec.branding && typeof spec.branding === 'object')) {
