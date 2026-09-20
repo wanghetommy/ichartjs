@@ -8,6 +8,7 @@ import { getCapabilities } from './runtime.mjs';
 import { runtimeVersion, setStatus } from './playground.mjs';
 const capabilities=getCapabilities();document.querySelector('#version').textContent=`${runtimeVersion} · ${capabilities.chartTypes.length} charts`;
 const pages=[
+  ['github-promo.html','GitHub Promo','English 16:9 showcase for the Runtime, Agent workflow, and core chart capabilities.','promo'],
   ['project-gallery.html','完整 Gallery','全部 18 类图表的第一视觉与渲染冒烟入口。','catalog'],
   ['theme-gallery.html','主题样式 Gallery','自动匹配、模式、预设、配色、对比度与实时切换验收。','catalog'],
   ['preferences-lab.html','页面图表设置','全局主题、布局、显示内容、localStorage 持久化和 Agent 调整。','lab'],

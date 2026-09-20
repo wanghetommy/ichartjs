@@ -154,9 +154,12 @@ export function planStyle(spec = {}, options = {}) {
 }
 
 function channel(value) {
-  const text = String(value || '').replace('#', '');
-  if (!/^[0-9a-f]{6}$/i.test(text)) return null;
-  return [0, 2, 4].map(index => parseInt(text.slice(index, index + 2), 16) / 255).map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+  const text = String(value || '').trim();
+  const hex = text.replace('#', '');
+  const rgb = /^rgba?\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)/i.exec(text);
+  const values = /^[0-9a-f]{6}$/i.test(hex) ? [0, 2, 4].map(index => parseInt(hex.slice(index, index + 2), 16)) : rgb ? rgb.slice(1, 4).map(Number) : null;
+  if (!values || values.some(value => value < 0 || value > 255)) return null;
+  return values.map(value => value / 255).map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
 }
 
 function luminance(value) {

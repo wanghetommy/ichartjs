@@ -14,6 +14,7 @@ The Playground is not a collection of iteration snapshots. Active pages are orga
 | --- | --- | --- |
 | `index.html` | Unified Playground home and acceptance entry point. | Runtime version, available chart count, links grouped by catalog/workbench/lab, server instructions, page readiness status, and exact acceptance URLs. |
 | `project-gallery.html` | Canonical full catalog and first visual smoke test for all 16 public chart types. Keep this URL stable despite the historical filename. | Search and category filters, every public chart type, SVG/Canvas coverage, theme and viewport controls, enlarged preview, visible initialization status, Spec inspection, diagnostics, and links to specialized pages. |
+| `github-promo.html` | English 16:9 promotional surface for the GitHub README and future GIF capture. | Brand message, real Runtime-rendered charts, Agent workflow sequence, English chart settings, and a stable screenshot composition. |
 | `foundational-gallery.html` | Focused regression gallery for reusable foundational features introduced in Iteration 7. | Grouped/stacked/percent charts, Donut, Combo, Histogram/Bin, Heatmap, Radar, renderer coverage, source record identity, and expected warnings. |
 
 ### Agent and Business Workbenches
@@ -137,6 +138,15 @@ Start the cache-safe preview server with `npm run playground` before opening the
 - Interaction Lab: `http://localhost:3000/playground/interaction-lab.html`
 - Accessibility Lab: `http://localhost:3000/playground/accessibility-lab.html`
 - Performance Lab: `http://localhost:3000/playground/performance-lab.html`
+
+## GitHub Promo GIF
+
+`docs/assets/github-promo.gif` is a release-facing README asset generated from the stable English page `playground/github-promo.html`. Refresh it whenever the page composition, chart fixtures, workflow labels, or theme states change.
+
+1. Start the local server with `npm run playground`.
+2. Open `http://localhost:3000/playground/github-promo.html` and capture one frame for each `[data-step="0"]` through `[data-step="4"]` state at the same `16:9` viewport.
+3. Convert the five frames to a looping GIF with `ffmpeg`, using a short hold per frame and a generated palette to keep the README asset compact.
+4. Replace `docs/assets/github-promo.gif`, inspect the animation, and run `git diff --check` before release.
 
 ## Completion Definition
 
