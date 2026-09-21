@@ -233,19 +233,28 @@ export function routeEdgePath(edge, from, to, mode = 'orthogonal') {
   };
   for (const [fromSide, toSide] of sidePairs) {
     const route = routeForSides(fromSide, toSide);
-    if (route) return { points: route, curve: null };
+    if (!route) continue;
+    if (!edge.preserveSides || mode !== 'orthogonal') return { points: route, curve: null };
+    const bendGap = Math.max(12, Number(edge.grid) || 8);
+    const firstSpan = Math.abs(route[1]?.x - route[0]?.x) + Math.abs(route[1]?.y - route[0]?.y);
+    const lastSpan = Math.abs(route.at(-1)?.x - route.at(-2)?.x) + Math.abs(route.at(-1)?.y - route.at(-2)?.y);
+    if (firstSpan >= bendGap && lastSpan >= bendGap) return { points: route, curve: null };
   }
   if (edge.preserveSides && mode === 'orthogonal') {
     const horizontal = ['left', 'right'].includes(startSide) && ['left', 'right'].includes(endSide);
     const vertical = ['top', 'bottom'].includes(startSide) && ['top', 'bottom'].includes(endSide);
-    const snapFallback = value => Math.round(value / (Number(edge.grid) || 8)) * (Number(edge.grid) || 8);
+    const bendGap = Math.max(12, Number(edge.grid) || 8), snapFallback = value => Math.round(value / (Number(edge.grid) || 8)) * (Number(edge.grid) || 8);
     if (horizontal) {
-      const channel = snapFallback((initial.start.x + initial.end.x) / 2);
-      return { points: compact([initial.start, { x: channel, y: initial.start.y }, { x: channel, y: initial.end.y }, initial.end]), curve: null };
+      const channelY = initial.start.y < to.y + to.height / 2 ? to.y - bendGap : to.y + to.height + bendGap;
+      const sourceChannelX = startSide === 'right' ? initial.start.x + bendGap : initial.start.x - bendGap;
+      const targetChannelX = endSide === 'left' ? to.x - bendGap : to.x + to.width + bendGap;
+      return { points: compact([initial.start, { x: snapFallback(sourceChannelX), y: initial.start.y }, { x: snapFallback(sourceChannelX), y: snapFallback(channelY) }, { x: snapFallback(targetChannelX), y: snapFallback(channelY) }, { x: snapFallback(targetChannelX), y: initial.end.y }, initial.end]), curve: null };
     }
     if (vertical) {
-      const channel = snapFallback((initial.start.y + initial.end.y) / 2);
-      return { points: compact([initial.start, { x: initial.start.x, y: channel }, { x: initial.end.x, y: channel }, initial.end]), curve: null };
+      const channelX = initial.start.x < to.x + to.width / 2 ? to.x - bendGap : to.x + to.width + bendGap;
+      const sourceChannelY = startSide === 'bottom' ? initial.start.y + bendGap : initial.start.y - bendGap;
+      const targetChannelY = endSide === 'top' ? to.y - bendGap : to.y + to.height + bendGap;
+      return { points: compact([initial.start, { x: initial.start.x, y: snapFallback(sourceChannelY) }, { x: snapFallback(channelX), y: snapFallback(sourceChannelY) }, { x: snapFallback(channelX), y: snapFallback(targetChannelY) }, { x: initial.end.x, y: snapFallback(targetChannelY) }, initial.end]), curve: null };
     }
   }
   return { points: [initial.start, initial.end], curve: null };

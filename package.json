@@ -1,6 +1,6 @@
 {
   "name": "@taylorwong/ichartjs",
-  "version": "2.0.10",
+  "version": "2.0.11",
   "description": "Agent-first, renderer-independent charting and project visualization runtime",
   "type": "module",
   "main": "./src/index.mjs",
