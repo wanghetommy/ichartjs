@@ -116,7 +116,7 @@ npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --ye
 需要固定发布版本时，直接安装已发布的 Skill 目录：
 
 ```bash
-npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.10/skills/ichartjs \
+npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.11/skills/ichartjs \
   --agent codex --global --yes
 ```
 

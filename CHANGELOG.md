@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.11 - 2026-09-21
+
+- Improved promotional chart composition by expanding the internal plotting areas for trend, delivery, and architecture examples without enlarging their cards.
+- Hardened Architecture orthogonal routing with visible bends that preserve connection sides and avoid lines entering node rectangles.
+- Synchronized Runtime, Playground, installation guidance, Skill pins, roadmap status, and the animated GitHub promotional asset.
+
 ## 2.0.10 - 2026-09-21
 
 - Fixed Architecture orthogonal edges so arrows preserve facing sides, use visible bends, and avoid overlapping arrow tips.
