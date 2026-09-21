@@ -1176,9 +1176,11 @@ test('renders common titles, grids, legends, labels, and corrected chart geometr
   assert.ok(area.scene.find('grid-y-1'));
   assert.ok(area.scene.find('legend-label-1'));
   assert.ok(area.scene.find('area-fill-1'));
-  const bar = buildScene(normalizeSpec({ type: 'bar', data: [{ name: 'Long category', value: -20 }, { name: 'Gain', value: 30 }] }));
+  const bar = buildScene(normalizeSpec({ type: 'bar', xAxis: { title: 'Value' }, yAxis: { title: 'Category' }, data: [{ name: 'Long category', value: -20 }, { name: 'Gain', value: 30 }] }));
   assert.ok(bar.scene.find('series-0-item-0').geometry.width > 0);
   assert.ok(bar.state.plot.x >= 120);
+  assert.equal(bar.scene.find('axis-x-title').geometry.text, 'Value');
+  assert.equal(bar.scene.find('axis-y-title').geometry.text, 'Category');
   const scatter = buildScene(normalizeSpec({ type: 'scatter', data: [{ x: 100, y: 1 }, { x: 200, y: 2 }] }));
   assert.ok(scatter.scene.find('series-0-item-1').geometry.cx > scatter.scene.find('series-0-item-0').geometry.cx);
   const pie = buildScene(normalizeSpec({ type: 'pie', data: [{ name: 'A', value: 0 }] }));
