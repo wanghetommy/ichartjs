@@ -95,9 +95,39 @@ export function diagramGraph(spec) {
   return { spec: normalized, nodes, edges, incoming, outgoing };
 }
 
+export function layoutArchitectureNodes(spec, bounds = { x: 0, y: 0, width: 640, height: 360 }) {
+  const normalized = normalizeDiagramSpec(spec), layers = normalized.layers, nodes = normalized.nodes;
+  if (!layers.length) return {};
+  const boxes = {}, grid = Number(normalized.diagram.grid) || 0, snap = value => grid > 0 ? Math.round(value / grid) * grid : value;
+  const layerHeight = bounds.height / layers.length;
+  layers.forEach((layer, layerIndex) => {
+    const members = nodes.filter(node => node.layerId === layer.id);
+    if (!members.length) return;
+    const widest = Math.max(72, ...members.map(node => Number(node.size?.width) || 112));
+    const columns = Math.max(1, Math.min(members.length, Math.floor((bounds.width + 12) / (widest + 12))));
+    const rows = Math.ceil(members.length / columns);
+    const slotWidth = bounds.width / columns, slotHeight = layerHeight / rows;
+    members.forEach((node, index) => {
+      const row = Math.floor(index / columns), column = index % columns;
+      const count = row === rows - 1 ? members.length - row * columns : columns;
+      const rowOffset = (bounds.width - count * slotWidth) / 2;
+      const width = Number(node.size?.width) || Math.min(112, Math.max(72, slotWidth - 12));
+      const height = Number(node.size?.height) || Math.min(36, Math.max(14, slotHeight - 6));
+      boxes[node.id] = {
+        x: snap(node.position?.x ?? bounds.x + rowOffset + column * slotWidth + (slotWidth - width) / 2),
+        y: snap(node.position?.y ?? bounds.y + layerIndex * layerHeight + row * slotHeight + (slotHeight - height) / 2),
+        width,
+        height
+      };
+    });
+  });
+  return boxes;
+}
+
 export function layoutDiagram(spec, bounds = { x: 0, y: 0, width: 640, height: 360 }) {
   const graph = diagramGraph(spec), mode = graph.spec.diagram.layout, positions = new Map(), gapX = Math.max(150, bounds.width / Math.max(1, graph.nodes.length)), gapY = 72;
   if (mode === 'manual') graph.nodes.forEach(node => positions.set(node.id, { x: node.position?.x ?? bounds.x, y: node.position?.y ?? bounds.y }));
+  else if (graph.spec.diagram.mode === 'architecture' && graph.spec.layers.length) Object.entries(layoutArchitectureNodes(graph.spec, bounds)).forEach(([id, box]) => positions.set(id, { x: box.x, y: box.y }));
   else if (graph.spec.diagram.mode === 'mindmap') {
     const roots = graph.nodes.filter(node => !graph.incoming.get(node.id).length), children = new Map(graph.nodes.map(node => [node.id, []]));
     graph.edges.forEach(edge => { if (children.has(edge.from)) children.get(edge.from).push(edge.to); });

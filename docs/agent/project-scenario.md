@@ -40,12 +40,14 @@ Agent usage and development guide for project planning, delivery tracking, and p
 - Gantt `start` and `end` must be valid dates, and `end` cannot precede `start`.
 - `progress` uses the `0–100` percentage convention.
 - `dependencies` use stable task IDs, either as strings or `{ id, type, lag, lead }` objects, and must form an acyclic graph.
+- Dependency objects support `finish-to-start`, `start-to-start`, `finish-to-finish`, and `start-to-finish`. Rendering uses the matching task endpoints; a clear forward finish-to-start relationship uses a compact three-segment route, while overlapping or reverse relationships use a safe outer route.
 - Issue aging requires an explicit ISO `today` reference; missing or invalid dates produce warnings instead of guessed buckets.
 - Calendar-aware scheduling may also use dependency objects with explicit `type`, `lag`, and `lead`.
 - `baselineStart`/`baselineEnd` and `actualStart`/`actualEnd` should be treated as explicit source inputs, not inferred values.
 - Burndown `scopeChange` represents scope movement, not completed work.
 - A forecast is an estimate derived from current samples, not a commitment or fact.
 - Capacity warnings, risk quadrants, and aging buckets should stay explainable from source fields.
+- Gantt, Timeline, and Milestone reserve their left label column from Unicode-aware text widths. Labels wider than the bounded column are truncated by rendered width rather than character count.
 
 ## Editing
 
@@ -85,6 +87,7 @@ Typical operations:
 
 - All four project chart types initialize in the Gallery.
 - Gantt dependencies, critical-path results, and variance overlays are explainable.
+- Dependency paths connect the endpoints declared by their dependency type; an unobstructed forward finish-to-start path has at most three segments.
 - Burndown scope changes and forecasts have dedicated tests.
 - Capacity, risk, and aging analytics preserve stable record IDs.
 - Editing commands support preview, commit, undo, and redo.

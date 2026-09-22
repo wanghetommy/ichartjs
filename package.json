@@ -1,6 +1,6 @@
 {
   "name": "@taylorwong/ichartjs",
-  "version": "2.0.12",
+  "version": "2.0.13",
   "description": "Agent-first, renderer-independent charting and project visualization runtime",
   "type": "module",
   "main": "./src/index.mjs",
@@ -35,12 +35,16 @@
   },
   "scripts": {
     "test": "node --test tests/*.test.mjs",
+    "test:browser": "node --test tests/browser/*.test.mjs",
     "check": "for file in src/*.mjs; do node --check \"$file\" || exit 1; done",
     "docs:check": "node scripts/check-agent-docs.mjs",
     "example:agent": "node examples/agent-workflow.mjs",
     "playground": "node scripts/serve-playground.mjs",
     "agent:check": "npm run docs:check && npm run check && npm test",
     "rc:check": "npm test && npm run check && git diff --check"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.63.0"
   },
   "repository": {
     "type": "git",

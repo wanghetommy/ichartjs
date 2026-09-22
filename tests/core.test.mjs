@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { binData, createChart, createPreferencesStore, data, getCapabilities, getPreferenceCapabilities, inspectData, normalizeSpec, planChart, planStyle, recommend, resolveZoomWindow, validatePreferences, validateSpec } from '../src/index.mjs';
+import { binData, createChart, createPreferencesStore, data, getCapabilities, getPreferenceCapabilities, iChart, inspectData, normalizeSpec, planChart, planStyle, recommend, resolveZoomWindow, validatePreferences, validateSpec } from '../src/index.mjs';
 import { contrastRatio, resolveTheme, validateThemeContrast } from '../src/theme.mjs';
 import { annotationPlugin, dataLabelsPlugin, dataZoomPlugin } from '../src/plugin.mjs';
 import { buildScene } from '../src/charts.mjs';
@@ -17,6 +17,7 @@ import { previewEdit, validateEdit } from '../src/edit.mjs';
 import { validateData } from '../src/validation.mjs';
 import { diagramKeyboard } from '../src/diagram-interaction.mjs';
 import { chartSettingsPlacementCoordinates, isChartSettingsAnchorVisible, resolveChartSettingsPlacement } from '../src/preferences-ui.mjs';
+import { estimateTextWidth, truncateText } from '../src/layout.mjs';
 
 test('normalizes and validates a v2 spec', () => {
   const spec = normalizeSpec({ type: 'line', data: [{ name: 'Jan', value: '12' }] });
@@ -330,7 +331,7 @@ test('builds architecture layers and mindmap parent-child diagrams', async () =>
   assert.ok(architectureScene.scene.find('layer-business'));
   assert.ok(architectureScene.scene.find('boundary-platform'));
   assert.ok(architectureScene.scene.find('edge-0'));
-  assert.ok(architectureScene.scene.find('edge-0').geometry.points.length >= 3);
+  assert.ok(architectureScene.scene.find('edge-0').geometry.points.length >= 2);
   const mindmap = { type: 'mindmap', nodes: [{ id: 'root', label: 'Root' }, { id: 'child', label: 'Child', parentId: 'root' }, { id: 'leaf', label: 'Leaf', parentId: 'child' }], diagram: { mode: 'mindmap', layout: 'tree' } };
   const normalized = normalizeSpec(mindmap);
   const validation = validateDiagram(normalized);
@@ -393,7 +394,7 @@ test('builds critical dependency arrows and burndown scope markers', () => {
 
 test('keeps project scene structure renderer independent', () => {
   const input = { type: 'gantt', criticalPath: ['a', 'b'], data: [{ id: 'a', name: 'A', start: '2026-09-01', end: '2026-09-02' }, { id: 'b', name: 'B', start: '2026-09-03', end: '2026-09-04', dependencies: ['a'] }] };
-  const collect = renderer => { const model = buildScene(normalizeSpec({ ...input, renderer })), ids = []; model.scene.walk(node => { if (node.id !== 'root') ids.push(node.id); }); return ids; };
+  const collect = renderer => { const model = buildScene(normalizeSpec({ ...input, renderer })), nodes = []; model.scene.walk(node => { if (node.id !== 'root') nodes.push({ id: node.id, type: node.type, geometry: node.geometry, style: node.style }); }); return nodes; };
   assert.deepEqual(collect('svg'), collect('canvas'));
 });
 
@@ -1178,7 +1179,7 @@ test('renders common titles, grids, legends, labels, and corrected chart geometr
   assert.ok(area.scene.find('area-fill-1'));
   const bar = buildScene(normalizeSpec({ type: 'bar', xAxis: { title: 'Value' }, yAxis: { title: 'Category' }, data: [{ name: 'Long category', value: -20 }, { name: 'Gain', value: 30 }] }));
   assert.ok(bar.scene.find('series-0-item-0').geometry.width > 0);
-  assert.ok(bar.state.plot.x >= 120);
+  assert.ok(bar.state.plot.x >= estimateTextWidth('Long category', 12) + 24);
   assert.equal(bar.scene.find('axis-x-title').geometry.text, 'Value');
   assert.equal(bar.scene.find('axis-y-title').geometry.text, 'Category');
   const scatter = buildScene(normalizeSpec({ type: 'scatter', data: [{ x: 100, y: 1 }, { x: 200, y: 2 }] }));
@@ -1192,6 +1193,100 @@ test('renders common titles, grids, legends, labels, and corrected chart geometr
   assert.equal(titled.scene.find('title').geometry.y, 32);
   assert.equal(titled.scene.find('subtitle').geometry.y, 52.5);
   assert.ok(titled.state.plot.y > titled.scene.find('subtitle').geometry.y);
+});
+
+test('lays out Unicode legends, axis titles, and project labels without estimated collisions', () => {
+  assert.equal(estimateTextWidth('项目启动', 12), 48);
+  assert.equal(truncateText('项目启动', 36, 12), '项目…');
+  const pie = buildScene(normalizeSpec({
+    type: 'pie', width: 760, height: 440, branding: false,
+    data: [
+      { name: '客户反馈与工单系统', value: 42 },
+      { name: '内部产品规划会议', value: 28 },
+      { name: '竞品功能对标分析', value: 18 },
+      { name: '市场数据洞察报告', value: 12 }
+    ],
+    encoding: { category: { field: 'name' }, value: { field: 'value' } },
+    labels: { enabled: false }, legend: { visible: true }
+  }));
+  const legendLabels = pie.state.chrome.legend.items.map((item, index) => ({ item, node: pie.scene.find(`legend-label-${index}`) }));
+  legendLabels.slice(1).forEach((entry, index) => {
+    const previous = legendLabels[index];
+    assert.ok(entry.item.y > previous.item.y || entry.node.geometry.x >= previous.node.geometry.x + estimateTextWidth(previous.node.geometry.text, 12) + 12);
+  });
+  const lastLegend = legendLabels.at(-1);
+  assert.ok(lastLegend.node.geometry.x + estimateTextWidth(lastLegend.node.geometry.text, 12) <= 760);
+
+  const scatter = buildScene(normalizeSpec({
+    type: 'scatter', width: 760, height: 440, branding: false,
+    data: [{ x: 12, y: 320 }, { x: 60, y: 1140 }],
+    encoding: { x: { field: 'x' }, y: [{ field: 'y' }, { field: 'x' }] },
+    xAxis: { title: '广告投入（万元）' },
+    yAxis: { title: '新增用户（人）', right: { title: '转化率' } }
+  }));
+  const leftTitle = scatter.scene.find('axis-y-title'), rightTitle = scatter.scene.find('axis-y-right-title');
+  assert.equal(leftTitle.style.rotation, -90);
+  assert.equal(rightTitle.style.rotation, 90);
+  assert.ok(leftTitle.geometry.x + 6 < scatter.state.plot.x - 10 - scatter.state.axisLayout.leftLabelWidth);
+
+  const timeline = buildScene(normalizeSpec({ type: 'timeline', width: 760, height: 440, branding: false, data: [{ id: 'e1', date: '2026-09-01', title: '项目启动' }, { id: 'e2', date: '2026-09-08', title: '方案定稿' }] }));
+  const timelineLabel = timeline.scene.find('project-label-0');
+  assert.ok(timelineLabel.geometry.x - estimateTextWidth(timelineLabel.geometry.text, 12) >= 0);
+});
+
+test('routes Gantt dependency semantics and arranges architecture nodes by layer', () => {
+  const gantt = buildScene(normalizeSpec({
+    type: 'gantt', width: 760, height: 440, branding: false,
+    data: [
+      { id: 't1', name: '需求评审', start: '2026-09-01', end: '2026-09-04' },
+      { id: 't2', name: '技术方案', start: '2026-09-05', end: '2026-09-09', dependencies: ['t1'] },
+      { id: 't3', name: '开发实现', start: '2026-09-10', end: '2026-09-20', dependencies: ['t2'] }
+    ]
+  }));
+  ['dependency-1-0', 'dependency-2-0'].forEach(id => assert.ok(gantt.scene.find(id).geometry.points.length - 1 <= 3));
+  const typed = buildScene(normalizeSpec({
+    type: 'gantt',
+    data: [
+      { id: 'source', name: 'Source', start: '2026-09-01', end: '2026-09-04' },
+      { id: 'fs', name: 'FS', start: '2026-09-05', end: '2026-09-06', dependencies: [{ id: 'source', type: 'finish-to-start' }] },
+      { id: 'ss', name: 'SS', start: '2026-09-02', end: '2026-09-05', dependencies: [{ id: 'source', type: 'start-to-start' }] },
+      { id: 'ff', name: 'FF', start: '2026-09-03', end: '2026-09-07', dependencies: [{ id: 'source', type: 'finish-to-finish' }] },
+      { id: 'sf', name: 'SF', start: '2026-09-04', end: '2026-09-08', dependencies: [{ id: 'source', type: 'start-to-finish' }] }
+    ]
+  }));
+  const source = typed.scene.find('project-item-0').geometry;
+  const endpoint = id => {
+    const points = typed.scene.find(id).geometry.points;
+    return { start: points[0].x, end: points.at(-1).x };
+  };
+  assert.deepEqual(endpoint('dependency-1-0'), { start: source.x + source.width, end: typed.scene.find('project-item-1').geometry.x });
+  assert.deepEqual(endpoint('dependency-2-0'), { start: source.x, end: typed.scene.find('project-item-2').geometry.x });
+  assert.deepEqual(endpoint('dependency-3-0'), { start: source.x + source.width, end: typed.scene.find('project-item-3').geometry.x + typed.scene.find('project-item-3').geometry.width });
+  assert.deepEqual(endpoint('dependency-4-0'), { start: source.x, end: typed.scene.find('project-item-4').geometry.x + typed.scene.find('project-item-4').geometry.width });
+  ['dependency-1-0', 'dependency-2-0', 'dependency-3-0', 'dependency-4-0'].forEach(id => typed.scene.find(id).geometry.points.forEach(point => assert.ok(point.x >= typed.state.plot.x && point.x <= typed.state.plot.x + typed.state.plot.width)));
+
+  const architecture = buildScene(normalizeSpec({
+    type: 'architecture', width: 760, height: 440, branding: false,
+    layers: [{ id: 'la1', label: '接入层' }, { id: 'la2', label: '服务层' }, { id: 'la3', label: '数据层' }],
+    nodes: [
+      { id: 'gateway', label: 'API 网关', layerId: 'la1' }, { id: 'web', label: 'Web 前端', layerId: 'la1' },
+      { id: 'order', label: '订单服务', layerId: 'la2' }, { id: 'pay', label: '支付服务', layerId: 'la2' },
+      { id: 'mysql', label: 'MySQL', layerId: 'la3' }, { id: 'redis', label: 'Redis', layerId: 'la3' }
+    ],
+    edges: [{ from: 'web', to: 'gateway' }, { from: 'gateway', to: 'order' }, { from: 'order', to: 'pay' }]
+  }));
+  [['gateway', 'web'], ['order', 'pay'], ['mysql', 'redis']].forEach(([first, second]) => {
+    const a = architecture.scene.find(`node-${first}`).geometry, b = architecture.scene.find(`node-${second}`).geometry;
+    assert.equal(a.y, b.y);
+    assert.notEqual(a.x, b.x);
+  });
+  const manual = buildScene(normalizeSpec({ type: 'architecture', layers: [{ id: 'layer' }], nodes: [{ id: 'fixed', label: 'Fixed', layerId: 'layer', position: { x: 123, y: 87 }, size: { width: 160, height: 50 } }] }));
+  assert.deepEqual(manual.scene.find('node-fixed').geometry, { x: 123, y: 87, width: 160, height: 50 });
+});
+
+test('keeps the package and runtime versions synchronized', () => {
+  const packageVersion = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+  assert.equal(iChart.version, packageVersion);
 });
 
 test('keeps stacked labels clear, centers funnel content, and sizes project label reserves', () => {

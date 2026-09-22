@@ -1,6 +1,6 @@
 # iChart.js 2.0 Roadmap
 
-> Roadmap baseline: 2026-09-14. Current release status: `v2.0.11` includes the completed Iteration 12 structured-diagram work, follow-up chart/menu fixes, hardened Agent chart contracts, and architecture/promo layout fixes. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
+> Roadmap baseline: 2026-09-14. Current release status: `v2.0.13` includes the completed Iteration 12 structured-diagram work, follow-up chart/menu fixes, hardened Agent chart contracts, Unicode-aware layout, typed Gantt routing, and horizontal Architecture layers. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
 
 ## Current Status
 

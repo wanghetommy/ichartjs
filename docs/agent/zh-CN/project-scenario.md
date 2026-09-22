@@ -15,9 +15,11 @@
 
 - 日期必须有效，Gantt 的 `end` 不得早于 `start`。
 - `progress` 使用 `0–100` 百分比。
-- `dependencies` 使用稳定任务 ID，依赖图不能有环。
+- `dependencies` 使用稳定任务 ID，支持字符串或 `{ id, type, lag, lead }` 对象，依赖图不能有环。
+- 依赖类型支持 `finish-to-start`、`start-to-start`、`finish-to-finish` 和 `start-to-finish`；连线使用对应任务端点。具有净空的正向 FS 关系使用三段紧凑路径，重叠或反向关系使用外侧绕行。
 - `scopeChange` 表示范围变化，不等于已完成工作量。
 - Forecast 是估计结果，不能描述为承诺或事实。
+- Gantt、Timeline 和 Milestone 根据 Unicode-aware 文本宽度预留左侧标签列；超过列宽的标签按像素省略，不按字符数截断。
 
 ## 编辑流程
 
@@ -37,4 +39,4 @@ Schema → Command → Validate → Preview → Confirm → Commit → ChangeSet
 - 测试：`tests/core.test.mjs`
 - 验收：`playground/project-gallery.html`
 
-需要覆盖日期错误、循环依赖、Scope Change、Forecast 和编辑历史。
+需要覆盖日期错误、循环依赖、四种依赖类型端点、FS 三段路径、Scope Change、Forecast、中文标签边界和编辑历史。

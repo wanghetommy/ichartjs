@@ -16,7 +16,7 @@
 1.  `npm run check` → exit 0
 2.  `npm test` → exit 0 (all current tests pass)
 3.  `npm run docs:check` → exit 0
-4.  `npm run agent:check` → exit 0
+4.  `npm run agent:check` and `npm run test:browser` → both exit 0 (`test:browser` requires Chrome or `CHROME_BIN`)
 5.  `npm whoami` → output = `taylorwong`
 6.  `npm config get registry` → output = `https://registry.npmjs.org/`
 

@@ -39,3 +39,28 @@ jobs:
 
       - name: Verify publish tarball
         run: npm pack --dry-run
+
+  browser-layout:
+    name: Browser layout
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Chrome
+        id: chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Install package metadata
+        run: npm install --ignore-scripts --package-lock=false
+
+      - name: Verify browser layout
+        run: npm run test:browser
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}

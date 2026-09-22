@@ -11,6 +11,8 @@ Agent usage and development guide for process modeling, responsibility mapping, 
 
 Architecture and mindmap are both structured diagrams, but they are not interchangeable: architecture describes declared domain or system relationships, while a mindmap describes an idea hierarchy.
 
+Architecture layers are horizontal bands ordered from top to bottom. Automatic layout places nodes in the same layer left to right on a shared row, then adds another row only when the available width cannot hold the layer. An explicit `node.position` remains authoritative, including after editing; automatic layout never rewrites the Spec.
+
 ## Data Model
 
 ```js
@@ -71,6 +73,7 @@ Current limitations:
 - `deleteGroup` defaults to `ungroup`; use `delete-members` only after explicit host confirmation.
 - Canvas keeps basic accessibility text, while SVG exposes richer diagram semantics.
 - Cross-browser matrix and physical-device validation remain acceptance work, not runtime guarantees.
+- Mixed manual and automatic Architecture positions can overlap; explicit positions are preserved rather than silently moved.
 
 ## Agent Workflow
 
@@ -107,4 +110,5 @@ Current limitations:
 - Copy/paste preserves internal edges and produces deterministic new IDs.
 - Group collapse hides member nodes and keeps group-level state visible.
 - Groups, ports, and invalid references produce structured validation results.
+- Architecture nodes without explicit positions are arranged horizontally within their declared layer; explicit positions survive rendering and editing.
 - Canvas and SVG produce equivalent edge selection, handle dragging, persisted waypoints, keyboard behavior, and exports.

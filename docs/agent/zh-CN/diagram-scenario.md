@@ -11,6 +11,21 @@
 
 架构图和思维导图都属于结构化图，但不能混用：架构图表达明确的领域或系统关系，思维导图表达想法层级。
 
+Architecture 的 `layers` 是从上到下排列的水平分层。同层自动布局节点优先保持同一 Y 坐标并从左到右排列；只有可用宽度不足时才增加下一行。显式 `node.position` 始终优先，包括编辑后的坐标；自动布局不会回写 Spec。
+
+```js
+{
+  type: 'architecture',
+  layers: [{ id: 'access', label: '接入层' }, { id: 'service', label: '服务层' }],
+  nodes: [
+    { id: 'web', label: 'Web 前端', layerId: 'access' },
+    { id: 'gateway', label: 'API 网关', layerId: 'access' },
+    { id: 'order', label: '订单服务', layerId: 'service' }
+  ],
+  edges: [{ from: 'gateway', to: 'order' }]
+}
+```
+
 思维导图建议使用简洁的父子数据：
 
 ```js
@@ -45,6 +60,7 @@ Mindmap 默认使用曲线父子连线。`diagram.curveTension` 支持 `0.2` 到
 - Group 只支持平级 Group，不支持嵌套。
 - Group bounds 由成员几何和 `group.padding` 推导；`resizeGroup` 会缩放成员位置和尺寸，不持久化第二个 Group 矩形。
 - Canvas 提供基础无障碍文本，SVG 提供更丰富的 Diagram 语义。
+- Architecture 混用手工坐标与自动坐标时可能发生重叠；运行时会保留手工坐标，不会静默搬动节点。
 
 ## Agent 流程
 
@@ -63,4 +79,4 @@ Mindmap 默认使用曲线父子连线。`diagram.curveTension` 支持 `0.2` 到
 - 专用 Demo：`playground/diagram-editor.html`
 - 全量 Gallery：`playground/project-gallery.html`
 
-节点移动后必须验证边、箭头和标签跟随；同时检查 Canvas 与 SVG 的边命中、手柄拖动、waypoint 持久化、键盘和导出一致性。
+节点移动后必须验证边、箭头和标签跟随；Architecture 无显式坐标的同层节点应横向优先排列；同时检查 Canvas 与 SVG 的边命中、手柄拖动、waypoint 持久化、键盘和导出一致性。
