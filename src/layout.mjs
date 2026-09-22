@@ -19,8 +19,33 @@ export function titleLayout(spec) {
   return { titleY, subtitleY, bottom };
 }
 
+function characterWidth(character) {
+  if (/[\p{Mark}\u200d\ufe0e\ufe0f]/u.test(character)) return 0;
+  if (/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Extended_Pictographic}]/u.test(character)) return 1;
+  if (/\s/u.test(character)) return 0.33;
+  if (/[ilI1|.,:;'`!]/u.test(character)) return 0.32;
+  if (/[MW@#%&]/u.test(character)) return 0.82;
+  return 0.58;
+}
+
 export function estimateTextWidth(text, size = 12) {
-  return Math.max(size, String(text ?? '').length * size * 0.58);
+  const width = Array.from(String(text ?? '')).reduce((sum, character) => sum + characterWidth(character), 0) * size;
+  return Math.max(size, width);
+}
+
+export function truncateText(text, maxWidth, size = 12) {
+  const value = String(text ?? '');
+  if (!(maxWidth > 0) || estimateTextWidth(value, size) <= maxWidth) return value;
+  const suffix = '…', suffixWidth = estimateTextWidth(suffix, size);
+  if (suffixWidth > maxWidth) return '';
+  const characters = Array.from(value);
+  let low = 0, high = characters.length;
+  while (low < high) {
+    const middle = Math.ceil((low + high) / 2);
+    if (estimateTextWidth(`${characters.slice(0, middle).join('')}${suffix}`, size) <= maxWidth) low = middle;
+    else high = middle - 1;
+  }
+  return `${characters.slice(0, low).join('')}${suffix}`;
 }
 
 export function axisLabelLayout(spec, labels = [], availableWidth = 0) {

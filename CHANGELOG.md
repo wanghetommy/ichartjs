@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.13 - 2026-09-22
+
+- Made legend, axis, and project-label layout Unicode-aware, added collision-safe y-axis titles, and restored right-axis title rendering.
+- Simplified clear forward Gantt dependencies to three segments while preserving typed dependency endpoints and safe fallback routing.
+- Arranged automatic Architecture nodes horizontally within layers, preserved explicit positions, and added Node plus Chrome layout regression coverage.
+
+## 2.0.12 - 2026-09-21
+
+- Fixed Bar charts so `xAxis.title` and `yAxis.title` render through the dedicated horizontal-bar axis branch.
+
 ## 2.0.11 - 2026-09-21
 
 - Improved promotional chart composition by expanding the internal plotting areas for trend, delivery, and architecture examples without enlarging their cards.
