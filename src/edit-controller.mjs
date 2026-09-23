@@ -60,7 +60,7 @@ export class EditController {
       edgeSchema: spec.data.edgeSchema,
       type: spec.type,
       nodeModel: spec.type === 'architecture' ? 'architecture-node' : spec.type === 'mindmap' ? 'mindmap-node' : 'flow-node',
-      edgeModel: spec.type === 'architecture' ? 'architecture-edge' : 'flow-edge',
+      edgeModel: spec.type === 'architecture' ? 'architecture-edge' : spec.type === 'mindmap' ? 'mindmap-edge' : 'flow-edge',
       validationOptions: { ...spec.validationOptions, references: { ...spec.validationOptions?.references, ...(diagram ? { 'flow-node': nodes.map(row => row.id), swimlane: lanes.map(row => row.id) } : {}) } },
       requireConfirmation: spec.editing?.requireConfirmation,
       grid: spec.diagram?.grid || 8,

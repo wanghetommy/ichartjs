@@ -38,6 +38,38 @@ test('uses readable numeric y-axis domains and explicit overrides', () => {
   assert.equal(chart.explain().axes.y.policy, 'nice');
 });
 
+test('lays out bar y-axis titles vertically without truncating normal labels', () => {
+  const title = '出生人口（万人）';
+  const result = buildScene(normalizeSpec({
+    type: 'bar',
+    renderer: 'svg',
+    width: 800,
+    height: 440,
+    branding: false,
+    data: [{ name: 'A', value: 10 }, { name: 'B', value: 20 }],
+    encoding: { x: { field: 'name' }, y: { field: 'value' } },
+    yAxis: { title }
+  }));
+  const axisTitle = result.scene.find('axis-y-title');
+  assert.equal(axisTitle.geometry.text, title);
+  assert.equal(axisTitle.geometry.x, 8 + result.state.axisLayout.size / 2);
+  assert.equal(axisTitle.geometry.y, result.state.plot.y + result.state.plot.height / 2);
+  assert.equal(axisTitle.style.rotation, -90);
+  assert.ok(result.state.plot.x > 56);
+
+  const compact = buildScene(normalizeSpec({
+    type: 'bar',
+    width: 180,
+    height: 120,
+    branding: false,
+    data: [{ name: 'A', value: 10 }],
+    encoding: { x: { field: 'name' }, y: { field: 'value' } },
+    yAxis: { title }
+  }));
+  assert.equal(compact.scene.find('axis-y-title').geometry.text, '出…');
+  assert.equal(compact.data.warnings.find(warning => warning.code === 'TITLE_TRUNCATED')?.path, 'yAxis.title');
+});
+
 test('supports Iteration 7 chart modes and public types', () => {
   const capabilities = getCapabilities();
   assert.ok(capabilities.chartTypes.includes('heatmap'));
@@ -1124,7 +1156,7 @@ test('resizes member-derived groups and routes through dense obstacles determini
 test('exposes deterministic per-chart capabilities and Agent planning', async () => {
   const { getCapabilities, getChartCapability, planChart } = await import('../src/index.mjs');
   const capabilities = getCapabilities();
-  assert.equal(capabilities.contractVersion, '1.0');
+  assert.equal(capabilities.contractVersion, '1.1');
   assert.equal(Object.keys(capabilities.charts).length, capabilities.chartTypes.length);
   assert.equal(getChartCapability('heatmap').features['missing-values'], 'supported');
   const rows = [{ month: 'Jan', revenue: 12 }, { month: 'Feb', revenue: 18 }];

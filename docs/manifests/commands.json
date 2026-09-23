@@ -2,8 +2,8 @@
   "version": "1.0",
   "source": "src/command.mjs#operationTypes",
   "commands": {
-    "updateField": { "models": ["project-task", "timeline-event", "milestone", "burndown-sample", "flow-node", "flow-edge", "swimlane", "architecture-node", "architecture-edge", "mindmap-node"], "previewRequired": true, "undoable": true },
-    "updateRecord": { "models": ["project-task", "timeline-event", "milestone", "burndown-sample", "flow-node", "flow-edge", "swimlane", "architecture-node", "architecture-edge", "mindmap-node"], "previewRequired": true, "undoable": true },
+    "updateField": { "models": ["project-task", "timeline-event", "milestone", "burndown-sample", "flow-node", "flow-edge", "swimlane", "architecture-node", "architecture-edge", "mindmap-node", "mindmap-edge"], "previewRequired": true, "undoable": true },
+    "updateRecord": { "models": ["project-task", "timeline-event", "milestone", "burndown-sample", "flow-node", "flow-edge", "swimlane", "architecture-node", "architecture-edge", "mindmap-node", "mindmap-edge"], "previewRequired": true, "undoable": true },
     "updateTask": { "models": ["project-task"], "previewRequired": true, "undoable": true },
     "shiftTask": { "models": ["project-task"], "required": ["taskId", "days"], "previewRequired": true, "undoable": true },
     "updateProgress": { "models": ["project-task"], "required": ["taskId", "progress"], "previewRequired": true, "undoable": true },
@@ -21,11 +21,11 @@
     "assignNodesToGroup": { "models": ["flow-node"], "required": ["nodeIds", "groupId"], "previewRequired": true, "confirmationRequired": true, "undoable": true },
     "duplicateGroup": { "models": ["flow-node", "flow-edge"], "required": ["groupId"], "previewRequired": true, "confirmationRequired": true, "undoable": true },
     "deleteGroup": { "models": ["flow-node", "flow-edge"], "required": ["groupId", "policy"], "previewRequired": true, "confirmationRequired": true, "undoable": true },
-    "updateEdge": { "models": ["flow-edge", "architecture-edge"], "required": ["edgeId", "changes"], "previewRequired": true, "undoable": true },
-    "removeEdge": { "models": ["flow-edge", "architecture-edge"], "required": ["edgeId"], "previewRequired": true, "confirmationRequired": true, "undoable": true },
-    "addEdge": { "models": ["flow-edge", "architecture-edge"], "required": ["from", "to"], "previewRequired": true, "confirmationRequired": true, "undoable": true },
+    "updateEdge": { "models": ["flow-edge", "architecture-edge", "mindmap-edge"], "required": ["edgeId", "changes"], "previewRequired": true, "undoable": true },
+    "removeEdge": { "models": ["flow-edge", "architecture-edge", "mindmap-edge"], "required": ["edgeId"], "previewRequired": true, "confirmationRequired": true, "undoable": true },
+    "addEdge": { "models": ["flow-edge", "architecture-edge", "mindmap-edge"], "required": ["from", "to"], "previewRequired": true, "confirmationRequired": true, "undoable": true },
     "toggleGroupCollapse": { "models": ["flow-node"], "required": ["groupId"], "previewRequired": true, "confirmationRequired": true, "undoable": true },
-    "duplicateSelection": { "models": ["flow-node", "flow-edge"], "required": ["nodeIds"], "previewRequired": true, "confirmationRequired": true, "undoable": true },
-    "pasteSelection": { "models": ["flow-node", "flow-edge"], "required": ["nodes"], "previewRequired": true, "confirmationRequired": true, "undoable": true }
+    "duplicateSelection": { "models": ["flow-node", "flow-edge", "mindmap-edge"], "required": ["nodeIds"], "previewRequired": true, "confirmationRequired": true, "undoable": true },
+    "pasteSelection": { "models": ["flow-node", "flow-edge", "mindmap-edge"], "required": ["nodes"], "previewRequired": true, "confirmationRequired": true, "undoable": true }
   }
 }

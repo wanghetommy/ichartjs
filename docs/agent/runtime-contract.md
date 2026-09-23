@@ -91,6 +91,8 @@ All export/download methods return a stable `{ valid:false, code, message?, sugg
 
 ## Common APIs
 
+State-changing calls use one validation boundary. `update()` and `setData()` return the chart when committed; invalid input throws `ChartValidationError` with stable `code`, `details`, `path`, `expected`, `received`, and `suggestion` fields. The previous Spec, Scene, selection, revision, and history remain unchanged after a rejected mutation. `applyPatch()` is an advanced JSON-pointer API and is validated before commit.
+
 ```text
 inspectData(data)
 normalizeData(data)
@@ -105,6 +107,8 @@ validatePreferences(patch, options)
 chart.describe()
 chart.explain()
 chart.getState()
+chart.getState().health
+chart.explain().health
 chart.getPreferences()
 chart.setPreferences(patch, options)
 chart.resetPreferences(options)

@@ -42,7 +42,7 @@ Agent usage and development guide for generic data analysis and metric visualiza
 
 Do not put `title`, `format`, `labels`, or `legend` under `encoding`; `validateSpec()` reports those placements as warnings. Numeric y-axes use readable domains by default (`nice: true`, `ticks: "auto"`). Use `yAxis.domain: [min, max]` for an explicit range, or `yAxis.nice: false` to retain the raw boundary. `xAxis.min/max` and `xAxis.domain` are unsupported for categorical/time layouts and produce a structured warning.
 
-Layout is deterministic and renderer-independent. Legend items use Unicode-aware text estimates for spacing and automatically wrap when a row is full; a single label that cannot fit is truncated and reports `LEGEND_OVERFLOW`. Numeric left and right y-axis titles are centered beside their tick columns, while Bar keeps its categorical y-axis title horizontal above the category-label column. Axis and project-label reserves are computed before the plot rectangle, so Canvas, SVG, headless rendering, and exports share the same geometry.
+Layout is deterministic and renderer-independent. Legend items use Unicode-aware text estimates for spacing and automatically wrap when a row is full; a single label that cannot fit is truncated and reports `LEGEND_OVERFLOW`. Y-axis titles are centered beside their tick columns; Bar also places its categorical y-axis title vertically and centered on the left, with space reserved before the plot rectangle. If the chart is physically too short for a title, the renderer truncates it and reports `TITLE_TRUNCATED`. Axis and project-label reserves are computed before the plot rectangle, so Canvas, SVG, headless rendering, and exports share the same geometry.
 
 ## Encoding Contracts
 

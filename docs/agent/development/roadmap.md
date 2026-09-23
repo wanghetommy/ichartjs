@@ -1,6 +1,6 @@
 # iChart.js 2.0 Roadmap
 
-> Roadmap baseline: 2026-09-14. Current release status: `v2.0.13` includes the completed Iteration 12 structured-diagram work, follow-up chart/menu fixes, hardened Agent chart contracts, Unicode-aware layout, typed Gantt routing, and horizontal Architecture layers. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
+> Roadmap baseline: 2026-09-14. Current release status: `v2.0.14` includes the completed Iteration 12 structured-diagram work, Iteration 13 contract hardening, and the Bar y-axis title layout fix. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
 
 ## Current Status
 
@@ -15,6 +15,7 @@
 - Iteration 10A Export Contract Hardening was implemented and released in `v2.0.5`: export representations and type errors are deterministic, optional Node raster export uses `exportAsync()`, Canvas/SVG paint semantics are aligned, and the playground server has safer port/path handling. No chart behavior or public chart type was added.
 - Iteration 11 visual preference controls are included in the `v2.0.6` release: compact per-chart settings, capability-aware visibility controls, theme-aware icon contrast, explicit font-size defaults, shared page preferences, and Agent-adjustable global settings.
 - Iteration 12A–12G is included in `v2.0.7`: shared structured-diagram contracts, Architecture layers/boundaries, Mindmap parent-child tree/radial layouts with true cubic-Bezier edges, Agent schemas/capabilities, renderer-parity edge hit testing and selection, waypoint/segment handles, persistent manual routing, and Gallery/documentation coverage. Navigation and editing remain disabled by default and require explicit host activation.
+- Iteration 13A–13E is complete and included in `v2.0.14`: canonical contract registry and generated capability projection, atomic Spec/data/style mutations, row-complete project validation, explicit Mindmap edge metadata, complete public TypeScript declarations and consumer fixture, module-cycle and documentation/example gates, browser acceptance, and package dry-run evidence. No chart type was added.
 - The original `2.0.0` readiness record is historical and superseded by the published `2.0.x` releases. Current release checks are defined by `docs/agent/development/release-sop.md`.
 
 ## Iteration 4 — Agent Data Contract and Business Editing

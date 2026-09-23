@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "contractVersion": "1.0",
+  "contractVersion": "1.1",
   "source": "src/index.mjs#getCapabilities",
   "perChartProfiles": "src/index.mjs#getChartCapability",
   "agentPlanning": "src/index.mjs#planChart",
@@ -11,44 +11,134 @@
   "minimalSpecs": "@taylorwong/ichartjs/recipes/minimal-specs",
   "officialSkill": "skills/ichartjs/SKILL.md",
   "scenarios": {
-    "charting": ["line", "area", "bar", "column", "pie", "scatter", "funnel", "gauge", "heatmap", "radar"],
-    "project": ["gantt", "timeline", "milestone", "burndown"],
-    "diagram": ["flow", "swimlane", "architecture", "mindmap"]
+    "charting": [
+      "line",
+      "area",
+      "bar",
+      "column",
+      "pie",
+      "scatter",
+      "funnel",
+      "gauge",
+      "heatmap",
+      "radar"
+    ],
+    "project": [
+      "gantt",
+      "timeline",
+      "milestone",
+      "burndown"
+    ],
+    "diagram": [
+      "flow",
+      "swimlane",
+      "architecture",
+      "mindmap"
+    ]
   },
-  "projectIntelligence": ["variance", "capacity", "release", "risk", "aging"],
-  "chartModes": ["stacked", "percent-stacked", "donut", "mixed-line-column", "bin", "architecture-layers", "architecture-boundaries", "mindmap-tree", "mindmap-radial", "mindmap-curved-edges"],
-  "renderers": ["canvas", "svg"],
+  "projectIntelligence": [
+    "variance",
+    "capacity",
+    "release",
+    "risk",
+    "aging"
+  ],
+  "chartModes": [
+    "stacked",
+    "percent-stacked",
+    "donut",
+    "mixed-line-column",
+    "bin",
+    "architecture-layers",
+    "architecture-boundaries",
+    "mindmap-tree",
+    "mindmap-radial",
+    "mindmap-curved-edges"
+  ],
+  "renderers": [
+    "canvas",
+    "svg"
+  ],
   "locale": {
     "default": "en-US",
-    "recommended": ["en-US", "zh-CN"],
-    "appliesTo": ["axis", "labels", "tooltip", "export"],
+    "recommended": [
+      "en-US",
+      "zh-CN"
+    ],
+    "appliesTo": [
+      "axis",
+      "labels",
+      "tooltip",
+      "export"
+    ],
     "inputDates": "ISO-8601 strings; natural-language date parsing is not supported."
   },
   "health": {
-    "state": ["ready", "degraded", "empty"],
-    "apis": ["chart.getState().health", "chart.explain().health"],
-    "metrics": ["warnings", "suppressedLabels", "clampedValues", "renderedMarks"]
+    "state": [
+      "ready",
+      "degraded",
+      "empty"
+    ],
+    "apis": [
+      "chart.getState().health",
+      "chart.explain().health"
+    ],
+    "metrics": [
+      "warnings",
+      "suppressedLabels",
+      "clampedValues",
+      "renderedMarks"
+    ]
   },
-  "interactionDefaults": { "zoom": false, "pan": false, "brush": false, "drag": false, "edgeDrag": false, "portConnect": false, "editing": false },
+  "interactionDefaults": {
+    "zoom": false,
+    "pan": false,
+    "brush": false,
+    "drag": false,
+    "edgeDrag": false,
+    "portConnect": false,
+    "editing": false
+  },
   "diagramEditing": {
-    "renderers": ["canvas", "svg"],
+    "renderers": [
+      "canvas",
+      "svg"
+    ],
     "edgeSelection": true,
     "waypointDrag": true,
     "segmentDrag": true,
     "persistentWaypoints": true,
     "enabledByDefault": false,
-    "activation": ["editing.enabled", "interaction.edgeDrag"]
+    "activation": [
+      "editing.enabled",
+      "interaction.edgeDrag"
+    ]
   },
   "diagramCurves": {
-    "renderers": ["canvas", "svg"],
+    "renderers": [
+      "canvas",
+      "svg"
+    ],
     "type": "cubic-bezier",
     "mindmapDefault": true,
-    "curveTension": { "minimum": 0.2, "maximum": 0.8, "default": 0.4 },
+    "curveTension": {
+      "minimum": 0.2,
+      "maximum": 0.8,
+      "default": 0.4
+    },
     "obstacleFallback": "orthogonal",
     "controlPointEditing": false
   },
-  "excluded": ["map", "3d"],
-  "exports": ["png", "svg", "json"],
+  "excluded": [
+    "map",
+    "3d"
+  ],
+  "exports": [
+    "png",
+    "jpeg",
+    "svg",
+    "json"
+  ],
   "headless": {
     "preview": true,
     "json": true,
@@ -56,9 +146,24 @@
     "png": "Node headless PNG requires the optional `canvas` npm package and chart.exportAsync({type:\"png\"}). Otherwise use chart.export({type:\"svg\"})."
   },
   "export": {
-    "types": ["png", "jpeg", "svg", "json"],
-    "mime": { "png": "image/png", "jpeg": "image/jpeg", "svg": "image/svg+xml", "json": "application/json" },
-    "browser": { "png": true, "jpeg": true, "svg": true, "json": true },
+    "types": [
+      "png",
+      "jpeg",
+      "svg",
+      "json"
+    ],
+    "mime": {
+      "png": "image/png",
+      "jpeg": "image/jpeg",
+      "svg": "image/svg+xml",
+      "json": "application/json"
+    },
+    "browser": {
+      "png": true,
+      "jpeg": true,
+      "svg": true,
+      "json": true
+    },
     "headless": {
       "png": "optional: install the `canvas` npm package for createCanvas and use exportAsync",
       "jpeg": "same as png",
@@ -75,7 +180,14 @@
       "toDataURL": "chart.toDataURL(\"image/png\"|\"image/svg+xml\") returns a data URL string.",
       "toBlob": "chart.toBlob(\"image/png\"|\"image/svg+xml\") returns a Blob (browser-only)."
     },
-    "options": { "as": ["string", "object", "dataurl", "blob"] },
+    "options": {
+      "as": [
+        "string",
+        "object",
+        "dataurl",
+        "blob"
+      ]
+    },
     "branding": "By default PNG/SVG exports include the Powered by iChart.js branding watermark. Pass branding: { enabled: false } or branding: false to remove it for white-label output."
   },
   "gallery": "playground/project-gallery.html",
@@ -93,12 +205,35 @@
   "themeGuide": "docs/agent/theme-guide.md",
   "preferences": {
     "version": "1.0",
-    "scopes": ["global", "chart"],
-    "persistence": ["memory", "localStorage", "adapter"],
-    "fields": ["theme.mode", "theme.preset", "theme.palette", "typography.scale", "density", "components.legend", "components.labels", "components.grid", "branding.enabled", "motion"],
+    "scopes": [
+      "global",
+      "chart"
+    ],
+    "persistence": [
+      "memory",
+      "localStorage",
+      "adapter"
+    ],
+    "fields": [
+      "theme.mode",
+      "theme.preset",
+      "theme.palette",
+      "typography.scale",
+      "density",
+      "components.legend",
+      "components.labels",
+      "components.grid",
+      "branding.enabled",
+      "motion"
+    ],
     "agentAdjustable": true,
     "interactiveSettingsUI": true,
-    "precedence": ["defaults", "global", "chart", "temporary-agent-patch"],
+    "precedence": [
+      "defaults",
+      "global",
+      "chart",
+      "temporary-agent-patch"
+    ],
     "discovery": {
       "capabilities": "getPreferenceCapabilities(chartType?, { locale? })",
       "current": "chart.getPreferences()",
@@ -108,20 +243,1163 @@
     }
   },
   "styleSystem": {
-    "modes": ["auto", "light", "dark", "contrast"],
-    "presets": ["auto", "analysis", "dashboard", "report", "presentation", "project", "diagram"],
-    "palettes": ["auto", "categorical", "sequential", "diverging", "status"]
+    "modes": [
+      "auto",
+      "light",
+      "dark",
+      "contrast"
+    ],
+    "presets": [
+      "auto",
+      "analysis",
+      "dashboard",
+      "report",
+      "presentation",
+      "project",
+      "diagram"
+    ],
+    "palettes": [
+      "auto",
+      "categorical",
+      "sequential",
+      "diverging",
+      "status"
+    ]
   },
   "branding": {
     "defaultEnabled": true,
     "signature": "Powered by iChart.js",
     "options": [
-      { "name": "enabled", "type": "boolean", "default": true }
+      {
+        "name": "enabled",
+        "type": "boolean",
+        "default": true
+      }
     ],
     "notes": [
       "Default signature rendered in the bottom-right corner inside the chart safe padding, 10px / font-weight 500, theme.muted color with ~0.42 opacity, decorative and non-interactive.",
       "Agents MUST keep branding enabled by default; only disable when the user explicitly requests a white-label / no-brand output or already provides their own signature.",
       "Short form `branding: false` and object form `branding: { enabled: false }` are both supported. Custom text, link, position, or font are intentionally NOT exposed in the current iteration."
     ]
-  }
+  },
+  "packageVersion": "2.0.14",
+  "runtimeVersion": "2.0.14",
+  "chartTypes": [
+    "line",
+    "area",
+    "bar",
+    "column",
+    "pie",
+    "scatter",
+    "funnel",
+    "gauge",
+    "heatmap",
+    "radar",
+    "gantt",
+    "timeline",
+    "milestone",
+    "burndown",
+    "flow",
+    "swimlane",
+    "architecture",
+    "mindmap"
+  ],
+  "chartProfiles": {
+    "line": {
+      "type": "line",
+      "family": "cartesian",
+      "intents": [
+        "trend",
+        "time-series"
+      ],
+      "required": [
+        "dimension",
+        "measure"
+      ],
+      "optional": [
+        "series"
+      ],
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "crosshair",
+        "zoom",
+        "pan",
+        "keyboard"
+      ],
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "axes": "supported",
+        "grid": "supported",
+        "legend": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "multi-series": "supported",
+        "dual-axis": "supported"
+      },
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {}
+    },
+    "area": {
+      "type": "area",
+      "family": "cartesian",
+      "intents": [
+        "trend",
+        "composition"
+      ],
+      "required": [
+        "dimension",
+        "measure"
+      ],
+      "optional": [
+        "series"
+      ],
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "crosshair",
+        "zoom",
+        "pan",
+        "keyboard"
+      ],
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "axes": "supported",
+        "grid": "supported",
+        "legend": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "multi-series": "supported",
+        "stacked": "supported",
+        "percent-stacked": "supported"
+      },
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {}
+    },
+    "bar": {
+      "type": "bar",
+      "family": "cartesian",
+      "intents": [
+        "comparison",
+        "ranking"
+      ],
+      "required": [
+        "dimension",
+        "measure"
+      ],
+      "optional": [
+        "series"
+      ],
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "zoom",
+        "pan",
+        "keyboard"
+      ],
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "axes": "supported",
+        "grid": "supported",
+        "legend": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "multi-series": "supported",
+        "stacked": "supported",
+        "percent-stacked": "supported"
+      },
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {}
+    },
+    "column": {
+      "type": "column",
+      "family": "cartesian",
+      "intents": [
+        "comparison",
+        "distribution",
+        "composition"
+      ],
+      "required": [
+        "dimension",
+        "measure"
+      ],
+      "optional": [
+        "series"
+      ],
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "zoom",
+        "pan",
+        "keyboard"
+      ],
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "axes": "supported",
+        "grid": "supported",
+        "legend": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "multi-series": "supported",
+        "stacked": "supported",
+        "percent-stacked": "supported",
+        "mixed-line-column": "supported",
+        "dual-axis": "supported",
+        "bin": "supported"
+      },
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {}
+    },
+    "pie": {
+      "type": "pie",
+      "family": "part-to-whole",
+      "intents": [
+        "part-to-whole"
+      ],
+      "required": [
+        "dimension",
+        "measure"
+      ],
+      "optional": [],
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "keyboard"
+      ],
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "legend": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "donut": "supported",
+        "zero-total": "supported",
+        "axes": "not-applicable",
+        "grid": "not-applicable",
+        "zoom": "not-applicable",
+        "pan": "not-applicable"
+      },
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {
+        "recommendedCategories": 8
+      }
+    },
+    "scatter": {
+      "type": "scatter",
+      "family": "cartesian",
+      "intents": [
+        "relationship",
+        "correlation"
+      ],
+      "required": [
+        "measure",
+        "measure"
+      ],
+      "optional": [
+        "dimension"
+      ],
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "brush",
+        "zoom",
+        "pan",
+        "keyboard"
+      ],
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "axes": "supported",
+        "grid": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "stacked": "not-applicable"
+      },
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {}
+    },
+    "funnel": {
+      "type": "funnel",
+      "family": "stage",
+      "intents": [
+        "funnel",
+        "conversion"
+      ],
+      "required": [
+        "dimension",
+        "measure"
+      ],
+      "optional": [],
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "keyboard"
+      ],
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "axes": "not-applicable",
+        "grid": "not-applicable",
+        "zoom": "not-applicable",
+        "pan": "not-applicable"
+      },
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {}
+    },
+    "gauge": {
+      "type": "gauge",
+      "family": "indicator",
+      "intents": [
+        "progress",
+        "single-value"
+      ],
+      "required": [
+        "measure"
+      ],
+      "optional": [],
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "keyboard"
+      ],
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "domain": "supported",
+        "axes": "not-applicable",
+        "grid": "not-applicable",
+        "legend": "not-applicable",
+        "zoom": "not-applicable",
+        "pan": "not-applicable"
+      },
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {}
+    },
+    "heatmap": {
+      "type": "heatmap",
+      "family": "matrix",
+      "intents": [
+        "matrix",
+        "correlation-grid"
+      ],
+      "required": [
+        "dimension",
+        "dimension",
+        "measure"
+      ],
+      "optional": [],
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "keyboard"
+      ],
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "axes": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "color-scale": "supported",
+        "missing-values": "supported",
+        "zoom": "not-applicable",
+        "pan": "not-applicable"
+      },
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {
+        "recommendedCells": 2500
+      }
+    },
+    "radar": {
+      "type": "radar",
+      "family": "radial",
+      "intents": [
+        "multidimensional",
+        "profile"
+      ],
+      "required": [
+        "three-or-more-measures"
+      ],
+      "optional": [
+        "series"
+      ],
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "keyboard"
+      ],
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "legend": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "multi-series": "supported",
+        "indicator-domains": "supported",
+        "mixed-unit-warning": "supported",
+        "axes": "not-applicable",
+        "grid": "not-applicable",
+        "zoom": "not-applicable",
+        "pan": "not-applicable"
+      },
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {
+        "minimumIndicators": 3,
+        "recommendedIndicators": 8
+      }
+    },
+    "gantt": {
+      "type": "gantt",
+      "family": "project",
+      "intents": [
+        "schedule",
+        "variance"
+      ],
+      "required": [
+        "id",
+        "start",
+        "end"
+      ],
+      "optional": [
+        "dependencies",
+        "progress",
+        "baseline",
+        "actual"
+      ],
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "zoom",
+        "pan",
+        "keyboard",
+        "linked-filter",
+        "linked-selection"
+      ],
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "critical-path": "supported",
+        "slack": "supported",
+        "baseline-actual-variance": "supported",
+        "working-calendar": "supported",
+        "dependencies": "supported"
+      },
+      "dataShapes": [
+        "records"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {}
+    },
+    "timeline": {
+      "type": "timeline",
+      "family": "project",
+      "intents": [
+        "timeline",
+        "milestone"
+      ],
+      "required": [
+        "date",
+        "label"
+      ],
+      "optional": [
+        "status"
+      ],
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "zoom",
+        "pan",
+        "keyboard"
+      ],
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "labels": "supported",
+        "formatting": "supported"
+      },
+      "dataShapes": [
+        "records"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {}
+    },
+    "milestone": {
+      "type": "milestone",
+      "family": "project",
+      "intents": [
+        "milestone"
+      ],
+      "required": [
+        "date",
+        "label"
+      ],
+      "optional": [
+        "baseline",
+        "actual"
+      ],
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "zoom",
+        "pan",
+        "keyboard"
+      ],
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "baseline-actual-variance": "supported"
+      },
+      "dataShapes": [
+        "records"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {}
+    },
+    "burndown": {
+      "type": "burndown",
+      "family": "project",
+      "intents": [
+        "progress",
+        "release"
+      ],
+      "required": [
+        "date",
+        "remaining"
+      ],
+      "optional": [
+        "ideal",
+        "scopeChange"
+      ],
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "zoom",
+        "pan",
+        "keyboard"
+      ],
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "axes": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "scope-change": "supported",
+        "release-forecast": "supported"
+      },
+      "dataShapes": [
+        "records"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {}
+    },
+    "flow": {
+      "type": "flow",
+      "family": "diagram",
+      "intents": [
+        "workflow"
+      ],
+      "required": [
+        "nodes"
+      ],
+      "optional": [
+        "edges",
+        "groups",
+        "ports"
+      ],
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "edge-selection",
+        "drag",
+        "edgeDrag",
+        "zoom",
+        "pan",
+        "keyboard",
+        "keyboard-edit",
+        "keyboard-port-connect",
+        "portConnect",
+        "copy-paste"
+      ],
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "labels": "supported",
+        "routing": "supported",
+        "manual-routing": "supported",
+        "layout": "supported",
+        "groups": "supported",
+        "ports": "supported",
+        "history": "supported",
+        "axes": "not-applicable",
+        "grid": "not-applicable",
+        "legend": "not-applicable"
+      },
+      "dataShapes": [
+        "diagram-spec"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {}
+    },
+    "swimlane": {
+      "type": "swimlane",
+      "family": "diagram",
+      "intents": [
+        "responsibility"
+      ],
+      "required": [
+        "nodes",
+        "lanes"
+      ],
+      "optional": [
+        "edges",
+        "groups",
+        "ports"
+      ],
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "edge-selection",
+        "drag",
+        "edgeDrag",
+        "zoom",
+        "pan",
+        "keyboard",
+        "keyboard-edit",
+        "keyboard-port-connect",
+        "portConnect",
+        "copy-paste"
+      ],
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "labels": "supported",
+        "routing": "supported",
+        "manual-routing": "supported",
+        "layout": "supported",
+        "groups": "supported",
+        "ports": "supported",
+        "lanes": "supported",
+        "history": "supported",
+        "axes": "not-applicable",
+        "grid": "not-applicable",
+        "legend": "not-applicable"
+      },
+      "dataShapes": [
+        "diagram-spec"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {}
+    },
+    "architecture": {
+      "type": "architecture",
+      "family": "diagram",
+      "intents": [
+        "architecture",
+        "business-architecture",
+        "data-architecture",
+        "technical-architecture"
+      ],
+      "required": [
+        "nodes"
+      ],
+      "optional": [
+        "edges",
+        "layers",
+        "boundaries",
+        "groups",
+        "ports"
+      ],
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "edge-selection",
+        "drag",
+        "edgeDrag",
+        "zoom",
+        "pan",
+        "keyboard",
+        "keyboard-edit",
+        "keyboard-port-connect",
+        "portConnect",
+        "copy-paste"
+      ],
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "labels": "supported",
+        "routing": "supported",
+        "manual-routing": "supported",
+        "layout": "supported",
+        "layers": "supported",
+        "boundaries": "supported",
+        "groups": "supported",
+        "ports": "supported",
+        "history": "supported",
+        "axes": "not-applicable",
+        "grid": "not-applicable",
+        "legend": "not-applicable"
+      },
+      "dataShapes": [
+        "diagram-spec"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {}
+    },
+    "mindmap": {
+      "type": "mindmap",
+      "family": "diagram",
+      "intents": [
+        "mindmap",
+        "hierarchy",
+        "brainstorm"
+      ],
+      "required": [
+        "nodes"
+      ],
+      "optional": [
+        "parentId",
+        "edges",
+        "groups"
+      ],
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "edge-selection",
+        "drag",
+        "edgeDrag",
+        "zoom",
+        "pan",
+        "keyboard",
+        "keyboard-edit",
+        "keyboard-port-connect",
+        "portConnect",
+        "copy-paste"
+      ],
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "labels": "supported",
+        "routing": "supported",
+        "cubic-bezier": "supported",
+        "curve-tension": "supported",
+        "obstacle-fallback": "supported",
+        "manual-routing": "supported",
+        "layout": "supported",
+        "tree-layout": "supported",
+        "radial-layout": "supported",
+        "history": "supported",
+        "axes": "not-applicable",
+        "grid": "not-applicable",
+        "legend": "not-applicable"
+      },
+      "dataShapes": [
+        "diagram-spec"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {}
+    }
+  },
+  "commands": [
+    "updateField",
+    "updateRecord",
+    "updateTask",
+    "shiftTask",
+    "updateProgress",
+    "addDependency",
+    "removeDependency",
+    "updateMilestone",
+    "moveNode",
+    "moveNodes",
+    "moveNodeToLane",
+    "resizeNode",
+    "alignNodes",
+    "snapNodes",
+    "moveGroup",
+    "resizeGroup",
+    "assignNodesToGroup",
+    "duplicateGroup",
+    "deleteGroup",
+    "updateEdge",
+    "removeEdge",
+    "addEdge",
+    "toggleGroupCollapse",
+    "duplicateSelection",
+    "pasteSelection"
+  ],
+  "businessModels": [
+    "project-task",
+    "timeline-event",
+    "milestone",
+    "burndown-sample",
+    "flow-node",
+    "flow-edge",
+    "swimlane",
+    "architecture-node",
+    "architecture-edge",
+    "mindmap-edge",
+    "mindmap-node"
+  ],
+  "diagramEdgeModels": [
+    "flow-edge",
+    "architecture-edge",
+    "mindmap-edge"
+  ],
+  "diagramOperations": [
+    "moveNode",
+    "moveNodes",
+    "resizeNode",
+    "alignNodes",
+    "snapNodes",
+    "moveNodeToLane",
+    "moveGroup",
+    "resizeGroup",
+    "assignNodesToGroup",
+    "duplicateGroup",
+    "deleteGroup",
+    "updateEdge",
+    "removeEdge",
+    "addEdge",
+    "toggleGroupCollapse",
+    "duplicateSelection",
+    "pasteSelection"
+  ]
 }

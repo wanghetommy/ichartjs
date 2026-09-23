@@ -54,9 +54,12 @@ Core APIs:
 - `swimlane`
 - `architecture-node`
 - `architecture-edge`
+- `mindmap-edge`
 - `mindmap-node`
 
 ## History and Revision
+
+Spec/data mutations use the same atomic boundary as edits. Catch `ChartValidationError` for invalid `update()`, `setData()`, `setTheme()`, or preference input; the failed call emits no committed change and does not advance the revision.
 
 Successful commits produce a ChangeSet, audit information, a revision, and an undo history entry. A preview based on an old revision must fail on commit with `STALE_PREVIEW`.
 

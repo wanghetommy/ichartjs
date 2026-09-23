@@ -86,6 +86,8 @@ iChart.js 导出采用**双底层单源架构**，所有产物共享 `buildScene
 - `DOWNLOAD_HEADLESS`：`chart.download*()` 仅在浏览器有 DOM 时可用，无头用 `export`。
 - `EXPORT_TYPE_UNSUPPORTED`：不支持的导出类型。
 
-公共 API：`inspectData`、`normalizeData`、`planChart`、`recommend`、`validateSpec`、`createChart`、`getCapabilities`、`getChartCapability`、`getPreferenceCapabilities`、`validatePreferences`、`chart.describe`、`chart.explain`、`chart.getState`、`chart.getPreferences`、`chart.setPreferences`、`chart.resetPreferences`、`chart.selectEdges`、`chart.getSelectedEdgeIds`、`chart.deleteSelectedEdges`、`chart.export`、`chart.exportAsync`、`chart.toDataURL`、`chart.toBlob`、`chart.download`、`chart.downloadPNG`、`chart.downloadSVG`、`chart.downloadJSON`。
+所有状态变更都经过同一校验边界。成功的 `update()` 和 `setData()` 返回当前 Chart；无效输入抛出 `ChartValidationError`，包含稳定的 `code`、`details`、`path`、`expected`、`received` 和 `suggestion`。拒绝变更后，原 Spec、Scene、选择状态、revision 和历史记录保持不变。`applyPatch()` 是高级 JSON Pointer 接口，也会在提交前校验。
+
+公共 API：`inspectData`、`normalizeData`、`planChart`、`recommend`、`validateSpec`、`createChart`、`getCapabilities`、`getChartCapability`、`getPreferenceCapabilities`、`validatePreferences`、`chart.describe`、`chart.explain`、`chart.getState`、`chart.getState().health`、`chart.explain().health`、`chart.getPreferences`、`chart.setPreferences`、`chart.resetPreferences`、`chart.selectEdges`、`chart.getSelectedEdgeIds`、`chart.deleteSelectedEdges`、`chart.export`、`chart.exportAsync`、`chart.toDataURL`、`chart.toBlob`、`chart.download`、`chart.downloadPNG`、`chart.downloadSVG`、`chart.downloadJSON`。
 
 实现位置：`src/index.mjs`、`src/spec.mjs`、`src/scene.mjs`、`src/renderer.mjs`、`src/plugin.mjs`、`src/scale.mjs`、`src/charts.mjs`、`src/capabilities.mjs`。

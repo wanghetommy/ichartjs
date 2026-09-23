@@ -94,6 +94,19 @@ test('keeps legend, y-axis title, and project labels collision-free in Chrome', 
     chart.destroy();
 
     chart = mount({
+      type: 'bar',
+      data: [{ name: 'A', value: 10 }, { name: 'B', value: 20 }],
+      encoding: { x: { field: 'name' }, y: { field: 'value' } },
+      yAxis: { title: '出生人口（万人）' }
+    });
+    const barTitle = document.querySelector('#axis-y-title');
+    const barTitleBounds = box(barTitle);
+    const barTitleText = barTitle.textContent;
+    const barTitleRotation = barTitle.getAttribute('transform');
+    const barTitleWithinChart = barTitleBounds.x >= 0 && barTitleBounds.y >= 0 && barTitleBounds.x + barTitleBounds.width <= 760 && barTitleBounds.y + barTitleBounds.height <= 440;
+    chart.destroy();
+
+    chart = mount({
       type: 'timeline',
       data: [
         { id: 'e1', date: '2026-09-01', title: '项目启动' },
@@ -104,8 +117,8 @@ test('keeps legend, y-axis title, and project labels collision-free in Chrome', 
     const projectLabels = [...document.querySelectorAll('[id^="project-label-"]')].map(box);
     const projectOverflow = projectLabels.some(bounds => bounds.x < 0 || bounds.x + bounds.width > 760);
     chart.destroy();
-    return { legendOverlap, legendOverflow, axisOverlap, projectOverflow };
+    return { legendOverlap, legendOverflow, axisOverlap, projectOverflow, barTitleText, barTitleRotation, barTitleWithinChart };
   });
 
-  assert.deepEqual(result, { legendOverlap: false, legendOverflow: false, axisOverlap: false, projectOverflow: false });
+  assert.deepEqual(result, { legendOverlap: false, legendOverflow: false, axisOverlap: false, projectOverflow: false, barTitleText: '出生人口（万人）', barTitleRotation: 'rotate(-90 14 220)', barTitleWithinChart: true });
 });
