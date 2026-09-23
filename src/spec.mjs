@@ -60,6 +60,40 @@ function dependencyErrors(rows) {
   return errors;
 }
 
+function isIsoDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/.test(value)) return false;
+  return !Number.isNaN(Date.parse(value));
+}
+
+function projectRowErrors(type, rows) {
+  const errors = [], ids = new Map(), requiresId = ['gantt', 'timeline', 'milestone'].includes(type);
+  rows.forEach((row, index) => {
+    const path = `data.values[${index}]`;
+    if (!row || typeof row !== 'object' || Array.isArray(row)) {
+      errors.push({ code: 'INVALID_PROJECT_ROW', path, message: `${type} rows must be objects.`, suggestion: 'Provide one JSON object per project record.' });
+      return;
+    }
+    if (requiresId && (typeof row.id !== 'string' || !row.id.trim())) errors.push({ code: 'MISSING_RECORD_ID', path: `${path}.id`, message: `${type} rows require a stable string id.`, suggestion: 'Add a unique id to every project record so edits and lineage remain stable.' });
+    if (typeof row.id === 'string' && row.id.trim()) {
+      if (ids.has(row.id)) errors.push({ code: 'DUPLICATE_RECORD_ID', path: `${path}.id`, message: `Record id ${row.id} is duplicated.`, suggestion: 'Use a unique stable id for every project record.' });
+      ids.set(row.id, index);
+    }
+    if (type === 'gantt') {
+      for (const key of ['start', 'end']) {
+        if (!isIsoDate(row[key])) errors.push({ code: 'MISSING_REQUIRED_DATE', path: `${path}.${key}`, message: `Gantt rows require a valid ISO ${key} date.`, suggestion: `Use ${key}: "2026-09-14" or an explicit ISO timestamp.` });
+      }
+      if (isIsoDate(row.start) && isIsoDate(row.end) && Date.parse(row.end) < Date.parse(row.start)) errors.push({ code: 'INVALID_INTERVAL', path, message: 'Gantt end must not precede start.', suggestion: 'Set end to the same day or a later ISO date.' });
+    } else if (['timeline', 'milestone'].includes(type)) {
+      if (!isIsoDate(row.date)) errors.push({ code: 'MISSING_REQUIRED_DATE', path: `${path}.date`, message: `${type} rows require a valid ISO date.`, suggestion: 'Use date: "2026-09-14" or an explicit ISO timestamp.' });
+      if (typeof (row.title ?? row.name ?? row.label) !== 'string' || !(row.title ?? row.name ?? row.label).trim()) errors.push({ code: 'MISSING_RECORD_LABEL', path: `${path}.title`, message: `${type} rows require a title, name, or label.`, suggestion: 'Add a human-readable title for the project record.' });
+    } else if (type === 'burndown') {
+      if (!isIsoDate(row.date)) errors.push({ code: 'MISSING_REQUIRED_DATE', path: `${path}.date`, message: 'burndown rows require a valid ISO date.', suggestion: 'Use date: "2026-09-14" or an explicit ISO timestamp.' });
+      if (!Number.isFinite(Number(row.remaining)) || Number(row.remaining) < 0) errors.push({ code: 'INVALID_REMAINING', path: `${path}.remaining`, message: 'Burndown remaining must be a non-negative finite number.', suggestion: 'Provide remaining: 0 or a positive numeric value.' });
+    }
+  });
+  return errors;
+}
+
 const encodingChannels = {
   line: ['x', 'y'], area: ['x', 'y'], bar: ['x', 'y'], column: ['x', 'y'], scatter: ['x', 'y'],
   pie: ['category', 'value'], funnel: ['category', 'value'], gauge: ['value'], heatmap: ['x', 'y', 'color'], radar: [],
@@ -188,10 +222,18 @@ export function validateSpec(input = {}) {
     const diagramValidation = validateDiagram(diagramInput);
     diagramValidation.errors.forEach(error => errors.push({ ...error, path: error.path || 'diagram' }));
   }
-  if (['gantt', 'timeline', 'milestone'].includes(spec.type)) {
+  if (['gantt', 'timeline', 'milestone', 'burndown'].includes(spec.type)) {
     const rows = spec.data.values, dateKey = spec.type === 'gantt' ? 'start/end' : 'date';
-    if (!rows.some(row => row.start || row.end || row.date)) errors.push({ code: 'INVALID_INTERVALS', path: 'data.values', message: `${spec.type} rows require ${dateKey} dates.`, suggestion: 'Add ISO date values to each row.' });
-    rows.forEach((row, index) => { const values = spec.type === 'gantt' ? [row.start, row.end] : [row.date]; if (values.some(value => value != null && Number.isNaN(Date.parse(value)))) errors.push({ code: 'INVALID_DATE', path: `data.values[${index}]`, message: `${spec.type} contains an invalid date.`, suggestion: 'Use an ISO-8601 date such as 2026-09-14.' }); });
+    if (!rows.some(row => row && (row.start || row.end || row.date))) errors.push({ code: 'INVALID_INTERVALS', path: 'data.values', message: `${spec.type} rows require ${dateKey} dates.`, suggestion: 'Add ISO date values to each row.' });
+    errors.push(...projectRowErrors(spec.type, rows));
+    if (spec.type === 'burndown') {
+      const seenDates = new Set(), validDates = rows.map(row => row?.date).filter(isIsoDate);
+      validDates.forEach((date, index) => {
+        if (seenDates.has(date)) warnings.push({ code: 'DUPLICATE_DATE', severity: 'warning', path: 'data.values', message: `Burndown contains duplicate date ${date}; input order is preserved.`, suggestion: 'Aggregate duplicate dates before rendering for one sample per day.' });
+        seenDates.add(date);
+        if (index && Date.parse(date) < Date.parse(validDates[index - 1])) warnings.push({ code: 'OUT_OF_ORDER_DATE', severity: 'warning', path: 'data.values', message: 'Burndown dates are not sorted; input order is preserved.', suggestion: 'Sort samples by date before creating the chart.' });
+      });
+    }
   }
   if (spec.type === 'gantt') errors.push(...dependencyErrors(spec.data.values));
   const rows = Array.isArray(spec.data?.values) ? spec.data.values : [];

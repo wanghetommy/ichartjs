@@ -25,5 +25,7 @@ const result = chart.applyEdit(command, { preview, confirmed: true, source: 'age
 - 外部持久化、权限和认证由 Host 应用负责。
 - 指针导航和编辑默认关闭。`editing.enabled` 授权编辑事务；`interaction.drag`、`interaction.edgeDrag`、`interaction.portConnect` 分别控制直接操作 UI。
 - Diagram 边通过 JSON-safe 的 `waypoints` 持久化；路径更新使用 `updateEdge`，删除使用 `removeEdge`，并要求结构编辑权限。
+- Mindmap 边使用独立的 `mindmap-edge` 契约，但与 Flow、Architecture 共享相同的边编辑语义。
+- `update()`、`setData()`、`setTheme()` 和偏好设置输入失败时抛出结构化 `ChartValidationError`，失败不会推进 revision 或破坏历史。
 
 Schema、命令、Preview/Commit、事务和历史的实现分别位于 `src/schema.mjs`、`src/command.mjs`、`src/edit.mjs`、`src/edit-controller.mjs` 和 `src/history.mjs`。

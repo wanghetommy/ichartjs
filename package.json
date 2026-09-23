@@ -1,6 +1,6 @@
 {
   "name": "@taylorwong/ichartjs",
-  "version": "2.0.13",
+  "version": "2.0.14",
   "description": "Agent-first, renderer-independent charting and project visualization runtime",
   "type": "module",
   "main": "./src/index.mjs",
@@ -37,14 +37,20 @@
     "test": "node --test tests/*.test.mjs",
     "test:browser": "node --test tests/browser/*.test.mjs",
     "check": "for file in src/*.mjs; do node --check \"$file\" || exit 1; done",
+    "contracts:generate": "node scripts/generate-contract-manifests.mjs",
+    "contracts:check": "node scripts/check-contracts.mjs",
+    "types:check": "node scripts/check-types.mjs",
+    "deps:check": "node scripts/check-cycles.mjs",
+    "docs:examples": "node examples/agent-workflow.mjs",
     "docs:check": "node scripts/check-agent-docs.mjs",
     "example:agent": "node examples/agent-workflow.mjs",
     "playground": "node scripts/serve-playground.mjs",
-    "agent:check": "npm run docs:check && npm run check && npm test",
+    "agent:check": "npm run contracts:check && npm run types:check && npm run deps:check && npm run docs:check && npm run docs:examples && npm run check && npm test",
     "rc:check": "npm test && npm run check && git diff --check"
   },
   "devDependencies": {
-    "playwright-core": "^1.63.0"
+    "playwright-core": "^1.63.0",
+    "typescript": "^5.9.3"
   },
   "repository": {
     "type": "git",
@@ -52,8 +58,18 @@
   },
   "homepage": "https://github.com/wanghetommy/ichartjs#readme",
   "bugs": "https://github.com/wanghetommy/ichartjs/issues",
-  "keywords": ["chart", "visualization", "agent", "svg", "canvas", "gantt", "diagram"],
-  "engines": { "node": ">=18" },
+  "keywords": [
+    "chart",
+    "visualization",
+    "agent",
+    "svg",
+    "canvas",
+    "gantt",
+    "diagram"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "author": "taylorwong <wanghetommy@gmail.com>",
   "license": "Apache-2.0"
 }

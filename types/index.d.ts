@@ -21,10 +21,11 @@ export interface PreferencesStorage { getItem(key: string): string | null; setIt
 export interface StyleRecommendation { version: '1.0'; preset: Exclude<ThemePreset, 'auto'>; mode: ThemeMode; resolvedMode: Exclude<ThemeMode, 'auto'>; palette: Exclude<ThemePalette, 'auto'>; reasons: string[]; warnings: Diagnostic[]; userOverride: boolean; }
 export interface ResolvedTheme extends ThemeConfig { name: string; resolvedMode: Exclude<ThemeMode, 'auto'>; background: string; surface: string; text: string; muted: string; axis: string; grid: string; border: string; focus: string; selection: string; colors: string[]; palettes: Record<string, unknown>; status: Record<string, string>; typography: Record<string, { size: number; weight: number; lineHeight: number; font: string }>; layout: Record<string, unknown>; marks: Record<string, unknown>; reasons: string[]; warnings: Diagnostic[]; }
 export interface Diagnostic { code: string; path?: string; message: string; expected?: unknown; suggestion?: string; [key: string]: unknown; }
+export class ChartValidationError extends Error { name: 'ChartValidationError'; code: 'CHART_VALIDATION_FAILED'; operation: string; details: Diagnostic[]; errors: Diagnostic[]; path?: string; expected?: unknown; received?: unknown; suggestion?: string; toJSON(): Record<string, unknown>; }
 export interface DataFieldInfo { name: string; type: 'quantitative' | 'temporal' | 'category' | 'unknown'; role: 'identifier' | 'measure' | 'temporal-dimension' | 'dimension'; unit: string | null; cardinality: number; validCount: number; nullCount: number; min?: number; max?: number; temporalMin?: string; temporalMax?: string; }
 export interface DataInspection { version: '1.0'; rows: number; fields: DataFieldInfo[]; dimensions: string[]; measures: string[]; temporalFields: string[]; missingValueCount: number; warnings: Diagnostic[]; }
 export interface ChartCapability { type: ChartType; family: string; intents: string[]; required: string[]; optional: string[]; dataShapes: string[]; interactions: string[]; features: Record<string, 'supported' | 'not-applicable' | 'degraded'>; renderers: Array<'canvas' | 'svg'>; exports: string[]; limits: Record<string, number>; }
-export interface RuntimeCapabilities { version: '2.0'; contractVersion: '1.0'; chartTypes: ChartType[]; charts: Record<ChartType, ChartCapability>; intents: string[]; locale?: { default: string; recommended: string[]; appliesTo: string[]; inputDates: string }; renderers: Array<'canvas' | 'svg'>; interactions: string[]; exports: Array<'png' | 'svg' | 'json' | 'jpeg'>; styleSystem: { modes: ThemeMode[]; presets: ThemePreset[]; palettes: ThemePalette[]; switchable: boolean; automatic: boolean; [key: string]: unknown }; preferences?: { version: '1.0'; scopes: string[]; persistence: string[]; fields: string[]; agentAdjustable: boolean; interactiveSettingsUI: boolean; precedence: string[]; schema: PreferenceCapabilities }; headless: { preview?: boolean; json: boolean; svg: boolean; png: boolean | string }; export: { types: string[]; mime: Record<string, string>; browser: Record<string, boolean>; headless: Record<string, string | boolean>; methods: string[]; options: Record<string, unknown>; branding: Record<string, unknown> }; branding: { defaultEnabled: boolean; signature: string; options: Record<string, unknown> }; [key: string]: unknown; }
+export interface RuntimeCapabilities { version: '2.0'; contractVersion: '1.1'; chartTypes: ChartType[]; charts: Record<ChartType, ChartCapability>; intents: string[]; locale?: { default: string; recommended: string[]; appliesTo: string[]; inputDates: string }; renderers: Array<'canvas' | 'svg'>; interactions: string[]; exports: Array<'png' | 'svg' | 'json' | 'jpeg'>; styleSystem: { modes: ThemeMode[]; presets: ThemePreset[]; palettes: ThemePalette[]; switchable: boolean; automatic: boolean; [key: string]: unknown }; preferences?: { version: '1.0'; scopes: string[]; persistence: string[]; fields: string[]; agentAdjustable: boolean; interactiveSettingsUI: boolean; precedence: string[]; schema: PreferenceCapabilities }; headless: { preview?: boolean; json: boolean; svg: boolean; png: boolean | string }; export: { types: string[]; mime: Record<string, string>; browser: Record<string, boolean>; headless: Record<string, string | boolean>; methods: string[]; options: Record<string, unknown>; branding: Record<string, unknown> }; branding: { defaultEnabled: boolean; signature: string; options: Record<string, unknown> }; [key: string]: unknown; }
 export interface ChartPlan { version: '1.0'; intent: string; intentKnown?: boolean; intentSuggestions?: string[]; fallbackUsed?: boolean; primary: ChartType; alternatives: ChartType[]; confidence: number; reasons: string[]; requiredFields: string[]; suggestedEncodings: { dimension: string | null; measure: string | null; secondaryMeasure: string | null }; assumptions: string[]; warnings: Diagnostic[]; unsupportedRequests: string[]; nextActions: string[]; capability: ChartCapability; styleRecommendation: StyleRecommendation; data: DataInspection; }
 export interface AxisState { rawDomain: [number, number]; domain: [number, number]; ticks: number[]; step: number | null; policy: 'nice' | 'raw' | 'explicit'; }
 export interface ChartHealth { version: '1.0'; status: 'ready' | 'degraded' | 'empty'; renderable: boolean; issues: string[]; metrics: { warnings: number; suppressedLabels: number; clampedValues: number; renderedMarks: number }; }
@@ -40,6 +41,12 @@ export interface ArchitectureNode extends DiagramNode { layerId?: string; bounda
 export interface MindmapNode extends DiagramNode { parentId?: string; branch?: string; description?: string; }
 export interface DiagramPoint { x: number; y: number; }
 export interface DiagramEdge { id?: string; from: string; to: string; fromPort?: string; toPort?: string; label?: string; relation?: string; routing?: 'straight' | 'orthogonal' | 'curved'; curveTension?: number; waypoints?: DiagramPoint[]; }
+export interface DiagramElement { id?: string; type?: string; dataRef?: Record<string, unknown>; geometry?: Record<string, unknown>; [key: string]: unknown; }
+export interface ChartEvent { chart: Chart; type?: string; target?: DiagramElement | null; datum?: Record<string, unknown>; selectedData?: Array<Record<string, unknown>>; [key: string]: unknown; }
+export type ChartListener = (event: ChartEvent) => void;
+export interface ChartPlugin { name?: string; install?(chart: Chart): void; beforeRender?(chart: Chart, model: Record<string, unknown>): void; afterRender?(chart: Chart, model: Record<string, unknown>): void; destroy?(chart: Chart): void; }
+export interface ClipboardState { nodes: DiagramNode[]; edges: DiagramEdge[]; }
+export interface ChartState { renderer: string; width: number; height: number; dataCount: number; selected: unknown[]; revision: number; history: { undo: number; redo: number }; view: Record<string, unknown> | null; health: ChartHealth; warnings: Diagnostic[]; preferences: ChartPreferences; clipboard: { nodes: number; edges: number }; [key: string]: unknown; }
 export interface DiagramConfig { mode?: 'process' | 'architecture' | 'mindmap'; layout?: 'manual' | 'layered' | 'tree' | 'radial'; routing?: 'straight' | 'orthogonal' | 'curved'; curveTension?: number; grid?: number; snap?: boolean; }
 export interface ArchitectureLayer { id: string; label?: string; }
 export interface ArchitectureBoundary { id: string; label?: string; nodeIds?: string[]; padding?: number; color?: string; }
@@ -87,13 +94,35 @@ export interface Chart {
   downloadSVG(): ReturnType<Chart['download']>;
   downloadJSON(): ReturnType<Chart['download']>;
   destroy(): void;
-  inspectDataSchema(): ReturnType<typeof inspectDataSchema>;
   validateData(): Record<string, unknown>;
   validateEdit(command: EditCommand): Record<string, unknown>;
   previewEdit(command: EditCommand): EditPreview;
   applyEdit(command: EditCommand, options?: { preview?: EditPreview; confirmed?: boolean; approval?: unknown; previewId?: string; expectedRevision?: number; actor?: string; source?: string; reason?: string }): Record<string, unknown>;
   getChangeSet(): Record<string, unknown> | null;
-  getState(): Record<string, unknown> & { axes?: { y?: AxisState; right?: AxisState } | null; health?: ChartHealth; warnings?: Diagnostic[] };
+  getState(): ChartState;
+  on(type: string, listener: ChartListener): this;
+  off(type: string, listener: ChartListener): this;
+  getAccessibleDescription(): string;
+  inspectDataSchema(): Record<string, unknown>;
+  toDataTable(): Array<Record<string, unknown>>;
+  getSelectedData(): Array<Record<string, unknown>>;
+  getElementAt(x: number, y: number): DiagramElement | null;
+  select(target: DiagramElement, options?: { additive?: boolean }): this;
+  selectBox(start: DiagramPoint, end: DiagramPoint): this;
+  getDiagramNodes(): DiagramNode[];
+  getDiagramEdges(): DiagramEdge[];
+  getDiagramGroups(): Array<Record<string, unknown>>;
+  getCollapsedGroupIds(): string[];
+  getClipboard(): ClipboardState;
+  copySelection(): { valid: boolean; clipboard?: ClipboardState; errors?: Diagnostic[] };
+  duplicateSelection(options?: Record<string, unknown>): Record<string, unknown>;
+  pasteSelection(options?: Record<string, unknown>): Record<string, unknown>;
+  connectNodes(connection: DiagramEdge, options?: Record<string, unknown>): Record<string, unknown>;
+  toggleGroupCollapse(groupId: string, options?: Record<string, unknown>): Record<string, unknown>;
+  highlight(target: DiagramElement): this;
+  use(plugin: ChartPlugin): this;
+  /** Advanced JSON-pointer mutation. Prefer update() so the full public contract is explicit. */
+  applyPatch(patches: Array<{ op: 'add' | 'replace' | 'remove'; path: string; value?: unknown }>): this;
   getProjectAnalytics(): ProjectAnalyticsState | null;
   getLinkedState(): LinkedState | null;
   setLinkedFilters(filters: LinkedFilters): this;
@@ -117,6 +146,7 @@ export interface Chart {
 }
 
 export function createChart(spec: ChartSpec): Chart;
+export const iChart: Record<string, unknown> & { version: string; ChartValidationError: typeof ChartValidationError; createChart: typeof createChart };
 export const defaultPreferences: ChartPreferences;
 export function getPreferenceCapabilities(chartType?: ChartType | string | null, options?: { locale?: 'en' | 'zh-CN' | string }): PreferenceCapabilities;
 export function createPreferencesStore(options?: { storage?: 'localStorage' | 'memory' | PreferencesStorage; storageKey?: string; global?: ChartPreferencesPatch; charts?: Record<string, ChartPreferencesPatch> }): PreferencesStore;

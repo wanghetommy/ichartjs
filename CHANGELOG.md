@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.14 - 2026-09-23
+
+- Added a canonical contract registry with synchronized runtime capabilities, offline chart profiles, export declarations, command metadata, business models, and Mindmap edge metadata.
+- Added atomic Spec/data/style mutation validation with structured `ChartValidationError` diagnostics, row-complete project validation, deterministic Burndown date warnings, and idempotent chart destruction.
+- Added complete public Chart declarations, a strict TypeScript consumer fixture, module-cycle checks, executable Agent workflow checks, focused Iteration 13 regression tests, and package dry-run verification.
+- Fixed horizontal Bar y-axis titles so they use the shared vertical, centered layout with reserved left-side space instead of a narrow top-left truncation path.
+
 ## 2.0.13 - 2026-09-22
 
 - Made legend, axis, and project-label layout Unicode-aware, added collision-safe y-axis titles, and restored right-axis title rendering.

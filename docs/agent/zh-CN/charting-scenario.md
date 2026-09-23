@@ -42,7 +42,7 @@
 
 不要把 `title`、`format`、`labels` 或 `legend` 放在 `encoding` 中；`validateSpec()` 会报告结构化警告。数值纵轴默认使用易读域（`nice: true`、`ticks: "auto"`）；需要固定范围时使用 `yAxis.domain: [min, max]`，需要保留原始边界时使用 `yAxis.nice: false`。分类/时间横轴的 `min/max` 和 `domain` 不支持。
 
-布局保持确定性且不依赖 Renderer。图例使用 Unicode-aware 文本宽度估算来计算间距，并在单行空间不足时自动换行；单个标签仍无法放入可用宽度时会省略并报告 `LEGEND_OVERFLOW`。左右数值 Y 轴标题在刻度列外侧居中显示，Bar 的分类 Y 轴标题则保持水平并位于分类标签列上方。坐标轴和项目标签空间会在确定绘图区之前完成预留，因此 Canvas、SVG、Headless 和导出共享相同几何。
+布局保持确定性且不依赖 Renderer。图例使用 Unicode-aware 文本宽度估算来计算间距，并在单行空间不足时自动换行；单个标签仍无法放入可用宽度时会省略并报告 `LEGEND_OVERFLOW`。Y 轴标题都在刻度列外侧居中显示；Bar 的分类 Y 轴标题也会在左侧垂直居中，并在确定绘图区之前预留空间。如果图表高度确实不足以容纳标题，渲染器才会截断，并报告 `TITLE_TRUNCATED`。坐标轴和项目标签空间会在确定绘图区之前完成预留，因此 Canvas、SVG、Headless 和导出共享相同几何。
 
 ## Encoding 契约
 

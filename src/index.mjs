@@ -22,6 +22,9 @@ import { normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, cr
 import { explainChart, getCapabilities as discoverCapabilities, getChartCapability, getPreferenceCapabilities, planChart } from './capabilities.mjs';
 import { applyPreferencesToSpec, createPreferencesStore, defaultPreferences, mergePreferences, mergeThemePreference, normalizePreferences, validatePreferences } from './preferences.mjs';
 import { mountChartSettings } from './preferences-ui.mjs';
+import { ChartValidationError } from './errors.mjs';
+import { diagramOperations } from './contract-registry.mjs';
+import { destroyChart } from './chart-lifecycle.mjs';
 
 import { isDiagram, paintSelection, diagramPointer, diagramKeyboard } from './diagram-interaction.mjs';
 
@@ -189,7 +192,7 @@ export class Chart {
     delete specInput.preferencesStore;
     delete specInput.chartId;
     const result = validateSpec(specInput);
-    if (!result.valid) { const error = new Error(result.errors.map(item => item.message).join(' ')); error.details = result.errors; throw error; }
+    if (!result.valid) throw new ChartValidationError('create', result.errors);
     this._specDiagnostics = { warnings: result.warnings, normalizations: result.normalizations };
     this.chartId = input.chartId ?? input.id ?? null;
     this._preferencesStore = isPreferencesStore(input.preferencesStore) ? input.preferencesStore : isPreferencesStore(input.preferences) ? input.preferences : null;
@@ -209,6 +212,7 @@ export class Chart {
     this._history = new EditHistory();
     this._revision = 0;
     this._lastChangeSet = null;
+    this._destroyed = false;
     this._editor = new EditController(this);
     this.plugins = new PluginHost(this, this.spec.plugins);
     this._mountRenderer();
@@ -332,16 +336,114 @@ export class Chart {
   _updateCrosshair(x, y) { const vertical = this.model.scene.find('crosshair-x'), horizontal = this.model.scene.find('crosshair-y'); if (!vertical || !horizontal) return; vertical.geometry.x1 = vertical.geometry.x2 = x; vertical.style.opacity = 0.7; horizontal.geometry.y1 = horizontal.geometry.y2 = y; horizontal.style.opacity = 0.7; this.renderer.render(this.model.scene); }
   _showTooltip(payload) { if (typeof document === 'undefined' || !this.container || !payload.datum) return; let tip = this._tooltip; if (!tip) { tip = this._tooltip = document.createElement('div'); tip.className = 'ichart-v2-tooltip'; Object.assign(tip.style, { position: 'fixed', pointerEvents: 'none', zIndex: 9999, padding: '8px 10px', borderRadius: '6px', maxWidth: 'min(320px, calc(100vw - 24px))', whiteSpace: 'pre-line' }); document.body.appendChild(tip); } Object.assign(tip.style, { background: this.spec.theme.surface, color: this.spec.theme.text, border: `1px solid ${this.spec.theme.border}`, font: this.spec.theme.typography.tooltip.font, boxShadow: `0 4px 12px ${this.spec.theme.border}88` }); const text = ['gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane', 'architecture', 'mindmap'].includes(this.spec.type) ? projectTooltip(this.spec.type, payload.datum) : Object.entries(payload.datum).map(([key, value]) => `${key}: ${value}`).join(' · '); tip.textContent = text; const left = Math.min((payload.nativeEvent.clientX || 0) + 12, window.innerWidth - tip.offsetWidth - 12); const top = Math.min((payload.nativeEvent.clientY || 0) + 12, window.innerHeight - tip.offsetHeight - 12); tip.style.left = `${Math.max(12, left)}px`; tip.style.top = `${Math.max(12, top)}px`; }
   _hideTooltip() { if (this._tooltip) this._tooltip.style.left = '-10000px'; }
+  _validateMutation(operation, input) {
+    const result = validateSpec(input);
+    if (!result.valid) throw new ChartValidationError(operation, result.errors);
+    return result;
+  }
+  _snapshotMutation() {
+    return {
+      spec: this.spec,
+      model: this.model,
+      themeInput: clone(this._themeInput),
+      styleOverrides: clone(this._styleOverrides),
+      preferenceBase: clone(this._preferenceBase),
+      localPreferences: clone(this._localPreferences),
+      preferencesSnapshot: this._preferencesSnapshot,
+      specDiagnostics: clone(this._specDiagnostics)
+    };
+  }
+  _restoreMutation(snapshot) {
+    this.spec = snapshot.spec;
+    this.model = snapshot.model;
+    this._themeInput = snapshot.themeInput;
+    this._styleOverrides = snapshot.styleOverrides;
+    this._preferenceBase = snapshot.preferenceBase;
+    this._localPreferences = snapshot.localPreferences;
+    this._preferencesSnapshot = snapshot.preferencesSnapshot;
+    this._specDiagnostics = snapshot.specDiagnostics;
+    if (this.renderer) this.renderer.options = this.spec;
+    try { if (this.renderer?.container && this.model?.scene) this.renderer.render(this.model.scene); } catch {}
+  }
+  _commitMutation() {
+    const previousRevision = this._revision;
+    this._revision += 1;
+    try {
+      this.render();
+      this._history.clear();
+      this._lastChangeSet = null;
+      this._editor.pending.clear();
+      return this;
+    } catch (error) {
+      this._revision = previousRevision;
+      throw error;
+    }
+  }
   on(type, listener) { if (!this.listeners.has(type)) this.listeners.set(type, new Set()); this.listeners.get(type).add(listener); return this; }
   off(type, listener) { this.listeners.get(type)?.delete(listener); return this; }
   emit(type, event) { this.listeners.get(type)?.forEach(listener => listener(event)); }
-  update(next = {}) { this._editor.invalidate(); const { preferences, preferencesStore, chartId, ...specUpdate } = next || {}; if (preferences !== undefined) this.setPreferences(preferences); if (specUpdate.theme !== undefined) this._themeInput = specUpdate.theme; ['colors', 'background', 'padding', 'legend', 'labels', 'grid', 'branding'].forEach(key => { if (specUpdate[key] !== undefined) this._styleOverrides[key] = true; }); this.spec = normalizeSpec({ ...this.spec, ...specUpdate, theme: this._themeInput, data: specUpdate.data === undefined ? this.spec.data : specUpdate.data }); ['legend', 'labels', 'grid', 'branding', 'padding'].forEach(key => { if (specUpdate[key] !== undefined) this._preferenceBase[key] = clone(this.spec[key]); }); this._resolveStyle(); return this.render(); }
-  setData(data) { this._editor.invalidate(); this.spec = normalizeSpec({ ...this.spec, theme: this._themeInput, data: { values: data } }); this._resolveStyle(); return this.render(); }
-  setTheme(theme = 'auto') { this._themeInput = theme; this._resolveStyle(); this.render(); this.emit('themechange', { chart: this, theme: this.getTheme(), source: 'user' }); return this; }
+  update(next = {}) {
+    const { preferences, preferencesStore, chartId, preferenceScope, ...specUpdate } = next || {};
+    if (preferences !== undefined) {
+      const checked = validatePreferences(preferences, { partial: true });
+      if (!checked.valid) throw new ChartValidationError('update', checked.errors);
+    }
+    const themeInput = specUpdate.theme === undefined ? this._themeInput : specUpdate.theme;
+    const result = this._validateMutation('update', { ...this.spec, ...specUpdate, theme: themeInput, data: specUpdate.data === undefined ? this.spec.data : specUpdate.data });
+    const snapshot = this._snapshotMutation();
+    try {
+      this._themeInput = themeInput;
+      ['colors', 'background', 'padding', 'legend', 'labels', 'grid', 'branding'].forEach(key => { if (specUpdate[key] !== undefined) this._styleOverrides[key] = true; });
+      this.spec = result.spec;
+      ['legend', 'labels', 'grid', 'branding', 'padding'].forEach(key => { if (specUpdate[key] !== undefined) this._preferenceBase[key] = clone(this.spec[key]); });
+      this._specDiagnostics = { warnings: result.warnings, normalizations: result.normalizations };
+      if (preferences !== undefined) {
+        if (this._preferencesStore) {
+          const scope = preferenceScope === 'global' ? 'global' : 'chart';
+          if (scope === 'global') this._preferencesStore.setGlobal(preferences, { source: 'update' });
+          else this._preferencesStore.setChart(this.chartId || 'default', preferences, { source: 'update' });
+        } else this._localPreferences = mergePreferences(this._localPreferences, preferences);
+      }
+      this._resolveStyle();
+      return this._commitMutation();
+    } catch (error) {
+      this._restoreMutation(snapshot);
+      throw error;
+    }
+  }
+  setData(data) {
+    const result = this._validateMutation('setData', { ...this.spec, theme: this._themeInput, data: { values: data } });
+    const snapshot = this._snapshotMutation();
+    try {
+      this.spec = result.spec;
+      this._specDiagnostics = { warnings: result.warnings, normalizations: result.normalizations };
+      this._resolveStyle();
+      return this._commitMutation();
+    } catch (error) {
+      this._restoreMutation(snapshot);
+      throw error;
+    }
+  }
+  setTheme(theme = 'auto') {
+    const result = this._validateMutation('setTheme', { ...this.spec, theme });
+    const snapshot = this._snapshotMutation();
+    try {
+      this._themeInput = theme;
+      this.spec = result.spec;
+      this._specDiagnostics = { warnings: result.warnings, normalizations: result.normalizations };
+      this._resolveStyle();
+      this._commitMutation();
+      this.emit('themechange', { chart: this, theme: this.getTheme(), source: 'user' });
+      return this;
+    } catch (error) {
+      this._restoreMutation(snapshot);
+      throw error;
+    }
+  }
   getTheme() { return clone(this.spec.theme); }
   getPreferences() { return this._preferencesStore ? this._preferencesStore.getEffective(this.chartId) : clone(this._localPreferences || defaultPreferences); }
-  setPreferences(patch = {}, options = {}) { if (this._preferencesStore) { const scope = options.scope === 'global' ? 'global' : 'chart'; if (scope === 'global') this._preferencesStore.setGlobal(patch, { ...options, source: options.source || 'user' }); else this._preferencesStore.setChart(this.chartId || 'default', patch, { ...options, source: options.source || 'user' }); return this; } this._localPreferences = mergePreferences(this._localPreferences, patch); this._preferencesSnapshot = JSON.stringify(this._localPreferences); this._resolveStyle(); this.render(); this.emit('preferenceschange', { chart: this, preferences: this.getPreferences(), source: options.source || 'user', scope: 'chart', persisted: false }); return this; }
-  resetPreferences(options = {}) { if (this._preferencesStore) { this._preferencesStore.reset({ ...options, scope: options.scope || 'chart', chartId: this.chartId || 'default' }); return this; } this._localPreferences = normalizePreferences({}); this._preferencesSnapshot = JSON.stringify(this._localPreferences); this._resolveStyle(); this.render(); this.emit('preferenceschange', { chart: this, preferences: this.getPreferences(), source: options.source || 'user', scope: 'chart', persisted: false }); return this; }
+  setPreferences(patch = {}, options = {}) { const checked = validatePreferences(patch, { partial: true }); if (!checked.valid) throw new ChartValidationError('setPreferences', checked.errors); if (this._preferencesStore) { const scope = options.scope === 'global' ? 'global' : 'chart'; if (scope === 'global') this._preferencesStore.setGlobal(checked.value, { ...options, source: options.source || 'user' }); else this._preferencesStore.setChart(this.chartId || 'default', checked.value, { ...options, source: options.source || 'user' }); return this; } const snapshot = this._snapshotMutation(); try { this._localPreferences = mergePreferences(this._localPreferences, checked.value); this._preferencesSnapshot = JSON.stringify(this._localPreferences); this._resolveStyle(); this._commitMutation(); this.emit('preferenceschange', { chart: this, preferences: this.getPreferences(), source: options.source || 'user', scope: 'chart', persisted: false }); return this; } catch (error) { this._restoreMutation(snapshot); throw error; } }
+  resetPreferences(options = {}) { if (this._preferencesStore) { this._preferencesStore.reset({ ...options, scope: options.scope || 'chart', chartId: this.chartId || 'default' }); return this; } const snapshot = this._snapshotMutation(); try { this._localPreferences = normalizePreferences({}); this._preferencesSnapshot = JSON.stringify(this._localPreferences); this._resolveStyle(); this._commitMutation(); this.emit('preferenceschange', { chart: this, preferences: this.getPreferences(), source: options.source || 'user', scope: 'chart', persisted: false }); return this; } catch (error) { this._restoreMutation(snapshot); throw error; } }
   resize(width = this.spec.width, height = this.spec.height) { this.spec.width = width; this.spec.height = height; this.render(); this.emit('resize', { chart: this, width, height }); return this; }
   getSpec() { return JSON.parse(JSON.stringify(this.spec)); }
   _getDiagnostics() { return [...new Map([...(this._specDiagnostics?.warnings || []), ...(this.model.data?.warnings || []), ...(this.spec.theme?.warnings || [])].map(item => [`${item.code}:${item.path || ''}`, item])).values()]; }
@@ -447,7 +549,36 @@ export class Chart {
   getElementAt(x, y) { return this.model.scene.hit(x, y); }
   selectBox(start, end) { const left = Math.min(start.x, end.x), right = Math.max(start.x, end.x), top = Math.min(start.y, end.y), bottom = Math.max(start.y, end.y); this._selected.clear(); this.model.scene.walk(node => { node.selected = false; if (!node.dataRef || !node.bounds || !node.interactive || (isDiagram(this) && !node.id.startsWith('node-'))) return; const intersects = node.bounds.x <= right && node.bounds.x + node.bounds.width >= left && node.bounds.y <= bottom && node.bounds.y + node.bounds.height >= top; if (intersects) { node.selected = true; this._selected.set(node.id, node.dataRef); } }); this.emit('selectionchange', { chart: this, selectedData: this.getSelectedData(), box: { start, end } }); this.render(); return this; }
   toDataTable() { return this.model.data.rows.map(row => ({ ...row })); }
-  applyPatch(patches = []) { patches.forEach(patch => { const path = patch.path.replace(/^\//, '').split('/'); let target = this.spec; path.slice(0, -1).forEach(key => { target = target[key]; }); if (patch.op === 'remove') delete target[path.at(-1)]; else target[path.at(-1)] = patch.value; }); return this.render(); }
+  applyPatch(patches = []) {
+    const candidate = clone(this.spec);
+    try {
+      patches.forEach((patch, index) => {
+        if (!patch || !['add', 'replace', 'remove'].includes(patch.op) || typeof patch.path !== 'string' || !patch.path.startsWith('/')) throw new ChartValidationError('applyPatch', [{ code: 'INVALID_PATCH', path: `patches[${index}]`, message: 'Patch requires add, replace, or remove and an absolute JSON pointer path.', suggestion: 'Use for example { op: "replace", path: "/title/text", value: "Revenue" }.' }]);
+        const path = patch.path.replace(/^\//, '').split('/').map(key => key.replace(/~1/g, '/').replace(/~0/g, '~'));
+        let target = candidate;
+        path.slice(0, -1).forEach(key => { if (target == null || typeof target !== 'object' || !(key in target)) throw new ChartValidationError('applyPatch', [{ code: 'INVALID_PATCH_PATH', path: `patches[${index}].path`, message: `Patch path does not exist: ${patch.path}`, suggestion: 'Patch an existing Spec path or add a direct child of an existing object.' }]); target = target[key]; });
+        const key = path.at(-1);
+        if (patch.op === 'remove') delete target[key];
+        else target[key] = clone(patch.value);
+      });
+    } catch (error) {
+      if (error instanceof ChartValidationError) throw error;
+      throw new ChartValidationError('applyPatch', [{ code: 'INVALID_PATCH', path: 'patches', message: error.message, suggestion: 'Use JSON-safe patch values and valid Spec paths.' }]);
+    }
+    const themePatched = patches.some(patch => typeof patch?.path === 'string' && (patch.path === '/theme' || patch.path.startsWith('/theme/')));
+    const result = this._validateMutation('applyPatch', { ...candidate, theme: themePatched ? candidate.theme : this._themeInput });
+    const snapshot = this._snapshotMutation();
+    try {
+      this.spec = result.spec;
+      if (themePatched) this._themeInput = candidate.theme;
+      this._specDiagnostics = { warnings: result.warnings, normalizations: result.normalizations };
+      this._resolveStyle();
+      return this._commitMutation();
+    } catch (error) {
+      this._restoreMutation(snapshot);
+      throw error;
+    }
+  }
   resetZoom() { delete this.spec.view; return this.render(); }
   zoomTo(view) { this.spec.view = { ...view }; this.emit('zoomchange', { chart: this, view: this.spec.view }); return this.render(); }
   panBy(delta) { const current = this.spec.view || {}; this.spec.view = { ...current, offsetX: (current.offsetX || 0) + (delta.x || 0), offsetY: (current.offsetY || 0) + (delta.y || 0) }; this.emit('zoomchange', { chart: this, view: this.spec.view }); return this.render(); }
@@ -626,11 +757,12 @@ export class Chart {
       return { valid: false, code: 'DOWNLOAD_FAILED', message: String(err && err.message || err), suggestion: 'Try chart.export() and write the result manually.' };
     }
   }
-  destroy() { this._preferencesUnsubscribe?.(); if (this._resizeObserver) this._resizeObserver.disconnect(); this._colorSchemeQuery?.removeEventListener?.('change', this._colorSchemeHandler); if (this._eventsBound) { const { target, handler, start, move, end, leave, touchStart, touchMove, touchEnd, wheel } = this._eventsBound; target.removeEventListener('mousemove', handler); target.removeEventListener('click', handler); target.removeEventListener('pointerdown', start); target.removeEventListener('pointermove', move); target.removeEventListener('pointerup', end); target.removeEventListener('pointercancel', end); target.removeEventListener('pointerleave', leave); target.removeEventListener('touchstart', touchStart); target.removeEventListener('touchmove', touchMove); target.removeEventListener('touchend', touchEnd); target.removeEventListener('wheel', wheel); } const target = this.renderer.svg || this.renderer.canvas; if (this._keyboardHandler) target?.removeEventListener('keydown', this._keyboardHandler); this._tooltip?.remove(); this.plugins.destroy(); this.renderer.destroy(); this.listeners.clear(); this._eventsBound = null; this._selected.clear(); this._clipboard = { nodes: [], edges: [] }; }
+  destroy() { destroyChart(this); }
 }
 
 export function createChart(spec) { return new Chart(spec); }
-export function getCapabilities() { return { ...discoverCapabilities(), interactionDefaults: { zoom: false, pan: false, brush: false, drag: false, edgeDrag: false, portConnect: false, editing: false }, diagram: { layoutModes: diagramLayoutModes, routingModes: edgeRoutingModes, entities: ['node', 'edge', 'lane', 'group', 'port', 'waypoint'], operations: ['moveNode', 'moveNodes', 'resizeNode', 'alignNodes', 'snapNodes', 'moveNodeToLane', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'updateEdge', 'removeEdge', 'addEdge', 'toggleGroupCollapse', 'duplicateSelection', 'pasteSelection'], curvedEdges: { renderers: ['canvas', 'svg'], type: 'cubic-bezier', tension: { minimum: 0.2, maximum: 0.8, default: 0.4 }, mindmapDefault: true, obstacleFallback: 'orthogonal', controlPointEditing: false }, edgeEditing: { renderers: ['canvas', 'svg'], selection: true, waypointDrag: true, segmentDrag: true, persistentWaypoints: true, enabledByDefault: false, activation: ['editing.enabled', 'interaction.edgeDrag'] }, validation: ['duplicate-ids', 'missing-endpoints', 'missing-ports', 'missing-lanes', 'invalid-waypoints', 'invalid-curve-tension'] }, editing: { modes: ['preview', 'commit', 'undo', 'redo'], operations: ['updateField', 'updateRecord', 'updateTask', 'shiftTask', 'updateProgress', 'addDependency', 'removeDependency', 'updateMilestone', 'moveNode', 'moveNodes', 'moveNodeToLane', 'resizeNode', 'alignNodes', 'snapNodes', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'updateEdge', 'removeEdge', 'addEdge', 'toggleGroupCollapse', 'duplicateSelection', 'pasteSelection'], confirmationRequiredByDefault: true, commit: 'local-runtime-host-persistence-required' } }; }
+export { ChartValidationError } from './errors.mjs';
+export function getCapabilities() { const capabilities = discoverCapabilities(); return { ...capabilities, interactionDefaults: { ...capabilities.interactionDefaults }, diagram: { layoutModes: diagramLayoutModes, routingModes: edgeRoutingModes, entities: ['node', 'edge', 'lane', 'group', 'port', 'waypoint'], operations: [...diagramOperations], curvedEdges: { renderers: ['canvas', 'svg'], type: 'cubic-bezier', tension: { minimum: 0.2, maximum: 0.8, default: 0.4 }, mindmapDefault: true, obstacleFallback: 'orthogonal', controlPointEditing: false }, edgeEditing: { renderers: ['canvas', 'svg'], selection: true, waypointDrag: true, segmentDrag: true, persistentWaypoints: true, enabledByDefault: false, activation: ['editing.enabled', 'interaction.edgeDrag'] }, validation: ['duplicate-ids', 'missing-endpoints', 'missing-ports', 'missing-lanes', 'invalid-waypoints', 'invalid-curve-tension'] }, editing: { modes: ['preview', 'commit', 'undo', 'redo'], operations: [...capabilities.commands], confirmationRequiredByDefault: true, commit: 'local-runtime-host-persistence-required' } }; }
 export function recommend(input, options = {}) { const plan = planChart(input, options); return { primary: plan.primary, alternatives: plan.alternatives, reason: plan.reasons.join(' '), reasons: plan.reasons, confidence: plan.confidence, requiredFields: plan.requiredFields, assumptions: plan.assumptions, warnings: plan.warnings, nextActions: plan.nextActions }; }
 export { normalizeSpec, validateSpec, normalizeData, inspectData, binData, applyTransforms, data, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, getChartCapability, getPreferenceCapabilities, planChart, explainChart };
 export { diagramLayoutModes, diagramModes, edgeRoutingModes, normalizeDiagramSpec, validateDiagram, layoutDiagram, routeEdge };
@@ -639,4 +771,4 @@ export { normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, cr
 
 export { contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin };
 export { applyPreferencesToSpec, createPreferencesStore, defaultPreferences, mergePreferences, mergeThemePreference, mountChartSettings, normalizePreferences, validatePreferences };
-export const iChart = { version: '2.0.13', createChart, inspectData, normalizeData, binData, applyTransforms, data, getCapabilities, getChartCapability, getPreferenceCapabilities, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, createPreferencesStore, defaultPreferences, normalizePreferences, mergePreferences, validatePreferences, applyPreferencesToSpec, mountChartSettings, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };
+export const iChart = { version: '2.0.14', createChart, ChartValidationError, inspectData, normalizeData, binData, applyTransforms, data, getCapabilities, getChartCapability, getPreferenceCapabilities, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, createPreferencesStore, defaultPreferences, normalizePreferences, mergePreferences, validatePreferences, applyPreferencesToSpec, mountChartSettings, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };

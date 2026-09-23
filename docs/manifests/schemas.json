@@ -2,15 +2,187 @@
   "version": "1.0",
   "source": "src/schema.mjs#getBusinessSchema",
   "models": {
-    "project-task": { "key": "id", "required": ["id", "name", "start", "end"], "editable": ["name", "start", "end", "progress", "status", "dependencies"] },
-    "timeline-event": { "key": "id", "required": ["id", "title", "date"], "editable": ["title", "date", "description", "status"] },
-    "milestone": { "key": "id", "required": ["id", "title", "date"], "editable": ["title", "date", "status"] },
-    "burndown-sample": { "key": "id", "required": ["id", "date", "remaining"], "editable": ["date", "remaining", "scopeChange"] },
-    "flow-node": { "key": "id", "required": ["id", "label"], "editable": ["label", "position", "size", "laneId", "description", "status"] },
-    "flow-edge": { "key": "id", "required": ["id", "from", "to"], "editable": ["from", "to", "fromPort", "toPort", "label", "status", "routing", "curveTension", "waypoints"] },
-    "swimlane": { "key": "id", "required": ["id", "label"], "editable": ["label"] },
-    "architecture-node": { "key": "id", "required": ["id", "label"], "editable": ["label", "layerId", "boundaryId", "position", "size", "description", "status"] },
-    "architecture-edge": { "key": "id", "required": ["id", "from", "to"], "editable": ["from", "to", "label", "relation", "routing", "curveTension", "waypoints", "status"] },
-    "mindmap-node": { "key": "id", "required": ["id", "label"], "editable": ["label", "parentId", "position", "size", "branch", "description", "status"] }
+    "project-task": {
+      "key": "id",
+      "required": [
+        "id",
+        "name",
+        "start",
+        "end"
+      ],
+      "editable": [
+        "name",
+        "start",
+        "end",
+        "baselineStart",
+        "baselineEnd",
+        "actualStart",
+        "actualEnd",
+        "baselineDate",
+        "actualDate",
+        "progress",
+        "status",
+        "owner",
+        "resource",
+        "capacity",
+        "load",
+        "points",
+        "sprint",
+        "priority",
+        "labels",
+        "dependencies"
+      ]
+    },
+    "timeline-event": {
+      "key": "id",
+      "required": [
+        "id",
+        "title",
+        "date"
+      ],
+      "editable": [
+        "title",
+        "date",
+        "description",
+        "status"
+      ]
+    },
+    "milestone": {
+      "key": "id",
+      "required": [
+        "id",
+        "title",
+        "date"
+      ],
+      "editable": [
+        "title",
+        "date",
+        "status"
+      ]
+    },
+    "burndown-sample": {
+      "key": "id",
+      "required": [
+        "id",
+        "date",
+        "remaining"
+      ],
+      "editable": [
+        "date",
+        "remaining",
+        "scopeChange"
+      ]
+    },
+    "flow-node": {
+      "key": "id",
+      "required": [
+        "id",
+        "label"
+      ],
+      "editable": [
+        "label",
+        "position",
+        "size",
+        "laneId",
+        "description",
+        "status"
+      ]
+    },
+    "flow-edge": {
+      "key": "id",
+      "required": [
+        "id",
+        "from",
+        "to"
+      ],
+      "editable": [
+        "from",
+        "to",
+        "fromPort",
+        "toPort",
+        "label",
+        "status",
+        "routing",
+        "curveTension",
+        "waypoints"
+      ]
+    },
+    "swimlane": {
+      "key": "id",
+      "required": [
+        "id",
+        "label"
+      ],
+      "editable": [
+        "label"
+      ]
+    },
+    "architecture-node": {
+      "key": "id",
+      "required": [
+        "id",
+        "label"
+      ],
+      "editable": [
+        "label",
+        "layerId",
+        "boundaryId",
+        "position",
+        "size",
+        "description",
+        "status"
+      ]
+    },
+    "architecture-edge": {
+      "key": "id",
+      "required": [
+        "id",
+        "from",
+        "to"
+      ],
+      "editable": [
+        "from",
+        "to",
+        "label",
+        "relation",
+        "routing",
+        "curveTension",
+        "waypoints",
+        "status"
+      ]
+    },
+    "mindmap-edge": {
+      "key": "id",
+      "required": [
+        "id",
+        "from",
+        "to"
+      ],
+      "editable": [
+        "from",
+        "to",
+        "label",
+        "routing",
+        "curveTension",
+        "waypoints",
+        "status"
+      ]
+    },
+    "mindmap-node": {
+      "key": "id",
+      "required": [
+        "id",
+        "label"
+      ],
+      "editable": [
+        "label",
+        "parentId",
+        "position",
+        "size",
+        "branch",
+        "description",
+        "status"
+      ]
+    }
   }
 }
