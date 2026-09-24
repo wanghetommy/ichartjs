@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.16 - 2026-09-25
+
+- Hardened Timeline and Milestone date layouts with proportional positioning, date-aware ticks, edge padding, collision-aware marker staggering, and `TIMELINE_COLLISION` diagnostics for physically constrained charts.
+- Fixed P0–P2 Agent contract issues across Funnel, Radar, Gauge, diagram labels and edges, Gantt dependencies, localized project output, title normalization, and chart-specific diagnostics.
+- Synchronized package, runtime, Playground, documentation, Skill, and capability manifest references for `v2.0.16`.
+
 ## 2.0.15 - 2026-09-24
 
 - Added the Iteration 13F axis-free layout strategy for Pie, Funnel, Gauge, and Radar, prioritizing chart body area and placing supported legends without Cartesian-axis reserves.

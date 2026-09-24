@@ -6,7 +6,7 @@ iChart.js 应作为普通 JavaScript UI 组件运行在浏览器应用中。数�
 npm install @taylorwong/ichartjs@^2
 ```
 
-无法访问 npm Registry 的环境请用 GitHub 源作为后备：`npm install github:wanghetommy/ichartjs#v2.0.15`。
+无法访问 npm Registry 的环境请用 GitHub 源作为后备：`npm install github:wanghetommy/ichartjs#v2.0.16`。
 
 ```js
 import { createChart } from '@taylorwong/ichartjs';

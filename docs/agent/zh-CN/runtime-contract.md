@@ -16,7 +16,7 @@ Iteration 8 通过 `getChartCapability(type)` 提供逐图表能力档案，包�
 
 `planChart(data, { intent, renderer })` 返回版本化规划结果：主选图表、备选项、置信度、原因、缺失字段、建议编码、假设、警告、不支持请求和安全下一步。规划不会虚构业务含义、单位、日期或缺失字段。
 
-未知 intent 还会返回 `intentKnown`、`intentSuggestions` 和 `fallbackUsed`。Spec 的通道按图表类型约束：笛卡尔图表是 `x`/`y`，Pie/Funnel 是 `category`/`value`，Gauge 只使用 `value`，Heatmap 是 `x`/`y`/`color`，Radar 字段位于 `indicators`。`validateSpec()` 会拒绝不支持的通道和缺失字段。Gauge 必须显式声明 `domain`，超出范围时会报告 `VALUE_CLAMPED`；Pie 的负值和空占比分别报告 `NEGATIVE_VALUE_DROPPED`、`ZERO_TOTAL`。
+未知 intent 还会返回 `intentKnown`、`intentSuggestions` 和 `fallbackUsed`。Spec 的通道按图表类型约束：笛卡尔图表是 `x`/`y`，Pie/Funnel 是 `category`/`value`，Gauge 只使用 `value`，Heatmap 是 `x`/`y`/`color`，Radar 字段位于 `indicators`。`validateSpec()` 会拒绝不支持的通道和缺失字段。Gauge 必须显式声明 `domain`，超出范围时会报告 `VALUE_CLAMPED`；Pie 的负值报告 `NEGATIVE_VALUE_DROPPED`，没有正数占比时 `ZERO_TOTAL` 会使校验失败。
 
 `validateSpec()` 分开返回 `errors`、`warnings` 和 `normalizations`；诊断包含稳定代码、JSON 路径、期望值和修复建议。`chart.explain()` 返回编码、转换、交互、假设、警告、稳定记录血缘和无障碍摘要。
 

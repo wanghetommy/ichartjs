@@ -27,6 +27,8 @@ Architecture layers are horizontal bands ordered from top to bottom. Automatic l
 }
 ```
 
+`from` and `to` are the only edge endpoint fields. `source` and `target` are not aliases and return a structured validation error. Display text uses `label` for nodes, lanes, layers, groups, and boundaries; using `name` is diagnosed rather than silently treated as display text.
+
 For a mindmap, prefer the compact parent contract:
 
 ```js

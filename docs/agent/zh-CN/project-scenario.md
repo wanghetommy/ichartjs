@@ -16,10 +16,13 @@
 - 日期必须有效，Gantt 的 `end` 不得早于 `start`。
 - `progress` 使用 `0–100` 百分比。
 - `dependencies` 使用稳定任务 ID，支持字符串或 `{ id, type, lag, lead }` 对象，依赖图不能有环。
+- `dependsOn` 不是别名，会被诊断并忽略；请使用正式字段 `dependencies`。
 - 依赖类型支持 `finish-to-start`、`start-to-start`、`finish-to-finish` 和 `start-to-finish`；连线使用对应任务端点。具有净空的正向 FS 关系使用三段紧凑路径，重叠或反向关系使用外侧绕行。
 - `scopeChange` 表示范围变化，不等于已完成工作量。
 - Forecast 是估计结果，不能描述为承诺或事实。
 - Gantt、Timeline 和 Milestone 根据 Unicode-aware 文本宽度预留左侧标签列；超过列宽的标签按像素省略，不按字符数截断。
+- Timeline 和 Milestone 的横向位置按 `date` 比例计算，纵向行槽位保持均匀，并在时间域边缘保留少量视觉留白；Milestone 覆盖层使用 `baselineDate` 和 `actualDate`，显示文本正式字段为 `title`（`name` 和 `label` 仍由兼容回退逻辑接受）。相邻标记会在可能时自动错位；如果空间不足，结果会返回 `TIMELINE_COLLISION`，建议增大高度或减少事件数量。
+- `locale` 同时作用于项目日期刻度、Burndown 预测文案和项目 Tooltip；需要中文运行时文案时使用 `locale: 'zh-CN'`。
 
 ## 编辑流程
 

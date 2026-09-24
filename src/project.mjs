@@ -13,7 +13,45 @@ import { axisLabelLayout, estimateTextWidth, fontSize, titleLayout, truncateText
 export const projectTypes = ['gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane', 'architecture', 'mindmap'];
 const day = 86400000;
 export const timestamp = value => value == null || value === '' ? NaN : new Date(value).getTime();
-const dateLabel = value => new Date(value).toISOString().slice(0, 10);
+const projectMessages = locale => String(locale || 'en-US').toLowerCase().startsWith('zh') ? {
+  estimatedFinish: '预计完成',
+  forecastUnavailable: '无法预测',
+  date: '日期', remaining: '剩余', scopeChange: '范围变更', totalScope: '范围总量', completed: '已完成',
+  forecast: '预测', parent: '父主题', rootTopic: '根主题', branch: '分支', layer: '层', boundary: '边界', role: '角色',
+  progress: '进度', status: '状态', owner: '负责人', dependsOn: '依赖', critical: '关键路径', float: '浮动时间', variance: '偏差', lane: '泳道', days: '天', yes: '是', no: '否', unavailable: '不可用'
+} : {
+  estimatedFinish: 'Estimated finish',
+  forecastUnavailable: 'Forecast unavailable',
+  date: 'Date', remaining: 'Remaining', scopeChange: 'Scope change', totalScope: 'Total scope', completed: 'Completed',
+  forecast: 'Forecast', parent: 'Parent', rootTopic: 'Root topic', branch: 'Branch', layer: 'Layer', boundary: 'Boundary', role: 'Role',
+  progress: 'Progress', status: 'Status', owner: 'Owner', dependsOn: 'Depends on', critical: 'Critical', float: 'Float', variance: 'Variance', lane: 'Lane', days: 'days', yes: 'yes', no: 'no', unavailable: 'unavailable'
+};
+const dateLabel = (value, locale = 'en-US') => {
+  try {
+    return new Intl.DateTimeFormat(locale, { timeZone: 'UTC', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(value));
+  } catch {
+    return new Date(value).toISOString().slice(0, 10);
+  }
+};
+const projectTickCount = width => Math.max(2, Math.min(6, Math.floor(width / 100)));
+function projectTickValues(min, max, count = 5) {
+  return Array.from({ length: count }, (_, index) => min + (max - min) * index / Math.max(1, count - 1));
+}
+function projectTickLabels(min, max, width, locale = 'en-US') {
+  return projectTickValues(min, max, projectTickCount(width)).map(value => dateLabel(value, locale));
+}
+
+function projectDateDomain(spec, rows) {
+  const values = spec.type === 'gantt' ? rows.flatMap(rowWindow) : rows.map(row => timestamp(row?.date ?? row?.start ?? row?.end)).filter(Number.isFinite);
+  let min = Math.min(...(values.length ? values : [Date.now()])), max = Math.max(...(values.length ? values : [Date.now() + day]));
+  if (min === max) { min -= day; max += day; }
+  if (['timeline', 'milestone'].includes(spec.type)) {
+    const padding = Math.max(day, (max - min) * 0.03);
+    min -= padding;
+    max += padding;
+  }
+  return [min, max];
+}
 const dependencyId = dependency => typeof dependency === 'string' ? dependency : dependency?.id || null;
 const dependencyType = dependency => typeof dependency === 'object' && dependency?.type ? dependency.type : 'finish-to-start';
 const markText = (theme, background) => (contrastRatio(theme.text, background) || 0) >= (contrastRatio(theme.background, background) || 0) ? theme.text : theme.background;
@@ -58,15 +96,16 @@ function arrow(scene, id, points, reference, critical = false, curve = null) {
   scene.add({ id: id.startsWith('dependency-') ? id.replace('dependency-', 'dependency-arrow-') : `${id}-arrow`, type: 'path', geometry: { points: [tip, { x: tip.x - size * Math.cos(angle - Math.PI / 6), y: tip.y - size * Math.sin(angle - Math.PI / 6) }, { x: tip.x - size * Math.cos(angle + Math.PI / 6), y: tip.y - size * Math.sin(angle + Math.PI / 6) }, tip] }, style: { fill: color, stroke: color }, zIndex: 3 });
 }
 
-function timeAxis(scene, plot, min, max) {
+function timeAxis(scene, plot, min, max, locale = 'en-US') {
   const map = value => plot.x + (timestamp(value) - min) / (max - min || day) * plot.width;
-  const ticks = Math.max(2, Math.min(5, Math.floor(plot.width / 100)));
-  const labelLayout = scene.xLabelLayout || axisLabelLayout({ theme: scene.theme }, Array(ticks).fill('2000-00-00'), plot.width);
-  for (let index = 0; index < ticks; index += 1) {
-    const time = min + (max - min) * index / (ticks - 1), x = map(time);
+  const ticks = projectTickCount(plot.width), values = projectTickValues(min, max, ticks), labels = values.map(value => dateLabel(value, locale));
+  const labelLayout = scene.xLabelLayout || axisLabelLayout({ theme: scene.theme }, labels, plot.width);
+  scene.xLabelLayout = labelLayout;
+  values.forEach((time, index) => {
+    const x = map(time);
     scene.add({ id: `project-grid-${index}`, type: 'line', geometry: { x1: x, y1: plot.y, x2: x, y2: plot.y + plot.height }, style: { stroke: scene.theme?.grid || '#e2e8f0' } });
-    text(scene, `project-tick-${index}`, dateLabel(time), x, plot.y + plot.height + (labelLayout.rotation ? 10 : 22), { fill: scene.theme?.muted, textAnchor: labelLayout.rotation ? 'end' : index === 0 ? 'start' : index === ticks - 1 ? 'end' : 'middle', textBaseline: labelLayout.rotation ? 'middle' : 'alphabetic', rotation: labelLayout.rotation, font: scene.theme?.typography?.axis?.font || '11px system-ui' });
-  }
+    text(scene, `project-tick-${index}`, dateLabel(time, locale), x, plot.y + plot.height + (labelLayout.rotation ? 10 : 22), { fill: scene.theme?.muted, textAnchor: labelLayout.rotation ? 'end' : index === 0 ? 'start' : index === ticks - 1 ? 'end' : 'middle', textBaseline: labelLayout.rotation ? 'middle' : 'alphabetic', rotation: labelLayout.rotation, font: scene.theme?.typography?.axis?.font || '11px system-ui' });
+  });
   return map;
 }
 
@@ -161,14 +200,13 @@ export function analyzeBurndown(rows, options = {}) {
 function tasksScene(scene, spec, rows, state) {
   const plot = state.plot;
   const overlays = projectOverlays(spec);
-  const values = rows.flatMap(rowWindow);
-  let min = Math.min(...(values.length ? values : [Date.now()])), max = Math.max(...(values.length ? values : [Date.now() + day]));
-  if (min === max) { min -= day; max += day; }
-  const map = timeAxis(scene, plot, min, max), positions = new Map();
+  const [min, max] = projectDateDomain(spec, rows);
+  const map = timeAxis(scene, plot, min, max, spec.locale), positions = new Map();
   const analyticsMap = new Map((state.schedule?.tasks || []).map(task => [task.id, task]));
   const highlighted = new Set(spec.criticalPath === false || !overlays.criticalPath ? [] : Array.isArray(spec.criticalPath) ? spec.criticalPath : state.schedule?.criticalIds || []);
   const selected = projectSelection(spec, state);
-  const rowHeight = plot.height / Math.max(1, rows.length), barHeight = Math.min(20, Math.max(10, rowHeight * 0.62)), barOffset = barHeight / 2;
+  const rowHeight = plot.height / Math.max(1, rows.length), barHeight = Math.min(20, Math.max(10, rowHeight * 0.62)), barOffset = barHeight / 2, isEventTimeline = ['timeline', 'milestone'].includes(spec.type), eventRadius = Math.min(7, Math.max(3, rowHeight * 0.28)), placedEvents = [];
+  let collisionsResolved = 0, collisionsUnresolved = 0;
   rows.forEach((row, index) => {
     const analytics = analyticsMap.get(row.id);
     const recordId = linkedRecordId(row, index);
@@ -179,7 +217,14 @@ function tasksScene(scene, spec, rows, state) {
     const actualStart = row.actualStart || row.actualDate || null;
     const actualEnd = row.actualEnd || row.actualDate || actualStart;
     const start = map(startValue), end = map(endValue);
-    const y = plot.y + (index + 0.5) * rowHeight;
+    const baseY = plot.y + (index + 0.5) * rowHeight;
+    const markerX = map(startValue);
+    const eventOffsets = [0, eventRadius * 1.5, -eventRadius * 1.5, eventRadius * 3, -eventRadius * 3];
+    const eventY = isEventTimeline ? eventOffsets.map(offset => Math.max(plot.y + eventRadius, Math.min(plot.y + plot.height - eventRadius, baseY + offset))).find(candidate => !placedEvents.some(event => Math.abs(event.x - markerX) < eventRadius * 2 + 4 && Math.abs(event.y - candidate) < eventRadius * 2 + 4)) : null;
+    if (isEventTimeline && eventY == null) collisionsUnresolved += 1;
+    const y = isEventTimeline ? eventY ?? baseY : baseY;
+    if (isEventTimeline && y !== baseY) collisionsResolved += 1;
+    if (isEventTimeline) placedEvents.push({ x: markerX, y });
     const milestone = spec.type === 'milestone' || row.milestone || start === end;
     if (overlays.baseline && baselineStart) {
       const baselineStartX = map(baselineStart), baselineEndX = map(baselineEnd || baselineStart);
@@ -191,7 +236,7 @@ function tasksScene(scene, spec, rows, state) {
       if (milestone) scene.add({ id: `project-actual-${index}`, type: 'circle', geometry: { cx: actualStartX, cy: y, r: 3 }, bounds: { x: actualStartX - 3, y: y - 3, width: 6, height: 6 }, style: { fill: spec.theme.text }, zIndex: 3 });
       else scene.add({ id: `project-actual-${index}`, type: 'rect', geometry: { x: actualStartX, y: y + barOffset + 2, width: Math.max(2, actualEndX - actualStartX), height: 3 }, style: { fill: spec.theme.text, opacity: 0.35 }, zIndex: 3 });
     }
-    const geometry = milestone ? { cx: start, cy: y, r: Math.min(7, barOffset) } : { x: start, y: y - barOffset, width: Math.max(2, end - start), height: barHeight };
+    const geometry = milestone ? { cx: start, cy: y, r: eventRadius } : { x: start, y: y - barOffset, width: Math.max(2, end - start), height: barHeight };
     const bounds = milestone ? { x: start - 8, y: y - 8, width: 16, height: 16 } : { ...geometry };
     const datum = taskDatum(row, analytics, recordId);
     scene.add({
@@ -210,7 +255,8 @@ function tasksScene(scene, spec, rows, state) {
     });
     positions.set(row.id || recordId, { start, end, y });
     const label = row.name || row.title || row.label || row.id || `Item ${index + 1}`;
-    text(scene, `project-label-${index}`, truncateText(label, Math.max(12, plot.x - 20), fontSize(spec, 'axis', 12)), plot.x - 12, y + 4, { textAnchor: 'end' });
+    const labelSize = Math.max(9, Math.min(fontSize(spec, 'axis', 12), rowHeight * 0.45));
+    text(scene, `project-label-${index}`, truncateText(label, Math.max(labelSize, plot.x - 20), labelSize), plot.x - 12, y + 4, { textAnchor: 'end', font: `${labelSize}px system-ui` });
     if (row.progress != null && !milestone) scene.add({ id: `project-progress-${index}`, type: 'rect', geometry: { ...geometry, width: geometry.width * (row.progress > 1 ? row.progress / 100 : row.progress) }, style: { fill: spec.theme.text, opacity: 0.25 }, zIndex: 3 });
     if (overlays.slack && analytics?.latestFinish && !milestone) {
       const latestEnd = map(analytics.latestFinish);
@@ -221,6 +267,7 @@ function tasksScene(scene, spec, rows, state) {
       if (variance != null) text(scene, `project-variance-${index}`, `${variance > 0 ? '+' : ''}${variance}d`, milestone ? start + 12 : end + 8, y - 12, { font: spec.theme.typography.axis.font, fill: variance > 0 ? spec.theme.status.danger : variance < 0 ? spec.theme.status.info : spec.theme.muted });
     }
   });
+  if (isEventTimeline) state.eventLayout = { collisionsResolved, collisionsUnresolved, rows: rows.length };
   rows.forEach((row, index) => (row.dependencies || []).forEach((dependency, dependencyIndex) => {
     const fromId = dependencyId(dependency), toId = row.id;
     const from = positions.get(fromId), to = positions.get(toId);
@@ -239,7 +286,7 @@ function burndownScene(scene, spec, rows, state) {
   state.projectAnalytics = { ...(state.projectAnalytics || {}), burndown: analysis };
   const min = Math.min(analysis.start, samples[0]?.time || analysis.start || Date.now());
   const max = Math.max(analysis.end, samples.at(-1)?.time || analysis.end || min + day, forecast.time || 0, min + day);
-  const map = timeAxis(scene, plot, min, max);
+  const map = timeAxis(scene, plot, min, max, spec.locale);
   const maxValue = Math.max(1, ...samples.flatMap(sample => [sample.remaining, sample.ideal, sample.scope]));
   const mapY = value => plot.y + plot.height - value / maxValue * plot.height;
   const selected = projectSelection(spec, state);
@@ -256,7 +303,8 @@ function burndownScene(scene, spec, rows, state) {
     const last = samples.at(-1);
     scene.add({ id: 'burndown-forecast', type: 'path', geometry: { points: [{ x: map(last.time), y: mapY(last.remaining) }, { x: map(forecast.time), y: mapY(0) }] }, style: { fill: 'none', stroke: spec.theme.status.danger, strokeWidth: 2 } });
   }
-  text(scene, 'burndown-projected', forecast.date ? `Estimated finish: ${forecast.date}` : `Forecast unavailable: ${forecast.reason}`, plot.x, plot.y - 16, { font: spec.theme.typography.axis.font });
+  const messages = projectMessages(spec.locale);
+  text(scene, 'burndown-projected', forecast.date ? `${messages.estimatedFinish}: ${forecast.date}` : `${messages.forecastUnavailable}: ${forecast.reason}`, plot.x, plot.y - 16, { font: spec.theme.typography.axis.font });
 }
 
 function diagramScene(scene, spec, rows, state) {
@@ -373,7 +421,7 @@ export function buildProjectScene(spec) {
   const left = spec.type === 'architecture' ? architectureLabelReserve(spec) : ['gantt', 'timeline', 'milestone', 'swimlane'].includes(spec.type) ? projectLabelReserve(spec, sourceRows) : spec.padding.left;
   const title = titleLayout(spec);
   const plotTop = Math.max(spec.padding.top, title.bottom + (title.bottom ? 12 : 0)) + (spec.type === 'burndown' ? 16 : 0);
-  const plotWidth = Math.max(1, spec.width - left - spec.padding.right), xLabels = axisLabelLayout(spec, Array(Math.max(2, Math.min(5, Math.floor(plotWidth / 100)))).fill('2000-00-00'), plotWidth);
+  const plotWidth = Math.max(1, spec.width - left - spec.padding.right), dateDomain = projectDateDomain(spec, sourceRows), xLabels = axisLabelLayout(spec, projectTickLabels(dateDomain[0], dateDomain[1], plotWidth, spec.locale), plotWidth);
   const bottomReserve = Math.max(spec.padding.bottom + 16, Math.ceil(16 + xLabels.projectedHeight));
   const state = { plot: { x: left, y: plotTop, width: plotWidth, height: Math.max(1, spec.height - plotTop - bottomReserve) }, xLabels, compact: spec.width < 360 || spec.height < 240, recommendedSize: { minWidth: 280, minHeight: 220 }, linked, projectAnalytics: { linked } };
   scene.xLabelLayout = xLabels;
@@ -387,6 +435,11 @@ export function buildProjectScene(spec) {
   else if (diagram) diagramScene(scene, spec, data.rows, state);
   else if (spec.type === 'burndown') burndownScene(scene, spec, data.rows, state);
   else tasksScene(scene, spec, data.rows, state);
+  if (state.eventLayout?.collisionsUnresolved) data.warnings.push({
+    code: 'TIMELINE_COLLISION',
+    message: 'Timeline or milestone markers could not be fully separated in the available space.',
+    suggestion: 'Increase the chart height or reduce the number of events.'
+  });
   const view = projectView(spec), mapX = value => value * view.scale + view.offsetX, mapY = value => value * view.scale + view.offsetY;
   scene.walk(node => {
     const geometry = node.geometry;
@@ -402,30 +455,31 @@ export function buildProjectScene(spec) {
   return { scene, data, state };
 }
 
-export function projectTooltip(type, row) {
+export function projectTooltip(type, row, locale = 'en-US') {
   if (!row) return '';
+  const messages = projectMessages(locale);
   if (type === 'burndown') return [
-    `Date: ${row.date}`,
-    `Remaining: ${row.remaining ?? row.actual ?? row.value}`,
-    `Scope change: ${row.scopeChange || 0}`,
-    row.scope != null ? `Total scope: ${row.scope}` : null,
-    row.completed != null ? `Completed: ${row.completed}` : null,
-    row.forecast ? `Estimated finish: ${row.forecast}` : `Forecast: ${row.forecastReason || 'unavailable'}`
+    `${messages.date}: ${row.date}`,
+    `${messages.remaining}: ${row.remaining ?? row.actual ?? row.value}`,
+    `${messages.scopeChange}: ${row.scopeChange || 0}`,
+    row.scope != null ? `${messages.totalScope}: ${row.scope}` : null,
+    row.completed != null ? `${messages.completed}: ${row.completed}` : null,
+    row.forecast ? `${messages.estimatedFinish}: ${row.forecast}` : `${messages.forecast}: ${row.forecastReason || messages.unavailable}`
   ].filter(Boolean).join('\n');
   const dependencies = (row.dependencies || []).map(dependencyId).filter(Boolean);
   const variance = row.endVarianceDays ?? row.baselineVarianceDays ?? null;
-  if (type === 'mindmap') return [row.label || row.id, row.parentId ? `Parent: ${row.parentId}` : 'Root topic', row.branch ? `Branch: ${row.branch}` : null, row.description].filter(value => value != null && value !== '').join('\n');
-  if (type === 'architecture') return [row.label || row.id, row.layerId ? `Layer: ${row.layerId}` : null, row.boundaryId ? `Boundary: ${row.boundaryId}` : null, row.role ? `Role: ${row.role}` : null, row.description].filter(value => value != null && value !== '').join('\n');
+  if (type === 'mindmap') return [row.label || row.id, row.parentId ? `${messages.parent}: ${row.parentId}` : messages.rootTopic, row.branch ? `${messages.branch}: ${row.branch}` : null, row.description].filter(value => value != null && value !== '').join('\n');
+  if (type === 'architecture') return [row.label || row.id, row.layerId ? `${messages.layer}: ${row.layerId}` : null, row.boundaryId ? `${messages.boundary}: ${row.boundaryId}` : null, row.role ? `${messages.role}: ${row.role}` : null, row.description].filter(value => value != null && value !== '').join('\n');
   return [
     row.name || row.title || row.label || row.id,
     row.start ? `${row.start} → ${row.end || row.start}` : row.date,
-    row.progress != null ? `Progress: ${row.progress <= 1 ? Math.round(row.progress * 100) : row.progress}%` : null,
-    row.status ? `Status: ${row.status}` : null,
-    row.owner || row.resource ? `Owner: ${row.owner || row.resource}` : null,
-    dependencies.length ? `Depends on: ${dependencies.join(', ')}` : null,
-    row.critical != null ? `Critical: ${row.critical ? 'yes' : 'no'} · Float: ${row.float ?? row.slack ?? 0} days` : null,
-    variance != null ? `Variance: ${variance > 0 ? '+' : ''}${variance} days` : null,
-    row.laneId ? `Lane: ${row.laneId}` : null,
+    row.progress != null ? `${messages.progress}: ${row.progress <= 1 ? Math.round(row.progress * 100) : row.progress}%` : null,
+    row.status ? `${messages.status}: ${row.status}` : null,
+    row.owner || row.resource ? `${messages.owner}: ${row.owner || row.resource}` : null,
+    dependencies.length ? `${messages.dependsOn}: ${dependencies.join(', ')}` : null,
+    row.critical != null ? `${messages.critical}: ${row.critical ? messages.yes : messages.no} · ${messages.float}: ${row.float ?? row.slack ?? 0} ${messages.days}` : null,
+    variance != null ? `${messages.variance}: ${variance > 0 ? '+' : ''}${variance} ${messages.days}` : null,
+    row.laneId ? `${messages.lane}: ${row.laneId}` : null,
     row.description
   ].filter(value => value != null && value !== '').join('\n');
 }

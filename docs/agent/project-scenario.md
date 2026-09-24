@@ -24,7 +24,7 @@ Agent usage and development guide for project planning, delivery tracking, and p
 - Keep derived values separate from source rows. State and tooltips may expose variance, float, warnings, and assumptions, but transforms must not mutate source data.
 - Linked filters and linked selection must use stable record IDs, not array positions.
 - Forecasts, risk scores, and aging buckets are inspectable heuristics. They are not commitments, causal claims, or hidden inference.
-- Project chart date axes are derived from `date`, `start`, and `end` records in the current contract; generic `xAxis.title/format` and `xAxis.min/max` settings do not customize them.
+- Project chart date axes are derived from `date`, `start`, and `end` records in the current contract; timeline and milestone use date-proportional horizontal positions while rows remain evenly spaced vertically. Generic `xAxis.title/format` and `xAxis.min/max` settings do not customize them.
 
 ## Agent Workflow
 
@@ -40,14 +40,18 @@ Agent usage and development guide for project planning, delivery tracking, and p
 - Gantt `start` and `end` must be valid dates, and `end` cannot precede `start`.
 - `progress` uses the `0–100` percentage convention.
 - `dependencies` use stable task IDs, either as strings or `{ id, type, lag, lead }` objects, and must form an acyclic graph.
+- `dependsOn` is not an alias; it is diagnosed and ignored. Use the canonical `dependencies` field.
 - Dependency objects support `finish-to-start`, `start-to-start`, `finish-to-finish`, and `start-to-finish`. Rendering uses the matching task endpoints; a clear forward finish-to-start relationship uses a compact three-segment route, while overlapping or reverse relationships use a safe outer route.
 - Issue aging requires an explicit ISO `today` reference; missing or invalid dates produce warnings instead of guessed buckets.
 - Calendar-aware scheduling may also use dependency objects with explicit `type`, `lag`, and `lead`.
 - `baselineStart`/`baselineEnd` and `actualStart`/`actualEnd` should be treated as explicit source inputs, not inferred values.
+- Milestone overlays use `baselineDate` and `actualDate`; timeline and milestone display text is canonically `title` (legacy `name` and `label` remain accepted with the normal project label fallback).
 - Burndown `scopeChange` represents scope movement, not completed work.
 - A forecast is an estimate derived from current samples, not a commitment or fact.
 - Capacity warnings, risk quadrants, and aging buckets should stay explainable from source fields.
 - Gantt, Timeline, and Milestone reserve their left label column from Unicode-aware text widths. Labels wider than the bounded column are truncated by rendered width rather than character count.
+- Timeline and Milestone place events on a date-proportional horizontal domain with a small visual edge padding. Nearby markers are automatically staggered when possible; if the available height is insufficient, the result includes `TIMELINE_COLLISION` and suggests increasing height or reducing events.
+- `locale` also applies to project date ticks, burndown forecast text, and project tooltips. Use `locale: 'zh-CN'` or another BCP 47 locale when those runtime labels must be localized.
 
 ## Editing
 
