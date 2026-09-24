@@ -65,18 +65,30 @@ function axisTicks(min, max, axis = {}, type = 'linear') {
   return Array.from({ length: intervals + 1 }, (_, index) => min + (max - min) * index / intervals);
 }
 
+const axisFreeTypes = new Set(['pie', 'funnel', 'gauge', 'radar']);
+
 function chromeLayout(spec, entries = []) {
   const title = titleLayout(spec);
   const visible = spec.legend?.visible !== false && entries.length >= 1;
-  if (!visible) return { title, legend: { visible: false, items: [], bottom: title.bottom }, bottom: title.bottom };
+  if (!visible) return { title, legend: { visible: false, items: [], position: 'top', top: title.bottom, bottom: title.bottom, left: spec.padding.left, right: spec.width - spec.padding.right, width: 0, height: 0 }, bottom: title.bottom };
   const size = fontSize(spec, 'legend', 12), lineHeight = Math.max(18, size * Number(spec.theme?.typography?.legend?.lineHeight || 1.4));
   const swatchSize = Math.max(8, Math.round(size * 0.75)), gap = Math.max(12, Math.round(size));
   const availableWidth = Math.max(1, spec.width - spec.padding.left - spec.padding.right);
-  const maxLabelWidth = Math.max(size, availableWidth - swatchSize - 6 - gap);
+  const requestedPosition = axisFreeTypes.has(spec.type) && ['top', 'right', 'bottom', 'left'].includes(spec.legend?.position) ? spec.legend.position : 'top';
+  const sideLegend = requestedPosition === 'left' || requestedPosition === 'right';
+  const labelBudget = sideLegend ? Math.max(size * 4, availableWidth * 0.34 - swatchSize - 6 - gap) : availableWidth - swatchSize - 6 - gap;
+  const maxLabelWidth = Math.max(size, labelBudget);
   const measured = entries.map((entry, index) => {
     const rawName = String(entry.name), name = truncateText(rawName, maxLabelWidth, size);
     return { ...entry, name, rawName, truncated: name !== rawName, index, width: swatchSize + 6 + estimateTextWidth(name, size) + gap };
   });
+  if (sideLegend) {
+    const width = Math.max(size * 4, ...measured.map(item => item.width));
+    const top = Math.max(spec.padding.top, title.bottom ? title.bottom + 8 : spec.padding.top);
+    const items = measured.map((item, index) => ({ ...item, x: requestedPosition === 'left' ? spec.padding.left : spec.width - spec.padding.right - width, y: top + index * lineHeight + lineHeight / 2, swatchSize }));
+    const bottom = top + measured.length * lineHeight;
+    return { title, legend: { visible: true, items, position: requestedPosition, top, bottom, left: requestedPosition === 'left' ? spec.padding.left : spec.width - spec.padding.right - width, right: requestedPosition === 'left' ? spec.padding.left + width : spec.width - spec.padding.right, width, height: measured.length * lineHeight, truncatedCount: measured.filter(item => item.truncated).length }, bottom: title.bottom };
+  }
   const rows = [];
   measured.forEach(item => {
     let row = rows.at(-1);
@@ -84,7 +96,8 @@ function chromeLayout(spec, entries = []) {
     row.items.push(item);
     row.width += item.width;
   });
-  const top = title.bottom ? title.bottom + 8 : Math.max(8, (spec.padding.top - rows.length * lineHeight) / 2);
+  const legendHeight = rows.length * lineHeight;
+  const top = requestedPosition === 'bottom' ? spec.height - spec.padding.bottom - legendHeight : title.bottom ? title.bottom + 8 : Math.max(8, (spec.padding.top - legendHeight) / 2);
   const items = [];
   rows.forEach((row, rowIndex) => {
     let x = Math.max(spec.padding.left, spec.width - spec.padding.right - row.width);
@@ -92,7 +105,7 @@ function chromeLayout(spec, entries = []) {
     row.items.forEach(item => { items.push({ ...item, x, y, swatchSize }); x += item.width; });
   });
   const bottom = top + rows.length * lineHeight;
-  return { title, legend: { visible: true, items, bottom, truncatedCount: measured.filter(item => item.truncated).length }, bottom: Math.max(title.bottom, bottom) };
+  return { title, legend: { visible: true, items, position: requestedPosition, top, bottom, left: spec.padding.left, right: spec.width - spec.padding.right, width: availableWidth, height: legendHeight, truncatedCount: measured.filter(item => item.truncated).length }, bottom: requestedPosition === 'bottom' ? title.bottom : Math.max(title.bottom, bottom) };
 }
 
 function styledSpec(spec) {
@@ -100,7 +113,7 @@ function styledSpec(spec) {
   return { ...spec, theme, colors: spec.colors || theme.colors, background: spec.background || theme.background, padding: spec.padding || theme.layout.padding };
 }
 
-function layout(spec, data, legendEntries = []) {
+function layout(spec, data, legendEntries = [], layoutOptions = {}) {
   const p = spec.padding, width = spec.width, height = spec.height;
   const chrome = chromeLayout(spec, legendEntries);
   const xEncoding = spec.encoding.x || { field: 'name', type: 'category' };
@@ -140,26 +153,32 @@ function layout(spec, data, legendEntries = []) {
   const matrixYField = spec.encoding.y?.field || 'y', matrixTexts = spec.type === 'heatmap' ? data.rows.map(row => String(row[matrixYField] ?? '')) : [];
   const leftTexts = spec.type === 'bar' ? categoryTexts : yTicks.map(value => formatValue(value, spec.yAxis?.format, spec.locale));
   const leftLabelWidth = maxWidth(leftTexts), rightLabelWidth = yEncodings.length > 1 && !stackMode ? maxWidth(rightTicks.map(value => formatValue(value, spec.yAxis?.right?.format, spec.locale))) : 0;
-  const centeredPlot = ['pie', 'funnel', 'gauge', 'radar'].includes(spec.type);
+  const axisFree = axisFreeTypes.has(spec.type);
   const sideLabelWidth = Math.max(spec.type === 'bar' ? leftLabelWidth : 0, spec.type === 'heatmap' ? maxWidth(matrixTexts) : 0);
   const leftTitleBand = spec.yAxis?.title ? axisSize + 16 : 0;
   const rightTitleBand = spec.yAxis?.right?.title && yEncodings.length > 1 && !stackMode ? axisSize + 16 : 0;
   const cartesianLeft = 8 + leftTitleBand + leftLabelWidth + 10;
-  const plotLeft = centeredPlot
-    ? Math.max(p.left, p.right)
+  const plotLeft = axisFree
+    ? Math.max(p.left, chrome.legend.position === 'left' ? chrome.legend.right + 12 : p.left)
     : spec.type === 'bar'
       ? Math.max(p.left, spec.yAxis?.title ? cartesianLeft : sideLabelWidth + 24)
       : spec.type === 'heatmap'
         ? Math.min(width * 0.35, Math.max(p.left, sideLabelWidth + 24))
         : Math.max(p.left, cartesianLeft);
-  const plotRight = centeredPlot ? plotLeft : Math.max(p.right, rightLabelWidth ? rightLabelWidth + rightTitleBand + 18 : 0);
+  const plotRight = axisFree
+    ? Math.max(p.right, chrome.legend.position === 'right' ? spec.width - chrome.legend.left + 12 : p.right)
+    : Math.max(p.right, rightLabelWidth ? rightLabelWidth + rightTitleBand + 18 : 0);
   const labelTopReserve = spec.type === 'column' && spec.labels?.enabled ? Math.ceil(fontSize(spec, 'label', 12) * 1.5 + 4) : 0;
-  const plotTop = Math.max(p.top, chrome.bottom + (chrome.bottom ? 12 : 0)) + labelTopReserve;
   const plotWidth = Math.max(1, width - plotLeft - plotRight);
   const axisLabelTexts = temporal ? timeTicks(xMin, xMax, 5).map(value => formatTime(value, xMax - xMin, spec.xAxis?.format, spec.locale)) : quantitativeX ? timeTicks(xMin, xMax, 5).map(value => formatValue(value, spec.xAxis?.format, spec.locale)) : categories;
   const xLabels = axisLabelLayout(spec, spec.type === 'bar' ? [] : axisLabelTexts, plotWidth);
+  const topChrome = chrome.legend.position === 'top' && chrome.legend.visible ? chrome.legend.bottom + 12 : Math.max(p.top, chrome.title.bottom + (chrome.title.bottom ? 12 : 0));
+  const axisFreeBottomPadding = Number(layoutOptions.axisFreeBottomPadding ?? p.bottom);
+  const bottomChrome = chrome.legend.position === 'bottom' && chrome.legend.visible ? chrome.legend.top - 12 : height - axisFreeBottomPadding;
+  const plotTop = axisFree ? Math.max(p.top, topChrome) + labelTopReserve : Math.max(p.top, chrome.bottom + (chrome.bottom ? 12 : 0)) + labelTopReserve;
   const bottomReserve = Math.max(p.bottom, Math.ceil(16 + xLabels.projectedHeight + (spec.xAxis?.title ? 20 : 0)));
-  const plot = { x: plotLeft, y: plotTop, width: plotWidth, height: Math.max(1, height - plotTop - bottomReserve) };
+  const plotBottom = axisFree ? Math.min(height - axisFreeBottomPadding, bottomChrome) : height - bottomReserve;
+  const plot = { x: plotLeft, y: plotTop, width: plotWidth, height: Math.max(1, plotBottom - plotTop) };
   const axisTitles = {
     y: spec.yAxis?.title ? truncateText(spec.yAxis.title, plot.height, axisSize) : null,
     right: spec.yAxis?.right?.title && yEncodings.length > 1 && !stackMode ? truncateText(spec.yAxis.right.title, plot.height, axisSize) : null
@@ -170,7 +189,7 @@ function layout(spec, data, legendEntries = []) {
   const rightTransform = value => rightType === 'log' ? Math.log10(Math.max(0.000001, Number(value))) : Number(value);
   const yRight = value => plot.y + plot.height - ((rightTransform(value) - rightTransform(rightMin)) / (rightTransform(rightMax) - rightTransform(rightMin) || 1)) * plot.height;
   const axisInfo = (rawDomain, domain, ticks, axis) => ({ rawDomain, domain, ticks, step: ticks.length > 1 ? (ticks[1] - ticks[0]) : null, policy: validDomain(axis?.domain) ? 'explicit' : axis?.nice === false ? 'raw' : 'nice' });
-  return { plot, chrome, xLabels, axisTitles, axisTitleWarnings, axisLayout: { size: axisSize, leftLabelWidth, rightLabelWidth }, compact: width < 360 || height < 240, recommendedSize: { minWidth: 280, minHeight: 220 }, xField, xEncoding, temporal, quantitativeX, xMin, xMax, yField, yEncodings, categories, rawMin, rawMax, min, max, rawRightMin, rawRightMax, rightMin, rightMax, yTicks, rightTicks, axes: { y: axisInfo([rawMin, rawMax], [min, max], yTicks, spec.yAxis || {}), right: axisInfo([rawRightMin, rawRightMax], [rightMin, rightMax], rightTicks, spec.yAxis?.right || {}) }, x, y, yRight, axisType, rightType };
+  return { plot, chrome, layoutFamily: axisFree ? spec.type : 'cartesian', xLabels, axisTitles, axisTitleWarnings, axisLayout: { size: axisSize, leftLabelWidth, rightLabelWidth }, compact: width < 360 || height < 240, recommendedSize: { minWidth: 280, minHeight: 220 }, xField, xEncoding, temporal, quantitativeX, xMin, xMax, yField, yEncodings, categories, rawMin, rawMax, min, max, rawRightMin, rawRightMax, rightMin, rightMax, yTicks, rightTicks, axes: { y: axisInfo([rawMin, rawMax], [min, max], yTicks, spec.yAxis || {}), right: axisInfo([rawRightMin, rawRightMax], [rightMin, rightMax], rightTicks, spec.yAxis?.right || {}) }, x, y, yRight, axisType, rightType };
 }
 
 function addText(scene, id, text, x, y, style = {}, dataRef = null) { scene.add(new SceneNode({ id, type: 'text', geometry: { text: String(text), x, y }, style, dataRef })); }
@@ -270,11 +289,11 @@ function addHeatmapScene(scene, spec, data, state, colors) {
 }
 
 function addRadarScene(scene, spec, data, state, colors) {
-  const indicators = spec.indicators, cx = state.plot.x + state.plot.width / 2, cy = state.plot.y + state.plot.height / 2, radius = Math.min(state.plot.width, state.plot.height) * .38;
+  const indicators = spec.indicators, cx = state.plot.x + state.plot.width / 2, cy = state.plot.y + state.plot.height / 2, radius = Math.min(state.plot.width, state.plot.height) * .44;
   if (indicators.some(indicator => !Number.isFinite(Number(indicator.min)) || !Number.isFinite(Number(indicator.max)))) data.warnings.push({ code: 'AMBIGUOUS_RADAR_DOMAIN', message: 'Declare finite min and max for every radar indicator, especially for mixed units.' });
   const point = (indicator, index, ratio = 1) => { const angle = -Math.PI / 2 + index * Math.PI * 2 / indicators.length; return { x: cx + Math.cos(angle) * radius * ratio, y: cy + Math.sin(angle) * radius * ratio }; };
   [0.25, 0.5, 0.75, 1].forEach((ratio, level) => scene.add(new SceneNode({ id: `radar-grid-${level}`, type: 'path', geometry: { points: indicators.map((indicator, index) => point(indicator, index, ratio)), closed: true }, style: { fill: 'none', stroke: spec.theme.grid, strokeWidth: spec.theme.marks.gridWidth } })));
-  const labelSize = fontSize(spec, 'axis', 12), occupied = [], labelArea = { x: 4, y: Math.max(4, state.chrome.bottom + 4), width: spec.width - 8, height: Math.max(1, spec.height - spec.padding.bottom - Math.max(4, state.chrome.bottom + 4)) };
+  const labelSize = fontSize(spec, 'axis', 12), occupied = [], labelTop = Math.max(4, state.plot.y - labelSize * 2), labelArea = { x: 4, y: labelTop, width: spec.width - 8, height: Math.max(1, state.plot.y + state.plot.height - labelTop) };
   let hiddenLabels = 0;
   indicators.forEach((indicator, index) => {
     const edge = point(indicator, index), angle = -Math.PI / 2 + index * Math.PI * 2 / indicators.length;
@@ -364,6 +383,9 @@ export function buildScene(spec) {
     bottom: Number(baseSpec.padding?.bottom ?? 48) + (brandingEnabled ? 18 : 0),
     left: Number(baseSpec.padding?.left ?? 56),
   };
+  const themePadding = baseSpec.theme.layout.padding || {};
+  const customPadding = ['top', 'right', 'bottom', 'left'].some(key => Number(baseSpec.padding?.[key]) !== Number(themePadding[key]));
+  const axisFreeBottomPadding = customPadding ? effectivePadding.bottom : Math.max(28, Math.min(34, Number(themePadding.bottom ?? effectivePadding.bottom)));
   spec = { ...baseSpec, padding: effectivePadding };
   const isProjectFamily = ['gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane', 'architecture', 'mindmap'].includes(spec.type);
   if (isProjectFamily) {
@@ -381,7 +403,7 @@ export function buildScene(spec) {
   const colors = spec.colors;
   const series = Array.isArray(spec.encoding.y) ? spec.encoding.y : [{ ...spec.encoding.y, name: spec.encoding.y?.name || spec.encoding.y?.field }];
   const entries = legendEntries(spec, data, series, colors);
-  const state = layout(spec, data, entries);
+  const state = layout(spec, data, entries, { axisFreeBottomPadding });
   if (state.chrome.legend.truncatedCount) data.warnings.push({ code: 'LEGEND_OVERFLOW', path: 'legend', count: state.chrome.legend.truncatedCount, message: `${state.chrome.legend.truncatedCount} legend label${state.chrome.legend.truncatedCount === 1 ? '' : 's'} exceeded the available width and was truncated.`, suggestion: 'Use shorter category names or a wider chart.' });
   state.axisTitleWarnings.forEach(({ path, title, availableWidth }) => data.warnings.push({ code: 'TITLE_TRUNCATED', path, availableWidth, message: `Axis title "${title}" exceeded the available vertical plot space and was truncated.`, suggestion: 'Use a taller chart or a shorter axis title.' }));
   scene._labelArea = state.plot;
@@ -402,7 +424,7 @@ export function buildScene(spec) {
   } else if (spec.type === 'scatter') {
     data.rows.forEach((row, index) => { const xValue = Number(row[state.xField]), yValue = Number(row[state.yField]); if (!Number.isFinite(xValue) || !Number.isFinite(yValue)) return; const geometry = { cx: state.x(xValue), cy: state.y(yValue), r: 5 }, dataRef = { seriesIndex: 0, dataIndex: index, field: state.yField }; scene.add(new SceneNode({ id: `series-0-item-${index}`, type: 'circle', geometry, bounds: { x: geometry.cx - 8, y: geometry.cy - 8, width: 16, height: 16 }, style: { fill: colors[0] }, dataRef, interactive: true })); addMarkLabel(scene, spec, `series-0-item-${index}`, yValue, geometry.cx, geometry.cy - 8, dataRef, state.plot, { x: geometry.cx, y: geometry.cy, radius: 5 }); });
   } else if (spec.type === 'pie') {
-    const categoryField = spec.encoding.category?.field || 'name', valueField = spec.encoding.value?.field || 'value', values = data.rows.map(row => Number(row[valueField])), total = values.reduce((sum, value) => sum + (Number.isFinite(value) && value > 0 ? value : 0), 0), negativeCount = values.filter(value => Number.isFinite(value) && value < 0).length, cx = state.plot.x + state.plot.width / 2, cy = state.plot.y + state.plot.height / 2, radius = Math.min(state.plot.width, state.plot.height) * 0.38, innerR = radius * Number(spec.innerRadius || 0); let angle = -Math.PI / 2;
+    const categoryField = spec.encoding.category?.field || 'name', valueField = spec.encoding.value?.field || 'value', values = data.rows.map(row => Number(row[valueField])), total = values.reduce((sum, value) => sum + (Number.isFinite(value) && value > 0 ? value : 0), 0), negativeCount = values.filter(value => Number.isFinite(value) && value < 0).length, cx = state.plot.x + state.plot.width / 2, cy = state.plot.y + state.plot.height / 2, radius = Math.min(state.plot.width, state.plot.height) * 0.46, innerR = radius * Number(spec.innerRadius || 0); let angle = -Math.PI / 2;
     if (negativeCount) data.warnings.push({ code: 'NEGATIVE_VALUE_DROPPED', path: 'encoding.value', count: negativeCount, message: `Pie ignores ${negativeCount} negative value${negativeCount === 1 ? '' : 's'} when calculating shares.`, suggestion: 'Use non-negative part-to-whole values or choose a Cartesian chart for signed measures.' });
     if (!(total > 0)) { data.warnings.push({ code: 'ZERO_TOTAL', path: 'encoding.value', message: 'Pie requires a positive total.', suggestion: 'Provide at least one positive value or render an explicit empty state.' }); addText(scene, 'pie-zero-total', spec.emptyText || 'No positive values', cx, cy, { fill: spec.theme.muted, font: font(spec, 'subtitle'), textAnchor: 'middle' }); }
     else data.rows.forEach((row, index) => { const rawValue = values[index], value = Number.isFinite(rawValue) ? Math.max(0, rawValue) : 0, end = angle + value / total * Math.PI * 2, middle = angle + (end - angle) / 2, fill = colors[index % colors.length], dataRef = { seriesIndex: 0, dataIndex: index, category: row[categoryField], value, rawValue }; scene.add(new SceneNode({ id: `series-0-item-${index}`, type: 'arc', geometry: { cx, cy, r: radius, innerR, start: angle, end }, bounds: { x: cx - radius, y: cy - radius, width: radius * 2, height: radius * 2 }, style: { fill, stroke: spec.theme.background, strokeWidth: 1 }, dataRef, interactive: true })); addMarkLabel(scene, spec, `series-0-item-${index}`, value / total, cx + Math.cos(middle) * radius * .72, cy + Math.sin(middle) * radius * .72, dataRef, state.plot, null, spec.labels?.format || { style: 'percent' }, fill); angle = end; });
@@ -410,7 +432,7 @@ export function buildScene(spec) {
     const valueField = spec.encoding.value?.field || 'value'; const maxValue = Math.max(...data.rows.map(row => Number(row[valueField]) || 0), 1); const segmentHeight = state.plot.height / data.rows.length;
     data.rows.forEach((row, index) => { const value = Number(row[valueField]) || 0, ratio = Math.max(0.1, value / maxValue), fill = colors[index % colors.length]; const width = state.plot.width * ratio; const geometry = { x: state.plot.x + (state.plot.width - width) / 2, y: state.plot.y + index * segmentHeight, width, height: Math.max(2, segmentHeight - 3) }, dataRef = { seriesIndex: 0, dataIndex: index, field: valueField }; scene.add(new SceneNode({ id: `series-0-item-${index}`, type: 'rect', geometry, bounds: geometry, style: { fill }, dataRef, interactive: true })); addMarkLabel(scene, spec, `series-0-item-${index}`, value, geometry.x + geometry.width / 2, geometry.y + geometry.height / 2 + 4, dataRef, state.plot, null, null, fill); });
   } else if (spec.type === 'gauge') {
-    const valueField = spec.encoding.value?.field || 'value', domain = Array.isArray(spec.domain) ? spec.domain : [0, 100], rawValue = Number(data.rows[0]?.[valueField]), numericValue = Number.isFinite(rawValue) ? rawValue : 0, value = Math.max(Number(domain[0]), Math.min(Number(domain[1]), numericValue)), ratio = (value - Number(domain[0])) / (Number(domain[1]) - Number(domain[0]) || 1), cx = state.plot.x + state.plot.width / 2, cy = state.plot.y + state.plot.height * 0.62, radius = Math.min(state.plot.width, state.plot.height) * 0.36, start = Math.PI, end = start + Math.PI * ratio;
+    const valueField = spec.encoding.value?.field || 'value', domain = Array.isArray(spec.domain) ? spec.domain : [0, 100], rawValue = Number(data.rows[0]?.[valueField]), numericValue = Number.isFinite(rawValue) ? rawValue : 0, value = Math.max(Number(domain[0]), Math.min(Number(domain[1]), numericValue)), ratio = (value - Number(domain[0])) / (Number(domain[1]) - Number(domain[0]) || 1), cx = state.plot.x + state.plot.width / 2, cy = state.plot.y + state.plot.height * 0.68, radius = Math.min(state.plot.width * 0.42, state.plot.height * 0.62), start = Math.PI, end = start + Math.PI * ratio;
     if (!Array.isArray(spec.domain)) data.warnings.push({ code: 'MISSING_GAUGE_DOMAIN', path: 'domain', message: 'Gauge rendered with a compatibility fallback; provide an explicit domain to make the value meaningful.' });
     if (numericValue < Number(domain[0]) || numericValue > Number(domain[1])) data.warnings.push({ code: 'VALUE_CLAMPED', path: `data.values[0].${valueField}`, count: 1, rawValue: numericValue, domain: [...domain], message: `Gauge value ${numericValue} is outside domain [${domain[0]}, ${domain[1]}] and was clamped for the arc.`, suggestion: 'Choose a domain that covers the value or review the source unit.' });
     scene.add(new SceneNode({ id: 'gauge-background', type: 'arc', geometry: { cx, cy, r: radius, start: Math.PI, end: Math.PI * 2 }, style: { fill: spec.theme.grid } })); scene.add(new SceneNode({ id: 'gauge-value', type: 'arc', geometry: { cx, cy, r: radius, start, end }, style: { fill: colors[0] }, dataRef: { seriesIndex: 0, dataIndex: 0, value, rawValue: numericValue }, interactive: true })); addText(scene, 'gauge-label', formatValue(numericValue, spec.labels?.format || spec.encoding.value?.format || { maximumFractionDigits: 2 }, spec.locale), cx, cy - 12, { fill: spec.theme.text, font: font(spec, 'metric'), textAnchor: 'middle' });

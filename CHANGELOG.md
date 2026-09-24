@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.15 - 2026-09-24
+
+- Added the Iteration 13F axis-free layout strategy for Pie, Funnel, Gauge, and Radar, prioritizing chart body area and placing supported legends without Cartesian-axis reserves.
+- Exposed resolved layout geometry through `getState().layout` and `explain().layout`, with focused regression coverage for axis-free charts.
+- Removed archived iChart.js 1.x sources and obsolete 2.0 example snapshots, and added `.trae` to the ignore rules.
+- Synchronized package, runtime, Playground, documentation, and Skill references for `v2.0.15`.
+
 ## 2.0.14 - 2026-09-23
 
 - Added a canonical contract registry with synchronized runtime capabilities, offline chart profiles, export declarations, command metadata, business models, and Mindmap edge metadata.
