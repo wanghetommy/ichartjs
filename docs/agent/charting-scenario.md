@@ -2,6 +2,13 @@
 
 Agent usage and development guide for generic data analysis and metric visualization.
 
+## Capability Boundaries
+
+- `scatter` is a single x/y measure pair; it does not provide series or legend encoding.
+- `heatmap` uses matrix row/column labels from `encoding.x` and `encoding.y`; Cartesian `xAxis`/`yAxis` configuration is not supported.
+- `funnel` renders stage names from `encoding.category` (default `name`) and optional values from `labels.enabled`; it has no legend.
+- `area` and `column` accept at most two quantitative `encoding.y` measures.
+
 ## Supported Types
 
 | Type | Typical intent | Recommended renderer |

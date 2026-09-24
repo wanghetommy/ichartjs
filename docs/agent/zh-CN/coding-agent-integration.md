@@ -22,7 +22,7 @@ npm Registry 中无作用域的 `ichartjs` 是安全占位包，并非本项目�
 npx skills add wanghetommy/ichartjs --skill ichartjs
 ```
 
-Codex 全局无交互安装可追加 `--agent codex --global --yes`。需要固定发布版本时，安装 `https://github.com/wanghetommy/ichartjs/tree/v2.0.15/skills/ichartjs`。WorkBuddy 可通过自身 Skill 界面导入该带 Tag 的目录；只有当前 CLI 明确声明对应适配器时才使用宿主专用 `--agent` 参数。
+Codex 全局无交互安装可追加 `--agent codex --global --yes`。需要固定发布版本时，安装 `https://github.com/wanghetommy/ichartjs/tree/v2.0.16/skills/ichartjs`。WorkBuddy 可通过自身 Skill 界面导入该带 Tag 的目录；只有当前 CLI 明确声明对应适配器时才使用宿主专用 `--agent` 参数。
 
 使用 `npx skills add wanghetommy/ichartjs --list` 验证发现结果，其中应包含 `ichartjs`。
 

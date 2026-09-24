@@ -43,17 +43,31 @@ function merge(base, extra) {
   return result;
 }
 
+function normalizeTitle(title) {
+  if (typeof title === 'string') return { text: title };
+  if (title && typeof title === 'object' && !Array.isArray(title) && !title.text && typeof title.label === 'string') {
+    const normalized = clone(title);
+    normalized.text = normalized.label;
+    delete normalized.label;
+    return normalized;
+  }
+  return title;
+}
+
 function dependencyId(dependency) {
   return typeof dependency === 'string' ? dependency : dependency && typeof dependency === 'object' && typeof dependency.id === 'string' ? dependency.id : null;
 }
 
 function dependencyErrors(rows) {
-  const errors = [], ids = new Set(rows.map(row => row.id).filter(Boolean)), graph = new Map(rows.map(row => [row.id, (row.dependencies || []).map(dependencyId).filter(Boolean)]));
-  rows.forEach((row, index) => (row.dependencies || []).forEach((dependency, dependencyIndex) => {
+  const errors = [], ids = new Set(rows.map(row => row.id).filter(Boolean)), graph = new Map(rows.map(row => [row.id, (Array.isArray(row.dependencies) ? row.dependencies : []).map(dependencyId).filter(Boolean)]));
+  rows.forEach((row, index) => {
+    if (row?.dependencies !== undefined && !Array.isArray(row.dependencies)) errors.push({ code: 'INVALID_DEPENDENCY_LIST', path: `data.values[${index}].dependencies`, message: 'Dependencies must be an array of task IDs or dependency objects.', suggestion: 'Use dependencies: ["task-id"] or [{ id, type, lag, lead }].' });
+    (Array.isArray(row?.dependencies) ? row.dependencies : []).forEach((dependency, dependencyIndex) => {
     const id = dependencyId(dependency);
     if (!id) errors.push({ code: 'INVALID_DEPENDENCY', path: `data.values[${index}].dependencies[${dependencyIndex}]`, message: 'Dependency must be a task id or an object with an id.', suggestion: 'Use a string id or { id, type, lag, lead }.' });
     else if (!ids.has(id)) errors.push({ code: 'MISSING_DEPENDENCY', path: `data.values[${index}].dependencies`, message: `Task ${row.id || index} references missing task ${id}.`, suggestion: 'Use an existing task id.' });
-  }));
+    });
+  });
   const visiting = new Set(), visited = new Set();
   function visit(id) { if (visiting.has(id)) return true; if (visited.has(id)) return false; visiting.add(id); const cycle = (graph.get(id) || []).some(visit); visiting.delete(id); visited.add(id); return cycle; }
   graph.forEach((_, id) => { if (visit(id)) errors.push({ code: 'CYCLIC_DEPENDENCY', path: 'data.values', message: 'Gantt dependencies contain a cycle.', suggestion: 'Dependencies must form a directed acyclic graph.' }); });
@@ -134,6 +148,7 @@ function validateEncodingContract(input, spec, errors) {
 
 export function normalizeSpec(input = {}) {
   const spec = merge(defaults, input);
+  spec.title = normalizeTitle(spec.title);
   if (input.branding === undefined && input.theme && typeof input.theme === 'object' && input.theme.branding !== undefined) spec.branding = clone(input.theme.branding);
   if (spec.branding === false) spec.branding = { enabled: false };
   else if (spec.branding === true) spec.branding = { enabled: true };
@@ -164,6 +179,15 @@ export function normalizeSpec(input = {}) {
 export function validateSpec(input = {}) {
   const spec = normalizeSpec(input);
   const errors = [], warnings = [], normalizations = [];
+  if (typeof input.title === 'string') {
+    normalizations.push({ path: 'title', from: 'string', to: 'title.text' });
+    warnings.push({ code: 'NORMALIZED_TITLE', path: 'title', message: 'String titles are normalized to title.text.', suggestion: 'Prefer title: { text: "..." } for an explicit title contract.' });
+  } else if (input.title && typeof input.title === 'object' && !Array.isArray(input.title) && input.title.text === undefined && typeof input.title.label === 'string') {
+    normalizations.push({ path: 'title.label', from: 'title.label', to: 'title.text' });
+    warnings.push({ code: 'NORMALIZED_TITLE', path: 'title.label', message: 'title.label is normalized to title.text.', suggestion: 'Use title: { text: "..." }.' });
+  } else if (input.title !== undefined && (!input.title || typeof input.title !== 'object' || Array.isArray(input.title) || (input.title.text === undefined && input.title.subtitle === undefined))) {
+    warnings.push({ code: 'INVALID_TITLE', path: 'title', message: 'Title must be a string or an object with text and/or subtitle.', suggestion: 'Use title: { text: "...", subtitle: "..." }.' });
+  }
   if (!chartTypes.has(spec.type)) errors.push({ code: 'INVALID_TYPE', path: 'type', message: `Unsupported chart type: ${spec.type}`, suggestion: 'Use a type returned by getCapabilities().' });
   if (!['canvas', 'svg', 'auto'].includes(spec.renderer)) errors.push({ code: 'INVALID_RENDERER', path: 'renderer', message: `Unsupported renderer: ${spec.renderer}`, suggestion: 'Use canvas, svg, or auto.' });
   if (typeof spec.theme === 'string' && !themeModes.includes(spec.theme) && !themePresets.includes(spec.theme)) errors.push({ code: 'INVALID_THEME', path: 'theme', message: `Unsupported theme: ${spec.theme}`, suggestion: 'Use auto, light, dark, contrast, or a named style preset.' });
@@ -221,6 +245,7 @@ export function validateSpec(input = {}) {
     const diagramInput = { type: spec.type, ...(Array.isArray(spec.nodes) ? { nodes: spec.nodes } : {}), ...(Array.isArray(spec.edges) ? { edges: spec.edges } : {}), ...(Array.isArray(spec.lanes) ? { lanes: spec.lanes } : {}), ...(Array.isArray(spec.groups) ? { groups: spec.groups } : {}), ...(Array.isArray(spec.layers) ? { layers: spec.layers } : {}), ...(Array.isArray(spec.boundaries) ? { boundaries: spec.boundaries } : {}), ...(spec.diagram ? { diagram: spec.diagram } : {}) };
     const diagramValidation = validateDiagram(diagramInput);
     diagramValidation.errors.forEach(error => errors.push({ ...error, path: error.path || 'diagram' }));
+    diagramValidation.warnings?.forEach(warning => warnings.push({ ...warning, path: warning.path || 'diagram' }));
   }
   if (['gantt', 'timeline', 'milestone', 'burndown'].includes(spec.type)) {
     const rows = spec.data.values, dateKey = spec.type === 'gantt' ? 'start/end' : 'date';
@@ -236,12 +261,16 @@ export function validateSpec(input = {}) {
     }
   }
   if (spec.type === 'gantt') errors.push(...dependencyErrors(spec.data.values));
+  if (spec.type === 'gantt') spec.data.values.forEach((row, index) => {
+    if (row && row.dependsOn !== undefined && row.dependencies === undefined) warnings.push({ code: 'UNSUPPORTED_DEPENDENCY_FIELD', path: `data.values[${index}].dependsOn`, message: 'dependsOn is not a recognized Gantt dependency field and will be ignored.', suggestion: 'Rename dependsOn to dependencies.' });
+  });
+  if (spec.type === 'scatter' && (Array.isArray(spec.encoding?.x) || Array.isArray(spec.encoding?.y)) && (Array.isArray(spec.encoding?.x) && spec.encoding.x.length > 1 || Array.isArray(spec.encoding?.y) && spec.encoding.y.length > 1)) errors.push({ code: 'UNSUPPORTED_SCATTER_SERIES', path: 'encoding', message: 'Scatter supports one x/y measure pair; multi-series encoding is not supported.', suggestion: 'Use one x and one y field, or choose line, area, bar, or column for series.' });
   const rows = Array.isArray(spec.data?.values) ? spec.data.values : [];
   if (spec.type === 'pie' && rows.length > 8) warnings.push({ code: 'HIGH_CARDINALITY_PIE', path: 'data.values', message: `Pie contains ${rows.length} categories.`, expected: '8 or fewer categories', suggestion: 'Use bar/column or group smaller categories.' });
   if (spec.type === 'pie') {
     const valueField = spec.encoding.value?.field || 'value', values = rows.map(row => Number(row?.[valueField])), negativeCount = values.filter(value => Number.isFinite(value) && value < 0).length, positiveTotal = values.reduce((sum, value) => sum + (Number.isFinite(value) && value > 0 ? value : 0), 0);
     if (negativeCount) warnings.push({ code: 'NEGATIVE_VALUE_DROPPED', path: 'encoding.value', count: negativeCount, message: `Pie ignores ${negativeCount} negative value${negativeCount === 1 ? '' : 's'} when calculating shares.`, suggestion: 'Use non-negative part-to-whole values or choose a Cartesian chart for signed measures.' });
-    if (!(positiveTotal > 0)) warnings.push({ code: 'ZERO_TOTAL', path: 'encoding.value', message: 'Pie requires a positive total.', suggestion: 'Provide at least one positive value or render an explicit empty state.' });
+    if (!(positiveTotal > 0)) errors.push({ code: 'ZERO_TOTAL', path: 'encoding.value', message: 'Pie requires a positive total.', suggestion: 'Provide at least one positive value or render an explicit empty state.' });
   }
   if (spec.type === 'radar' && Array.isArray(spec.indicators) && spec.indicators.some(indicator => !Number.isFinite(Number(indicator.min)) || !Number.isFinite(Number(indicator.max)))) warnings.push({ code: 'AMBIGUOUS_RADAR_DOMAIN', path: 'indicators', message: 'Radar indicator domains are incomplete.', expected: 'finite min and max for every indicator', suggestion: 'Declare explicit domains, especially for mixed units.' });
   const profile = chartProfiles[spec.type], inputOptions = input && typeof input === 'object' ? input : {};

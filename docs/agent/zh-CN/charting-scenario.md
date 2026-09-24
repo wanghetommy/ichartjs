@@ -2,6 +2,13 @@
 
 用于通用指标分析和数据展示的 Agent 使用与开发指南。
 
+## 能力边界
+
+- `scatter` 只支持一组 x/y 数值字段，不提供 Series 或 Legend 编码。
+- `heatmap` 使用 `encoding.x` 和 `encoding.y` 的矩阵行列标签，不支持笛卡尔 `xAxis`/`yAxis` 配置。
+- `funnel` 从 `encoding.category`（默认 `name`）渲染阶段名称，`labels.enabled` 决定是否追加数值；不提供 Legend。
+- `area` 和 `column` 的 `encoding.y` 最多接受两个数值度量。
+
 ## 图表选择
 
 | 类型 | 适用场景 | 推荐 Renderer |

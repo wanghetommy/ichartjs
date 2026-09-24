@@ -21,7 +21,7 @@ Recommended installation:
 npx skills add wanghetommy/ichartjs --skill ichartjs
 ```
 
-Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.15/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
+Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.16/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
 
 The Skill is a workflow adapter, not the chart runtime. If the current JavaScript or TypeScript project does not already depend on iChart.js, install the matching runtime from GitHub:
 
@@ -40,9 +40,9 @@ Do not install the unscoped npm registry package named `ichartjs`; it is current
 5. Inspect the complete planning result, including `styleRecommendation`, warnings, and fallback status.
 6. Stop when `requiredFields` is non-empty; request data or explain a supported alternative.
 7. Build a JSON-serializable Spec using `suggestedEncodings`, the selected capability, and an applicable recipe.
-8. Use chart-specific channels: Cartesian `x`/`y`, Pie/Funnel `category`/`value`, Gauge `value`, Heatmap `x`/`y`/`color`, and Radar `indicators[].field`. To load a recipe, use `import catalog from '@taylorwong/ichartjs/recipes/minimal-specs' with { type: 'json' }` and select `catalog.examples[type]`.
+8. Use chart-specific channels: Cartesian `x`/`y`, Pie/Funnel `category`/`value`, Gauge `value`, Heatmap `x`/`y`/`color`, and Radar `indicators[].field`. Funnel stage text comes from `encoding.category` (default `name`) and is always rendered; `labels.enabled` additionally renders values. To load a recipe, use `import catalog from '@taylorwong/ichartjs/recipes/minimal-specs' with { type: 'json' }` and select `catalog.examples[type]`; `recipes/` is the public export path backed by the package's `agent-recipes/` directory.
 9. Keep titles/formats under `xAxis`/`yAxis`, labels under `labels`, and legend under `legend`; do not place them inside `encoding`.
-10. Call `validateSpec()` before rendering. Repair `UNSUPPORTED_ENCODING_CHANNEL`, `MISSING_ENCODING_FIELD`, `MISSING_GAUGE_DOMAIN`, `UNKNOWN_INTENT`, misplaced-option, and unsupported-axis warnings before presenting the chart.
+10. Call `validateSpec()` before rendering. Repair `UNSUPPORTED_ENCODING_CHANNEL`, `MISSING_ENCODING_FIELD`, `MISSING_GAUGE_DOMAIN`, `ZERO_TOTAL`, `UNKNOWN_INTENT`, misplaced-option, and unsupported-axis warnings before presenting the chart.
 11. Call `createChart()` only after validation succeeds. Gauge Specs must declare a meaningful `domain`.
 12. Self-check with `chart.explain()`, `chart.getState()`, `health.renderable`, and JSON export. Treat `VALUE_CLAMPED`, `LABELS_SUPPRESSED`, `NEGATIVE_VALUE_DROPPED`, and `ZERO_TOTAL` as material diagnostics to report.
 13. Provide an exact preview URL or artifact path and report assumptions, warnings, and deferred checks.
@@ -75,6 +75,8 @@ Route by requested output:
 - Treat `getCapabilities().intents` as an allowlist; never pass a natural-language sentence as `planChart().intent`.
 - If planning returns `fallbackUsed: true`, use `intentSuggestions` to remap or ask for confirmation; never silently accept the fallback chart.
 - Keep axis titles/formats under `xAxis`/`yAxis`, labels under `labels`, and legend settings under `legend`.
+- Use `title: { text, subtitle }`; string titles and `title.label` are compatibility forms and are reported as normalizations.
+- Use diagram `label`, edge `from`/`to`, and Gantt `dependencies`; do not substitute `name`, `source`/`target`, or `dependsOn`.
 - Repair `UNKNOWN_INTENT`, misplaced-option, and unsupported-axis warnings before presenting a chart. For numeric y-axes, prefer the default readable domain; use `yAxis.domain: [min, max]` for an explicit range, `yAxis.nice: false` for raw boundaries, and `yAxis.ticks` for a stable label count.
 - Add stable string `id` values to tabular rows when lineage or linked updates are part of the deliverable.
 - Avoid Pie for high-cardinality categories; prefer Bar for comparison.

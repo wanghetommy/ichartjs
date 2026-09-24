@@ -104,6 +104,94 @@ test('builds stacked, donut, combo, heatmap, and radar scenes', () => {
   assert.equal(radar.scene.find('radar-item-0-0').dataRef.recordId, 'team');
 });
 
+test('renders funnel stages independently from optional numeric labels', () => {
+  const funnel = buildScene(normalizeSpec({ type: 'funnel', renderer: 'svg', data: [{ name: 'Visit', value: 12000 }, { name: 'Signup', value: 3200 }, { name: 'Paid', value: 96 }] }));
+  assert.equal(funnel.scene.find('funnel-category-0').geometry.text, 'Visit');
+  assert.equal(funnel.scene.find('funnel-category-1').geometry.text, 'Signup');
+  assert.equal(funnel.scene.find('funnel-value-0'), undefined);
+  const withValues = buildScene(normalizeSpec({ type: 'funnel', renderer: 'svg', labels: { enabled: true }, data: [{ name: 'Visit', value: 12000 }] }));
+  assert.equal(withValues.scene.find('funnel-category-0').geometry.text, 'Visit');
+  assert.equal(withValues.scene.find('funnel-value-0').geometry.text, '12000');
+});
+
+test('positions timeline and milestone events by date on the time axis', () => {
+  for (const type of ['timeline', 'milestone']) {
+    const model = buildScene(normalizeSpec({ type, width: 640, height: 360, data: [
+      { id: 'x0', title: 'M1', date: '2026-01-01' },
+      { id: 'x1', title: 'M2', date: '2026-01-10' },
+      { id: 'x2', title: 'M3', date: '2026-12-31' }
+    ] }));
+    const x0 = model.scene.find('project-item-0').geometry.cx, x1 = model.scene.find('project-item-1').geometry.cx, x2 = model.scene.find('project-item-2').geometry.cx;
+    assert.ok((x1 - x0) / (x2 - x0) < 0.05, `${type} should use date-proportional x positions`);
+    assert.ok(Math.abs((model.scene.find('project-item-1').geometry.cy - model.scene.find('project-item-0').geometry.cy) - (model.scene.find('project-item-2').geometry.cy - model.scene.find('project-item-1').geometry.cy)) < 1e-9);
+  }
+});
+
+test('hardens timeline and milestone layout for date domains and dense events', () => {
+  for (const type of ['timeline', 'milestone']) {
+    const model = buildScene(normalizeSpec({ type, width: 320, height: 100, branding: false, data: [
+      { id: 'e1', title: 'Launch', date: '2026-01-01' },
+      { id: 'e2', title: 'Review', date: '2026-01-01' },
+      { id: 'e3', title: 'Release', date: '2026-01-01' }
+    ] }));
+    assert.equal(model.state.timeDomain.length, 2);
+    assert.ok(model.state.xLabels.maxWidth > 0);
+    assert.equal(model.state.eventLayout.rows, 3);
+    assert.ok(model.state.eventLayout.collisionsResolved >= 1);
+    assert.ok(model.state.eventLayout.collisionsUnresolved >= 1);
+    assert.ok(model.data.warnings.some(warning => warning.code === 'TIMELINE_COLLISION'));
+  }
+});
+
+test('normalizes title compatibility forms and reports the normalization', () => {
+  const stringTitle = validateSpec({ type: 'line', title: 'Revenue', data: [{ name: 'A', value: 1 }] });
+  assert.equal(stringTitle.valid, true);
+  assert.equal(stringTitle.spec.title.text, 'Revenue');
+  assert.ok(stringTitle.warnings.some(warning => warning.code === 'NORMALIZED_TITLE'));
+  const labelTitle = validateSpec({ type: 'line', title: { label: 'Revenue' }, data: [{ name: 'A', value: 1 }] });
+  assert.equal(labelTitle.spec.title.text, 'Revenue');
+  assert.ok(labelTitle.normalizations.some(item => item.path === 'title.label'));
+  const invalidTitle = validateSpec({ type: 'line', title: { label: 42 }, data: [{ name: 'A', value: 1 }] });
+  assert.ok(invalidTitle.warnings.some(warning => warning.code === 'INVALID_TITLE'));
+});
+
+test('diagnoses diagram label and endpoint aliases instead of silently falling back', () => {
+  const labels = validateSpec({ type: 'architecture', layers: [{ id: 'l1', name: 'Technology' }], nodes: [{ id: 'a', name: 'API', layerId: 'l1' }, { id: 'b', label: 'DB', layerId: 'l1' }], edges: [{ source: 'a', target: 'b' }] });
+  assert.ok(labels.warnings.some(warning => warning.code === 'UNSUPPORTED_DIAGRAM_LABEL_FIELD' && warning.path === 'layers.0.name'));
+  assert.ok(labels.warnings.some(warning => warning.code === 'UNSUPPORTED_DIAGRAM_LABEL_FIELD' && warning.path === 'nodes.0.name'));
+  assert.ok(labels.errors.some(error => error.code === 'UNSUPPORTED_EDGE_ENDPOINT_FIELDS'));
+});
+
+test('diagnoses unsupported project aliases and localizes project output', () => {
+  const gantt = validateSpec({ type: 'gantt', data: [{ id: 'a', start: '2026-09-01', end: '2026-09-02', dependsOn: ['x'] }] });
+  assert.ok(gantt.warnings.some(warning => warning.code === 'UNSUPPORTED_DEPENDENCY_FIELD'));
+  const chart = createChart({ type: 'burndown', renderer: 'svg', locale: 'zh-CN', data: [{ id: 'd1', date: '2026-09-01', remaining: 10 }, { id: 'd2', date: '2026-09-02', remaining: 0 }] });
+  const texts = [];
+  chart.model.scene.walk(node => { if (node.type === 'text') texts.push(node.geometry.text); });
+  assert.ok(texts.some(value => value.startsWith('预计完成') || value.startsWith('无法预测')));
+  assert.match(projectTooltip('burndown', { date: '2026-09-03', remaining: 6, scopeChange: 2 }, 'zh-CN'), /剩余: 6/);
+  chart.destroy();
+});
+
+test('keeps theme state machine-readable through style and getTheme', () => {
+  const chart = createChart({ type: 'line', data: [{ name: 'A', value: 1 }] });
+  chart.setTheme({ mode: 'dark' });
+  assert.equal(chart.getState().theme, undefined);
+  assert.equal(chart.getState().style.resolvedMode, 'dark');
+  assert.equal(chart.getTheme().resolvedMode, 'dark');
+  chart.destroy();
+});
+
+test('rejects unsupported scatter multi-series encoding', () => {
+  const result = validateSpec({ type: 'scatter', data: [{ x: 1, y: 2, z: 3 }], encoding: { x: { field: 'x' }, y: [{ field: 'y' }, { field: 'z' }] } });
+  assert.ok(result.errors.some(error => error.code === 'UNSUPPORTED_SCATTER_SERIES'));
+});
+
+test('loads the public virtual recipes export', async () => {
+  const module = await import('@taylorwong/ichartjs/recipes/minimal-specs', { with: { type: 'json' } });
+  assert.equal(module.default.examples.radar.type, 'radar');
+});
+
 test('reports invalid specs with structured errors', () => {
   const result = validateSpec({ type: 'unknown', renderer: 'webgl', width: 0, height: 0 });
   assert.equal(result.valid, false);
@@ -173,8 +261,8 @@ test('reports dropped pie negatives and empty totals without duplicate diagnosti
   chart.destroy();
 
   const empty = validateSpec({ type: 'pie', data: [{ name: 'A', value: 0 }, { name: 'B', value: 0 }] });
-  assert.equal(empty.valid, true);
-  assert.ok(empty.warnings.some(warning => warning.code === 'ZERO_TOTAL'));
+  assert.equal(empty.valid, false);
+  assert.ok(empty.errors.some(error => error.code === 'ZERO_TOTAL'));
 });
 
 test('normalizes non-Cartesian specs without unsupported default warnings', () => {
@@ -1331,7 +1419,7 @@ test('keeps stacked labels clear, centers funnel content, and sizes project labe
   assert.ok(columnLabel.geometry.y + 8 < columnBar.geometry.y);
 
   const funnel = buildScene(normalizeSpec({ type: 'funnel', width: 560, height: 300, labels: { enabled: true }, data: [{ name: 'Visit', value: 100 }, { name: 'Paid', value: 20 }] }));
-  assert.equal(funnel.scene.find('series-0-item-0').geometry.x + funnel.scene.find('series-0-item-0').geometry.width / 2, funnel.scene.find('series-0-item-0-label').geometry.x);
+  assert.equal(funnel.scene.find('series-0-item-0').geometry.x + funnel.scene.find('series-0-item-0').geometry.width / 2, funnel.scene.find('funnel-category-0').geometry.x);
 
   const gantt = buildProjectScene(normalizeSpec({ type: 'gantt', width: 560, height: 300, data: [{ id: 'design', name: 'Design', start: '2026-09-01', end: '2026-09-05' }] }));
   const swimlane = buildProjectScene(normalizeSpec({ type: 'swimlane', width: 560, height: 300, lanes: [{ id: 'development', label: 'Development' }], nodes: [{ id: 'ship', label: 'Ship', laneId: 'development' }] }));

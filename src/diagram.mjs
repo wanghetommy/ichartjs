@@ -28,14 +28,17 @@ export function normalizeDiagramSpec(spec = {}) {
 }
 
 export function validateDiagram(spec = {}) {
-  const errors = [], normalized = normalizeDiagramSpec(spec), nodes = normalized.nodes, edges = normalized.edges, lanes = normalized.lanes, layers = normalized.layers;
+  const errors = [], warnings = [], normalized = normalizeDiagramSpec(spec), nodes = normalized.nodes, edges = normalized.edges, lanes = normalized.lanes, layers = normalized.layers;
   const nodeIds = new Set(), laneIds = new Set(lanes.map(lane => lane.id));
   const groupIds = new Set();
   const layerIds = new Set(layers.map(layer => layer.id));
   if (!diagramModes.includes(normalized.diagram.mode)) errors.push({ code: 'DIAGRAM_MODE', path: 'diagram.mode', message: `Unsupported diagram mode: ${normalized.diagram.mode}.`, suggestion: `Use ${diagramModes.join(', ')}.` });
   layers.forEach((layer, index) => {
     if (typeof layer?.id !== 'string' || !layer.id) errors.push({ code: 'LAYER_ID', path: `layers.${index}.id`, message: 'Architecture layers require stable IDs.' });
+    if (layer?.name !== undefined && layer?.label === undefined) warnings.push({ code: 'UNSUPPORTED_DIAGRAM_LABEL_FIELD', path: `layers.${index}.name`, message: 'Architecture layer display text uses label, not name.', suggestion: 'Rename layers[].name to layers[].label.' });
   });
+  normalized.groups.forEach((group, index) => { if (group?.name !== undefined && group?.label === undefined) warnings.push({ code: 'UNSUPPORTED_DIAGRAM_LABEL_FIELD', path: `groups.${index}.name`, message: 'Group display text uses label, not name.', suggestion: 'Rename groups[].name to groups[].label.' }); });
+  normalized.boundaries.forEach((boundary, index) => { if (boundary?.name !== undefined && boundary?.label === undefined) warnings.push({ code: 'UNSUPPORTED_DIAGRAM_LABEL_FIELD', path: `boundaries.${index}.name`, message: 'Boundary display text uses label, not name.', suggestion: 'Rename boundaries[].name to boundaries[].label.' }); });
   normalized.groups.forEach((group, index) => {
     if (typeof group?.id !== 'string' || !group.id) errors.push({ code: 'GROUP_ID', path: `groups.${index}.id`, message: 'Groups require stable IDs.' });
     else if (groupIds.has(group.id)) errors.push({ code: 'DUPLICATE_GROUP_ID', path: `groups.${index}.id`, message: 'Group IDs must be unique.' });
@@ -46,6 +49,7 @@ export function validateDiagram(spec = {}) {
     if (typeof node.id !== 'string' || !node.id) errors.push({ code: 'NODE_ID', path: `nodes.${index}.id`, message: 'Diagram nodes require stable string IDs.' });
     else if (nodeIds.has(node.id)) errors.push({ code: 'DUPLICATE_NODE_ID', path: `nodes.${index}.id`, message: `Duplicate node ID: ${node.id}.` });
     else nodeIds.add(node.id);
+    if (node?.name !== undefined && node?.label === undefined) warnings.push({ code: 'UNSUPPORTED_DIAGRAM_LABEL_FIELD', path: `nodes.${index}.name`, message: 'Node display text uses label, not name.', suggestion: 'Rename nodes[].name to nodes[].label.' });
     if (node.position && (!finite(node.position.x) || !finite(node.position.y))) errors.push({ code: 'NODE_POSITION', path: `nodes.${index}.position`, message: 'Node positions must contain finite x and y.' });
     if (node.laneId && lanes.length && !laneIds.has(node.laneId)) errors.push({ code: 'MISSING_LANE', path: `nodes.${index}.laneId`, message: `Unknown lane ID: ${node.laneId}.` });
     if (node.size && (!finite(node.size.width) || !finite(node.size.height) || node.size.width <= 0 || node.size.height <= 0)) errors.push({ code: 'NODE_SIZE', path: `nodes.${index}.size`, message: 'Node sizes must be finite and positive.' });
@@ -68,8 +72,12 @@ export function validateDiagram(spec = {}) {
   edges.forEach((edge, index) => {
     if (typeof edge.id === 'string' && edgeIds.has(edge.id)) errors.push({ code: 'DUPLICATE_EDGE_ID', path: `edges.${index}.id`, message: `Duplicate edge ID: ${edge.id}.` });
     if (edge.id) edgeIds.add(edge.id);
-    if (!nodeIds.has(edge.from) || !nodeIds.has(edge.to)) errors.push({ code: 'EDGE_ENDPOINT', path: `edges.${index}`, message: 'Edges must reference existing node IDs.' });
-    if (edge.from === edge.to) errors.push({ code: 'SELF_EDGE', path: `edges.${index}`, message: 'Self-referencing edges are not allowed by default.' });
+    const usesUnsupportedEndpointNames = (edge.from === undefined || edge.to === undefined) && (edge.source !== undefined || edge.target !== undefined);
+    if (usesUnsupportedEndpointNames) errors.push({ code: 'UNSUPPORTED_EDGE_ENDPOINT_FIELDS', path: `edges.${index}`, message: 'Diagram edges use from and to, not source and target.', suggestion: 'Rename edge.source to edge.from and edge.target to edge.to.' });
+    else {
+      if (!nodeIds.has(edge.from) || !nodeIds.has(edge.to)) errors.push({ code: 'EDGE_ENDPOINT', path: `edges.${index}`, message: 'Edges must reference existing node IDs.' });
+      if (edge.from === edge.to) errors.push({ code: 'SELF_EDGE', path: `edges.${index}`, message: 'Self-referencing edges are not allowed by default.' });
+    }
     ['fromPort', 'toPort'].forEach(key => {
       const node = nodes.find(item => item.id === edge[key === 'fromPort' ? 'from' : 'to']);
       if (edge[key] && (!Array.isArray(node?.ports) || !node.ports.some(port => port?.id === edge[key]))) errors.push({ code: 'MISSING_PORT', path: `edges.${index}.${key}`, message: `Unknown port ${edge[key]}.` });
@@ -85,7 +93,7 @@ export function validateDiagram(spec = {}) {
     const parents = new Map(nodes.map(node => [node.id, node.parentId]).filter(([, parentId]) => parentId));
     nodes.forEach(node => { const seen = new Set([node.id]); let current = node.parentId; while (current) { if (seen.has(current)) { errors.push({ code: 'MINDMAP_CYCLE', path: `nodes.${node.id}.parentId`, message: 'Mindmap parent relationships must be acyclic.' }); break; } seen.add(current); current = parents.get(current); } });
   }
-  return { valid: errors.length === 0, errors, spec: normalized };
+  return { valid: errors.length === 0, errors, warnings, spec: normalized };
 }
 
 export function diagramGraph(spec) {
