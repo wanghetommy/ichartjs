@@ -282,8 +282,8 @@
       "Short form `branding: false` and object form `branding: { enabled: false }` are both supported. Custom text, link, position, or font are intentionally NOT exposed in the current iteration."
     ]
   },
-  "packageVersion": "2.0.14",
-  "runtimeVersion": "2.0.14",
+  "packageVersion": "2.0.15",
+  "runtimeVersion": "2.0.15",
   "chartTypes": [
     "line",
     "area",

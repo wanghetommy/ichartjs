@@ -1,1 +1,0 @@
-iChart.Column3D=iChart.extend(iChart.Column2D,{configure:function(){iChart.Column3D.superclass.configure.call(this);this.type="column3d";this.dimension=iChart._3D;this.set({coordinate:{},xAngle:60,yAngle:20,zScale:1,bottom_scale:1.4})},doConfig:function(){iChart.Column3D.superclass.doConfig.call(this)}});iChart.register("Column3D");

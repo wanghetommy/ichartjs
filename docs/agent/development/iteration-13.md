@@ -209,6 +209,42 @@ The initial plan is sound, but the following requirements are part of Iteration 
 - `npm run test:browser` covers the maintained critical workflows with no uncaught errors.
 - `npm pack --dry-run` contains synchronized manifests, types, Agent guides, Skill references, recipes, and examples.
 
+## 13F — Axis-Free Chart Layout Strategy
+
+13F adds a dedicated layout strategy for charts without Cartesian axes. It does not add a chart type or change the public Spec shape. The purpose is to keep the visual subject—especially Pie, Gauge, Radar, and Funnel—larger and readable after title, legend, branding, and responsive constraints are applied.
+
+### Scope
+
+- Classify `pie`, `funnel`, `gauge`, and `radar` as axis-free layout families instead of applying Cartesian bottom-axis reserves.
+- Keep title, legend, plot body, labels, and branding in separate layout regions.
+- Preserve explicit `padding`; only the theme-derived default bottom reserve is tightened for axis-free charts.
+- Support `legend.position` values `top`, `right`, `bottom`, and `left` in the shared chrome layout.
+- Keep Canvas, SVG, and headless SVG on the same Scene Graph geometry.
+
+### Chart-specific rules
+
+- **Pie**: maximize the safe circular body, preserve label contrast and collision checks, and use a larger dynamic radius than the Cartesian-compatible fallback.
+- **Gauge**: fit the upper semicircle from both available width and arc height, keep the metric inside the gauge body, and avoid unused lower whitespace.
+- **Radar**: increase the radial body only when indicator labels remain inside the label area; retain `LABELS_SUPPRESSED` when labels cannot be placed safely.
+- **Funnel**: keep stage rectangles and labels centered while using the full axis-free body region.
+
+### Implementation boundary
+
+- Keep the layout-family decision in the shared chart scene builder; do not create a second runtime or renderer-specific layout.
+- Return `layoutFamily` and chrome region geometry in runtime state so Agent inspection can explain the effective layout.
+- Do not expose a large collection of new tuning options. Automatic fitting remains the default; explicit `padding` and `legend.position` remain the host controls.
+- Do not alter Cartesian layout defaults for line, area, bar, column, scatter, or heatmap.
+
+### 13F Checkpoint
+
+- Gallery-sized Pie and Radar bodies are materially larger than the previous `0.38 × min(plot)` geometry without label overlap.
+- Gauge uses its available arc area without title, value, or branding collisions.
+- Funnel stages remain centered and readable at desktop and compact sizes.
+- `legend.position` changes the chrome region for axis-free charts and does not overlap the body.
+- Explicit padding remains effective; default axis-free spacing is the only optimized spacing.
+- Canvas, SVG, and headless SVG expose equivalent body geometry and semantic data references.
+- `npm test`, `npm run test:browser`, `npm run agent:check`, and `git diff --check` pass.
+
 ## Execution Order
 
 1. Freeze the mutation error contract, public API allowlist, contract version, and stable-ID policy before implementation.
@@ -217,6 +253,7 @@ The initial plan is sound, but the following requirements are part of Iteration 
 4. Complete 13D against the stabilized registry and public API allowlist.
 5. Execute 13C as small behavior-preserving extractions with parity checks after each move; defer large scene-builder moves if they threaten the release gate.
 6. Promote 13E checks continuously after each phase, then record final acceptance evidence.
+7. Execute 13F after the shared contract and mutation boundaries are stable; verify axis-free geometry before release packaging.
 
 Each phase must be independently releasable. Do not combine a behavior correction and a large file move in the same change unless tests prove the old and new paths are equivalent.
 
@@ -241,6 +278,7 @@ Each phase must be independently releasable. Do not combine a behavior correctio
 | Types | TypeScript fixtures compile for lifecycle, events, editing, diagrams, preferences, and exports. |
 | Documentation | Canonical examples execute; local links resolve; English/Chinese contract markers match. |
 | Rendering | Canvas/SVG Scene semantics and headless SVG export remain equivalent. |
+| Axis-free layout | Pie, Gauge, Radar, and Funnel fit their body, chrome, labels, and branding without silent overlap. |
 | Browser | Generic, project, diagram, preferences, accessibility, and export workflows pass in maintained browser tests. |
 | Packaging | ESM import, JSON subpaths, recipes, declarations, Skill files, and dry-run tarball checks pass. |
 
@@ -262,6 +300,7 @@ The implementation may add focused scripts such as `contracts:check`, `types:che
 - Complete public TypeScript surface and compiled consumer fixtures.
 - Executable Agent documentation checks and bilingual semantic parity markers.
 - Complete Architecture/Mindmap Skill routing and diagram-edge capability metadata.
+- Axis-free layout strategy for Pie, Gauge, Radar, and Funnel with shared chrome geometry.
 - Split unit/contract suites and expanded critical browser workflows.
 - Updated `roadmap.md`, Agent guides, manifests, Skill references, changelog, and acceptance record.
 
@@ -271,7 +310,8 @@ The implementation may add focused scripts such as `contracts:check`, `types:che
 - Mutation safety: `ChartValidationError`, atomic `update()`/`setData()`/`setTheme()`/preference/patch paths, project row diagnostics, duplicate/out-of-order Burndown warnings, and idempotent `destroy()`.
 - Diagram contract: explicit `mindmap-edge` schema and command discovery aligned with Flow and Architecture edge operations.
 - Agent/type gates: `npm run types:check` compiles `types/consumer-fixture.ts` with TypeScript 5.9; `npm run docs:examples` completes the packaged Agent workflow; `npm run deps:check` reports no source cycles.
-- Acceptance: 95 Node tests, maintained Chromium browser workflow, `git diff --check`, and `npm pack --dry-run` with 94 files passed. The npm dry-run uses a temporary cache to avoid unrelated root-owned cache files.
+- Axis-free layout: Pie, Gauge, Radar, and Funnel use dedicated body geometry; `Chart#getState().layout` and `explain().layout` expose the resolved family, plot, chrome, and label regions.
+- Acceptance: 97 Node tests, maintained Chromium browser workflow, `git diff --check`, and `npm pack --dry-run` with 95 files passed. The npm dry-run uses a temporary cache to avoid unrelated root-owned cache files.
 
 ## Completion Definition
 
