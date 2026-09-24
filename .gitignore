@@ -2,4 +2,4 @@
 .DS_Store
 *.iml
 node_modules
-.trae
+.trae/
