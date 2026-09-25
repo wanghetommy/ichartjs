@@ -21,8 +21,9 @@
 - `scopeChange` 表示范围变化，不等于已完成工作量。
 - Forecast 是估计结果，不能描述为承诺或事实。
 - Gantt、Timeline 和 Milestone 根据 Unicode-aware 文本宽度预留左侧标签列；超过列宽的标签按像素省略，不按字符数截断。
-- Timeline 和 Milestone 的横向位置按 `date` 比例计算，纵向行槽位保持均匀，并在时间域边缘保留少量视觉留白；Milestone 覆盖层使用 `baselineDate` 和 `actualDate`，显示文本正式字段为 `title`（`name` 和 `label` 仍由兼容回退逻辑接受）。相邻标记会在可能时自动错位；如果空间不足，结果会返回 `TIMELINE_COLLISION`，建议增大高度或减少事件数量。
+- Timeline 和 Milestone 使用横向时间轴：`date` 映射到 x/`cx`，y/`cy` 只表示用于布局的事件行。Agent 需要确认方向、字段和计算后的日期域时，应读取 `chart.getState().timeAxis` 或 `chart.explain().timeAxis`。两者会在时间域边缘保留少量视觉留白；Milestone 覆盖层使用 `baselineDate` 和 `actualDate`，显示文本正式字段为 `title`（`name` 和 `label` 仍由兼容回退逻辑接受）。相邻标记会在可能时自动错位；如果空间不足，结果会返回 `TIMELINE_COLLISION`，建议增大高度或减少事件数量。
 - `locale` 同时作用于项目日期刻度、Burndown 预测文案和项目 Tooltip；需要中文运行时文案时使用 `locale: 'zh-CN'`。
+- 自动验收时应比较事件的 `x`/`cx` 与横向刻度的 `x`；y/`cy` 等距是正常的事件行布局，不表示日期被忽略。
 
 ## 编辑流程
 

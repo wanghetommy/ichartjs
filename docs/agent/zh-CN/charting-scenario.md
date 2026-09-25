@@ -6,7 +6,7 @@
 
 - `scatter` 只支持一组 x/y 数值字段，不提供 Series 或 Legend 编码。
 - `heatmap` 使用 `encoding.x` 和 `encoding.y` 的矩阵行列标签，不支持笛卡尔 `xAxis`/`yAxis` 配置。
-- `funnel` 从 `encoding.category`（默认 `name`）渲染阶段名称，`labels.enabled` 决定是否追加数值；不提供 Legend。
+- `funnel` 从 `encoding.category`（默认 `name`）渲染阶段名称，`labels.enabled` 决定是否追加数值；不提供 Legend。阶段过窄放不下名称时会截断，并报告 `FUNNEL_LABEL_TRUNCATED`；应增大宽度或缩短阶段名称，不要把省略号当成源数据。
 - `area` 和 `column` 的 `encoding.y` 最多接受两个数值度量。
 
 ## 图表选择

@@ -122,3 +122,30 @@ test('keeps legend, y-axis title, and project labels collision-free in Chrome', 
 
   assert.deepEqual(result, { legendOverlap: false, legendOverflow: false, axisOverlap: false, projectOverflow: false, barTitleText: '出生人口（万人）', barTitleRotation: 'rotate(-90 14 220)', barTitleWithinChart: true });
 });
+
+test('keeps Timeline and Milestone event coordinates aligned with the horizontal time axis', async () => {
+  const result = await page.evaluate(async () => {
+    const { createChart } = await import(`/src/index.mjs?time-axis-test=${Date.now()}`);
+    const chart = createChart({
+      type: 'timeline', renderer: 'svg', width: 640, height: 360, branding: false, container: '#chart',
+      data: [
+        { id: 'x0', title: 'M1', date: '2026-01-01' },
+        { id: 'x1', title: 'M2', date: '2026-01-10' },
+        { id: 'x2', title: 'M3', date: '2026-12-31' }
+      ]
+    });
+    const itemX = [0, 1, 2].map(index => Number(document.querySelector(`#project-item-${index}`).getAttribute('cx')));
+    const itemY = [0, 1, 2].map(index => Number(document.querySelector(`#project-item-${index}`).getAttribute('cy')));
+    const tickX = [...document.querySelectorAll('[id^="project-tick-"]')].map(node => Number(node.getAttribute('x')));
+    const state = chart.getState();
+    chart.destroy();
+    return { state: state.timeAxis, itemX, itemY, tickX };
+  });
+  assert.equal(result.state.orientation, 'horizontal');
+  assert.equal(result.state.coordinate, 'x');
+  assert.ok((result.itemX[1] - result.itemX[0]) / (result.itemX[2] - result.itemX[0]) < 0.05);
+  assert.ok(Math.abs(
+    (result.itemY[1] - result.itemY[0]) - (result.itemY[2] - result.itemY[1])
+  ) < 1e-9);
+  assert.ok(result.tickX.every((value, index) => index === 0 || value > result.tickX[index - 1]));
+});

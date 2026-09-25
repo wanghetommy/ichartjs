@@ -200,7 +200,7 @@ export function analyzeBurndown(rows, options = {}) {
 function tasksScene(scene, spec, rows, state) {
   const plot = state.plot;
   const overlays = projectOverlays(spec);
-  const [min, max] = projectDateDomain(spec, rows);
+  const [min, max] = state.timeDomain || projectDateDomain(spec, rows);
   const map = timeAxis(scene, plot, min, max, spec.locale), positions = new Map();
   const analyticsMap = new Map((state.schedule?.tasks || []).map(task => [task.id, task]));
   const highlighted = new Set(spec.criticalPath === false || !overlays.criticalPath ? [] : Array.isArray(spec.criticalPath) ? spec.criticalPath : state.schedule?.criticalIds || []);
@@ -423,7 +423,16 @@ export function buildProjectScene(spec) {
   const plotTop = Math.max(spec.padding.top, title.bottom + (title.bottom ? 12 : 0)) + (spec.type === 'burndown' ? 16 : 0);
   const plotWidth = Math.max(1, spec.width - left - spec.padding.right), dateDomain = projectDateDomain(spec, sourceRows), xLabels = axisLabelLayout(spec, projectTickLabels(dateDomain[0], dateDomain[1], plotWidth, spec.locale), plotWidth);
   const bottomReserve = Math.max(spec.padding.bottom + 16, Math.ceil(16 + xLabels.projectedHeight));
-  const state = { plot: { x: left, y: plotTop, width: plotWidth, height: Math.max(1, spec.height - plotTop - bottomReserve) }, xLabels, compact: spec.width < 360 || spec.height < 240, recommendedSize: { minWidth: 280, minHeight: 220 }, linked, projectAnalytics: { linked } };
+  const temporalProject = ['gantt', 'timeline', 'milestone'].includes(spec.type);
+  const timeAxis = ['timeline', 'milestone'].includes(spec.type) ? {
+    orientation: 'horizontal',
+    field: 'date',
+    coordinate: 'x',
+    rowCoordinate: 'y',
+    domain: [...dateDomain],
+    domainISO: dateDomain.map(value => new Date(value).toISOString())
+  } : null;
+  const state = { plot: { x: left, y: plotTop, width: plotWidth, height: Math.max(1, spec.height - plotTop - bottomReserve) }, xLabels, compact: spec.width < 360 || spec.height < 240, recommendedSize: { minWidth: 280, minHeight: 220 }, linked, projectAnalytics: { linked }, timeDomain: temporalProject ? [...dateDomain] : null, timeAxis };
   scene.xLabelLayout = xLabels;
   if (spec.type === 'gantt') {
     state.schedule = analyzeSchedule(data.rows, { calendar: projectConfig(spec).calendar || {} });

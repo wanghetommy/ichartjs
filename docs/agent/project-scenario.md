@@ -24,7 +24,7 @@ Agent usage and development guide for project planning, delivery tracking, and p
 - Keep derived values separate from source rows. State and tooltips may expose variance, float, warnings, and assumptions, but transforms must not mutate source data.
 - Linked filters and linked selection must use stable record IDs, not array positions.
 - Forecasts, risk scores, and aging buckets are inspectable heuristics. They are not commitments, causal claims, or hidden inference.
-- Project chart date axes are derived from `date`, `start`, and `end` records in the current contract; timeline and milestone use date-proportional horizontal positions while rows remain evenly spaced vertically. Generic `xAxis.title/format` and `xAxis.min/max` settings do not customize them.
+- Project chart date axes are derived from `date`, `start`, and `end` records in the current contract; Timeline and Milestone use a horizontal time axis: `date` maps to x/`cx`, while y/`cy` is only the event row used for layout. Read `chart.getState().timeAxis` or `chart.explain().timeAxis` when an Agent needs the orientation, field, or resolved domain. Generic `xAxis.title/format` and `xAxis.min/max` settings do not customize them.
 
 ## Agent Workflow
 
@@ -51,6 +51,7 @@ Agent usage and development guide for project planning, delivery tracking, and p
 - Capacity warnings, risk quadrants, and aging buckets should stay explainable from source fields.
 - Gantt, Timeline, and Milestone reserve their left label column from Unicode-aware text widths. Labels wider than the bounded column are truncated by rendered width rather than character count.
 - Timeline and Milestone place events on a date-proportional horizontal domain with a small visual edge padding. Nearby markers are automatically staggered when possible; if the available height is insufficient, the result includes `TIMELINE_COLLISION` and suggests increasing height or reducing events.
+- For automated geometry checks, compare event `x`/`cx` values with the horizontal tick `x` positions; equal y/`cy` spacing is expected and does not mean dates were ignored.
 - `locale` also applies to project date ticks, burndown forecast text, and project tooltips. Use `locale: 'zh-CN'` or another BCP 47 locale when those runtime labels must be localized.
 
 ## Editing
