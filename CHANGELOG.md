@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.17 - 2026-09-25
+
+- Added explicit `FUNNEL_LABEL_TRUNCATED` diagnostics when narrow stages cannot display their full labels.
+- Added consistent `UNSUPPORTED_DIAGRAM_LABEL_FIELD` diagnostics for `swimlane.lanes[].name`.
+- Exposed Timeline/Milestone horizontal time-axis metadata through runtime state and explanations, with Agent documentation and browser regression coverage.
+
 ## 2.0.16 - 2026-09-25
 
 - Hardened Timeline and Milestone date layouts with proportional positioning, date-aware ticks, edge padding, collision-aware marker staggering, and `TIMELINE_COLLISION` diagnostics for physically constrained charts.
