@@ -6,7 +6,7 @@ Agent usage and development guide for generic data analysis and metric visualiza
 
 - `scatter` is a single x/y measure pair; it does not provide series or legend encoding.
 - `heatmap` uses matrix row/column labels from `encoding.x` and `encoding.y`; Cartesian `xAxis`/`yAxis` configuration is not supported.
-- `funnel` renders stage names from `encoding.category` (default `name`) and optional values from `labels.enabled`; it has no legend.
+- `funnel` renders stage names from `encoding.category` (default `name`) and optional values from `labels.enabled`; it has no legend. If a narrow stage cannot fit its name, the label is truncated and `FUNNEL_LABEL_TRUNCATED` is reported; increase width or shorten the stage name rather than treating the ellipsis as source data.
 - `area` and `column` accept at most two quantitative `encoding.y` measures.
 
 ## Supported Types

@@ -112,6 +112,11 @@ test('renders funnel stages independently from optional numeric labels', () => {
   const withValues = buildScene(normalizeSpec({ type: 'funnel', renderer: 'svg', labels: { enabled: true }, data: [{ name: 'Visit', value: 12000 }] }));
   assert.equal(withValues.scene.find('funnel-category-0').geometry.text, 'Visit');
   assert.equal(withValues.scene.find('funnel-value-0').geometry.text, '12000');
+  const narrow = buildScene(normalizeSpec({ type: 'funnel', width: 640, height: 360, labels: { enabled: true }, data: [
+    { name: '官网访问', value: 12000 }, { name: '注册试用', value: 3200 }, { name: '需求沟通', value: 980 }, { name: '方案报价', value: 310 }, { name: '签约成交', value: 96 }
+  ] }));
+  assert.equal(narrow.scene.find('funnel-category-2').geometry.text, '需求沟…');
+  assert.ok(narrow.data.warnings.some(warning => warning.code === 'FUNNEL_LABEL_TRUNCATED' && warning.path === 'data.values[2].name' && warning.rawLabel === '需求沟通'));
 });
 
 test('positions timeline and milestone events by date on the time axis', () => {
@@ -124,6 +129,29 @@ test('positions timeline and milestone events by date on the time axis', () => {
     const x0 = model.scene.find('project-item-0').geometry.cx, x1 = model.scene.find('project-item-1').geometry.cx, x2 = model.scene.find('project-item-2').geometry.cx;
     assert.ok((x1 - x0) / (x2 - x0) < 0.05, `${type} should use date-proportional x positions`);
     assert.ok(Math.abs((model.scene.find('project-item-1').geometry.cy - model.scene.find('project-item-0').geometry.cy) - (model.scene.find('project-item-2').geometry.cy - model.scene.find('project-item-1').geometry.cy)) < 1e-9);
+  }
+});
+
+test('exposes the Timeline and Milestone horizontal time-axis contract', () => {
+  for (const type of ['timeline', 'milestone']) {
+    const chart = createChart({ type, renderer: 'svg', width: 640, height: 360, branding: false, data: [
+      { id: 'x0', title: 'M1', date: '2026-01-01' },
+      { id: 'x1', title: 'M2', date: '2026-01-10' },
+      { id: 'x2', title: 'M3', date: '2026-12-31' }
+    ] });
+    const state = chart.getState(), explanation = chart.explain(), items = [0, 1, 2].map(index => chart.model.scene.find(`project-item-${index}`).geometry);
+    assert.deepEqual(state.timeAxis, explanation.timeAxis);
+    assert.equal(state.timeAxis.orientation, 'horizontal');
+    assert.equal(state.timeAxis.field, 'date');
+    assert.equal(state.timeAxis.coordinate, 'x');
+    assert.equal(state.timeAxis.rowCoordinate, 'y');
+    const domain = state.timeAxis.domainISO.map(value => Date.parse(value));
+    assert.ok(domain.every(Number.isFinite));
+    assert.ok(domain[0] < Date.parse('2026-01-01T00:00:00.000Z'));
+    assert.ok(domain[1] > Date.parse('2026-12-31T00:00:00.000Z'));
+    assert.ok((items[1].cx - items[0].cx) / (items[2].cx - items[0].cx) < 0.05);
+    assert.ok(Math.abs((items[1].cy - items[0].cy) - (items[2].cy - items[1].cy)) < 1e-9);
+    chart.destroy();
   }
 });
 
@@ -160,6 +188,8 @@ test('diagnoses diagram label and endpoint aliases instead of silently falling b
   assert.ok(labels.warnings.some(warning => warning.code === 'UNSUPPORTED_DIAGRAM_LABEL_FIELD' && warning.path === 'layers.0.name'));
   assert.ok(labels.warnings.some(warning => warning.code === 'UNSUPPORTED_DIAGRAM_LABEL_FIELD' && warning.path === 'nodes.0.name'));
   assert.ok(labels.errors.some(error => error.code === 'UNSUPPORTED_EDGE_ENDPOINT_FIELDS'));
+  const swimlane = validateSpec({ type: 'swimlane', lanes: [{ id: 'lane-1', name: 'Employees' }], nodes: [{ id: 'task', label: 'Task', laneId: 'lane-1' }] });
+  assert.ok(swimlane.warnings.some(warning => warning.code === 'UNSUPPORTED_DIAGRAM_LABEL_FIELD' && warning.path === 'lanes.0.name'));
 });
 
 test('diagnoses unsupported project aliases and localizes project output', () => {

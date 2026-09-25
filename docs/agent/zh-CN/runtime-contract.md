@@ -28,6 +28,7 @@ Iteration 8 通过 `getChartCapability(type)` 提供逐图表能力档案，包�
 - Diagram 结构字段必须位于 Spec 顶层：通用图表使用 `data.values`；Flow/Swimlane 使用 `nodes/edges/lanes`，Architecture 使用 `nodes/edges/layers/boundaries`，Mindmap 使用带 `parentId` 的 `nodes` 和可选 `edges`。不要将这些字段放在 `data` 内。
 - `svg` 适合 DOM 交互和可访问性；`canvas` 适合大量图元和绘制性能。
 - 数值纵轴默认使用易读域（`yAxis.nice: true`、`yAxis.ticks: "auto"`）；使用 `yAxis.domain: [min, max]` 固定范围，或使用 `yAxis.nice: false` 保留原始边界。Agent 可通过 `chart.getState().axes` 或 `chart.explain().axes` 自检原始域、计算域、刻度、步长和策略。分类/时间横轴的 `min/max` 和 `domain` 不支持，范围由数据确定。
+- Timeline 和 Milestone 的 `chart.getState().timeAxis` 与 `chart.explain().timeAxis` 会返回 `orientation: "horizontal"`、`field: "date"`、`coordinate: "x"`、`rowCoordinate: "y"`、数值 `domain` 和 ISO `domainISO`。验收事件日期时应比较 `x`/`cx`；y/`cy` 只是事件行布局坐标。
 - `chart.getState().health` 和 `chart.explain().health` 提供 `ready`、`degraded` 或 `empty`，以及可渲染性、问题代码、警告数、隐藏标签数、限制值数和已渲染标记数。`locale` 默认 `en-US`，可设置 `zh-CN` 影响输出格式；输入日期应使用 ISO-8601 字符串。
 
 ## 品牌署名（Branding）

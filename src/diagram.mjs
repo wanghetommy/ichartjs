@@ -37,6 +37,9 @@ export function validateDiagram(spec = {}) {
     if (typeof layer?.id !== 'string' || !layer.id) errors.push({ code: 'LAYER_ID', path: `layers.${index}.id`, message: 'Architecture layers require stable IDs.' });
     if (layer?.name !== undefined && layer?.label === undefined) warnings.push({ code: 'UNSUPPORTED_DIAGRAM_LABEL_FIELD', path: `layers.${index}.name`, message: 'Architecture layer display text uses label, not name.', suggestion: 'Rename layers[].name to layers[].label.' });
   });
+  lanes.forEach((lane, index) => {
+    if (lane?.name !== undefined && lane?.label === undefined) warnings.push({ code: 'UNSUPPORTED_DIAGRAM_LABEL_FIELD', path: `lanes.${index}.name`, message: 'Swimlane lane display text uses label, not name.', suggestion: 'Rename lanes[].name to lanes[].label.' });
+  });
   normalized.groups.forEach((group, index) => { if (group?.name !== undefined && group?.label === undefined) warnings.push({ code: 'UNSUPPORTED_DIAGRAM_LABEL_FIELD', path: `groups.${index}.name`, message: 'Group display text uses label, not name.', suggestion: 'Rename groups[].name to groups[].label.' }); });
   normalized.boundaries.forEach((boundary, index) => { if (boundary?.name !== undefined && boundary?.label === undefined) warnings.push({ code: 'UNSUPPORTED_DIAGRAM_LABEL_FIELD', path: `boundaries.${index}.name`, message: 'Boundary display text uses label, not name.', suggestion: 'Rename boundaries[].name to boundaries[].label.' }); });
   normalized.groups.forEach((group, index) => {
