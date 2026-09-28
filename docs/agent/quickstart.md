@@ -103,6 +103,8 @@ const spec = {
 
 Use the selected capability and recipes for Pie, Gauge, Heatmap, Radar, project views, and diagrams because their required encodings differ.
 
+Use `data: { values: rows }` as the canonical public shape. The runtime also accepts a raw row array for compatibility, and the minimal recipe catalog uses that shorter form; do not mix diagram collections into `data.values`. Diagram inputs such as `nodes`, `edges`, `lanes`, `layers`, and `boundaries` stay at the Spec top level.
+
 #### Put options at the contract level
 
 Keep `encoding` for field roles and series semantics. Put presentation and axis options at the Spec level:
@@ -147,6 +149,8 @@ if (!validation.valid) {
 
 Do not silently discard diagnostics. Preserve stable `code`, `path`, `message`, `expected`, and `suggestion` fields in Agent output and automated repair loops.
 
+Diagnostics have two phases: `validateSpec()` reports preflight contract problems, while layout-dependent warnings can appear only after `createChart()` in `chart.getState().warnings` and `chart.explain().warnings`. Always inspect both before returning a chart, especially for narrow Funnel labels.
+
 ### 6. Render
 
 Browser rendering:
@@ -165,6 +169,7 @@ Headless environment capabilities:
 - JSON and SVG string export work with zero dependencies.
 - PNG/JPEG raster export requires the optional `canvas` npm package; otherwise a structured `HEADLESS_EXPORT_UNSUPPORTED` error is returned.
 - The on-screen renderer is decoupled from the export backend; any mounted renderer can export any supported format.
+- Prefer `svg` for accessibility, DOM inspection, and diagram editing; prefer `canvas` for larger mark counts when lower DOM overhead matters.
 
 ### 7. Explain, Export, and Self-Check
 

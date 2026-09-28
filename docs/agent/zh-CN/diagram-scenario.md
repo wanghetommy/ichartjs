@@ -42,9 +42,37 @@ Architecture 的 `layers` 是从上到下排列的水平分层。同层自动布
 }
 ```
 
+## 轻量级流程语义
+
+`flow` 支持一组小而明确的节点语义。没有设置 `kind` 的旧节点继续渲染为处理矩形，保持兼容。
+
+```js
+{
+  type: 'flow',
+  nodes: [
+    { id: 'start', kind: 'start', label: '开始' },
+    { id: 'load', kind: 'process', label: '读取数据' },
+    { id: 'valid', kind: 'decision', label: '是否有效？' },
+    { id: 'output', kind: 'io', label: '输出结果' },
+    { id: 'loop', kind: 'connector', label: '重试' },
+    { id: 'end', kind: 'end', label: '结束' }
+  ],
+  edges: [
+    { id: 'start-load', from: 'start', to: 'load' },
+    { id: 'load-valid', from: 'load', to: 'valid' },
+    { id: 'valid-yes', from: 'valid', to: 'output', label: '是' },
+    { id: 'valid-no', from: 'valid', to: 'loop', label: '否' },
+    { id: 'loop-load', from: 'loop', to: 'load' },
+    { id: 'output-end', from: 'output', to: 'end' }
+  ]
+}
+```
+
+支持的 `kind` 为 `start`、`end`、`process`、`decision`、`io` 和 `connector`。判断节点建议至少有两条带标签的出边；循环就是普通的显式 `from` / `to` 回边。Connector 是圆形的断开连接点，不使用隐式同名匹配，所有连接都必须明确写在 `edges` 中。
+
 ## 当前能力
 
-已支持节点、边、泳道、Group、Port、四种布局、三种路由、Mindmap 三次贝塞尔曲线、节点拖动、多选、对齐、网格吸附、键盘移动、Copy/Paste、Group 折叠展开、Port 键盘连线、边选择、折点/正交线段手柄、持久化 `waypoints`、边删除和 Undo/Redo。
+已支持节点、边、泳道、Group、Port、Flow 语义图形、四种布局、三种路由、Mindmap 三次贝塞尔曲线、节点拖动、多选、对齐、网格吸附、键盘移动、Copy/Paste、Group 折叠展开、Port 键盘连线、边选择、折点/正交线段手柄、持久化 `waypoints`、边删除和 Undo/Redo。
 
 导航和编辑能力默认关闭。普通图表保持静态，缩放、平移、框选、节点拖动、线段拖动、Port 连线和结构编辑必须由宿主显式开启：
 

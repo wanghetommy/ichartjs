@@ -81,6 +81,7 @@
       ],
       "editable": [
         "label",
+        "kind",
         "position",
         "size",
         "laneId",

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.18 - 2026-09-28
+
+- Added lightweight Flow semantics for start/end, process, decision, input/output, and connector nodes, including explicit decision branches and loop edges with shared SVG/Canvas geometry.
+- Exposed Flow semantic capabilities and validation diagnostics through runtime metadata, TypeScript declarations, Agent Skill guidance, and generated manifests.
+- Updated the full Gallery Flow example to demonstrate all supported semantic node kinds, Yes/No branches, a retry loop, and connector usage.
+
 ## 2.0.17 - 2026-09-25
 
 - Added explicit `FUNNEL_LABEL_TRUNCATED` diagnostics when narrow stages cannot display their full labels.

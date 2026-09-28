@@ -1,5 +1,6 @@
 export type Renderer = 'canvas' | 'svg' | 'auto';
 export type ChartType = 'line' | 'area' | 'bar' | 'column' | 'pie' | 'scatter' | 'funnel' | 'gauge' | 'heatmap' | 'radar' | 'gantt' | 'timeline' | 'milestone' | 'burndown' | 'flow' | 'swimlane' | 'architecture' | 'mindmap';
+export type FlowNodeKind = 'start' | 'end' | 'process' | 'decision' | 'io' | 'connector';
 export type ThemeMode = 'auto' | 'light' | 'dark' | 'contrast';
 export type ThemePreset = 'auto' | 'analysis' | 'dashboard' | 'report' | 'presentation' | 'project' | 'diagram';
 export type ThemePalette = 'auto' | 'categorical' | 'sequential' | 'diverging' | 'status';
@@ -25,7 +26,7 @@ export class ChartValidationError extends Error { name: 'ChartValidationError'; 
 export interface DataFieldInfo { name: string; type: 'quantitative' | 'temporal' | 'category' | 'unknown'; role: 'identifier' | 'measure' | 'temporal-dimension' | 'dimension'; unit: string | null; cardinality: number; validCount: number; nullCount: number; min?: number; max?: number; temporalMin?: string; temporalMax?: string; }
 export interface DataInspection { version: '1.0'; rows: number; fields: DataFieldInfo[]; dimensions: string[]; measures: string[]; temporalFields: string[]; missingValueCount: number; warnings: Diagnostic[]; }
 export interface ChartCapability { type: ChartType; family: string; intents: string[]; required: string[]; optional: string[]; dataShapes: string[]; interactions: string[]; features: Record<string, 'supported' | 'not-applicable' | 'degraded'>; renderers: Array<'canvas' | 'svg'>; exports: string[]; limits: Record<string, number>; }
-export interface RuntimeCapabilities { version: '2.0'; contractVersion: '1.1'; chartTypes: ChartType[]; charts: Record<ChartType, ChartCapability>; intents: string[]; locale?: { default: string; recommended: string[]; appliesTo: string[]; inputDates: string }; renderers: Array<'canvas' | 'svg'>; interactions: string[]; exports: Array<'png' | 'svg' | 'json' | 'jpeg'>; styleSystem: { modes: ThemeMode[]; presets: ThemePreset[]; palettes: ThemePalette[]; switchable: boolean; automatic: boolean; [key: string]: unknown }; preferences?: { version: '1.0'; scopes: string[]; persistence: string[]; fields: string[]; agentAdjustable: boolean; interactiveSettingsUI: boolean; precedence: string[]; schema: PreferenceCapabilities }; headless: { preview?: boolean; json: boolean; svg: boolean; png: boolean | string }; export: { types: string[]; mime: Record<string, string>; browser: Record<string, boolean>; headless: Record<string, string | boolean>; methods: string[]; options: Record<string, unknown>; branding: Record<string, unknown> }; branding: { defaultEnabled: boolean; signature: string; options: Record<string, unknown> }; [key: string]: unknown; }
+export interface RuntimeCapabilities { version: '2.0'; contractVersion: '1.1'; chartTypes: ChartType[]; charts: Record<ChartType, ChartCapability>; intents: string[]; locale?: { default: string; recommended: string[]; appliesTo: string[]; inputDates: string }; renderers: Array<'canvas' | 'svg'>; interactions: string[]; exports: Array<'png' | 'svg' | 'json' | 'jpeg'>; chartModes?: Record<string, unknown>; diagram?: { flowNodeKinds?: FlowNodeKind[]; flowBranchEdges?: { label: string; minimumOutgoing: number }; flowLoops?: string; flowConnectors?: { kind: FlowNodeKind; linking: string }; [key: string]: unknown }; styleSystem: { modes: ThemeMode[]; presets: ThemePreset[]; palettes: ThemePalette[]; switchable: boolean; automatic: boolean; [key: string]: unknown }; preferences?: { version: '1.0'; scopes: string[]; persistence: string[]; fields: string[]; agentAdjustable: boolean; interactiveSettingsUI: boolean; precedence: string[]; schema: PreferenceCapabilities }; headless: { preview?: boolean; json: boolean; svg: boolean; png: boolean | string }; export: { types: string[]; mime: Record<string, string>; browser: Record<string, boolean>; headless: Record<string, string | boolean>; methods: string[]; options: Record<string, unknown>; branding: Record<string, unknown> }; branding: { defaultEnabled: boolean; signature: string; options: Record<string, unknown> }; [key: string]: unknown; }
 export interface ChartPlan { version: '1.0'; intent: string; intentKnown?: boolean; intentSuggestions?: string[]; fallbackUsed?: boolean; primary: ChartType; alternatives: ChartType[]; confidence: number; reasons: string[]; requiredFields: string[]; suggestedEncodings: { dimension: string | null; measure: string | null; secondaryMeasure: string | null }; assumptions: string[]; warnings: Diagnostic[]; unsupportedRequests: string[]; nextActions: string[]; capability: ChartCapability; styleRecommendation: StyleRecommendation; data: DataInspection; }
 export interface AxisState { rawDomain: [number, number]; domain: [number, number]; ticks: number[]; step: number | null; policy: 'nice' | 'raw' | 'explicit'; }
 export interface TimeAxisState { orientation: 'horizontal'; field: 'date'; coordinate: 'x'; rowCoordinate: 'y'; domain: [number, number]; domainISO: [string, string]; }
@@ -35,20 +36,76 @@ export interface ChartInteraction { tooltip?: boolean; hover?: boolean; click?: 
 export interface ChartEditing { enabled?: boolean; mode?: 'command' | string; requireConfirmation?: boolean; allowDelete?: boolean; allowStructuralChanges?: boolean; }
 export interface ChartTitle { text?: string; subtitle?: string; label?: string; }
 export interface AxisSpec { type?: 'linear' | 'log' | 'quantitative' | 'temporal' | 'time' | string; title?: string; format?: string | Record<string, unknown>; domain?: [number, number]; nice?: boolean; ticks?: 'auto' | number; right?: AxisSpec; [key: string]: unknown; }
-export interface ChartSpec { type: ChartType; renderer?: Renderer; container?: string | Element; chartId?: string; width?: number; height?: number; locale?: string; data?: Array<Record<string, unknown>> | { values?: Array<Record<string, unknown>>; [key: string]: unknown }; encoding?: Record<string, unknown>; title?: string | ChartTitle; legend?: { visible?: boolean; position?: string }; grid?: { visible?: boolean; color?: string }; labels?: { enabled?: boolean; format?: string | Record<string, unknown>; color?: string; font?: string }; xAxis?: AxisSpec; yAxis?: AxisSpec; diagram?: DiagramConfig; interaction?: ChartInteraction; editing?: ChartEditing; accessibility?: { enabled?: boolean; description?: string }; branding?: boolean | { enabled?: boolean }; theme?: ThemeMode | ThemePreset | ThemeConfig | ResolvedTheme; preferences?: ChartPreferencesPatch | PreferencesStore; preferencesStore?: PreferencesStore; [key: string]: unknown; }
+export interface ChartPadding { top?: number; right?: number; bottom?: number; left?: number; }
+export interface EncodingSpec { field?: string; type?: string; aggregate?: string; stack?: string | boolean; [key: string]: unknown; }
+export interface ChartData { values?: Array<Record<string, unknown>>; nodes?: DiagramNode[]; edges?: DiagramEdge[]; lanes?: DiagramLane[]; layers?: ArchitectureLayer[]; boundaries?: ArchitectureBoundary[]; groups?: DiagramGroup[]; schema?: BusinessDataSchema; [key: string]: unknown; }
+export interface ChartLegend { visible?: boolean; position?: 'top' | 'bottom' | 'left' | 'right' | string; [key: string]: unknown; }
+export interface ChartLabels { enabled?: boolean; format?: string | Record<string, unknown>; color?: string; font?: string; position?: 'inside' | 'outside' | string; [key: string]: unknown; }
+export interface ColorScaleSpec { domain?: [number, number]; range?: string[]; missing?: string; [key: string]: unknown; }
+export interface StackSpec { mode: 'stacked' | 'percent'; [key: string]: unknown; }
+export interface ChartProjectSpec { calendar?: ProjectCalendarConfig; linked?: { filters?: LinkedFilters; selection?: string[] }; [key: string]: unknown; }
+export interface ChartSpec {
+  version?: string;
+  type: ChartType;
+  renderer?: Renderer;
+  container?: string | Element;
+  chartId?: string;
+  width?: number;
+  height?: number;
+  padding?: ChartPadding;
+  colors?: string[];
+  background?: string;
+  locale?: string;
+  data?: Array<Record<string, unknown>> | ChartData;
+  encoding?: Record<string, EncodingSpec | EncodingSpec[]>;
+  title?: string | ChartTitle;
+  legend?: ChartLegend;
+  grid?: { visible?: boolean; color?: string; [key: string]: unknown };
+  labels?: ChartLabels;
+  xAxis?: AxisSpec;
+  yAxis?: AxisSpec;
+  domain?: [number, number];
+  colorScale?: ColorScaleSpec;
+  indicators?: RadarIndicator[];
+  stack?: 'stacked' | 'percent' | StackSpec;
+  transform?: BinTransform | BinTransform[];
+  criticalPath?: boolean | string[];
+  nodes?: DiagramNode[];
+  edges?: DiagramEdge[];
+  lanes?: DiagramLane[];
+  layers?: ArchitectureLayer[];
+  boundaries?: ArchitectureBoundary[];
+  groups?: DiagramGroup[];
+  diagram?: DiagramConfig;
+  project?: ChartProjectSpec;
+  interaction?: ChartInteraction;
+  editing?: ChartEditing;
+  accessibility?: { enabled?: boolean; description?: string; [key: string]: unknown };
+  branding?: boolean | { enabled?: boolean; [key: string]: unknown };
+  theme?: ThemeMode | ThemePreset | ThemeConfig | ResolvedTheme;
+  preferences?: ChartPreferencesPatch | PreferencesStore;
+  preferencesStore?: PreferencesStore;
+  plugins?: ChartPlugin[];
+  [key: string]: unknown;
+}
 export interface BinTransform { type: 'bin'; field: string; output?: string; thresholds?: number; step?: number; extent?: [number, number]; }
 export interface RadarIndicator { name: string; field: string; min?: number; max?: number; }
-export interface DiagramNode { id: string; label: string; position?: { x: number; y: number }; size?: { width: number; height: number }; ports?: Array<{ id: string; side?: 'left' | 'right' | 'top' | 'bottom'; offset?: number }>; groupId?: string; }
+export interface DiagramNode { id: string; label?: string; kind?: FlowNodeKind; position?: { x: number; y: number }; size?: { width: number; height: number }; ports?: Array<{ id: string; side?: 'left' | 'right' | 'top' | 'bottom'; offset?: number }>; groupId?: string; }
 export interface ArchitectureNode extends DiagramNode { layerId?: string; boundaryId?: string; role?: string; description?: string; }
 export interface MindmapNode extends DiagramNode { parentId?: string; branch?: string; description?: string; }
 export interface DiagramPoint { x: number; y: number; }
 export interface DiagramEdge { id?: string; from: string; to: string; fromPort?: string; toPort?: string; label?: string; relation?: string; routing?: 'straight' | 'orthogonal' | 'curved'; curveTension?: number; waypoints?: DiagramPoint[]; }
+export interface DiagramLane { id: string; label?: string; [key: string]: unknown; }
+export interface DiagramGroup { id: string; label?: string; collapsed?: boolean; padding?: number; [key: string]: unknown; }
 export interface DiagramElement { id?: string; type?: string; dataRef?: Record<string, unknown>; geometry?: Record<string, unknown>; [key: string]: unknown; }
 export interface ChartEvent { chart: Chart; type?: string; target?: DiagramElement | null; datum?: Record<string, unknown>; selectedData?: Array<Record<string, unknown>>; [key: string]: unknown; }
 export type ChartListener = (event: ChartEvent) => void;
 export interface ChartPlugin { name?: string; install?(chart: Chart): void; beforeRender?(chart: Chart, model: Record<string, unknown>): void; afterRender?(chart: Chart, model: Record<string, unknown>): void; destroy?(chart: Chart): void; }
 export interface ClipboardState { nodes: DiagramNode[]; edges: DiagramEdge[]; }
-export interface ChartState { renderer: string; width: number; height: number; dataCount: number; selected: unknown[]; revision: number; history: { undo: number; redo: number }; view: Record<string, unknown> | null; timeAxis?: TimeAxisState | null; health: ChartHealth; warnings: Diagnostic[]; preferences: ChartPreferences; clipboard: { nodes: number; edges: number }; [key: string]: unknown; }
+export interface ChartLayoutState { family: string | null; plot: Record<string, unknown>; chrome: Record<string, unknown> | null; labels: Record<string, unknown> | null; }
+export interface ChartAxesState { y?: AxisState; right?: AxisState; [key: string]: unknown; }
+export interface ChartBrandingState { enabled: boolean; signature: string; text: string | null; }
+export interface ChartState { renderer: string; width: number; height: number; dataCount: number; selected: unknown[]; revision: number; history: { undo: number; redo: number }; view: Record<string, unknown> | null; style?: Partial<StyleRecommendation> & { name?: string; mode?: ThemeMode; resolvedMode?: string; palette?: ThemePalette }; layout?: ChartLayoutState | null; timeAxis?: TimeAxisState | null; axes?: ChartAxesState | null; health: ChartHealth; preferences: ChartPreferences; branding?: ChartBrandingState; warnings: Diagnostic[]; assumptions?: string[]; normalizations?: Diagnostic[]; collapsedGroups?: string[]; projectAnalytics?: ProjectAnalyticsState | null; linked?: LinkedState | null; clipboard: { nodes: number; edges: number }; [key: string]: unknown; }
 export interface DiagramConfig { mode?: 'process' | 'architecture' | 'mindmap'; layout?: 'manual' | 'layered' | 'tree' | 'radial'; routing?: 'straight' | 'orthogonal' | 'curved'; curveTension?: number; grid?: number; snap?: boolean; }
 export interface ArchitectureLayer { id: string; label?: string; }
 export interface ArchitectureBoundary { id: string; label?: string; nodeIds?: string[]; padding?: number; color?: string; }

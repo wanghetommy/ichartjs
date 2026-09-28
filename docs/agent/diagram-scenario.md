@@ -43,11 +43,40 @@ For a mindmap, prefer the compact parent contract:
 }
 ```
 
+### Lightweight Flow Semantics
+
+`flow` supports a small, unambiguous set of semantic node kinds. Legacy nodes without `kind` remain process rectangles.
+
+```js
+{
+  type: 'flow',
+  nodes: [
+    { id: 'start', kind: 'start', label: 'Start' },
+    { id: 'load', kind: 'process', label: 'Load data' },
+    { id: 'valid', kind: 'decision', label: 'Valid?' },
+    { id: 'output', kind: 'io', label: 'Output result' },
+    { id: 'loop', kind: 'connector', label: 'retry' },
+    { id: 'end', kind: 'end', label: 'End' }
+  ],
+  edges: [
+    { id: 'start-load', from: 'start', to: 'load' },
+    { id: 'load-valid', from: 'load', to: 'valid' },
+    { id: 'valid-yes', from: 'valid', to: 'output', label: 'yes' },
+    { id: 'valid-no', from: 'valid', to: 'loop', label: 'no' },
+    { id: 'loop-load', from: 'loop', to: 'load' },
+    { id: 'output-end', from: 'output', to: 'end' }
+  ]
+}
+```
+
+Supported kinds are `start`, `end`, `process`, `decision`, `io`, and `connector`. A decision should have at least two outgoing labeled edges. Loops are ordinary explicit `from`/`to` edges and are allowed. Connectors are circular hand-off points; they do not use implicit matching, so every connection remains visible in `edges`.
+
 ## Current Capabilities
 
 Supported:
 
 - Nodes, edges, lanes, groups, and ports.
+- Flow semantic shapes: start/end, process, decision, input/output, and connector.
 - `manual`, `layered`, `tree`, and `radial` layouts.
 - Architecture layers and boundaries, plus mindmap parent-child derivation.
 - `straight`, `orthogonal`, and true cubic-Bezier `curved` routing, with adjustable `curveTension` and obstacle-aware orthogonal fallback.

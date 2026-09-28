@@ -4,10 +4,12 @@
  */
 import { copyJSON } from './schema.mjs';
 import { sampleCubicBezier } from './scene.mjs';
+import { flowNodeKinds } from './contract-registry.mjs';
 
 export const diagramLayoutModes = ['manual', 'layered', 'tree', 'radial'];
 export const edgeRoutingModes = ['straight', 'orthogonal', 'curved'];
 export const diagramModes = ['process', 'architecture', 'mindmap'];
+export { flowNodeKinds };
 
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 
@@ -53,6 +55,7 @@ export function validateDiagram(spec = {}) {
     else if (nodeIds.has(node.id)) errors.push({ code: 'DUPLICATE_NODE_ID', path: `nodes.${index}.id`, message: `Duplicate node ID: ${node.id}.` });
     else nodeIds.add(node.id);
     if (node?.name !== undefined && node?.label === undefined) warnings.push({ code: 'UNSUPPORTED_DIAGRAM_LABEL_FIELD', path: `nodes.${index}.name`, message: 'Node display text uses label, not name.', suggestion: 'Rename nodes[].name to nodes[].label.' });
+    if (normalized.type === 'flow' && node.kind !== undefined && !flowNodeKinds.includes(node.kind)) errors.push({ code: 'FLOW_NODE_KIND', path: `nodes.${index}.kind`, message: `Unsupported Flow node kind: ${node.kind}.`, expected: flowNodeKinds, suggestion: `Use one of: ${flowNodeKinds.join(', ')}.` });
     if (node.position && (!finite(node.position.x) || !finite(node.position.y))) errors.push({ code: 'NODE_POSITION', path: `nodes.${index}.position`, message: 'Node positions must contain finite x and y.' });
     if (node.laneId && lanes.length && !laneIds.has(node.laneId)) errors.push({ code: 'MISSING_LANE', path: `nodes.${index}.laneId`, message: `Unknown lane ID: ${node.laneId}.` });
     if (node.size && (!finite(node.size.width) || !finite(node.size.height) || node.size.width <= 0 || node.size.height <= 0)) errors.push({ code: 'NODE_SIZE', path: `nodes.${index}.size`, message: 'Node sizes must be finite and positive.' });
@@ -88,6 +91,19 @@ export function validateDiagram(spec = {}) {
     if (edge.curveTension !== undefined && (!finite(edge.curveTension) || edge.curveTension < 0.2 || edge.curveTension > 0.8)) errors.push({ code: 'EDGE_CURVE_TENSION', path: `edges.${index}.curveTension`, message: 'Edge curve tension must be a finite number between 0.2 and 0.8.' });
     if (edge.waypoints !== undefined && (!Array.isArray(edge.waypoints) || edge.waypoints.some(point => !point || !finite(point.x) || !finite(point.y)))) errors.push({ code: 'EDGE_WAYPOINTS', path: `edges.${index}.waypoints`, message: 'Edge waypoints must be an array of finite x/y points.' });
   });
+  if (normalized.type === 'flow') {
+    const semanticNodes = nodes.filter(node => node.kind !== undefined), outgoing = new Map(nodes.map(node => [node.id, []]));
+    edges.forEach(edge => { if (outgoing.has(edge.from)) outgoing.get(edge.from).push(edge); });
+    semanticNodes.forEach(node => {
+      const nodeIndex = nodes.indexOf(node), path = `nodes.${nodeIndex}.kind`;
+      if (node.kind === 'decision' && (outgoing.get(node.id) || []).length < 2) warnings.push({ code: 'FLOW_DECISION_BRANCHES', path, message: 'A decision node should have at least two outgoing branches.', suggestion: 'Add labeled edges such as label: "yes" and label: "no".' });
+      if (node.kind === 'connector' && !node.label) warnings.push({ code: 'FLOW_CONNECTOR_LABEL', path, message: 'An unlabeled connector is valid but harder to follow in a detached flow.', suggestion: 'Add a short label when the connector is used to join separated flow sections.' });
+    });
+    if (semanticNodes.length) {
+      if (!semanticNodes.some(node => node.kind === 'start')) warnings.push({ code: 'FLOW_MISSING_START', path: 'nodes', message: 'Semantic Flow has no start node.', suggestion: 'Add one node with kind: "start", or use explicit kind: "process" for a process-only Flow.' });
+      if (!semanticNodes.some(node => node.kind === 'end')) warnings.push({ code: 'FLOW_MISSING_END', path: 'nodes', message: 'Semantic Flow has no end node.', suggestion: 'Add one node with kind: "end", or use explicit kind: "process" for a process-only Flow.' });
+    }
+  }
   if (!diagramLayoutModes.includes(normalized.diagram.layout)) errors.push({ code: 'LAYOUT_MODE', path: 'diagram.layout', message: `Unsupported layout: ${normalized.diagram.layout}.` });
   if (!finite(normalized.diagram.grid) || normalized.diagram.grid <= 0) errors.push({ code: 'DIAGRAM_GRID', path: 'diagram.grid', message: 'Grid must be a positive finite number.' });
   if (!finite(normalized.diagram.curveTension) || normalized.diagram.curveTension < 0.2 || normalized.diagram.curveTension > 0.8) errors.push({ code: 'CURVE_TENSION', path: 'diagram.curveTension', message: 'Curve tension must be a finite number between 0.2 and 0.8.' });
