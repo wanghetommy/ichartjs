@@ -34,7 +34,7 @@ Agent 与开发者使用同一个 ESM 入口。编码 Agent 的完整方式见 [
 4. 当 `requiredFields` 非空时停止渲染，向用户请求数据或选择有依据的备选方案。
 5. 构建 JSON 可序列化的 Spec，并调用 `validateSpec()`。Spec 可通过 `branding: false` 显式关闭品牌署名；默认保留署名以提升项目可见性。
 6. 仅在 `validation.valid` 为 `true` 时调用 `createChart()`。
-7. 用 `chart.explain()`、`chart.getState()`、JSON/SVG/PNG export 完成自检。需要持久化或附件生成时使用 `chart.export({type:'json'|'svg'|'png'})`，在浏览器环境可调用 `chart.downloadPNG()` / `chart.downloadSVG()` / `chart.downloadJSON()` 触发保存，最后调用 `chart.destroy()`。
+7. 用 `chart.explain()`、`chart.getState()`、JSON/SVG/PNG export 完成自检。JSON/SVG 可直接使用同步 `chart.export()`；浏览器 PNG 使用 `chart.toDataURL()` 或 `chart.downloadPNG()`；Node 无头 PNG/JPEG 使用 `chart.exportAsync()`，可选安装 `canvas`。最后调用 `chart.destroy()`。
 
 ### 意图必须使用注册词
 
@@ -69,6 +69,8 @@ const spec = structuredClone(catalog.examples.radar);
 ```
 
 Agent 自检使用 `chart.getState().health` 和 `chart.explain().health`，其中包含 `ready`、`degraded`、`empty`、警告数、隐藏标签数、限制值数和已渲染标记数。`locale` 默认 `en-US`，需要中文输出时设置 `locale: "zh-CN"`，输入日期仍使用 ISO-8601。
+
+推荐正式数据写法是 `data: { values: rows }`；Runtime 也兼容直接传入行数组，最小 Recipe 为保持紧凑使用了数组形式。Flow、Swimlane、Architecture、Mindmap 的 `nodes`、`edges`、`lanes`、`layers` 和 `boundaries` 必须放在 Spec 顶层。`validateSpec()` 负责渲染前的契约检查；窄 Funnel 标签等依赖布局的告警要在 `chart.getState().warnings` 或 `chart.explain().warnings` 中检查。需要 DOM 可访问性或 Diagram 编辑时优先 SVG，大量标记且希望降低 DOM 开销时选择 Canvas。
 
 ## 品牌署名（Branding）默认行为
 

@@ -11,6 +11,7 @@ export const commandTypes = ['updateField', 'updateRecord', 'updateTask', 'shift
 export const diagramOperations = ['moveNode', 'moveNodes', 'resizeNode', 'alignNodes', 'snapNodes', 'moveNodeToLane', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'updateEdge', 'removeEdge', 'addEdge', 'toggleGroupCollapse', 'duplicateSelection', 'pasteSelection'];
 export const businessModels = ['project-task', 'timeline-event', 'milestone', 'burndown-sample', 'flow-node', 'flow-edge', 'swimlane', 'architecture-node', 'architecture-edge', 'mindmap-edge', 'mindmap-node'];
 export const diagramEdgeModels = ['flow-edge', 'architecture-edge', 'mindmap-edge'];
+export const flowNodeKinds = ['start', 'end', 'process', 'decision', 'io', 'connector'];
 
 const status = (supported, notApplicable = []) => Object.fromEntries(supported.map(name => [name, 'supported']).concat(notApplicable.map(name => [name, 'not-applicable'])));
 const commonPresentation = ['title', 'subtitle', 'theme', 'responsive', 'empty-state', 'invalid-data-state', 'export', 'branding'];
@@ -30,7 +31,7 @@ export const chartDefinitions = {
   timeline: { family: 'project', intents: ['timeline', 'milestone'], required: ['date', 'title'], optional: ['status'], interactions: ['hover', 'tooltip', 'selection', 'zoom', 'pan', 'keyboard'], features: status([...commonPresentation, 'labels', 'formatting']) },
   milestone: { family: 'project', intents: ['milestone'], required: ['date', 'title'], optional: ['baselineDate', 'actualDate'], interactions: ['hover', 'tooltip', 'selection', 'zoom', 'pan', 'keyboard'], features: status([...commonPresentation, 'labels', 'formatting', 'baseline-actual-variance']) },
   burndown: { family: 'project', intents: ['progress', 'release'], required: ['date', 'remaining'], optional: ['ideal', 'scopeChange'], interactions: ['hover', 'tooltip', 'selection', 'zoom', 'pan', 'keyboard'], features: status([...commonPresentation, 'axes', 'labels', 'formatting', 'scope-change', 'release-forecast']) },
-  flow: { family: 'diagram', intents: ['workflow'], required: ['nodes'], optional: ['edges', 'groups', 'ports'], interactions: ['hover', 'tooltip', 'selection', 'edge-selection', 'drag', 'edgeDrag', 'zoom', 'pan', 'keyboard', 'keyboard-edit', 'keyboard-port-connect', 'portConnect', 'copy-paste'], features: status([...commonPresentation, 'labels', 'routing', 'manual-routing', 'layout', 'groups', 'ports', 'history'], ['axes', 'grid', 'legend']) },
+  flow: { family: 'diagram', intents: ['workflow'], required: ['nodes'], optional: ['edges', 'groups', 'ports', 'semantic-node-kinds', 'connectors'], interactions: ['hover', 'tooltip', 'selection', 'edge-selection', 'drag', 'edgeDrag', 'zoom', 'pan', 'keyboard', 'keyboard-edit', 'keyboard-port-connect', 'portConnect', 'copy-paste'], features: status([...commonPresentation, 'labels', 'routing', 'manual-routing', 'layout', 'groups', 'ports', 'semantic-shapes', 'decision-branches', 'connectors', 'loops', 'history'], ['axes', 'grid', 'legend']) },
   swimlane: { family: 'diagram', intents: ['responsibility'], required: ['nodes', 'lanes'], optional: ['edges', 'groups', 'ports'], interactions: ['hover', 'tooltip', 'selection', 'edge-selection', 'drag', 'edgeDrag', 'zoom', 'pan', 'keyboard', 'keyboard-edit', 'keyboard-port-connect', 'portConnect', 'copy-paste'], features: status([...commonPresentation, 'labels', 'routing', 'manual-routing', 'layout', 'groups', 'ports', 'lanes', 'history'], ['axes', 'grid', 'legend']) },
   architecture: { family: 'diagram', intents: ['architecture', 'business-architecture', 'data-architecture', 'technical-architecture'], required: ['nodes'], optional: ['edges', 'layers', 'boundaries', 'groups', 'ports'], interactions: ['hover', 'tooltip', 'selection', 'edge-selection', 'drag', 'edgeDrag', 'zoom', 'pan', 'keyboard', 'keyboard-edit', 'keyboard-port-connect', 'portConnect', 'copy-paste'], features: status([...commonPresentation, 'labels', 'routing', 'manual-routing', 'layout', 'layers', 'boundaries', 'groups', 'ports', 'history'], ['axes', 'grid', 'legend']) },
   mindmap: { family: 'diagram', intents: ['mindmap', 'hierarchy', 'brainstorm'], required: ['nodes'], optional: ['parentId', 'edges', 'groups'], interactions: ['hover', 'tooltip', 'selection', 'edge-selection', 'drag', 'edgeDrag', 'zoom', 'pan', 'keyboard', 'keyboard-edit', 'keyboard-port-connect', 'portConnect', 'copy-paste'], features: status([...commonPresentation, 'labels', 'routing', 'cubic-bezier', 'curve-tension', 'obstacle-fallback', 'manual-routing', 'layout', 'tree-layout', 'radial-layout', 'history'], ['axes', 'grid', 'legend']) }
@@ -55,5 +56,6 @@ export const contractRegistry = Object.freeze({
   commandTypes: [...commandTypes],
   diagramOperations: [...diagramOperations],
   businessModels: [...businessModels],
-  diagramEdgeModels: [...diagramEdgeModels]
+  diagramEdgeModels: [...diagramEdgeModels],
+  flowNodeKinds: [...flowNodeKinds]
 });

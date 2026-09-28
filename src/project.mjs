@@ -55,6 +55,25 @@ function projectDateDomain(spec, rows) {
 const dependencyId = dependency => typeof dependency === 'string' ? dependency : dependency?.id || null;
 const dependencyType = dependency => typeof dependency === 'object' && dependency?.type ? dependency.type : 'finish-to-start';
 const markText = (theme, background) => (contrastRatio(theme.text, background) || 0) >= (contrastRatio(theme.background, background) || 0) ? theme.text : theme.background;
+const flowNodeKind = node => node?.kind || 'process';
+
+function flowNodeVisual(kind, box) {
+  const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+  if (kind === 'start' || kind === 'end') return { type: 'path', geometry: { points: Array.from({ length: 16 }, (_, index) => { const angle = index / 16 * Math.PI * 2; return { x: cx + box.width / 2 * Math.cos(angle), y: cy + box.height / 2 * Math.sin(angle) }; }), closed: true } };
+  if (kind === 'decision') return { type: 'path', geometry: { points: [{ x: cx, y: box.y }, { x: box.x + box.width, y: cy }, { x: cx, y: box.y + box.height }, { x: box.x, y: cy }], closed: true } };
+  if (kind === 'io') {
+    const skew = Math.min(18, box.width * 0.18);
+    return { type: 'path', geometry: { points: [{ x: box.x + skew, y: box.y }, { x: box.x + box.width, y: box.y }, { x: box.x + box.width - skew, y: box.y + box.height }, { x: box.x, y: box.y + box.height }], closed: true } };
+  }
+  if (kind === 'connector') return { type: 'circle', geometry: { cx, cy, r: Math.min(box.width, box.height) / 2 } };
+  return { type: 'rect', geometry: box };
+}
+
+function flowNodeBox(row, generated, fallback) {
+  const kind = flowNodeKind(row), connector = kind === 'connector';
+  const width = Number(row.size?.width) || (connector ? 28 : 112), height = Number(row.size?.height) || (connector ? 28 : 36);
+  return { x: row.position?.x ?? generated?.x ?? fallback.x, y: row.position?.y ?? generated?.y ?? fallback.y, width, height };
+}
 
 function compactRoute(points) {
   return points.filter((point, index) => {
@@ -345,17 +364,18 @@ function diagramScene(scene, spec, rows, state) {
       const architectureBox = architectureLayout[row.id];
       const geometry = architectureBox
         ? { ...architectureBox, x: row.position?.x ?? architectureBox.x, y: row.position?.y ?? architectureBox.y }
-        : { x: row.position?.x ?? generated?.x ?? plot.x + rank * gapX + 12, y: row.position?.y ?? generated?.y ?? plot.y + (lanes.length ? lane * laneHeight : 0) + (slot + 0.5) * (lanes.length ? laneHeight : Math.max(plot.height, sameCell * 64)) / sameCell - 18, width: row.size?.width || 112, height: row.size?.height || 36 };
+        : flowNodeBox(row, generated, { x: plot.x + rank * gapX + 12, y: plot.y + (lanes.length ? lane * laneHeight : 0) + (slot + 0.5) * (lanes.length ? laneHeight : Math.max(plot.height, sameCell * 64)) / sameCell - (flowNodeKind(row) === 'connector' ? 14 : 18) });
     positions.set(row.id, geometry);
     if (collapsedGroups.has(row.groupId)) return;
     const depth = row.parentId ? (ranks.get(row.id) || 0) : 0;
     const colorIndex = mode === 'mindmap' ? depth % spec.colors.length : lane >= 0 ? lane % spec.colors.length : index % spec.colors.length;
-    scene.add({ id: `node-${row.id}`, type: 'rect', geometry, bounds: { ...geometry }, style: { fill: spec.colors[colorIndex], stroke: row.root || mode === 'mindmap' && !row.parentId ? spec.theme.focus : spec.theme.background, strokeWidth: row.root || mode === 'mindmap' && !row.parentId ? 2 : 1 }, dataRef: { nodeId: row.id, dataIndex: index, datum: row, groupId: row.groupId || null, layerId: row.layerId || null, parentId: row.parentId || null }, interactive: true, zIndex: 2 });
+    const kind = mode === 'process' && spec.type === 'flow' ? flowNodeKind(row) : 'process', visual = flowNodeVisual(kind, geometry);
+    scene.add({ id: `node-${row.id}`, type: visual.type, geometry: visual.geometry, bounds: { ...geometry }, style: { fill: spec.colors[colorIndex], stroke: row.root || mode === 'mindmap' && !row.parentId ? spec.theme.focus : spec.theme.background, strokeWidth: row.root || mode === 'mindmap' && !row.parentId ? 2 : 1 }, dataRef: { nodeId: row.id, kind, dataIndex: index, datum: row, groupId: row.groupId || null, layerId: row.layerId || null, parentId: row.parentId || null }, interactive: true, zIndex: 2 });
     if (spec.editing?.enabled && spec.interaction?.portConnect) (row.ports || []).forEach(port => {
       const point = port.side === 'left' ? { x: geometry.x, y: geometry.y + geometry.height * (port.offset ?? 0.5) } : port.side === 'top' ? { x: geometry.x + geometry.width * (port.offset ?? 0.5), y: geometry.y } : port.side === 'bottom' ? { x: geometry.x + geometry.width * (port.offset ?? 0.5), y: geometry.y + geometry.height } : { x: geometry.x + geometry.width, y: geometry.y + geometry.height * (port.offset ?? 0.5) };
       scene.add({ id: `port-${row.id}-${port.id}`, type: 'circle', geometry: { cx: point.x, cy: point.y, r: 4 }, bounds: { x: point.x - 6, y: point.y - 6, width: 12, height: 12 }, style: { fill: spec.theme.background, stroke: spec.theme.text, strokeWidth: 1.5 }, dataRef: { nodeId: row.id, portId: port.id, groupId: row.groupId || null }, interactive: true, zIndex: 4 });
     });
-    text(scene, `node-label-${row.id}`, row.label || row.id, geometry.x + geometry.width / 2, geometry.y + geometry.height / 2 + (geometry.height < 20 ? 3 : 5), { fill: markText(spec.theme, spec.colors[lane % spec.colors.length]), textAnchor: 'middle', ...(nodeFont ? { font: nodeFont } : {}) });
+    if (row.label || kind !== 'connector') text(scene, `node-label-${row.id}`, row.label || row.id, geometry.x + geometry.width / 2, geometry.y + geometry.height / 2 + (geometry.height < 20 ? 3 : 5), { fill: markText(spec.theme, spec.colors[lane % spec.colors.length]), textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle', ...(nodeFont ? { font: nodeFont } : {}) });
   });
   const groupBoxes = new Map();
   groups.forEach(group => {

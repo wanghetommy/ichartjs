@@ -4,7 +4,7 @@
 import { inspectData } from './data.mjs';
 import { planStyle, styleCapabilities } from './theme.mjs';
 import { defaultPreferences, preferenceDensities, preferenceMotions, preferenceTriStates } from './preferences.mjs';
-import { businessModels, chartProfiles, chartTypes, commandTypes, contractVersion, diagramEdgeModels, diagramOperations, exportTypes, interactionDefaults, renderers } from './contract-registry.mjs';
+import { businessModels, chartProfiles, chartTypes, commandTypes, contractVersion, diagramEdgeModels, diagramOperations, exportTypes, flowNodeKinds, interactionDefaults, renderers } from './contract-registry.mjs';
 
 export { chartProfiles, chartTypes };
 
@@ -199,7 +199,7 @@ export function getCapabilities() {
     charts: JSON.parse(JSON.stringify(chartProfiles)),
     intents,
     locale: { default: 'en-US', recommended: ['en-US', 'zh-CN'], appliesTo: ['axis', 'labels', 'tooltip', 'export'], inputDates: 'ISO-8601 strings; natural-language date parsing is not supported.' },
-    chartModes: { stack: ['stacked', 'percent'], pie: ['standard', 'donut'], composition: ['multi-series', 'mixed-line-column', 'dual-axis'], transforms: ['bin'], diagrams: ['process', 'architecture', 'mindmap'], mindmapLayouts: ['tree', 'radial'], mindmapEdges: ['curved', 'straight', 'orthogonal'] },
+    chartModes: { stack: ['stacked', 'percent'], pie: ['standard', 'donut'], composition: ['multi-series', 'mixed-line-column', 'dual-axis'], transforms: ['bin'], diagrams: ['process', 'architecture', 'mindmap'], mindmapLayouts: ['tree', 'radial'], mindmapEdges: ['curved', 'straight', 'orthogonal'], flowNodeKinds: [...flowNodeKinds], flowBranchEdges: { label: 'edge.label', minimumOutgoing: 2 }, flowLoops: 'supported', flowConnectors: { kind: 'connector', linking: 'explicit from/to edges' } },
     projectManagement: project,
     projectIntelligence: {
       intents: ['schedule', 'milestone', 'progress', 'variance', 'capacity', 'release', 'risk', 'aging', 'workflow', 'responsibility', 'architecture', 'mindmap'],

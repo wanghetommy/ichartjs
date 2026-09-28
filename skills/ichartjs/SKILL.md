@@ -21,9 +21,9 @@ Recommended installation:
 npx skills add wanghetommy/ichartjs --skill ichartjs
 ```
 
-Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.17/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
+Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.18/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
 
-The Skill is a workflow adapter, not the chart runtime. If the current JavaScript or TypeScript project does not already depend on iChart.js, install the matching runtime from GitHub:
+The Skill is a workflow adapter, not the chart runtime. If the current JavaScript or TypeScript project does not already depend on iChart.js, install the matching runtime from npm:
 
 ```bash
 npm install @taylorwong/ichartjs@^2
@@ -40,9 +40,9 @@ Do not install the unscoped npm registry package named `ichartjs`; it is current
 5. Inspect the complete planning result, including `styleRecommendation`, warnings, and fallback status.
 6. Stop when `requiredFields` is non-empty; request data or explain a supported alternative.
 7. Build a JSON-serializable Spec using `suggestedEncodings`, the selected capability, and an applicable recipe.
-8. Use chart-specific channels: Cartesian `x`/`y`, Pie/Funnel `category`/`value`, Gauge `value`, Heatmap `x`/`y`/`color`, and Radar `indicators[].field`. Funnel stage text comes from `encoding.category` (default `name`) and `labels.enabled` additionally renders values; narrow stages may report `FUNNEL_LABEL_TRUNCATED`, so increase width or shorten the stage name. To load a recipe, use `import catalog from '@taylorwong/ichartjs/recipes/minimal-specs' with { type: 'json' }` and select `catalog.examples[type]`; `recipes/` is the public export path backed by the package's `agent-recipes/` directory.
+8. Use chart-specific channels: Cartesian `x`/`y`, Pie/Funnel `category`/`value`, Gauge `value`, Heatmap `x`/`y`/`color`, and Radar `indicators[].field`. Funnel stage text comes from `encoding.category` (default `name`) and `labels.enabled` additionally renders values; narrow stages may report `FUNNEL_LABEL_TRUNCATED`, so increase width or shorten the stage name. For Flow, use top-level `nodes` and `edges`, `nodes[].kind` from `getCapabilities().diagram.flowNodeKinds`, and edge `label` for decision branches. `connector` uses explicit `from`/`to` edges and loops are allowed. To load a recipe, use `import catalog from '@taylorwong/ichartjs/recipes/minimal-specs' with { type: 'json' }` and select `catalog.examples[type]`; `recipes/` is the public export path backed by the package's `agent-recipes/` directory.
 9. Keep titles/formats under `xAxis`/`yAxis`, labels under `labels`, and legend under `legend`; do not place them inside `encoding`.
-10. Call `validateSpec()` before rendering. Repair `UNSUPPORTED_ENCODING_CHANNEL`, `MISSING_ENCODING_FIELD`, `MISSING_GAUGE_DOMAIN`, `ZERO_TOTAL`, `UNKNOWN_INTENT`, misplaced-option, unsupported-axis, and `FUNNEL_LABEL_TRUNCATED` warnings before presenting the chart.
+10. Call `validateSpec()` before rendering and repair its preflight errors, warnings, and normalizations. After `createChart()`, inspect `chart.getState()` or `chart.explain()` for render-time diagnostics such as `FUNNEL_LABEL_TRUNCATED`, `VALUE_CLAMPED`, `LABELS_SUPPRESSED`, `NEGATIVE_VALUE_DROPPED`, and `ZERO_TOTAL`; do not assume every layout warning is available during preflight.
 11. Call `createChart()` only after validation succeeds. Gauge Specs must declare a meaningful `domain`.
 12. Self-check with `chart.explain()`, `chart.getState()`, `health.renderable`, and JSON export. Treat `VALUE_CLAMPED`, `LABELS_SUPPRESSED`, `NEGATIVE_VALUE_DROPPED`, `FUNNEL_LABEL_TRUNCATED`, and `ZERO_TOTAL` as material diagnostics to report.
 13. Provide an exact preview URL or artifact path and report assumptions, warnings, and deferred checks.

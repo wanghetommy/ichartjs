@@ -282,8 +282,8 @@
       "Short form `branding: false` and object form `branding: { enabled: false }` are both supported. Custom text, link, position, or font are intentionally NOT exposed in the current iteration."
     ]
   },
-  "packageVersion": "2.0.17",
-  "runtimeVersion": "2.0.17",
+  "packageVersion": "2.0.18",
+  "runtimeVersion": "2.0.18",
   "chartTypes": [
     "line",
     "area",
@@ -1080,7 +1080,9 @@
       "optional": [
         "edges",
         "groups",
-        "ports"
+        "ports",
+        "semantic-node-kinds",
+        "connectors"
       ],
       "interactions": [
         "hover",
@@ -1112,6 +1114,10 @@
         "layout": "supported",
         "groups": "supported",
         "ports": "supported",
+        "semantic-shapes": "supported",
+        "decision-branches": "supported",
+        "connectors": "supported",
+        "loops": "supported",
         "history": "supported",
         "axes": "not-applicable",
         "grid": "not-applicable",
