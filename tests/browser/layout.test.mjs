@@ -149,3 +149,13 @@ test('keeps Timeline and Milestone event coordinates aligned with the horizontal
   ) < 1e-9);
   assert.ok(result.tickX.every((value, index) => index === 0 || value > result.tickX[index - 1]));
 });
+
+test('re-renders Flow content at the enlarged Gallery preview size', async () => {
+  await page.goto('http://127.0.0.1:3000/playground/project-gallery.html');
+  const before = await page.locator('#chart-flow #node-load').evaluate(node => node.getBBox().width);
+  await page.locator('[data-case="flow"] [data-preview]').click();
+  await page.locator('#dialog.open').waitFor({ state: 'visible', timeoutMs: 2000 });
+  const after = await page.locator('#dialogChart #node-load').evaluate(node => node.getBBox().width);
+  assert.ok(after > before * 1.1, `Flow preview geometry did not scale: before=${before}, after=${after}`);
+  await page.locator('#dialogClose').click();
+});

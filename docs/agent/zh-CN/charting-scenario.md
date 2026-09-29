@@ -28,6 +28,8 @@
 
 - Bar、Column、Area 使用 `stack: "stacked"` 或 `stack: "percent"`，不新增堆叠类型。
 - Donut 使用 `type: "pie"` 配合 `innerRadius`。
+- Pie 和 Donut 标签会沿扇区中线布局，并在扇区过小时先缩小字号，再允许自然溢出。需要检查完整可读性时，读取 `getState().layout.labels.polar` 和 `POLAR_LABEL_OVERFLOW` 告警。
+- Gauge 的主数值会保持在仪表主体内，并根据半径自适应字号；Gauge 不生成每个分段的标签。
 - Combo 使用每个系列的 `mark: "column"` 或 `mark: "line"`，并可设置 `axis: "right"`。
 - Histogram 使用 `transform: { type: "bin", field, thresholds | step, extent }`。
 - Heatmap 通过 `colorScale.missing` 区分缺失值和数值零。
