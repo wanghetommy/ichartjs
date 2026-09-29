@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.19 - 2026-09-29
+
+- Added Iteration 15 adaptive text fitting for Flow, Architecture, Mindmap, and Swimlane nodes, with inline-first edge labels, diagram-only contrast plates, unified diagnostics, and shared SVG/Canvas behavior.
+- Improved diagram readability with vertically centered node labels, bounded compact labels, centered Swimlane nodes, safer edge-label placement, and enlarged-preview re-rendering.
+- Added sector-aware Pie/Donut labels and radius-aware Gauge metrics, including bounded font reduction, explicit `POLAR_LABEL_OVERFLOW` diagnostics, and machine-readable polar layout state.
+
 ## 2.0.18 - 2026-09-28
 
 - Added lightweight Flow semantics for start/end, process, decision, input/output, and connector nodes, including explicit decision branches and loop edges with shared SVG/Canvas geometry.

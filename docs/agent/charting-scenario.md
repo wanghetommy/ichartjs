@@ -28,6 +28,8 @@ Agent usage and development guide for generic data analysis and metric visualiza
 
 - Use `stack: "stacked"` or `stack: "percent"` with Bar, Column, or Area rather than a separate stacked type.
 - Use `type: "pie"` with `innerRadius` for Donut charts.
+- Pie and Donut labels are positioned on each sector centerline and scale down before allowing overflow on very small sectors. Check `getState().layout.labels.polar` and the `POLAR_LABEL_OVERFLOW` warning when labels are required to be fully readable.
+- Gauge keeps its primary value inside the gauge body and adapts its metric font to the available radius; it does not create per-segment labels.
 - Use per-series `mark: "column"` or `mark: "line"` and optional `axis: "right"` for Combo charts.
 - Use `transform: { type: "bin", field, thresholds | step, extent }` for Histogram workflows.
 - Heatmap treats missing values separately from numeric zero through `colorScale.missing`.

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createChart, getCapabilities, validateSpec } from '../src/index.mjs';
+import { createChart, getCapabilities, normalizeSpec, validateSpec } from '../src/index.mjs';
+import { buildProjectScene } from '../src/project.mjs';
 
 const semanticFlow = {
   type: 'flow',
@@ -72,4 +73,38 @@ test('defaults unspecified Flow nodes to process rectangles', () => {
   assert.equal(node.type, 'rect');
   assert.equal(node.dataRef.kind, 'process');
   chart.destroy();
+});
+
+test('centers diagram labels, bounds compact text, and centers Swimlane nodes', () => {
+  const flow = createChart({
+    type: 'flow',
+    renderer: 'svg',
+    width: 560,
+    height: 300,
+    nodes: [
+      { id: 'wide', kind: 'process', label: 'A deliberately long process label', size: { width: 72, height: 36 }, position: { x: 80, y: 100 } },
+      { id: 'small', kind: 'connector', label: 'Retry', size: { width: 28, height: 28 }, position: { x: 220, y: 100 } }
+    ],
+    edges: []
+  });
+  const wideNode = flow.model.scene.find('node-wide'), wideLabels = [];
+  flow.model.scene.walk(item => { if (item.id?.startsWith('node-label-wide')) wideLabels.push(item); });
+  assert.ok(wideLabels.length >= 1);
+  assert.equal((wideLabels[0].geometry.y + wideLabels.at(-1).geometry.y) / 2, wideNode.geometry.y + wideNode.geometry.height / 2);
+  assert.equal(wideLabels[0].style.textBaseline, 'middle');
+  assert.notEqual(wideLabels.map(item => item.geometry.text).join(''), 'A deliberately long process label');
+  assert.equal(flow.model.scene.find('node-label-small'), undefined);
+  flow.destroy();
+
+  const swimlane = buildProjectScene(normalizeSpec({
+    type: 'swimlane',
+    renderer: 'svg',
+    width: 560,
+    height: 300,
+    lanes: [{ id: 'product', label: 'Product' }, { id: 'agent', label: 'Agent' }],
+    nodes: [{ id: 'request', label: 'Request', laneId: 'product' }, { id: 'plan', label: 'Plan', laneId: 'agent' }],
+    edges: []
+  }));
+  const lane = swimlane.scene.find('lane-0'), node = swimlane.scene.find('node-request');
+  assert.equal(node.geometry.y + node.geometry.height / 2, lane.geometry.y + lane.geometry.height / 2);
 });

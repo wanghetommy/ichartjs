@@ -8,7 +8,7 @@ import { layoutArchitectureNodes, layoutDiagram, normalizeDiagramData, routeEdge
 import { analyzeBurndownSeries, analyzeSchedule } from './project-analytics.mjs';
 import { createLinkedProjectState, filterProjectRows, linkedRecordId } from './project-linking.mjs';
 import { contrastRatio, resolveTheme } from './theme.mjs';
-import { axisLabelLayout, estimateTextWidth, fontSize, titleLayout, truncateText } from './layout.mjs';
+import { axisLabelLayout, boxesOverlap, estimateTextWidth, fitTextBlock, fontSize, titleLayout, truncateText } from './layout.mjs';
 
 export const projectTypes = ['gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane', 'architecture', 'mindmap'];
 const day = 86400000;
@@ -57,6 +57,15 @@ const dependencyType = dependency => typeof dependency === 'object' && dependenc
 const markText = (theme, background) => (contrastRatio(theme.text, background) || 0) >= (contrastRatio(theme.background, background) || 0) ? theme.text : theme.background;
 const flowNodeKind = node => node?.kind || 'process';
 
+function diagramNodeLabelLayout(row, kind, geometry, spec, font = null) {
+  const size = font ? Number(String(font).match(/(\d+(?:\.\d+)?)px/)?.[1]) || fontSize(spec, 'label', 12) : fontSize(spec, 'label', 12);
+  const minDimension = Math.min(geometry.width, geometry.height);
+  const horizontalPadding = kind === 'decision' ? size * 1.8 : size * 1.25;
+  const maxWidth = Math.max(0, geometry.width - horizontalPadding * 2);
+  if (minDimension < Math.max(24, size * 2) || maxWidth < size * 2.4) return null;
+  return fitTextBlock(row.label || row.id, { maxWidth, maxHeight: Math.max(size, geometry.height - size * 0.45), size, minSize: Math.max(10, Math.min(size, size - 2)), maxLines: 2 });
+}
+
 function flowNodeVisual(kind, box) {
   const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
   if (kind === 'start' || kind === 'end') return { type: 'path', geometry: { points: Array.from({ length: 16 }, (_, index) => { const angle = index / 16 * Math.PI * 2; return { x: cx + box.width / 2 * Math.cos(angle), y: cy + box.height / 2 * Math.sin(angle) }; }), closed: true } };
@@ -103,8 +112,56 @@ function routeGanttDependency(dependency, from, to, positions, barOffset, plot) 
   return compactRoute([source, { x: sourceStubX, y: source.y }, { x: sourceStubX, y: corridorY }, { x: targetStubX, y: corridorY }, { x: targetStubX, y: target.y }, target]);
 }
 
-function text(scene, id, content, x, y, style = {}) {
-  scene.add({ id, type: 'text', geometry: { text: String(content), x, y }, style: { fill: scene.theme?.text || '#334155', font: scene.theme?.typography?.label?.font || '12px system-ui', ...style }, zIndex: 4 });
+function text(scene, id, content, x, y, style = {}, dataRef = null) {
+  scene.add({ id, type: 'text', geometry: { text: String(content), x, y }, style: { fill: scene.theme?.text || '#334155', font: scene.theme?.typography?.label?.font || '12px system-ui', ...style }, dataRef, zIndex: 4 });
+}
+
+function textBlock(scene, id, block, x, y, style = {}, dataRef = null) {
+  if (!block) return;
+  const start = y - (block.lines.length - 1) * block.lineHeight / 2;
+  block.lines.forEach((line, index) => text(scene, index ? `${id}-${index}` : id, line, x, start + index * block.lineHeight, { textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle', ...style }, dataRef));
+}
+
+function labelPlate(scene, id, box, fill, opacity = 0.94) {
+  scene.add({ id: `${id}-background`, type: 'rect', geometry: { x: box.x - 3, y: box.y - 2, width: box.width + 6, height: box.height + 4 }, style: { fill, opacity, stroke: 'none' }, zIndex: 3 });
+}
+
+function polylineMidpoint(points) {
+  if (!points?.length) return null;
+  if (points.length === 1) return { point: points[0], start: points[0], end: points[0] };
+  const lengths = points.slice(1).map((point, index) => Math.hypot(point.x - points[index].x, point.y - points[index].y));
+  const target = lengths.reduce((sum, value) => sum + value, 0) / 2;
+  let traversed = 0;
+  for (let index = 1; index < points.length; index += 1) {
+    const length = lengths[index - 1];
+    if (traversed + length >= target) {
+      const ratio = length ? (target - traversed) / length : 0;
+      return { point: { x: points[index - 1].x + (points[index].x - points[index - 1].x) * ratio, y: points[index - 1].y + (points[index].y - points[index - 1].y) * ratio }, start: points[index - 1], end: points[index] };
+    }
+    traversed += length;
+  }
+  return { point: points.at(-1), start: points.at(-2), end: points.at(-1) };
+}
+
+function edgeLabelLayout(edge, spec, positions, occupied = []) {
+  const points = edge.points, midpoint = edge.curve === 'cubic' ? { point: cubicBezierPoint(points, 0.5), start: cubicBezierPoint(points, 0.45), end: cubicBezierPoint(points, 0.55) } : polylineMidpoint(points);
+  if (!midpoint) return null;
+  const length = Math.max(1, edge.curve === 'cubic' ? Math.hypot(points.at(-1).x - points[0].x, points.at(-1).y - points[0].y) : Math.hypot(midpoint.end.x - midpoint.start.x, midpoint.end.y - midpoint.start.y));
+  const angle = Math.atan2(midpoint.end.y - midpoint.start.y, midpoint.end.x - midpoint.start.x), normal = { x: -Math.sin(angle), y: Math.cos(angle) }, size = fontSize(spec, 'axis', 12);
+  const block = fitTextBlock(edge.label, { maxWidth: Math.max(size * 3, Math.min(180, length - 10)), maxHeight: size * 2.6, size, minSize: 10, maxLines: 2 });
+  const inlineOffset = 8, candidates = [
+    { x: midpoint.point.x, y: midpoint.point.y - inlineOffset, onLine: true },
+    { x: midpoint.point.x + normal.x * (inlineOffset + block.height + 6), y: midpoint.point.y + normal.y * (inlineOffset + block.height + 6), onLine: false },
+    { x: midpoint.point.x - normal.x * (inlineOffset + block.height + 6), y: midpoint.point.y - normal.y * (inlineOffset + block.height + 6), onLine: false },
+    { x: midpoint.point.x + normal.x * (inlineOffset + 2 * (block.height + 6)), y: midpoint.point.y + normal.y * (inlineOffset + 2 * (block.height + 6)), onLine: false },
+    { x: midpoint.point.x - normal.x * (inlineOffset + 2 * (block.height + 6)), y: midpoint.point.y - normal.y * (inlineOffset + 2 * (block.height + 6)), onLine: false }
+  ];
+  const nodeBoxes = [...positions.values()];
+  for (const candidate of candidates) {
+    const box = { x: candidate.x - block.width / 2, y: candidate.y - block.height / 2, width: block.width, height: block.height };
+    if (!nodeBoxes.some(node => boxesOverlap(box, node, 2)) && !occupied.some(item => boxesOverlap(box, item, 3))) return { ...candidate, anchor: midpoint.point, box, block };
+  }
+  return { ...candidates[0], anchor: midpoint.point, box: { x: candidates[0].x - block.width / 2, y: candidates[0].y - block.height / 2, width: block.width, height: block.height }, block, suppressed: false };
 }
 
 function arrow(scene, id, points, reference, critical = false, curve = null) {
@@ -344,6 +401,9 @@ function diagramScene(scene, spec, rows, state) {
   const columns = Math.max(1, ...[...ranks.values()].map(rank => rank + 1));
   const gapX = Math.max(144, plot.width / columns), laneHeight = Math.max(80, plot.height / Math.max(1, lanes.length));
   const positions = new Map(), slots = new Map();
+  const edgeLabelBoxes = [], labelLayout = { visible: 0, wrapped: 0, scaled: 0, truncated: 0, suppressed: 0, edgeOnLine: 0, edgeOffset: 0, backgrounded: 0 };
+  state.labelLayout = { ...(state.labelLayout || {}), diagram: labelLayout };
+  state.labelWarnings = [];
   lanes.forEach((lane, index) => {
     scene.add({ id: `lane-${index}`, type: 'rect', geometry: { x: plot.x, y: plot.y + index * laneHeight, width: Math.max(plot.width, columns * gapX), height: laneHeight }, style: { fill: index % 2 ? spec.theme.surface : spec.theme.background, stroke: spec.theme.border }, zIndex: -1 });
     text(scene, `lane-label-${index}`, lane.label || lane.id, plot.x - 12, plot.y + index * laneHeight + 20, { textAnchor: 'end' });
@@ -364,7 +424,7 @@ function diagramScene(scene, spec, rows, state) {
       const architectureBox = architectureLayout[row.id];
       const geometry = architectureBox
         ? { ...architectureBox, x: row.position?.x ?? architectureBox.x, y: row.position?.y ?? architectureBox.y }
-        : flowNodeBox(row, generated, { x: plot.x + rank * gapX + 12, y: plot.y + (lanes.length ? lane * laneHeight : 0) + (slot + 0.5) * (lanes.length ? laneHeight : Math.max(plot.height, sameCell * 64)) / sameCell - (flowNodeKind(row) === 'connector' ? 14 : 18) });
+        : flowNodeBox(row, lanes.length ? { ...generated, y: undefined } : generated, { x: plot.x + rank * gapX + 12, y: plot.y + (lanes.length ? lane * laneHeight : 0) + (slot + 0.5) * (lanes.length ? laneHeight : Math.max(plot.height, sameCell * 64)) / sameCell - (flowNodeKind(row) === 'connector' ? 14 : 18) });
     positions.set(row.id, geometry);
     if (collapsedGroups.has(row.groupId)) return;
     const depth = row.parentId ? (ranks.get(row.id) || 0) : 0;
@@ -375,7 +435,18 @@ function diagramScene(scene, spec, rows, state) {
       const point = port.side === 'left' ? { x: geometry.x, y: geometry.y + geometry.height * (port.offset ?? 0.5) } : port.side === 'top' ? { x: geometry.x + geometry.width * (port.offset ?? 0.5), y: geometry.y } : port.side === 'bottom' ? { x: geometry.x + geometry.width * (port.offset ?? 0.5), y: geometry.y + geometry.height } : { x: geometry.x + geometry.width, y: geometry.y + geometry.height * (port.offset ?? 0.5) };
       scene.add({ id: `port-${row.id}-${port.id}`, type: 'circle', geometry: { cx: point.x, cy: point.y, r: 4 }, bounds: { x: point.x - 6, y: point.y - 6, width: 12, height: 12 }, style: { fill: spec.theme.background, stroke: spec.theme.text, strokeWidth: 1.5 }, dataRef: { nodeId: row.id, portId: port.id, groupId: row.groupId || null }, interactive: true, zIndex: 4 });
     });
-    if (row.label || kind !== 'connector') text(scene, `node-label-${row.id}`, row.label || row.id, geometry.x + geometry.width / 2, geometry.y + geometry.height / 2 + (geometry.height < 20 ? 3 : 5), { fill: markText(spec.theme, spec.colors[lane % spec.colors.length]), textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle', ...(nodeFont ? { font: nodeFont } : {}) });
+    const label = diagramNodeLabelLayout(row, kind, geometry, spec, nodeFont);
+    if (label) {
+      const rawLabel = String(row.label || row.id), labelFont = nodeFont ? nodeFont.replace(/\d+(?:\.\d+)?px/, `${label.size}px`) : `${label.size}px system-ui`;
+      textBlock(scene, `node-label-${row.id}`, label, geometry.x + geometry.width / 2, geometry.y + geometry.height / 2, { fill: markText(spec.theme, spec.colors[lane % spec.colors.length]), font: labelFont }, { nodeId: row.id, rawLabel, renderedLabel: label.lines.join('\n'), truncated: label.truncated });
+      labelLayout.visible += 1;
+      if (label.wrapped) labelLayout.wrapped += 1;
+      if (label.scaled) labelLayout.scaled += 1;
+      if (label.truncated) { labelLayout.truncated += 1; state.labelWarnings.push({ code: 'LABEL_TRUNCATED', path: `nodes.${index}.label`, nodeId: row.id, rawLabel, renderedLabel: label.lines.join('\n'), message: `Node label "${rawLabel}" was truncated to fit its shape.`, suggestion: 'Increase node size or shorten the label.' }); }
+    } else if (kind !== 'connector') {
+      labelLayout.suppressed += 1;
+      state.labelWarnings.push({ code: 'LABELS_SUPPRESSED', path: `nodes.${index}.label`, count: 1, nodeId: row.id, message: `Node label for "${row.label || row.id}" was hidden because the node is too small.`, suggestion: 'Increase node size or use the node tooltip/accessibility text.' });
+    }
   });
   const groupBoxes = new Map();
   groups.forEach(group => {
@@ -414,8 +485,17 @@ function diagramScene(scene, spec, rows, state) {
     const points = path.points;
     arrow(scene, `edge-${index}`, points, { from: edge.from, to: edge.to, edgeId: edge.id || `edge-${index}`, status: edge.status, routing, curveTension: edge.curveTension ?? diagramSpec.diagram.curveTension, waypoints: edge.waypoints || [], fromPortDefinition, toPortDefinition, fromGroupId: fromNode.groupId || null, toGroupId: toNode.groupId || null }, edge.critical === true, path.curve);
     if (edge.label) {
-      const middle = path.curve === 'cubic' ? cubicBezierPoint(points, 0.5) : points[Math.floor(points.length / 2)];
-      text(scene, `edge-label-${index}`, edge.label, middle.x, middle.y - 8, { textAnchor: 'middle', font: spec.theme.typography.axis.font });
+      const placement = edgeLabelLayout({ ...edge, points, curve: path.curve }, spec, positions, edgeLabelBoxes);
+      if (placement) {
+        edgeLabelBoxes.push(placement.box);
+        const rawLabel = String(edge.label), labelFont = `${placement.block.size}px system-ui`;
+        if (placement.onLine) labelLayout.edgeOnLine += 1; else labelLayout.edgeOffset += 1;
+        if (placement.block.wrapped) labelLayout.wrapped += 1;
+        if (placement.block.scaled) labelLayout.scaled += 1;
+        if (placement.block.truncated) { labelLayout.truncated += 1; state.labelWarnings.push({ code: 'LABEL_TRUNCATED', path: `edges.${index}.label`, edgeId: edge.id || `edge-${index}`, rawLabel, renderedLabel: placement.block.lines.join('\n'), message: `Edge label "${rawLabel}" was truncated to fit the available line space.`, suggestion: 'Increase the edge length or shorten the label.' }); }
+        if (placement.onLine) { labelPlate(scene, `edge-label-${index}`, placement.box, spec.theme.background); labelLayout.backgrounded += 1; }
+        textBlock(scene, `edge-label-${index}`, placement.block, placement.x, placement.y, { fill: spec.theme.text, font: labelFont }, { edgeId: edge.id || `edge-${index}`, rawLabel, renderedLabel: placement.block.lines.join('\n'), onLine: placement.onLine, offsetX: placement.x - placement.anchor.x, offsetY: placement.y - placement.anchor.y });
+      }
     }
   });
   state.nodePositions = Object.fromEntries(positions);
@@ -461,7 +541,10 @@ export function buildProjectScene(spec) {
     state.projectAnalytics.warnings = state.schedule.warnings;
   }
   if (!data.rows.length) text(scene, 'empty', sourceRows.length && linked.visibleCount === 0 ? 'No matching data' : spec.emptyText || 'No data', spec.width / 2, spec.height / 2, { textAnchor: 'middle' });
-  else if (diagram) diagramScene(scene, spec, data.rows, state);
+  else if (diagram) {
+    diagramScene(scene, spec, data.rows, state);
+    if (state.labelWarnings?.length) data.warnings.push(...state.labelWarnings);
+  }
   else if (spec.type === 'burndown') burndownScene(scene, spec, data.rows, state);
   else tasksScene(scene, spec, data.rows, state);
   if (state.eventLayout?.collisionsUnresolved) data.warnings.push({
@@ -515,7 +598,7 @@ export function projectTooltip(type, row, locale = 'en-US') {
 
 export function rerouteDiagramScene(scene) {
   const nodeGeometries = new Map();
-  scene.walk(item => { if (item.id.startsWith('node-') && item.dataRef?.nodeId && item.geometry) nodeGeometries.set(item.dataRef.nodeId, item.geometry); });
+  scene.walk(item => { if (item.id.startsWith('node-') && !item.id.startsWith('node-label-') && item.dataRef?.nodeId && item.geometry) nodeGeometries.set(item.dataRef.nodeId, item.geometry); });
   scene.walk(node => {
     if (!node.id.startsWith('edge-') || !node.dataRef?.from || !node.dataRef?.to) return;
     const source = nodeGeometries.get(node.dataRef.from), destination = nodeGeometries.get(node.dataRef.to);
@@ -529,7 +612,13 @@ export function rerouteDiagramScene(scene) {
     const arrowNode = scene.find(`${node.id}-arrow`), beforeTip = node.geometry.points.at(-2);
     if (arrowNode) arrowNode.geometry.points = [end, { x: end.x - 7 * Math.cos(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) - Math.PI / 6), y: end.y - 7 * Math.sin(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) - Math.PI / 6) }, { x: end.x - 7 * Math.cos(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) + Math.PI / 6), y: end.y - 7 * Math.sin(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) + Math.PI / 6) }, end];
     const edgeIndex = Number(node.id.slice(5)), label = scene.find(`edge-label-${edgeIndex}`), labelPoint = node.geometry.curve === 'cubic' ? cubicBezierPoint(node.geometry.points, 0.5) : node.geometry.points[Math.floor(node.geometry.points.length / 2)];
-    if (label && labelPoint) { label.geometry.x = labelPoint.x; label.geometry.y = labelPoint.y - 8; }
+    if (label && labelPoint) {
+      const old = { x: label.geometry.x, y: label.geometry.y }, offsetX = Number(label.dataRef?.offsetX) || 0, offsetY = Number(label.dataRef?.offsetY) || 0;
+      label.geometry.x = labelPoint.x + offsetX; label.geometry.y = labelPoint.y + offsetY;
+      const background = scene.find(`edge-label-${edgeIndex}-background`), dx = label.geometry.x - old.x, dy = label.geometry.y - old.y;
+      if (background) { background.geometry.x += dx; background.geometry.y += dy; }
+      for (let lineIndex = 1; ; lineIndex += 1) { const line = scene.find(`edge-label-${edgeIndex}-${lineIndex}`); if (!line) break; line.geometry.x += dx; line.geometry.y += dy; }
+    }
   });
   return scene;
 }

@@ -1,6 +1,6 @@
 # iChart.js 2.0 Roadmap
 
-> Roadmap baseline: 2026-09-14. Current release status: `v2.0.18` includes the completed Iteration 12 structured-diagram work, Iteration 13 contract hardening, Iteration 14 lightweight Flow semantics, the Bar y-axis title layout fix, the 13F axis-free chart layout strategy, Timeline/Milestone layout hardening, and chart diagnostic improvements. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
+> Roadmap baseline: 2026-09-14. Current release status: `v2.0.19` includes the completed Iteration 12 structured-diagram work, Iteration 13 contract hardening, Iteration 14 lightweight Flow semantics, Iteration 15 text-readability hardening, sector-aware Pie/Donut labels, radius-aware Gauge metrics, and the preceding layout and diagnostic improvements. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
 
 ## Current Status
 
@@ -17,6 +17,7 @@
 - Iteration 12A–12G is included in `v2.0.7`: shared structured-diagram contracts, Architecture layers/boundaries, Mindmap parent-child tree/radial layouts with true cubic-Bezier edges, Agent schemas/capabilities, renderer-parity edge hit testing and selection, waypoint/segment handles, persistent manual routing, and Gallery/documentation coverage. Navigation and editing remain disabled by default and require explicit host activation.
 - Iteration 13A–13F is complete and included in `v2.0.18`: canonical contract registry and generated capability projection, atomic Spec/data/style mutations, row-complete project validation, explicit Mindmap edge metadata, complete public TypeScript declarations and consumer fixture, module-cycle and documentation/example gates, browser acceptance, package dry-run evidence, an axis-free layout strategy for Pie, Funnel, Gauge, and Radar, Timeline/Milestone layout hardening, and runtime diagnostics for constrained Funnel labels and Swimlane label aliases. No chart type was added.
 - Iteration 14A–14D is complete and included in `v2.0.18`: lightweight Flow semantics for start/end, process, decision, input/output, and connector nodes, explicit decision branches and loops, shared SVG/Canvas geometry, capability discovery, validation, and Gallery coverage. No new chart type was added.
+- Iteration 15A–15D is complete and included in `v2.0.19`: adaptive diagram node labels, semantic inline-first edge labels, diagram edge-label background plates, plate-free generic chart labels, shared SVG/Canvas fitting, unified label diagnostics, Agent/diagram documentation, and polar label layout hardening for Pie, Donut, and Gauge.
 - The original `2.0.0` readiness record is historical and superseded by the published `2.0.x` releases. Current release checks are defined by `docs/agent/development/release-sop.md`.
 
 ## Iteration 4 — Agent Data Contract and Business Editing
