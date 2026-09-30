@@ -8,6 +8,8 @@ iChart.js has three layers:
 
 The Skill is not a second renderer or service. A Skill-enabled Agent still needs a JavaScript host to render an interactive chart or create a file.
 
+For natural-language changes to an existing chart, use the [Conversational Workflow](conversational-workflow.md). The Runtime does not parse prose itself; the host Agent maps prose to validated Runtime calls.
+
 ## Choose a Scenario
 
 | Need | Use | Runtime location | Typical output |
@@ -79,6 +81,8 @@ const chart = createChart({
 
 The host application owns data loading, authentication, routing, persistence, and state management. Call `setData()` for row changes, `update()` for Spec changes, and `destroy()` before replacing the component.
 
+For a request such as “use a dark theme, hide the grid, and change the March value,” route the style part through `setPreferences()` and the business-record part through `previewEdit()`/`applyEdit()` rather than mutating rows directly. Return the resulting `explain()` and `getState()` diagnostics.
+
 Use this scenario for dashboards, admin pages, project management products, editors, and embedded analytics.
 
 ## Scenario 2: Ask a Coding Agent to Modify a Project
@@ -121,7 +125,7 @@ npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --ye
 For reproducible installation, pin the released Skill directory:
 
 ```bash
-npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.19/skills/ichartjs \
+npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.20/skills/ichartjs \
   --agent codex --global --yes
 ```
 

@@ -37,6 +37,11 @@ function geometryHit(node, x, y) {
     const points = geometry.curve === 'cubic' ? sampleCubicBezier(geometry.points) : geometry.points;
     return points.some((point, index) => index > 0 && pointToSegmentDistance({ x, y }, points[index - 1], point) <= tolerance);
   }
+  if (node.type === 'ellipse') {
+    const rx = Math.max(1, Number(geometry.rx) || 0) + tolerance;
+    const ry = Math.max(1, Number(geometry.ry) || 0) + tolerance;
+    return ((x - geometry.cx) / rx) ** 2 + ((y - geometry.cy) / ry) ** 2 <= 1;
+  }
   return Boolean(node.bounds && x >= node.bounds.x && x <= node.bounds.x + node.bounds.width && y >= node.bounds.y && y <= node.bounds.y + node.bounds.height);
 }
 

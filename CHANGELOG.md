@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.20 - 2026-09-30
+
+- Completed Iteration 16 preference precedence, Agent source resolution, conversational workflow guidance, capability discovery, and Gallery acceptance coverage.
+- Replaced Flow start/end polygon approximations with native ellipse geometry across Scene Graph, SVG, Canvas, export, scaling, and hit testing.
+- Synchronized runtime, package, Playground, Skill, documentation, and release-pinned installation references.
+
 ## 2.0.19 - 2026-09-29
 
 - Added Iteration 15 adaptive text fitting for Flow, Architecture, Mindmap, and Swimlane nodes, with inline-first edge labels, diagram-only contrast plates, unified diagnostics, and shared SVG/Canvas behavior.

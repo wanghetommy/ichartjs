@@ -12,6 +12,8 @@ Agents should use `getCapabilities()` first instead of hard-coding undeclared ty
 
 For post-creation visual settings, use `getPreferenceCapabilities(chartType, { locale }) → chart.getPreferences() → validatePreferences(patch) → chart.setPreferences(patch, { source: 'agent' }) → chart.getState().preferences`. This keeps Agent changes on the same allowlisted contract as the built-in settings menu.
 
+The effective preference precedence is `defaults → chart Spec → global PreferencesStore → chart PreferencesStore`. Use `chart.getState().preferenceResolution` to inspect the active scopes, storage mode, and source metadata. The runtime does not parse natural-language prose; use the [Conversational Workflow](conversational-workflow.md) to route prose to the correct mutation API.
+
 Iteration 8 adds per-chart profiles through `getChartCapability(type)`. Each profile declares required data roles, supported interactions, renderers, feature status, exports, and practical limits. Unsupported behavior must be handled from this profile or from validation diagnostics rather than guessed.
 
 `planChart(data, { intent, renderer })` returns a versioned planning result with a primary chart, alternatives, confidence, reasons, required fields, suggested encodings, assumptions, warnings, unsupported requests, safe next actions, and the selected capability profile. `intent` must be one exact token from `getCapabilities().intents`; natural-language prose must be mapped before planning. An unknown token returns `UNKNOWN_INTENT` and a fallback plan, so Agents must inspect warnings before accepting `primary`. Planning never invents business meaning, units, dates, or missing fields.

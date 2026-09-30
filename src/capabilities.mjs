@@ -3,7 +3,7 @@
  */
 import { inspectData } from './data.mjs';
 import { planStyle, styleCapabilities } from './theme.mjs';
-import { defaultPreferences, preferenceDensities, preferenceMotions, preferenceTriStates } from './preferences.mjs';
+import { defaultPreferences, preferenceDensities, preferenceMotions, preferencePrecedence, preferenceTriStates } from './preferences.mjs';
 import { businessModels, chartProfiles, chartTypes, commandTypes, contractVersion, diagramEdgeModels, diagramOperations, exportTypes, flowNodeKinds, interactionDefaults, renderers } from './contract-registry.mjs';
 
 export { chartProfiles, chartTypes };
@@ -81,7 +81,7 @@ export function getPreferenceCapabilities(chartType = null, { locale = 'en' } = 
     field({ path: 'branding.enabled', group: 'components', key: 'branding', type: 'tri-state', values: preferenceTriStates, defaultValue: defaultPreferences.branding.enabled }),
     field({ path: 'motion', group: 'behavior', key: 'motion', type: 'enum', values: preferenceMotions, defaultValue: defaultPreferences.motion })
   ];
-  return { version: '1.0', locale: resolvedLocale, chartType: profile?.type || null, scopes, persistence: ['memory', 'localStorage', 'adapter'], precedence: ['defaults', 'global', 'chart', 'temporary-agent-patch'], fields };
+  return { version: '1.0', locale: resolvedLocale, chartType: profile?.type || null, scopes, persistence: ['memory', 'localStorage', 'adapter'], precedence: [...preferencePrecedence], fields };
 }
 
 export function planChart(input, options = {}) {
@@ -223,6 +223,20 @@ export function getCapabilities() {
     data: ['normalize', 'inspect', 'filter', 'sort', 'groupBy', 'sum', 'average', 'topN', 'percentage', 'bin'],
     themes: [...styleCapabilities.modes],
     styleSystem: JSON.parse(JSON.stringify(styleCapabilities)),
+    conversationalWorkflow: {
+      version: '1.0',
+      steps: ['read-state', 'classify-request', 'build-validated-change', 'preview-or-validate', 'confirm-when-required', 'commit', 'explain-and-report'],
+      routing: {
+        visual: 'setPreferences or setTheme',
+        replaceData: 'setData',
+        businessData: 'previewEdit then applyEdit',
+        spec: 'update',
+        jsonPointer: 'applyPatch',
+        diagram: 'previewEdit then applyEdit'
+      },
+      confirmation: ['deletion', 'structural-change', 'bulk-edit'],
+      selfCheck: ['chart.explain()', 'chart.getState()', 'chart.getState().health']
+    },
     preferences: {
       version: '1.0',
       scopes: preferenceCapabilities.scopes,
@@ -231,6 +245,13 @@ export function getCapabilities() {
       agentAdjustable: true,
       interactiveSettingsUI: true,
       precedence: preferenceCapabilities.precedence,
+      discovery: {
+        capabilities: 'getPreferenceCapabilities(chartType?, { locale? })',
+        current: 'chart.getPreferences()',
+        validate: 'validatePreferences(patch, { partial: true })',
+        apply: "chart.setPreferences(patch, { scope, source: 'agent' })",
+        verify: 'chart.getState().preferences'
+      },
       schema: preferenceCapabilities
     },
     commands: [...commandTypes],

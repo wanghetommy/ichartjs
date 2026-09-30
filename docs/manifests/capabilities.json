@@ -230,9 +230,9 @@
     "interactiveSettingsUI": true,
     "precedence": [
       "defaults",
+      "spec",
       "global",
-      "chart",
-      "temporary-agent-patch"
+      "chart"
     ],
     "discovery": {
       "capabilities": "getPreferenceCapabilities(chartType?, { locale? })",
@@ -282,8 +282,8 @@
       "Short form `branding: false` and object form `branding: { enabled: false }` are both supported. Custom text, link, position, or font are intentionally NOT exposed in the current iteration."
     ]
   },
-  "packageVersion": "2.0.19",
-  "runtimeVersion": "2.0.19",
+  "packageVersion": "2.0.20",
+  "runtimeVersion": "2.0.20",
   "chartTypes": [
     "line",
     "area",
@@ -1408,5 +1408,35 @@
     "toggleGroupCollapse",
     "duplicateSelection",
     "pasteSelection"
-  ]
+  ],
+  "conversationalWorkflow": {
+    "version": "1.0",
+    "steps": [
+      "read-state",
+      "classify-request",
+      "build-validated-change",
+      "preview-or-validate",
+      "confirm-when-required",
+      "commit",
+      "explain-and-report"
+    ],
+    "routing": {
+      "visual": "setPreferences or setTheme",
+      "replaceData": "setData",
+      "businessData": "previewEdit then applyEdit",
+      "spec": "update",
+      "jsonPointer": "applyPatch",
+      "diagram": "previewEdit then applyEdit"
+    },
+    "confirmation": [
+      "deletion",
+      "structural-change",
+      "bulk-edit"
+    ],
+    "selfCheck": [
+      "chart.explain()",
+      "chart.getState()",
+      "chart.getState().health"
+    ]
+  }
 }
