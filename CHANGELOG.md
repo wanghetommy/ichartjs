@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.21 - 2026-10-01
+
+- Completed Iteration 17 production trust and Agent reliability hardening with unknown-option diagnostics, effective Spec explanations, unsupported-renderer planning diagnostics, and stable normalization records.
+- Added `agentReliability` capability metadata, npm package-content checks, bilingual production-trust guidance, and release-gate coverage for the ESM, TypeScript, headless, SVG, and Canvas consumer paths.
+
 ## 2.0.20 - 2026-09-30
 
 - Completed Iteration 16 preference precedence, Agent source resolution, conversational workflow guidance, capability discovery, and Gallery acceptance coverage.

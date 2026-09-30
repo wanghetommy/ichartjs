@@ -30,6 +30,7 @@ check('diagramEdgeModels', manifest.diagramEdgeModels, capabilities.diagramEdgeM
 check('schemas', schemas.models, schemaProjection);
 check('exports', manifest.exports, capabilities.exports);
 check('export', manifest.export, capabilities.export);
+check('agentReliability', manifest.agentReliability, capabilities.agentReliability);
 check('commands', manifest.commands, operationTypes);
 checkSet('command manifest', Object.keys(commands.commands), operationTypes);
 if (failures.length) {

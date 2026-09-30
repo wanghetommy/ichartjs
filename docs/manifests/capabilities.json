@@ -282,8 +282,8 @@
       "Short form `branding: false` and object form `branding: { enabled: false }` are both supported. Custom text, link, position, or font are intentionally NOT exposed in the current iteration."
     ]
   },
-  "packageVersion": "2.0.20",
-  "runtimeVersion": "2.0.20",
+  "packageVersion": "2.0.21",
+  "runtimeVersion": "2.0.21",
   "chartTypes": [
     "line",
     "area",
@@ -1438,5 +1438,32 @@
       "chart.getState()",
       "chart.getState().health"
     ]
+  },
+  "agentReliability": {
+    "contract": {
+      "validationBeforeRender": true,
+      "normalizedSpecReturned": true,
+      "unknownOptionsDiagnosed": true,
+      "stableDiagnosticCodes": true
+    },
+    "selfCheck": [
+      "chart.explain().effective",
+      "chart.explain().normalizations",
+      "chart.getState().health",
+      "chart.getState().warnings"
+    ],
+    "integration": {
+      "esm": true,
+      "typescript": true,
+      "headless": true,
+      "svg": true,
+      "canvas": true,
+      "packageTarball": true
+    },
+    "defaults": {
+      "navigation": false,
+      "editing": false,
+      "motion": "auto"
+    }
   }
 }

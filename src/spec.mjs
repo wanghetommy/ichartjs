@@ -118,6 +118,7 @@ const presentationEncodingKeys = new Set(['title', 'format', 'labels', 'legend']
 const diagramTypes = new Set(['flow', 'swimlane', 'architecture', 'mindmap']);
 const diagramFields = ['nodes', 'edges', 'lanes', 'groups', 'layers', 'boundaries'];
 const nonCartesianAnalysisTypes = new Set(['pie', 'funnel', 'gauge', 'heatmap', 'radar']);
+const knownSpecKeys = new Set(['version', 'type', 'renderer', 'container', 'chartId', 'width', 'height', 'padding', 'colors', 'background', 'locale', 'data', 'encoding', 'title', 'legend', 'grid', 'labels', 'xAxis', 'yAxis', 'domain', 'colorScale', 'indicators', 'innerRadius', 'stack', 'transform', 'criticalPath', 'nodes', 'edges', 'lanes', 'layers', 'boundaries', 'groups', 'diagram', 'project', 'interaction', 'editing', 'accessibility', 'branding', 'theme', 'preferences', 'preferencesStore', 'plugins', 'schema', 'validationOptions', 'emptyText', 'responsive', 'view', 'context', 'intent', 'tasks', 'events']);
 
 function finiteDomain(domain) {
   return Array.isArray(domain) && domain.length === 2 && domain.every(value => Number.isFinite(Number(value))) && Number(domain[1]) > Number(domain[0]);
@@ -179,11 +180,12 @@ export function normalizeSpec(input = {}) {
 export function validateSpec(input = {}) {
   const spec = normalizeSpec(input);
   const errors = [], warnings = [], normalizations = [];
+  Object.keys(input || {}).filter(key => !knownSpecKeys.has(key)).forEach(key => warnings.push({ code: 'UNKNOWN_SPEC_OPTION', path: key, message: `Top-level option ${key} is not part of the iChart.js Spec contract and will be ignored.`, expected: [...knownSpecKeys].sort(), suggestion: 'Remove the option or place host metadata outside the chart Spec.' }));
   if (typeof input.title === 'string') {
-    normalizations.push({ path: 'title', from: 'string', to: 'title.text' });
+    normalizations.push({ code: 'NORMALIZED_TITLE', path: 'title', from: 'string', to: 'title.text' });
     warnings.push({ code: 'NORMALIZED_TITLE', path: 'title', message: 'String titles are normalized to title.text.', suggestion: 'Prefer title: { text: "..." } for an explicit title contract.' });
   } else if (input.title && typeof input.title === 'object' && !Array.isArray(input.title) && input.title.text === undefined && typeof input.title.label === 'string') {
-    normalizations.push({ path: 'title.label', from: 'title.label', to: 'title.text' });
+    normalizations.push({ code: 'NORMALIZED_TITLE', path: 'title.label', from: 'title.label', to: 'title.text' });
     warnings.push({ code: 'NORMALIZED_TITLE', path: 'title.label', message: 'title.label is normalized to title.text.', suggestion: 'Use title: { text: "..." }.' });
   } else if (input.title !== undefined && (!input.title || typeof input.title !== 'object' || Array.isArray(input.title) || (input.title.text === undefined && input.title.subtitle === undefined))) {
     warnings.push({ code: 'INVALID_TITLE', path: 'title', message: 'Title must be a string or an object with text and/or subtitle.', suggestion: 'Use title: { text: "...", subtitle: "..." }.' });

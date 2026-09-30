@@ -121,6 +121,11 @@ export function planChart(input, options = {}) {
   const confidence = !report.rows || requiredFields.length ? 0.35 : warnings.some(item => item.code !== 'MISSING_VALUE') ? 0.65 : 0.9;
   const styleRecommendation = planStyle({ type: primary, intent: requestedIntent, data: Array.isArray(input) ? input : input?.values || input, encoding: { x: report.dimensions[0] ? { field: report.dimensions[0] } : undefined, y: report.measures.map(field => ({ field })) } }, options);
   warnings.push(...styleRecommendation.warnings);
+  const unsupportedRequests = options.renderer && options.renderer !== 'auto' && !profile.renderers.includes(options.renderer) ? [`renderer:${options.renderer}`] : [];
+  if (unsupportedRequests.length) {
+    warnings.push(warning('UNSUPPORTED_RENDERER', 'renderer', `${primary} does not support renderer ${options.renderer}.`, `Use one of: ${profile.renderers.join(', ')}.`));
+    nextActions.push(`Change renderer to ${profile.renderers[0]}.`);
+  }
   return {
     version: '1.0',
     intent: requestedIntent,
@@ -135,7 +140,7 @@ export function planChart(input, options = {}) {
     suggestedEncodings: { dimension: report.dimensions[0] || null, measure: report.measures[0] || null, secondaryMeasure: report.measures[1] || null },
     assumptions: ['Field roles are inferred from provided values; business meaning and units are not inferred.'],
     warnings,
-    unsupportedRequests: options.renderer && !profile.renderers.includes(options.renderer) ? [`renderer:${options.renderer}`] : [],
+    unsupportedRequests,
     nextActions,
     capability: getChartCapability(primary),
     styleRecommendation,
@@ -157,7 +162,9 @@ export function explainChart(spec, model = {}) {
     encodings,
     transforms: spec.transform ? (Array.isArray(spec.transform) ? spec.transform : [spec.transform]).map(item => item.type) : [],
     interactions: Object.keys(spec.interaction || {}).filter(key => spec.interaction[key]),
+    effective: { renderer: spec.renderer, title: spec.title, legend: spec.legend, grid: spec.grid, labels: spec.labels, interaction: spec.interaction, branding: spec.branding },
     assumptions: [...(model.data?.assumptions || []), ...(model.state?.projectAnalytics?.assumptions || [])],
+    normalizations: model.normalizations || [],
     warnings,
     axes: model.state?.axes || null,
     style: spec.theme && typeof spec.theme === 'object' ? { name: spec.theme.name, preset: spec.theme.preset, mode: spec.theme.mode, resolvedMode: spec.theme.resolvedMode, palette: spec.theme.palette, reasons: spec.theme.reasons || [], warnings: spec.theme.warnings || [] } : planStyle(spec),
@@ -236,6 +243,12 @@ export function getCapabilities() {
       },
       confirmation: ['deletion', 'structural-change', 'bulk-edit'],
       selfCheck: ['chart.explain()', 'chart.getState()', 'chart.getState().health']
+    },
+    agentReliability: {
+      contract: { validationBeforeRender: true, normalizedSpecReturned: true, unknownOptionsDiagnosed: true, stableDiagnosticCodes: true },
+      selfCheck: ['chart.explain().effective', 'chart.explain().normalizations', 'chart.getState().health', 'chart.getState().warnings'],
+      integration: { esm: true, typescript: true, headless: true, svg: true, canvas: true, packageTarball: true },
+      defaults: { navigation: false, editing: false, motion: 'auto' }
     },
     preferences: {
       version: '1.0',

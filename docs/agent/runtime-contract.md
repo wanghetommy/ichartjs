@@ -129,7 +129,7 @@ chart.downloadSVG()
 chart.downloadJSON()
 ```
 
-Validation results contain separate `errors`, `warnings`, and `normalizations`. Diagnostics use stable codes, JSON-oriented paths, expected values where useful, and actionable suggestions. `chart.explain()` returns encodings, transforms, interactions, assumptions, warnings, stable record lineage, and an accessibility summary.
+Validation results contain separate `errors`, `warnings`, and `normalizations`. Diagnostics use stable codes, JSON-oriented paths, expected values where useful, and actionable suggestions. Unknown top-level options return `UNKNOWN_SPEC_OPTION` instead of being silently treated as valid configuration. `chart.explain()` returns encodings, transforms, interactions, effective options, normalizations, assumptions, warnings, stable record lineage, and an accessibility summary.
 
 For lineage checks and linked updates, provide stable string `id` values on input rows. Without one, the runtime uses deterministic positional IDs such as `record-0`; these are suitable for a local self-check but not for durable business identity.
 

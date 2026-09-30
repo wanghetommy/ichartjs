@@ -125,7 +125,7 @@ npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --ye
 For reproducible installation, pin the released Skill directory:
 
 ```bash
-npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.20/skills/ichartjs \
+npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.21/skills/ichartjs \
   --agent codex --global --yes
 ```
 

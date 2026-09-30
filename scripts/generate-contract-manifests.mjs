@@ -28,6 +28,7 @@ const next = {
   export: capabilities.export,
   preferences: { ...existingPreferenceContract, ...preferenceContract, discovery: existingPreferenceContract.discovery || capabilities.preferences?.discovery },
   conversationalWorkflow: capabilities.conversationalWorkflow,
+  agentReliability: capabilities.agentReliability,
   commands: operationTypes
 };
 

@@ -1,6 +1,6 @@
 # iChart.js 2.0 Roadmap
 
-> Roadmap baseline: 2026-09-14. Current release status: `v2.0.20` includes the completed Iteration 12 structured-diagram work, Iteration 13 contract hardening, Iteration 14 lightweight Flow semantics, Iteration 15 text-readability hardening, Iteration 16 Agent presentation and acceptance hardening, native Flow ellipse primitives, sector-aware Pie/Donut labels, radius-aware Gauge metrics, and the preceding layout and diagnostic improvements. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
+> Roadmap baseline: 2026-09-14. Current release status: `v2.0.21` includes the completed Iteration 12 structured-diagram work, Iteration 13 contract hardening, Iteration 14 lightweight Flow semantics, Iteration 15 text-readability hardening, Iteration 16 Agent presentation and acceptance hardening, Iteration 17 production trust and Agent reliability hardening, native Flow ellipse primitives, sector-aware Pie/Donut labels, radius-aware Gauge metrics, and the preceding layout and diagnostic improvements. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
 
 ## Current Status
 
@@ -20,6 +20,7 @@
 - Iteration 15A–15D is complete and included in `v2.0.19`: adaptive diagram node labels, semantic inline-first edge labels, diagram edge-label background plates, plate-free generic chart labels, shared SVG/Canvas fitting, unified label diagnostics, Agent/diagram documentation, and polar label layout hardening for Pie, Donut, and Gauge.
 - Iteration 16A–16E is complete and included in `v2.0.20`: Gallery preference precedence, preference source resolution, conversational Agent routing, bilingual workflow guidance, manifest discovery, lifecycle regression coverage, and browser acceptance for Gallery theme controls.
 - Flow start/end nodes now use native ellipse geometry across Scene Graph, SVG, Canvas, export, scaling, and hit testing.
+- Iteration 17A–17E is complete and included in `v2.0.21`: unknown-option diagnostics, effective Agent explanations, unsupported renderer planning diagnostics, `agentReliability` discovery, npm package-content checks, and production-trust documentation. See `docs/agent/development/iteration-17.md`.
 - The original `2.0.0` readiness record is historical and superseded by the published `2.0.x` releases. Current release checks are defined by `docs/agent/development/release-sop.md`.
 
 ## Iteration 4 — Agent Data Contract and Business Editing
