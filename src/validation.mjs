@@ -33,7 +33,7 @@ export function validateData(input, schema, options = {}) {
     if (!Object.hasOwn(object, name)) {
       if (Object.hasOwn(field, 'default')) {
         object[name] = copyJSON(field.default);
-        normalizations.push({ path, beforePresent: false, after: copyJSON(object[name]), reason: 'default' });
+        normalizations.push({ code: 'DEFAULT_VALUE', path, beforePresent: false, after: copyJSON(object[name]), reason: 'default' });
       } else { if (field.required) errors.push(issue('REQUIRED', path, 'Required field is missing.')); return; }
     }
     const value = object[name];
@@ -67,7 +67,7 @@ export function validateData(input, schema, options = {}) {
     if (!isRecord(row)) { errors.push(issue('INVALID_RECORD', path, 'Each row must be an object.')); return; }
     if (options.progressUnit === 'ratio' && schema.name === 'project-task' && Object.hasOwn(row, 'progress')) {
       if (typeof row.progress !== 'number' || row.progress < 0 || row.progress > 1) errors.push(issue('PROGRESS_UNIT', `${path}.progress`, 'Ratio progress must be between 0 and 1.'));
-      else { const before = row.progress; row.progress *= 100; normalizations.push({ path: `${path}.progress`, beforePresent: true, before, after: row.progress, reason: 'ratio-to-percent' }); }
+      else { const before = row.progress; row.progress *= 100; normalizations.push({ code: 'PROGRESS_UNIT_CONVERSION', path: `${path}.progress`, beforePresent: true, before, after: row.progress, reason: 'ratio-to-percent' }); }
     }
     Object.keys(row).filter(key => !Object.hasOwn(schema.fields, key)).forEach(key => errors.push(issue('UNKNOWN_FIELD', `${path}.${key}`, 'Field is not declared in the business schema.')));
     Object.entries(schema.fields).forEach(([name, field]) => normalizeField(row, name, field, `${path}.${name}`));
