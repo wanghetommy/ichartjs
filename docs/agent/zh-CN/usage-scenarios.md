@@ -8,6 +8,8 @@ iChart.js 可以分成三层：
 
 Skill 不是第二套渲染器，也不是服务端。使用 Skill 的 Agent 仍然需要 JavaScript 宿主，才能生成交互页面或文件。
 
+修改已有图表的自然语言请求请阅读[自然语言修改工作流](conversational-workflow.md)。Runtime 本身不解析自然语言；宿主 Agent 负责把自然语言映射为经过校验的 Runtime 调用。
+
 ## 场景选择
 
 | 需求 | 使用方式 | 运行位置 | 常见输出 |
@@ -77,6 +79,8 @@ const chart = createChart({
 
 宿主项目负责数据加载、认证、路由、持久化和状态管理。数据变化使用 `setData()`，Spec 变化使用 `update()`，替换组件前调用 `destroy()`。
 
+例如“使用深色主题、隐藏网格，并修改三月数据”应拆分为 `setPreferences()` 和 `previewEdit()`/`applyEdit()`，不要直接修改业务数据对象。提交后返回 `explain()` 和 `getState()` 的诊断结果。
+
 适用于管理后台、数据看板、项目管理、流程编辑和嵌入式分析页面。
 
 ## 场景二：让 Coding Agent 修改项目
@@ -116,7 +120,7 @@ npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --ye
 需要固定发布版本时，直接安装已发布的 Skill 目录：
 
 ```bash
-npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.19/skills/ichartjs \
+npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.20/skills/ichartjs \
   --agent codex --global --yes
 ```
 

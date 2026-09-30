@@ -71,6 +71,8 @@ For a mindmap, prefer the compact parent contract:
 
 Supported kinds are `start`, `end`, `process`, `decision`, `io`, and `connector`. A decision should have at least two outgoing labeled edges. Loops are ordinary explicit `from`/`to` edges and are allowed. Connectors are circular hand-off points; they do not use implicit matching, so every connection remains visible in `edges`.
 
+Flow `start` and `end` nodes render as true ellipse shapes; `process` nodes are rectangles, `decision` nodes are diamonds, and `io` nodes are parallelograms.
+
 Node labels are centered on the node and use adaptive fitting: they wrap to at most two lines, reduce to a bounded minimum font size, and truncate only as a last resort. Compact nodes such as small connectors suppress their internal label rather than rendering unreadable text; the full label remains in the node data and accessibility surface. Edge labels stay inline when space permits, use a high-opacity background plate when the line would reduce contrast, and move aside only when they collide with nodes or other labels. `getState().layout.labels` and `explain().warnings` expose any wrapping, scaling, truncation, or suppression.
 
 ## Current Capabilities

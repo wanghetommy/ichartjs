@@ -7,6 +7,8 @@ const manifestUrl = new URL('../docs/manifests/capabilities.json', import.meta.u
 const schemasUrl = new URL('../docs/manifests/schemas.json', import.meta.url);
 const manifest = JSON.parse(await readFile(manifestUrl, 'utf8'));
 const capabilities = runtimeCapabilities();
+const { schema: _preferenceSchema, ...preferenceContract } = capabilities.preferences || {};
+const { schema: _existingPreferenceSchema, ...existingPreferenceContract } = manifest.preferences || {};
 
 const next = {
   ...manifest,
@@ -24,6 +26,8 @@ const next = {
   diagramEdgeModels: capabilities.diagramEdgeModels,
   exports: capabilities.exports,
   export: capabilities.export,
+  preferences: { ...existingPreferenceContract, ...preferenceContract, discovery: existingPreferenceContract.discovery || capabilities.preferences?.discovery },
+  conversationalWorkflow: capabilities.conversationalWorkflow,
   commands: operationTypes
 };
 

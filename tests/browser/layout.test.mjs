@@ -159,3 +159,17 @@ test('re-renders Flow content at the enlarged Gallery preview size', async () =>
   assert.ok(after > before * 1.1, `Flow preview geometry did not scale: before=${before}, after=${after}`);
   await page.locator('#dialogClose').click();
 });
+
+test('applies Gallery top-level theme controls over stored chart preferences', async () => {
+  await page.goto('http://127.0.0.1:3000/playground/project-gallery.html?theme-control-test=1');
+  const readLineStyle = async () => JSON.parse(await page.locator('[data-case="line"] [data-output]').textContent()).state.style;
+  await page.selectOption('#theme', 'dark');
+  let style = await readLineStyle();
+  assert.equal(style.mode, 'dark');
+  assert.equal(style.resolvedMode, 'dark');
+  await page.selectOption('#preset', 'dashboard');
+  await page.selectOption('#palette', 'sequential');
+  style = await readLineStyle();
+  assert.equal(style.preset, 'dashboard');
+  assert.equal(style.palette, 'sequential');
+});

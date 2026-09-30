@@ -8,6 +8,7 @@ export const preferenceVersion = '1.0';
 export const preferenceDensities = ['compact', 'comfortable', 'spacious'];
 export const preferenceTriStates = ['auto', true, false];
 export const preferenceMotions = ['auto', 'full', 'reduced', 'off'];
+export const preferencePrecedence = ['defaults', 'spec', 'global', 'chart'];
 
 export const defaultPreferences = Object.freeze({
   version: preferenceVersion,
@@ -101,12 +102,17 @@ function readState(storage, key) {
 
 export function createPreferencesStore(options = {}) {
   const storage = resolveStorage(options.storage);
+  const storageKind = options.storage === 'localStorage' ? 'localStorage' : storage ? 'adapter' : 'memory';
   const storageKey = options.storageKey || 'ichartjs:preferences:v1';
   const loaded = readState(storage, storageKey);
   let state = loaded || {
     version: preferenceVersion,
     global: normalizePreferences(options.global || {}),
     charts: Object.fromEntries(Object.entries(options.charts || {}).map(([id, value]) => [id, normalizePreferences(value, { partial: true })]))
+  };
+  const sources = {
+    global: loaded ? 'persisted' : options.global ? 'host' : null,
+    charts: loaded ? Object.fromEntries(Object.keys(loaded.charts || {}).map(id => [id, 'persisted'])) : Object.fromEntries(Object.keys(options.charts || {}).map(id => [id, 'host']))
   };
   const listeners = new Set();
   const persist = () => {
@@ -121,6 +127,17 @@ export function createPreferencesStore(options = {}) {
   const getGlobal = () => clone(state.global);
   const getChart = chartId => clone(state.charts[String(chartId)] || {});
   const getEffective = chartId => mergePreferences(defaultPreferences, state.global, chartId == null ? {} : state.charts[String(chartId)] || {});
+  const getResolution = chartId => ({
+    version: '1.0',
+    precedence: [...preferencePrecedence],
+    storage: storageKind,
+    scopes: {
+      defaults: 'runtime',
+      spec: 'chart-spec',
+      global: sources.global,
+      chart: chartId == null ? null : sources.charts[String(chartId)] || null
+    }
+  });
   const update = (scope, chartId, patch, { source = 'user', persist: shouldPersist = true } = {}) => {
     const checked = validatePreferences(patch, { partial: true });
     if (!checked.valid) { const error = new Error(checked.errors.map(item => item.message).join(' ')); error.code = 'INVALID_PREFERENCES'; error.details = checked.errors; throw error; }
@@ -128,7 +145,9 @@ export function createPreferencesStore(options = {}) {
     else {
       const key = String(chartId || 'default');
       state.charts[key] = merge(state.charts[key] || {}, checked.value);
+      sources.charts[key] = source;
     }
+    if (scope === 'global') sources.global = source;
     const persisted = shouldPersist ? persist() : false;
     notify(scope, chartId, source, persisted);
     return scope === 'global' ? getGlobal() : getEffective(chartId);
@@ -140,19 +159,23 @@ export function createPreferencesStore(options = {}) {
     getGlobal,
     getChart,
     getEffective,
+    getResolution,
     setGlobal(patch, options = {}) { return update('global', null, patch, options); },
     setChart(chartId, patch, options = {}) { return update('chart', chartId, patch, options); },
     reset({ scope = 'all', chartId, persist: shouldPersist = true, source = 'user' } = {}) {
       if (scope === 'all' || scope === 'global') state.global = normalizePreferences({});
       if (scope === 'all') state.charts = {};
       if (scope === 'chart' && chartId != null) delete state.charts[String(chartId)];
+      if (scope === 'all' || scope === 'global') sources.global = source;
+      if (scope === 'all') sources.charts = {};
+      if (scope === 'chart' && chartId != null) sources.charts[String(chartId)] = source;
       const persisted = shouldPersist ? persist() : false;
       notify(scope, chartId, source, persisted);
       return chartId != null ? getEffective(chartId) : getGlobal();
     },
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     persist,
-    storage: storage ? 'localStorage' : 'memory'
+    storage: storageKind
   };
 }
 

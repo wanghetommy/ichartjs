@@ -1,6 +1,6 @@
 # iChart.js 2.0 Roadmap
 
-> Roadmap baseline: 2026-09-14. Current release status: `v2.0.19` includes the completed Iteration 12 structured-diagram work, Iteration 13 contract hardening, Iteration 14 lightweight Flow semantics, Iteration 15 text-readability hardening, sector-aware Pie/Donut labels, radius-aware Gauge metrics, and the preceding layout and diagnostic improvements. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
+> Roadmap baseline: 2026-09-14. Current release status: `v2.0.20` includes the completed Iteration 12 structured-diagram work, Iteration 13 contract hardening, Iteration 14 lightweight Flow semantics, Iteration 15 text-readability hardening, Iteration 16 Agent presentation and acceptance hardening, native Flow ellipse primitives, sector-aware Pie/Donut labels, radius-aware Gauge metrics, and the preceding layout and diagnostic improvements. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
 
 ## Current Status
 
@@ -18,6 +18,8 @@
 - Iteration 13A–13F is complete and included in `v2.0.18`: canonical contract registry and generated capability projection, atomic Spec/data/style mutations, row-complete project validation, explicit Mindmap edge metadata, complete public TypeScript declarations and consumer fixture, module-cycle and documentation/example gates, browser acceptance, package dry-run evidence, an axis-free layout strategy for Pie, Funnel, Gauge, and Radar, Timeline/Milestone layout hardening, and runtime diagnostics for constrained Funnel labels and Swimlane label aliases. No chart type was added.
 - Iteration 14A–14D is complete and included in `v2.0.18`: lightweight Flow semantics for start/end, process, decision, input/output, and connector nodes, explicit decision branches and loops, shared SVG/Canvas geometry, capability discovery, validation, and Gallery coverage. No new chart type was added.
 - Iteration 15A–15D is complete and included in `v2.0.19`: adaptive diagram node labels, semantic inline-first edge labels, diagram edge-label background plates, plate-free generic chart labels, shared SVG/Canvas fitting, unified label diagnostics, Agent/diagram documentation, and polar label layout hardening for Pie, Donut, and Gauge.
+- Iteration 16A–16E is complete and included in `v2.0.20`: Gallery preference precedence, preference source resolution, conversational Agent routing, bilingual workflow guidance, manifest discovery, lifecycle regression coverage, and browser acceptance for Gallery theme controls.
+- Flow start/end nodes now use native ellipse geometry across Scene Graph, SVG, Canvas, export, scaling, and hit testing.
 - The original `2.0.0` readiness record is historical and superseded by the published `2.0.x` releases. Current release checks are defined by `docs/agent/development/release-sop.md`.
 
 ## Iteration 4 — Agent Data Contract and Business Editing
@@ -276,6 +278,20 @@ Allow users and Agents to adjust a chart's visual presentation after creation th
 - Settings UI is excluded from SVG, PNG, and JSON chart exports.
 - `npm run agent:check`, `git diff --check`, and `http://localhost:3000/playground/preferences-lab.html` acceptance pass.
 
+## Iteration 16 — Agent-ready Presentation and Acceptance Hardening
+
+### Goal
+
+Make page-level configuration, Agent changes, browser rendering, lifecycle behavior, and natural-language workflows explicit and testable without adding chart types or a separate service. The complete plan and acceptance contract are in `docs/agent/development/iteration-16.md`.
+
+### Deliverables
+
+- `chart.getState().preferenceResolution` and `PreferencesStore.getResolution()`.
+- Capability and manifest entries for conversational routing and preference precedence.
+- Bilingual `conversational-workflow.md` guidance for style, data, Spec, Diagram, and export requests.
+- Gallery theme-control browser regression and Iteration 16 runtime tests.
+- Updated Skill, README, runtime contract, usage scenarios, TypeScript declarations, and generated manifests.
+
 ## Recommended Execution Order
 
 1. Finish Iteration 3 browser acceptance.
@@ -286,4 +302,5 @@ Allow users and Agents to adjust a chart's visual presentation after creation th
 6. Execute Iteration 8 to complete existing chart behavior, Agent adaptation, and the 2.0 release gates.
 7. Execute Iteration 9 to standardize adaptive visual styling without expanding chart count.
 8. Execute Iteration 11 to add post-creation chart and page preferences without expanding chart count.
-9. Re-evaluate geographic and 3D scope only after usage data confirms demand.
+9. Complete Iteration 16 acceptance hardening before introducing another chart family or service integration.
+10. Re-evaluate geographic and 3D scope only after usage data confirms demand.

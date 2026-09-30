@@ -68,7 +68,7 @@ function diagramNodeLabelLayout(row, kind, geometry, spec, font = null) {
 
 function flowNodeVisual(kind, box) {
   const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
-  if (kind === 'start' || kind === 'end') return { type: 'path', geometry: { points: Array.from({ length: 16 }, (_, index) => { const angle = index / 16 * Math.PI * 2; return { x: cx + box.width / 2 * Math.cos(angle), y: cy + box.height / 2 * Math.sin(angle) }; }), closed: true } };
+  if (kind === 'start' || kind === 'end') return { type: 'ellipse', geometry: { cx, cy, rx: box.width / 2, ry: box.height / 2 } };
   if (kind === 'decision') return { type: 'path', geometry: { points: [{ x: cx, y: box.y }, { x: box.x + box.width, y: cy }, { x: cx, y: box.y + box.height }, { x: box.x, y: cy }], closed: true } };
   if (kind === 'io') {
     const skew = Math.min(18, box.width * 0.18);
@@ -557,7 +557,7 @@ export function buildProjectScene(spec) {
     const geometry = node.geometry;
     ['x', 'x1', 'x2', 'cx'].forEach(key => { if (geometry[key] != null) geometry[key] = mapX(geometry[key]); });
     ['y', 'y1', 'y2', 'cy'].forEach(key => { if (geometry[key] != null) geometry[key] = mapY(geometry[key]); });
-    ['width', 'height', 'r'].forEach(key => { if (geometry[key] != null) geometry[key] *= view.scale; });
+    ['width', 'height', 'r', 'rx', 'ry'].forEach(key => { if (geometry[key] != null) geometry[key] *= view.scale; });
     if (geometry.points) geometry.points = geometry.points.map(point => ({ x: mapX(point.x), y: mapY(point.y) }));
     if (node.bounds) node.bounds = { x: mapX(node.bounds.x), y: mapY(node.bounds.y), width: node.bounds.width * view.scale, height: node.bounds.height * view.scale };
   });

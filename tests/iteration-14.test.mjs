@@ -57,10 +57,14 @@ for (const renderer of ['svg', 'canvas']) {
     chart.model.scene.walk(node => nodes.push(node));
     const semanticNodes = nodes.filter(node => node.dataRef?.kind);
     assert.deepEqual(semanticNodes.map(node => node.dataRef.kind), ['start', 'process', 'decision', 'io', 'connector', 'end']);
-    assert.equal(semanticNodes.find(node => node.dataRef.kind === 'start').type, 'path');
+    const startNode = semanticNodes.find(node => node.dataRef.kind === 'start');
+    assert.equal(startNode.type, 'ellipse');
+    assert.ok(startNode.geometry.rx > 0);
+    assert.ok(startNode.geometry.ry > 0);
     assert.equal(semanticNodes.find(node => node.dataRef.kind === 'decision').type, 'path');
     assert.equal(semanticNodes.find(node => node.dataRef.kind === 'io').type, 'path');
     assert.equal(semanticNodes.find(node => node.dataRef.kind === 'connector').type, 'circle');
+    if (renderer === 'svg') assert.match(chart.export({ type: 'svg' }), /<ellipse\b/);
     assert.equal(chart.getState().health.renderable, true);
     assert.equal(chart.explain().type, 'flow');
     chart.destroy();

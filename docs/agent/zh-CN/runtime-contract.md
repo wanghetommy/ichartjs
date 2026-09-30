@@ -12,6 +12,8 @@ Agent 应优先使用 `getCapabilities()`，不要硬编码未声明的图表类
 
 图表创建后的视觉设置使用 `getPreferenceCapabilities(chartType, { locale }) → chart.getPreferences() → validatePreferences(patch) → chart.setPreferences(patch, { source: 'agent' }) → chart.getState().preferences`。这样 Agent 与内置设置菜单始终使用同一份白名单契约。
 
+有效偏好优先级为 `defaults → chart Spec → global PreferencesStore → chart PreferencesStore`。使用 `chart.getState().preferenceResolution` 查看当前作用域、存储方式和来源。Runtime 不解析自然语言，请使用[自然语言修改工作流](conversational-workflow.md)把自然语言分流到正确的修改 API。
+
 Iteration 8 通过 `getChartCapability(type)` 提供逐图表能力档案，包括必需数据角色、支持的交互、Renderer、功能状态、导出和建议限制。Agent 不应猜测未声明能力。
 
 `planChart(data, { intent, renderer })` 返回版本化规划结果：主选图表、备选项、置信度、原因、缺失字段、建议编码、假设、警告、不支持请求和安全下一步。规划不会虚构业务含义、单位、日期或缺失字段。
