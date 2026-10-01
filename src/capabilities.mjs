@@ -5,6 +5,7 @@ import { inspectData } from './data.mjs';
 import { planStyle, styleCapabilities } from './theme.mjs';
 import { defaultPreferences, preferenceDensities, preferenceMotions, preferencePrecedence, preferenceTriStates } from './preferences.mjs';
 import { businessModels, chartProfiles, chartTypes, commandTypes, contractVersion, diagramEdgeModels, diagramOperations, exportTypes, flowNodeKinds, interactionDefaults, renderers } from './contract-registry.mjs';
+import { rendererPolicy } from './renderer-policy.mjs';
 
 export { chartProfiles, chartTypes };
 
@@ -157,12 +158,13 @@ export function explainChart(spec, model = {}) {
     type: spec.type,
     family: profile?.family || 'unknown',
     purpose: profile?.intents?.[0] || 'visualization',
-    renderer: spec.renderer,
+    renderer: model.rendererSelection?.effective || spec.renderer,
+    requestedRenderer: spec.renderer,
     dataCount: model.data?.rows?.length || 0,
     encodings,
     transforms: spec.transform ? (Array.isArray(spec.transform) ? spec.transform : [spec.transform]).map(item => item.type) : [],
     interactions: Object.keys(spec.interaction || {}).filter(key => spec.interaction[key]),
-    effective: { renderer: spec.renderer, title: spec.title, legend: spec.legend, grid: spec.grid, labels: spec.labels, interaction: spec.interaction, branding: spec.branding },
+    effective: { renderer: model.rendererSelection?.effective || spec.renderer, title: spec.title, legend: spec.legend, grid: spec.grid, labels: spec.labels, interaction: spec.interaction, branding: spec.branding },
     assumptions: [...(model.data?.assumptions || []), ...(model.state?.projectAnalytics?.assumptions || [])],
     normalizations: model.normalizations || [],
     warnings,
@@ -248,7 +250,8 @@ export function getCapabilities() {
       contract: { validationBeforeRender: true, normalizedSpecReturned: true, unknownOptionsDiagnosed: true, stableDiagnosticCodes: true },
       selfCheck: ['chart.explain().effective', 'chart.explain().normalizations', 'chart.getState().health', 'chart.getState().warnings'],
       integration: { esm: true, typescript: true, headless: true, svg: true, canvas: true, packageTarball: true },
-      defaults: { navigation: false, editing: false, motion: 'auto' }
+      defaults: { navigation: false, editing: false, motion: 'auto' },
+      rendererSelection: JSON.parse(JSON.stringify(rendererPolicy))
     },
     preferences: {
       version: '1.0',

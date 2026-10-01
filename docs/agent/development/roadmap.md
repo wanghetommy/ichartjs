@@ -1,6 +1,6 @@
 # iChart.js 2.0 Roadmap
 
-> Roadmap baseline: 2026-09-14. Current release status: `v2.0.21` includes the completed Iteration 12 structured-diagram work, Iteration 13 contract hardening, Iteration 14 lightweight Flow semantics, Iteration 15 text-readability hardening, Iteration 16 Agent presentation and acceptance hardening, Iteration 17 production trust and Agent reliability hardening, native Flow ellipse primitives, sector-aware Pie/Donut labels, radius-aware Gauge metrics, and the preceding layout and diagnostic improvements. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
+> Roadmap baseline: 2026-09-14. Current release status: `v2.0.22` includes the completed Iteration 12 structured-diagram work, Iteration 13 contract hardening, Iteration 14 lightweight Flow semantics, Iteration 15 text-readability hardening, Iteration 16 Agent presentation and acceptance hardening, Iteration 17 production trust and Agent reliability hardening, Freeform Board foundation, Recipe manifest validation, and the preceding layout and diagnostic improvements. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
 
 ## Current Status
 

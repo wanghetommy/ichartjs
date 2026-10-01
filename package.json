@@ -1,6 +1,6 @@
 {
   "name": "@taylorwong/ichartjs",
-  "version": "2.0.21",
+  "version": "2.0.22",
   "description": "Agent-first, renderer-independent charting and project visualization runtime",
   "type": "module",
   "main": "./src/index.mjs",
@@ -43,10 +43,11 @@
     "deps:check": "node scripts/check-cycles.mjs",
     "docs:examples": "node examples/agent-workflow.mjs",
     "docs:check": "node scripts/check-agent-docs.mjs",
+    "recipes:check": "node scripts/check-agent-recipes.mjs",
     "package:check": "node scripts/check-package.mjs",
     "example:agent": "node examples/agent-workflow.mjs",
     "playground": "node scripts/serve-playground.mjs",
-    "agent:check": "npm run contracts:check && npm run types:check && npm run deps:check && npm run docs:check && npm run package:check && npm run docs:examples && npm run check && npm test",
+    "agent:check": "npm run contracts:check && npm run types:check && npm run deps:check && npm run recipes:check && npm run docs:check && npm run package:check && npm run docs:examples && npm run check && npm test",
     "rc:check": "npm test && npm run check && git diff --check"
   },
   "devDependencies": {

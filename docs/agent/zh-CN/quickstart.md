@@ -17,10 +17,13 @@ import {
 
 - `@taylorwong/ichartjs`：统一的 Agent 规划与 Runtime API。
 - `@taylorwong/ichartjs/capabilities.json`：机器可读能力清单，包含逐图表导出、署名和交互声明。
+- `@taylorwong/ichartjs/recipes/manifest`：所有图表、Diagram 和 BoardSpec Recipe 的机器可读索引，包含校验器和输出契约。
 - `@taylorwong/ichartjs/recipes/*`：基础分析、项目管理和 Diagram Recipes。
 - `skills/ichartjs/SKILL.md`：适用于 Codex、WorkBuddy 等 Agent Skills 兼容宿主的可选编排层。
 
 Agent 与开发者使用同一个 ESM 入口。编码 Agent 的完整方式见 [编码 Agent 集成](coding-agent-integration.md)，普通应用集成见 [前端项目集成](frontend-integration.md)。
+
+Recipe 是声明式的起始模板，不是可直接执行的任务。Agent 应先复制 Recipe，再注入宿主拥有的数据或节点，按照 Recipe Manifest 指定的校验器校验，最后调用 `createChart()`、`createBoard()` 或编辑预览 API。`diagrams/workflow` 是编辑命令模板，补齐节点和边之前不能直接渲染。
 
 ## 标准流程
 

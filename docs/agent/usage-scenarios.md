@@ -19,7 +19,8 @@ For natural-language changes to an existing chart, use the [Conversational Workf
 | Reuse charting guidance across Agents | Skill + Runtime | Agent workspace and target project | Validated code, artifacts, explanation |
 | Create a one-off visualization | Node script or standalone HTML | Node.js or browser | SVG, PNG/JPEG, JSON, or HTML |
 | Build project or delivery views | Project scenario + Runtime | Project dashboard | Gantt, Burndown, Timeline, analytics |
-| Build a process or architecture view | Diagram scenario + Runtime | Web app or document workflow | Flow/Swimlane UI, SVG, JSON |
+| Build a process or architecture view | Diagram scenario + Runtime | Web app or document workflow | Flow/Swimlane/Architecture/Mindmap UI, SVG, JSON |
+| Compose images, text, shapes, connectors, and charts | Canvas scenario + Runtime | Browser or Agent-generated document | Board SVG, JSON, PNG/JPEG, or interactive page |
 | Generate scheduled reports | Node script + Runtime | CI or report job | SVG/PNG files and JSON checkpoints |
 
 ## Output Contract
@@ -60,6 +61,8 @@ Install the runtime in the host application:
 ```bash
 npm install @taylorwong/ichartjs@^2
 ```
+
+For reproducible builds, pin the installed release instead: `npm install @taylorwong/ichartjs@2.0.22`.
 
 Use the normal component lifecycle:
 
@@ -125,7 +128,7 @@ npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --ye
 For reproducible installation, pin the released Skill directory:
 
 ```bash
-npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.21/skills/ichartjs \
+npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.22/skills/ichartjs \
   --agent codex --global --yes
 ```
 

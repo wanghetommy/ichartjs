@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.22 - 2026-10-01
+
+- Added the Freeform Board foundation with SVG/Canvas composition, bounded text fitting, reusable drawing/logo Recipes, and renderer selection guidance.
+- Added the public Recipe manifest and automated validation for chart Specs, BoardSpecs, and edit-command templates.
+- Completed Agent documentation closure: 18-chart capability coverage, expanded preview navigation, reproducible installation guidance, and explicit historical release records.
+
 ## 2.0.21 - 2026-10-01
 
 - Completed Iteration 17 production trust and Agent reliability hardening with unknown-option diagnostics, effective Spec explanations, unsupported-renderer planning diagnostics, and stable normalization records.

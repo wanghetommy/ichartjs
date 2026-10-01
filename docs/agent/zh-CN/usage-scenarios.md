@@ -19,7 +19,8 @@ Skill 不是第二套渲染器，也不是服务端。使用 Skill 的 Agent 仍
 | 让多个 Agent 复用图表能力 | Skill + Runtime | Agent 工作区和目标项目 | 校验后的代码、文件、解释结果 |
 | 一次性生成可视化 | Node 脚本或独立 HTML | Node.js 或浏览器 | SVG、PNG/JPEG、JSON、HTML |
 | 项目进度和交付分析 | 项目场景 + Runtime | 项目看板 | Gantt、Burndown、Timeline、分析结果 |
-| 流程或架构图 | Diagram 场景 + Runtime | Web 应用或文档流程 | Flow/Swimlane 页面、SVG、JSON |
+| 流程或架构图 | Diagram 场景 + Runtime | Web 应用或文档流程 | Flow/Swimlane/Architecture/Mindmap 页面、SVG、JSON |
+| 组合图片、文字、图形、连接线和图表 | Canvas 场景 + Runtime | 浏览器或 Agent 生成文档 | Board SVG、JSON、PNG/JPEG 或交互页面 |
 | 定时生成报告 | Node 脚本 + Runtime | CI 或报表任务 | SVG/PNG 文件和 JSON 快照 |
 
 ## 输出契约
@@ -60,6 +61,8 @@ chart.setPreferences({
 ```bash
 npm install @taylorwong/ichartjs@^2
 ```
+
+需要可复现构建时，请固定已发布版本：`npm install @taylorwong/ichartjs@2.0.22`。
 
 ```js
 import { createChart } from '@taylorwong/ichartjs';
@@ -120,7 +123,7 @@ npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --ye
 需要固定发布版本时，直接安装已发布的 Skill 目录：
 
 ```bash
-npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.21/skills/ichartjs \
+npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.22/skills/ichartjs \
   --agent codex --global --yes
 ```
 

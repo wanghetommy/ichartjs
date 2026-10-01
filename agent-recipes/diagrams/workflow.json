@@ -1,6 +1,9 @@
 {
   "name": "workflow-diagram",
   "version": "2.0",
+  "kind": "diagram-edit-template",
+  "renderable": false,
+  "description": "Edit-command template. Populate spec.nodes and spec.edges before rendering; validate every command before previewing it.",
   "intent": "workflow",
   "spec": {
     "type": "flow",

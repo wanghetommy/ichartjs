@@ -7,6 +7,10 @@ import { normalizeData, inspectData, data } from './data.mjs';
 import { binData, applyTransforms } from './transforms.mjs';
 import { buildScene } from './charts.mjs';
 import { CanvasRenderer, SVGRenderer } from './renderer.mjs';
+import { sceneToSvgString } from './scene-svg.mjs';
+import { createBoard, FreeformBoard, validateBoardSpec, planCanvas } from './board.mjs';
+export { createBoard, FreeformBoard, validateBoardSpec, planCanvas };
+import { resolveRenderer } from './renderer-policy.mjs';
 import { contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast } from './theme.mjs';
 import { PluginHost, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin } from './plugin.mjs';
 import { projectTooltip, rerouteDiagramScene } from './project.mjs';
@@ -25,6 +29,8 @@ import { mountChartSettings } from './preferences-ui.mjs';
 import { ChartValidationError } from './errors.mjs';
 import { diagramOperations, flowNodeKinds } from './contract-registry.mjs';
 import { destroyChart } from './chart-lifecycle.mjs';
+import { boardCapabilities } from './board-contract.mjs';
+export { boardCapabilities };
 
 import { isDiagram, paintSelection, diagramPointer, diagramKeyboard } from './diagram-interaction.mjs';
 
@@ -41,128 +47,6 @@ export function resolveZoomWindow(count, current, factor) {
   return { start: nextStart, end: nextStart + nextSpan };
 }
 
-function _svgEscape(value, mode = 'text') {
-  const raw = value == null ? '' : String(value);
-  let out = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  if (mode === 'attr') out = out.replace(/"/g, '&quot;').replace(/'/g, '&apos;');
-  return out;
-}
-function _svgStyleFontParts(raw = '') {
-  const str = String(raw).trim();
-  let size = '', weight = '', family = '';
-  const sizeMatch = str.match(/\b(\d+(?:\.\d+)?)\s*(px|em|rem|pt|%)/i);
-  if (sizeMatch) size = `${sizeMatch[1]}${sizeMatch[2].toLowerCase()}`;
-  const weightMatch = str.match(/^\s*(\d{3}|normal|bold|lighter|bolder)\b/i);
-  if (weightMatch) weight = weightMatch[1];
-  family = str
-    .replace(/^\s*(?:(?:normal|italic|oblique)(?:\s+[^0-9\s]+)?\s+)?(?:\d{3}|normal|bold|lighter|bolder)\s+/i, '')
-    .replace(/\b\d+(?:\.\d+)?\s*(?:px|em|rem|pt|%)(?:\s*\/\s*\S+)?\s*/i, '')
-    .trim();
-  return { size, weight, family };
-}
-const NO_PAINT_TOKENS = new Set(['none', 'transparent', '']);
-function hasPaint(style, key) {
-  const value = style?.[key];
-  if (value == null) return false;
-  return typeof value !== 'string' || !NO_PAINT_TOKENS.has(value.trim().toLowerCase());
-}
-function sceneToSvgString(scene, spec = {}) {
-  const w = Number(scene?.width ?? spec?.width ?? 640);
-  const h = Number(scene?.height ?? spec?.height ?? 360);
-  const bg = spec.background ?? '#ffffff';
-  const lines = [`<?xml version="1.0" encoding="UTF-8"?>`, `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`];
-  if (bg) lines.push(`  <rect x="0" y="0" width="${w}" height="${h}" fill="${_svgEscape(bg, 'attr')}"/>`);
-  const renderNode = (node, indent = '  ') => {
-    if (!node || !node.visible) return;
-    if (node.type === 'root') {
-      const kids = [...node.children].sort((a, b) => a.zIndex - b.zIndex);
-      kids.forEach(k => renderNode(k, indent));
-      return;
-    }
-    const g = node.geometry || {}; const s = node.style || {};
-    const attrs = [];
-    if (node.id) attrs.push(`id="${_svgEscape(node.id, 'attr')}" data-node-id="${_svgEscape(node.id, 'attr')}"`);
-    if (node.dataRef) attrs.push(`data-data-ref="${_svgEscape(JSON.stringify(node.dataRef), 'attr')}"`);
-    const css = [];
-    let tag = node.type;
-    if (node.type === 'rect') {
-      attrs.push(`x="${g.x}" y="${g.y}" width="${g.width}" height="${g.height}"`);
-    } else if (node.type === 'line') {
-      attrs.push(`x1="${g.x1}" y1="${g.y1}" x2="${g.x2}" y2="${g.y2}"`);
-    } else if (node.type === 'circle') {
-      attrs.push(`cx="${g.cx}" cy="${g.cy}" r="${g.r}"`);
-    } else if (node.type === 'ellipse') {
-      attrs.push(`cx="${g.cx}" cy="${g.cy}" rx="${g.rx}" ry="${g.ry}"`);
-    } else if (node.type === 'arc') {
-      tag = 'path';
-      const large = g.end - g.start > Math.PI ? 1 : 0;
-      const outerStart = `${g.cx + g.r * Math.cos(g.start)} ${g.cy + g.r * Math.sin(g.start)}`;
-      const outerEnd = `${g.cx + g.r * Math.cos(g.end)} ${g.cy + g.r * Math.sin(g.end)}`;
-      let d;
-      if (g.innerR > 0) {
-        d = [`M ${outerStart}`, `A ${g.r} ${g.r} 0 ${large} 1 ${outerEnd}`, `L ${g.cx + g.innerR * Math.cos(g.end)} ${g.cy + g.innerR * Math.sin(g.end)}`, `A ${g.innerR} ${g.innerR} 0 ${large} 0 ${g.cx + g.innerR * Math.cos(g.start)} ${g.cy + g.innerR * Math.sin(g.start)}`, 'Z'].join(' ');
-      } else {
-        d = [`M ${g.cx} ${g.cy}`, `L ${outerStart}`, `A ${g.r} ${g.r} 0 ${large} 1 ${outerEnd}`, 'Z'].join(' ');
-      }
-      attrs.push(`d="${_svgEscape(d, 'attr')}"`);
-    } else if (node.type === 'path') {
-      const d = g.curve === 'cubic' && g.points?.length === 4
-        ? `M ${g.points[0].x} ${g.points[0].y} C ${g.points[1].x} ${g.points[1].y} ${g.points[2].x} ${g.points[2].y} ${g.points[3].x} ${g.points[3].y}`
-        : `${(g.points || []).map((p, i) => `${i ? 'L' : 'M'} ${p.x} ${p.y}`).join(' ')}${g.closed ? ' Z' : ''}`;
-      attrs.push(`d="${_svgEscape(d, 'attr')}"`);
-    } else if (node.type === 'text') {
-      attrs.push(`x="${g.x}" y="${g.y}"`);
-      if (Number.isFinite(Number(s.rotation)) && Number(s.rotation) !== 0) attrs.push(`transform="rotate(${Number(s.rotation)} ${g.x} ${g.y})"`);
-      const anchor = s.textAnchor || (s.textAlign === 'end' ? 'end' : s.textAlign === 'center' ? 'middle' : s.textAlign === 'right' ? 'end' : s.textAlign === 'left' ? 'start' : 'start');
-      if (anchor) attrs.push(`text-anchor="${anchor}"`);
-      const baseline = s.textBaseline || s.baseline || 'alphabetic';
-      if (baseline === 'top') { attrs.push(`dominant-baseline="text-before-edge"`); attrs.push(`alignment-baseline="before-edge"`); }
-      else if (baseline === 'middle' || baseline === 'central') { attrs.push(`dominant-baseline="middle"`); attrs.push(`alignment-baseline="middle"`); }
-      else if (baseline === 'bottom' || baseline === 'hanging') { attrs.push(`dominant-baseline="text-after-edge"`); attrs.push(`alignment-baseline="after-edge"`); }
-      else { attrs.push(`dominant-baseline="alphabetic"`); attrs.push(`alignment-baseline="alphabetic"`); }
-      if (s.font) {
-        const rawFont = String(s.font).trim();
-        attrs.push(`font="${_svgEscape(rawFont, 'attr')}"`);
-        const { size, weight, family } = _svgStyleFontParts(rawFont);
-        if (size) css.push(`font-size:${size}`);
-        if (weight) css.push(`font-weight:${weight}`);
-        if (family) css.push(`font-family:${family}`);
-      }
-    } else {
-      tag = 'g';
-    }
-    if (['path', 'circle', 'ellipse', 'rect', 'arc'].includes(node.type)) attrs.push(`fill="${hasPaint(s, 'fill') ? _svgEscape(s.fill, 'attr') : 'none'}"`);
-    else if (node.type === 'text') attrs.push(`fill="${hasPaint(s, 'fill') ? _svgEscape(s.fill, 'attr') : '#0f172a'}"`);
-    if (hasPaint(s, 'stroke')) attrs.push(`stroke="${_svgEscape(s.stroke, 'attr')}"`);
-    else if (s.stroke != null) attrs.push('stroke="none"');
-    if (s.strokeWidth) attrs.push(`stroke-width="${s.strokeWidth}"`);
-    if (s.opacity != null) {
-      const opacity = (node.highlighted || node.selected) ? 1 : s.opacity;
-      attrs.push(`opacity="${opacity}"`);
-    }
-    if (node.highlighted || node.selected) attrs.push(`filter="brightness(1.2)"`);
-    if (node.interactive) css.push('cursor:pointer');
-    if (s.pointerEvents === 'none') css.push('pointer-events:none');
-    if (s.ariaHidden === 'true') attrs.push(`aria-hidden="true"`);
-    if (s.role === 'presentation') attrs.push(`role="presentation"`);
-    if (node.decorative) {
-      attrs.push(`aria-hidden="true"`);
-      attrs.push(`role="presentation"`);
-      css.push('pointer-events:none', 'user-select:none');
-    }
-    if (css.length) attrs.push(`style="${_svgEscape(css.join(';'), 'attr')}"`);
-    if (node.type === 'text') {
-      lines.push(`${indent}<${tag} ${attrs.join(' ')}>${_svgEscape(g.text ?? '')}</${tag}>`);
-    } else {
-      lines.push(`${indent}<${tag} ${attrs.join(' ')}/>`);
-    }
-    const kids = [...(node.children || [])].sort((a, b) => a.zIndex - b.zIndex);
-    kids.forEach(k => renderNode(k, indent + '  '));
-  };
-  renderNode(scene.root);
-  lines.push(`</svg>`);
-  return lines.join('\n');
-}
 function exportError(code, message, suggestion, extra = {}) { return { valid: false, code, message, suggestion, ...extra }; }
 function dataUrlToBlob(dataUrl, mime) {
   if (typeof Blob === 'undefined') return exportError('BLOB_HEADLESS', 'Blob is not available in this runtime.', 'Use as=dataurl or as=string.');
@@ -218,6 +102,7 @@ export class Chart {
     this._destroyed = false;
     this._editor = new EditController(this);
     this.plugins = new PluginHost(this, this.spec.plugins);
+    this._rendererSelection = resolveRenderer(this.spec);
     this._mountRenderer();
     this._observeResize();
     this._observeColorScheme();
@@ -256,7 +141,7 @@ export class Chart {
     };
     this._colorSchemeQuery.addEventListener?.('change', this._colorSchemeHandler);
   }
-  _mountRenderer() { const rendererType = this.spec.renderer === 'auto' ? 'canvas' : this.spec.renderer; this.renderer = rendererType === 'svg' ? new SVGRenderer(this.spec) : new CanvasRenderer(this.spec); if (this.container && typeof document !== 'undefined') this.renderer.mount(this.container); }
+  _mountRenderer() { const rendererType = this._rendererSelection?.effective || this.spec.renderer; this.renderer = rendererType === 'svg' ? new SVGRenderer(this.spec) : new CanvasRenderer(this.spec); if (this.container && typeof document !== 'undefined') this.renderer.mount(this.container); }
   render() { this.model = buildScene(this.spec); paintSelection(this); this._addInteractionNodes(); this.plugins.beforeRender(this.model); if (this.renderer.container) { this.renderer.options = this.spec; const target = this.renderer.svg || this.renderer.canvas; if (target) target.style.background = this.spec.background; this.renderer.resize(this.spec.width, this.spec.height); this.renderer.render(this.model.scene); this._bindEvents(); this._applyAccessibility(); } this.plugins.afterRender(this.model); this.emit('render', { chart: this }); return this; }
   _addInteractionNodes() { if (this.spec.interaction?.crosshair && this.model.state?.plot) { const plot = this.model.state.plot, stroke = this.spec.theme?.focus || '#64748b'; this.model.scene.add({ id: 'crosshair-x', type: 'line', geometry: { x1: plot.x, y1: plot.y, x2: plot.x, y2: plot.y + plot.height }, style: { stroke, strokeWidth: 1, opacity: 0 }, interactive: false, zIndex: 99 }); this.model.scene.add({ id: 'crosshair-y', type: 'line', geometry: { x1: plot.x, y1: plot.y, x2: plot.x + plot.width, y2: plot.y }, style: { stroke, strokeWidth: 1, opacity: 0 }, interactive: false, zIndex: 99 }); } }
   _observeResize() { if (!this.container || typeof ResizeObserver === 'undefined') return; this._resizeObserver = new ResizeObserver(entries => { const width = Math.round(entries[0]?.contentRect?.width || 0); if (width && width !== this.spec.width) this.resize(width, this.spec.height); }); this._resizeObserver.observe(this.container); }
@@ -459,13 +344,13 @@ export class Chart {
     const clampedValues = warnings.filter(item => item.code === 'VALUE_CLAMPED').reduce((sum, item) => sum + Number(item.count || 1), 0);
     return { version: '1.0', status: isEmpty ? 'empty' : warnings.length ? 'degraded' : 'ready', renderable: !isEmpty, issues: [...new Set(warnings.map(item => item.code))], metrics: { warnings: warnings.length, suppressedLabels, clampedValues, renderedMarks: marks.length } };
   }
-  getState() { const brandingSignature = discoverCapabilities().branding.signature, warnings = this._getDiagnostics(), layoutState = this.model.state?.plot ? { family: this.model.state.layoutFamily || null, plot: clone(this.model.state.plot), chrome: clone(this.model.state.chrome || null), labels: clone(this.model.state.labelLayout || null) } : null; return { renderer: this.renderer.constructor.name, width: this.spec.width, height: this.spec.height, dataCount: this.model.data.rows.length, selected: [...this._selected.values()], revision: this._revision, history: this._history.state(), view: clone(this.spec.view || null), style: clone({ name: this.spec.theme.name, mode: this.spec.theme.mode, resolvedMode: this.spec.theme.resolvedMode, preset: this.spec.theme.preset, palette: this.spec.theme.palette, reasons: this.spec.theme.reasons }), layout: layoutState, timeAxis: clone(this.model.state?.timeAxis || null), axes: clone(this.model.state?.axes || null), health: this._getHealth(warnings), preferences: this.getPreferences(), preferenceResolution: this.getPreferenceResolution(), branding: { enabled: Boolean(this.spec.branding?.enabled), signature: brandingSignature, text: this.spec.branding?.enabled === true ? brandingSignature : null }, warnings: clone(warnings), assumptions: clone(this.model.data?.assumptions || []), normalizations: clone(this._specDiagnostics?.normalizations || []), collapsedGroups: this.getCollapsedGroupIds(), clipboard: { nodes: this._clipboard?.nodes?.length || 0, edges: this._clipboard?.edges?.length || 0 }, projectAnalytics: clone(this.model.state?.projectAnalytics || null), linked: clone(this.model.state?.linked || null) }; }
+  getState() { const brandingSignature = discoverCapabilities().branding.signature, warnings = this._getDiagnostics(), layoutState = this.model.state?.plot ? { family: this.model.state.layoutFamily || null, plot: clone(this.model.state.plot), chrome: clone(this.model.state.chrome || null), labels: clone(this.model.state.labelLayout || null) } : null; return { renderer: this.renderer.constructor.name, rendererSelection: clone(this._rendererSelection), width: this.spec.width, height: this.spec.height, dataCount: this.model.data.rows.length, selected: [...this._selected.values()], revision: this._revision, history: this._history.state(), view: clone(this.spec.view || null), style: clone({ name: this.spec.theme.name, mode: this.spec.theme.mode, resolvedMode: this.spec.theme.resolvedMode, preset: this.spec.theme.preset, palette: this.spec.theme.palette, reasons: this.spec.theme.reasons }), layout: layoutState, timeAxis: clone(this.model.state?.timeAxis || null), axes: clone(this.model.state?.axes || null), health: this._getHealth(warnings), preferences: this.getPreferences(), preferenceResolution: this.getPreferenceResolution(), branding: { enabled: Boolean(this.spec.branding?.enabled), signature: brandingSignature, text: this.spec.branding?.enabled === true ? brandingSignature : null }, warnings: clone(warnings), assumptions: clone(this.model.data?.assumptions || []), normalizations: clone(this._specDiagnostics?.normalizations || []), collapsedGroups: this.getCollapsedGroupIds(), clipboard: { nodes: this._clipboard?.nodes?.length || 0, edges: this._clipboard?.edges?.length || 0 }, projectAnalytics: clone(this.model.state?.projectAnalytics || null), linked: clone(this.model.state?.linked || null) }; }
   getProjectAnalytics() { return clone(this.model.state?.projectAnalytics || null); }
   getLinkedState() { return clone(this.model.state?.linked || null); }
   setLinkedFilters(filters = {}) { this.spec.project = { ...(this.spec.project || {}), linked: { ...(this.spec.project?.linked || {}), filters: normalizeLinkedFilters(filters) } }; this.emit('linkedstatechange', { chart: this, linked: this.spec.project.linked }); return this.render(); }
   setLinkedSelection(selection = []) { this.spec.project = { ...(this.spec.project || {}), linked: { ...(this.spec.project?.linked || {}), selection: normalizeLinkedSelection(selection) } }; this.emit('linkedstatechange', { chart: this, linked: this.spec.project.linked }); return this.render(); }
   describe() { return { type: this.spec.type, renderer: this.renderer.constructor.name, dimensions: [this.spec.encoding.x?.field || this.spec.encoding.category?.field], measures: (Array.isArray(this.spec.encoding.y) ? this.spec.encoding.y : [this.spec.encoding.y || this.spec.encoding.value]).filter(Boolean).map(encoding => encoding.field), dataCount: this.model.data.rows.length, theme: this.spec.theme?.name || 'custom', interactions: Object.keys(this.spec.interaction || {}).filter(key => this.spec.interaction[key]) }; }
-  explain() { const explanation = explainChart(this.spec, { ...this.model, normalizations: this._specDiagnostics?.normalizations || [] }), state = this.getState(); return { ...explanation, layout: state.layout, timeAxis: state.timeAxis, warnings: state.warnings, health: state.health }; }
+  explain() { const explanation = explainChart(this.spec, { ...this.model, rendererSelection: this._rendererSelection, normalizations: this._specDiagnostics?.normalizations || [] }), state = this.getState(); return { ...explanation, layout: state.layout, timeAxis: state.timeAxis, warnings: state.warnings, health: state.health }; }
   getAccessibleDescription() { const description = this.spec.accessibility?.description || this.spec.title?.text || `${this.spec.type} chart`; return `${description}; ${this.model.data.rows.length} data items.`; }
   inspectDataSchema() { return inspectDataSchema(this.spec.data.schema || this.spec.schema); }
   validateData() { return validateData(this.toDataTable(), this.spec.data.schema || this.spec.schema, this.spec.validationOptions); }
@@ -766,7 +651,7 @@ export class Chart {
 
 export function createChart(spec) { return new Chart(spec); }
 export { ChartValidationError } from './errors.mjs';
-export function getCapabilities() { const capabilities = discoverCapabilities(); return { ...capabilities, interactionDefaults: { ...capabilities.interactionDefaults }, diagram: { layoutModes: diagramLayoutModes, routingModes: edgeRoutingModes, entities: ['node', 'edge', 'lane', 'group', 'port', 'waypoint'], operations: [...diagramOperations], flowNodeKinds: [...flowNodeKinds], flowBranchEdges: { label: 'edge.label', minimumOutgoing: 2 }, flowLoops: 'supported', flowConnectors: { kind: 'connector', linking: 'explicit from/to edges' }, curvedEdges: { renderers: ['canvas', 'svg'], type: 'cubic-bezier', tension: { minimum: 0.2, maximum: 0.8, default: 0.4 }, mindmapDefault: true, obstacleFallback: 'orthogonal', controlPointEditing: false }, edgeEditing: { renderers: ['canvas', 'svg'], selection: true, waypointDrag: true, segmentDrag: true, persistentWaypoints: true, enabledByDefault: false, activation: ['editing.enabled', 'interaction.edgeDrag'] }, validation: ['duplicate-ids', 'missing-endpoints', 'missing-ports', 'missing-lanes', 'invalid-waypoints', 'invalid-curve-tension'] }, editing: { modes: ['preview', 'commit', 'undo', 'redo'], operations: [...capabilities.commands], confirmationRequiredByDefault: true, commit: 'local-runtime-host-persistence-required' } }; }
+export function getCapabilities() { const capabilities = discoverCapabilities(); return { ...capabilities, canvasComposition: boardCapabilities, interactionDefaults: { ...capabilities.interactionDefaults }, diagram: { layoutModes: diagramLayoutModes, routingModes: edgeRoutingModes, entities: ['node', 'edge', 'lane', 'group', 'port', 'waypoint'], operations: [...diagramOperations], flowNodeKinds: [...flowNodeKinds], flowBranchEdges: { label: 'edge.label', minimumOutgoing: 2 }, flowLoops: 'supported', flowConnectors: { kind: 'connector', linking: 'explicit from/to edges' }, curvedEdges: { renderers: ['canvas', 'svg'], type: 'cubic-bezier', tension: { minimum: 0.2, maximum: 0.8, default: 0.4 }, mindmapDefault: true, obstacleFallback: 'orthogonal', controlPointEditing: false }, edgeEditing: { renderers: ['canvas', 'svg'], selection: true, waypointDrag: true, segmentDrag: true, persistentWaypoints: true, enabledByDefault: false, activation: ['editing.enabled', 'interaction.edgeDrag'] }, validation: ['duplicate-ids', 'missing-endpoints', 'missing-ports', 'missing-lanes', 'invalid-waypoints', 'invalid-curve-tension'] }, editing: { modes: ['preview', 'commit', 'undo', 'redo'], operations: [...capabilities.commands], confirmationRequiredByDefault: true, commit: 'local-runtime-host-persistence-required' } }; }
 export function recommend(input, options = {}) { const plan = planChart(input, options); return { primary: plan.primary, alternatives: plan.alternatives, reason: plan.reasons.join(' '), reasons: plan.reasons, confidence: plan.confidence, requiredFields: plan.requiredFields, assumptions: plan.assumptions, warnings: plan.warnings, nextActions: plan.nextActions }; }
 export { normalizeSpec, validateSpec, normalizeData, inspectData, binData, applyTransforms, data, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, getChartCapability, getPreferenceCapabilities, planChart, explainChart };
 export { diagramLayoutModes, diagramModes, edgeRoutingModes, normalizeDiagramSpec, validateDiagram, layoutDiagram, routeEdge };
@@ -775,4 +660,4 @@ export { normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, cr
 
 export { contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin };
 export { applyPreferencesToSpec, createPreferencesStore, defaultPreferences, mergePreferences, mergeThemePreference, mountChartSettings, normalizePreferences, validatePreferences };
-export const iChart = { version: '2.0.21', createChart, ChartValidationError, inspectData, normalizeData, binData, applyTransforms, data, getCapabilities, getChartCapability, getPreferenceCapabilities, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, createPreferencesStore, defaultPreferences, normalizePreferences, mergePreferences, validatePreferences, applyPreferencesToSpec, mountChartSettings, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };
+export const iChart = { version: '2.0.22', createChart, createBoard, validateBoardSpec, planCanvas, boardCapabilities, ChartValidationError, inspectData, normalizeData, binData, applyTransforms, data, getCapabilities, getChartCapability, getPreferenceCapabilities, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, createPreferencesStore, defaultPreferences, normalizePreferences, mergePreferences, validatePreferences, applyPreferencesToSpec, mountChartSettings, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };

@@ -19,6 +19,7 @@ const next = {
   chartTypes: capabilities.chartTypes,
   chartProfiles: capabilities.charts,
   renderers: capabilities.renderers,
+  canvasComposition: capabilities.canvasComposition,
   interactionDefaults: capabilities.interactionDefaults,
   commands: capabilities.commands,
   diagramOperations: capabilities.diagramOperations,

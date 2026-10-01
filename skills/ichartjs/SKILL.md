@@ -22,7 +22,7 @@ Recommended installation:
 npx skills add wanghetommy/ichartjs --skill ichartjs
 ```
 
-Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.21/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
+Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.22/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
 
 The Skill is a workflow adapter, not the chart runtime. If the current JavaScript or TypeScript project does not already depend on iChart.js, install the matching runtime from npm:
 
@@ -41,7 +41,7 @@ Do not install the unscoped npm registry package named `ichartjs`; it is current
 5. Inspect the complete planning result, including `styleRecommendation`, warnings, and fallback status.
 6. Stop when `requiredFields` is non-empty; request data or explain a supported alternative.
 7. Build a JSON-serializable Spec using `suggestedEncodings`, the selected capability, and an applicable recipe.
-8. Use chart-specific channels: Cartesian `x`/`y`, Pie/Funnel `category`/`value`, Gauge `value`, Heatmap `x`/`y`/`color`, and Radar `indicators[].field`. Funnel stage text comes from `encoding.category` (default `name`) and `labels.enabled` additionally renders values; narrow stages may report `FUNNEL_LABEL_TRUNCATED`, so increase width or shorten the stage name. For Flow, use top-level `nodes` and `edges`, `nodes[].kind` from `getCapabilities().diagram.flowNodeKinds`, and edge `label` for decision branches. `connector` uses explicit `from`/`to` edges and loops are allowed. To load a recipe, use `import catalog from '@taylorwong/ichartjs/recipes/minimal-specs' with { type: 'json' }` and select `catalog.examples[type]`; `recipes/` is the public export path backed by the package's `agent-recipes/` directory.
+8. Use chart-specific channels: Cartesian `x`/`y`, Pie/Funnel `category`/`value`, Gauge `value`, Heatmap `x`/`y`/`color`, and Radar `indicators[].field`. Funnel stage text comes from `encoding.category` (default `name`) and `labels.enabled` additionally renders values; narrow stages may report `FUNNEL_LABEL_TRUNCATED`, so increase width or shorten the stage name. For Flow, use top-level `nodes` and `edges`, `nodes[].kind` from `getCapabilities().diagram.flowNodeKinds`, and edge `label` for decision branches. `connector` uses explicit `from`/`to` edges and loops are allowed. To discover recipes, import `@taylorwong/ichartjs/recipes/manifest`; recipes are declarative starting templates, not executable tasks. Copy one, inject host data, run its declared validator, and then render or preview. The `diagrams/workflow` entry is an edit template and is not directly renderable until nodes and edges are populated.
 9. Keep titles/formats under `xAxis`/`yAxis`, labels under `labels`, and legend under `legend`; do not place them inside `encoding`.
 10. Call `validateSpec()` before rendering and repair its preflight errors, warnings, and normalizations. After `createChart()`, inspect `chart.getState()` or `chart.explain()` for render-time diagnostics such as `FUNNEL_LABEL_TRUNCATED`, `VALUE_CLAMPED`, `LABELS_SUPPRESSED`, `LABEL_TRUNCATED`, `NEGATIVE_VALUE_DROPPED`, and `ZERO_TOTAL`; also inspect `getState().layout.labels` for wrapped, scaled, inline-edge, offset-edge, and diagram edge-label background counts. Ordinary chart labels do not use background plates. Do not assume every layout warning is available during preflight.
 11. Call `createChart()` only after validation succeeds. Gauge Specs must declare a meaningful `domain`.
@@ -50,6 +50,21 @@ Do not install the unscoped npm registry package named `ichartjs`; it is current
 14. Prefer `theme: { mode: 'auto', preset, palette }`; preserve explicit user style choices and use `chart.setTheme()` for live switching.
 15. For post-creation visual changes, call `getPreferenceCapabilities(chartType, { locale })`, validate the patch with `validatePreferences()`, apply it with `chart.setPreferences(..., { source: 'agent' })`, and verify `chart.getState().preferences`.
 16. For natural-language changes, classify the request before mutating: visual → `setPreferences()`/`setTheme()`, complete data replacement → `setData()`, business or Diagram edit → `previewEdit()`/`applyEdit()`, normal Spec change → `update()`, exact JSON path → `applyPatch()`. Verify `chart.getState().preferenceResolution` and `chart.explain()` after commit.
+
+## Freeform Board
+
+Use Freeform Board when the output is a bounded whiteboard composition rather than one chart: images, text, simple drawings, connectors, and embedded charts can share one SVG or Canvas surface. Simple drawing is a whiteboard capability, not a separate chart type. Discover the contract first:
+
+```js
+const capabilities = getCapabilities();
+const boardContract = capabilities.canvasComposition;
+```
+
+Supported board items are `image`, `text`, `shape`, `path`, `connector`, and embedded `chart`. Shape options are `rectangle`, `ellipse`, `diamond`, `hexagon`, normalized-point `polygon`, open `arc`, and filled `sector`; `path` supports normalized linear points or exactly four points for a cubic Bezier. Do not send arbitrary SVG path data. Text automatically fits by wrapping, bounded font reduction, and last-resort ellipsis; inspect `board.getState().layout.text`. Connectors use explicit `from`/`to` item IDs and `straight` or `orthogonal` routing. Images are declared in `assets`, referenced by `assetId`, and should include `alt` text.
+
+Use `validateBoardSpec()` before `createBoard()`, then mount, await `ready()`, and inspect `board.getState()` and `board.explain()`. Boards are static by default; explicitly enable `editing` or `interaction.drag`, `interaction.zoom`, and `interaction.pan` only when the host requests them. Export JSON for persistence, SVG for vector delivery, and browser-mounted Canvas as PNG/JPEG.
+
+Read the [Freeform Board Scenario](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/canvas-scenario.md) for the complete BoardSpec workflow. Use `agent-recipes/drawings/cat.json` as a validated simple-drawing starting point and preview the unified Freeform Board at `http://localhost:3000/playground/canvas-board.html`.
 
 Use `@taylorwong/ichartjs` for package imports. Use `examples/agent-workflow.mjs` as the executable baseline when working in the repository.
 
@@ -65,7 +80,7 @@ Route by requested output:
 
 - For standard data analysis, read `references/chart-selection.md` and use foundational recipes.
 - For Gantt, Timeline, Milestone, Burndown, capacity, release, risk, or aging, use project capabilities and `agent-recipes/project-management.json`.
-- For Flow or Swimlane, preserve node, edge, lane, group, and port IDs; use diagram recipes and validated edit commands.
+- For Flow or Swimlane, preserve node, edge, lane, group, and port IDs; use diagram recipes and validated edit commands. `agent-recipes/drawings/cat.json` is a BoardSpec starting template for Freeform Board, not a separate chart type.
 - For diagram readability, keep node labels inside their shapes; edge labels stay inline when space permits and move aside only after a collision. Use `getState().layout.labels.diagram` to detect wrapping, scaling, truncation, suppression, and edge-label offsets instead of shortening source labels in the Agent.
 - For business edits, preview first, preserve the preview ID and revision, require confirmation when declared, then commit or reject atomically.
 - For browser deliverables, start `npm run playground` and return the exact maintained Playground URL.

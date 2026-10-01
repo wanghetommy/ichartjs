@@ -18,6 +18,7 @@ This is the user-facing Agent entry point for iChart.js 2.0. Read this file firs
 - [Data Charting](charting-scenario.md): generic data analysis charts.
 - [Project Management](project-scenario.md): Gantt, Timeline, Milestone, and Burndown.
 - [Interactive Diagrams](diagram-scenario.md): Flow, Swimlane, Architecture, Mindmap, Groups, Ports, and editing.
+- [Freeform Board](canvas-scenario.md): compose images, text, shapes, connectors, and embedded charts with SVG/Canvas.
 - [Runtime Contract](runtime-contract.md): shared Spec, renderer, interaction, and export rules.
 - [Editing Contract](editing-contract.md): schemas, commands, preview, commit, and undo/redo.
 - Machine-readable capability manifests are in `docs/manifests/` and should be loaded on demand.
@@ -45,6 +46,7 @@ chart.explain();
 Use `getCapabilities()` to discover supported chart types, project-management views, diagrams, renderers, interactions, exports, and data operations. Use `chart.getSpec()`, `chart.getState()`, `chart.getSelectedData()`, and `chart.toDataTable()` to inspect a live chart.
 
 For a visual overview of all supported chart types, open `playground/project-gallery.html`. For style-system acceptance, open `playground/theme-gallery.html`.
+For Freeform Board acceptance, open `playground/canvas-board.html`.
 
 ## Selection rules
 

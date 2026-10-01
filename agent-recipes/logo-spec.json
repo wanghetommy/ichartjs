@@ -1,0 +1,53 @@
+{
+  "version": "1.0",
+  "name": "ichartjs-logo",
+  "description": "Three congruent parallelograms forming a folded hexagonal mark.",
+  "width": 120,
+  "height": 120,
+  "renderer": "svg",
+  "background": "transparent",
+  "items": [
+    {
+      "id": "logo-red",
+      "kind": "shape",
+      "shape": "polygon",
+      "position": { "x": 0, "y": 0 },
+      "size": { "width": 120, "height": 120 },
+      "points": [
+        { "x": 0.5, "y": 0.5 },
+        { "x": 0.5, "y": 0.08 },
+        { "x": 0.1362693304105358, "y": 0.29 },
+        { "x": 0.1362693304105358, "y": 0.71 }
+      ],
+      "style": { "fill": "#e75b62", "stroke": "#f8fbff", "strokeWidth": 1 }
+    },
+    {
+      "id": "logo-blue",
+      "kind": "shape",
+      "shape": "polygon",
+      "position": { "x": 0, "y": 0 },
+      "size": { "width": 120, "height": 120 },
+      "points": [
+        { "x": 0.5, "y": 0.5 },
+        { "x": 0.8637306695894642, "y": 0.71 },
+        { "x": 0.8637306695894642, "y": 0.29 },
+        { "x": 0.5, "y": 0.08 }
+      ],
+      "style": { "fill": "#32b6d0", "stroke": "#f8fbff", "strokeWidth": 1 }
+    },
+    {
+      "id": "logo-yellow",
+      "kind": "shape",
+      "shape": "polygon",
+      "position": { "x": 0, "y": 0 },
+      "size": { "width": 120, "height": 120 },
+      "points": [
+        { "x": 0.5, "y": 0.5 },
+        { "x": 0.1362693304105358, "y": 0.71 },
+        { "x": 0.5, "y": 0.92 },
+        { "x": 0.8637306695894642, "y": 0.71 }
+      ],
+      "style": { "fill": "#f5b632", "stroke": "#f8fbff", "strokeWidth": 1 }
+    }
+  ]
+}

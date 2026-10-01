@@ -28,6 +28,7 @@ getCapabilities
 | --- | --- |
 | Runtime and Agent planning APIs | `@taylorwong/ichartjs` |
 | Machine-readable capability manifest | `@taylorwong/ichartjs/capabilities.json` |
+| Machine-readable Recipe manifest | `@taylorwong/ichartjs/recipes/manifest` |
 | Intent and chart recipes | `@taylorwong/ichartjs/recipes/*` |
 | Agent quickstart | [`docs/agent/quickstart.md`](docs/agent/quickstart.md) |
 | Usage scenarios and output formats | [`docs/agent/usage-scenarios.md`](docs/agent/usage-scenarios.md) |
@@ -45,7 +46,9 @@ getCapabilities
 npm install @taylorwong/ichartjs@^2
 ```
 
-As a fallback for environments without npm access, install directly from GitHub: `npm install github:wanghetommy/ichartjs#v2.0.21`.
+If the npm registry is unavailable, install directly from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.22`.
+
+For a reproducible release-pinned install, use `npm install @taylorwong/ichartjs@2.0.22` instead of the moving `@^2` range.
 
 ### Optional Agent Skill
 
@@ -67,7 +70,7 @@ For a non-interactive global Codex installation:
 npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --yes
 ```
 
-For a release-pinned installation, use `npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.21/skills/ichartjs --agent codex --global --yes`. WorkBuddy users can import the same tagged `skills/ichartjs` URL through the host's Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it. Package consumers can still copy `node_modules/@taylorwong/ichartjs/skills/ichartjs` as a manual fallback. After installation, invoke `$ichartjs` when named Skill invocation is supported, or select `ichartjs` in the host UI.
+For a release-pinned installation, use `npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.22/skills/ichartjs --agent codex --global --yes`. WorkBuddy users can import the same tagged `skills/ichartjs` URL through the host's Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it. Package consumers can still copy `node_modules/@taylorwong/ichartjs/skills/ichartjs` as a manual fallback. After installation, invoke `$ichartjs` when named Skill invocation is supported, or select `ichartjs` in the host UI.
 
 ### Agent workflow
 
@@ -190,13 +193,14 @@ const chart = createChart({
 });
 ```
 
-The public package includes ESM exports, TypeScript declarations, Agent documentation, manifests, recipes, examples, and the official Skill. The runtime has no external production dependency.
+Recipes are declarative starting templates, not executable tasks. Agents should copy a recipe, inject host-owned data or nodes, validate it with the validator declared in `@taylorwong/ichartjs/recipes/manifest`, and only then render or preview an edit. The public package includes ESM exports, TypeScript declarations, Agent documentation, manifests, recipes, examples, and the official Skill. The runtime has no external production dependency.
 
 ## Supported Surface
 
 - Foundational charts: Line, Area, Bar, Column, Pie/Donut, Scatter, Funnel, Gauge, Heatmap, and Radar.
 - Project views: Gantt, Timeline, Milestone, and Burndown.
-- Diagrams: Flow and Swimlane with groups, ports, routing, and controlled editing.
+- Diagrams: Flow, Swimlane, Architecture, and Mindmap with groups, ports, routing, and controlled editing.
+- Freeform Board: bounded image, text, shape, connector, and embedded-chart composition with SVG/Canvas output.
 - Renderers: SVG and Canvas.
 - Agent contracts: capability discovery, data inspection, planning, validation, explanation, lineage, diagnostics, and safe editing.
 - Branding signature: low-contrast `Powered by iChart.js` bottom-right watermark, consistent across live view and all export formats; controlled via `branding` on Spec/Theme.
