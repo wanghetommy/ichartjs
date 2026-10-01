@@ -1,5 +1,7 @@
 # Iteration 10 — Export Contract Hardening
 
+> Historical release record. This document records the original Iteration 10 / `v2.0.5` release preparation. It is not the current release status. Use `roadmap.md` and `release-sop.md` for current information.
+
 Iteration 10A hardens the v2.0 export contract without adding chart types or changing chart behavior. The work targets `v2.0.5`, stays on the `2.0.x` line, and keeps the existing dual-engine, single-Scene-Graph architecture.
 
 ## 10A — Export Contract Hardening

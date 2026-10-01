@@ -1,0 +1,99 @@
+{
+  "version": "1.0",
+  "name": "iChart.js Agent Recipes",
+  "description": "Declarative starting templates for chart Specs, diagram workflows, and Freeform Board compositions. Recipes are inputs to the public runtime; they are not executable tasks.",
+  "entries": [
+    {
+      "id": "minimal-specs",
+      "kind": "chart-catalog",
+      "path": "@taylorwong/ichartjs/recipes/minimal-specs",
+      "source": "agent-recipes/minimal-specs.json",
+      "validator": "validateSpec",
+      "usage": "Select catalog.examples[type], add real data and stable IDs, then validate and render.",
+      "output": ["chart-spec", "svg", "png", "json"]
+    },
+    {
+      "id": "foundational-analysis",
+      "kind": "chart-catalog",
+      "path": "@taylorwong/ichartjs/recipes/foundational-analysis",
+      "source": "agent-recipes/foundational-analysis.json",
+      "validator": "validateSpec",
+      "usage": "Map an analysis intent to an example, inject data, then validate and render.",
+      "output": ["chart-spec", "svg", "png", "json"]
+    },
+    {
+      "id": "project-management",
+      "kind": "project-catalog",
+      "path": "@taylorwong/ichartjs/recipes/project-management",
+      "source": "agent-recipes/project-management.json",
+      "validator": "validateSpec",
+      "usage": "Choose a project view, preserve stable project record IDs, then validate and render.",
+      "output": ["chart-spec", "svg", "png", "json"]
+    },
+    {
+      "id": "trend-line",
+      "kind": "intent-recipe",
+      "path": "@taylorwong/ichartjs/recipes/trend-line",
+      "source": "agent-recipes/trend-line.json",
+      "validator": "validateSpec",
+      "usage": "Replace spec.data.values with inputData or host data, then validate and render.",
+      "output": ["chart-spec", "svg", "png", "json"]
+    },
+    {
+      "id": "diagrams/agent-orchestration",
+      "kind": "diagram-template",
+      "path": "@taylorwong/ichartjs/recipes/diagrams/agent-orchestration",
+      "source": "agent-recipes/diagrams/agent-orchestration.json",
+      "validator": "validateSpec",
+      "usage": "Replace or extend nodes and edges while preserving stable IDs, then validate and render.",
+      "output": ["diagram-spec", "svg", "json"]
+    },
+    {
+      "id": "diagrams/approval-process",
+      "kind": "diagram-template",
+      "path": "@taylorwong/ichartjs/recipes/diagrams/approval-process",
+      "source": "agent-recipes/diagrams/approval-process.json",
+      "validator": "validateSpec",
+      "usage": "Complete the process edges for the host workflow, then validate and render.",
+      "output": ["diagram-spec", "svg", "json"]
+    },
+    {
+      "id": "diagrams/responsibility-mapping",
+      "kind": "diagram-template",
+      "path": "@taylorwong/ichartjs/recipes/diagrams/responsibility-mapping",
+      "source": "agent-recipes/diagrams/responsibility-mapping.json",
+      "validator": "validateSpec",
+      "usage": "Map host responsibilities to lanes and nodes, then validate and render.",
+      "output": ["diagram-spec", "svg", "json"]
+    },
+    {
+      "id": "diagrams/workflow",
+      "kind": "diagram-edit-template",
+      "path": "@taylorwong/ichartjs/recipes/diagrams/workflow",
+      "source": "agent-recipes/diagrams/workflow.json",
+      "validator": "validateSpec",
+      "commandValidator": "validateCommand",
+      "renderable": false,
+      "usage": "Populate spec.nodes and spec.edges first; validate each commands[] item before previewing an edit.",
+      "output": ["diagram-spec", "edit-command", "json"]
+    },
+    {
+      "id": "drawings/cat",
+      "kind": "board-template",
+      "path": "@taylorwong/ichartjs/recipes/drawings/cat",
+      "source": "agent-recipes/drawings/cat.json",
+      "validator": "validateBoardSpec",
+      "usage": "Use as a simple drawing starting point, change semantic items, validate, then create a Board.",
+      "output": ["board-spec", "svg", "png", "json"]
+    },
+    {
+      "id": "logo-spec",
+      "kind": "board-template",
+      "path": "@taylorwong/ichartjs/recipes/logo-spec",
+      "source": "agent-recipes/logo-spec.json",
+      "validator": "validateBoardSpec",
+      "usage": "Reuse or scale the normalized logo BoardSpec, validate, then export or compose it.",
+      "output": ["board-spec", "svg", "png", "json"]
+    }
+  ]
+}

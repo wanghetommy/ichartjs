@@ -1,8 +1,8 @@
-export const runtimeVersion = '2.0.21';
+export const runtimeVersion = '2.0.22';
 
 export function pageNav(active = '') {
   const pages = [
-    ['index.html', '首页'], ['github-promo.html', 'GitHub Promo'], ['project-gallery.html', '完整 Gallery'], ['theme-gallery.html', '主题样式'], ['preferences-lab.html', '页面设置'], ['agent-workbench.html', 'Agent 工作台'], ['project-intelligence.html', '项目分析'], ['editing.html', '业务编辑'], ['diagram-editor.html', 'Diagram'], ['interaction-lab.html', '交互'], ['accessibility-lab.html', '无障碍'], ['performance-lab.html', '性能']
+    ['index.html', '首页'], ['github-promo.html', 'GitHub Promo'], ['project-gallery.html', '完整 Gallery'], ['foundational-gallery.html', '基础能力'], ['theme-gallery.html', '主题样式'], ['preferences-lab.html', '页面设置'], ['agent-workbench.html', 'Agent 工作台'], ['canvas-board.html', 'Freeform Board'], ['project-intelligence.html', '项目分析'], ['editing.html', '业务编辑'], ['diagram-editor.html', 'Diagram'], ['interaction-lab.html', '交互'], ['accessibility-lab.html', '无障碍'], ['performance-lab.html', '性能']
   ];
   return `<nav class="nav" aria-label="Playground 导航">${pages.map(([href, label]) => `<a href="./${href}"${href === active ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
 }

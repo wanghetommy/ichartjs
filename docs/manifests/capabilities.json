@@ -9,6 +9,7 @@
   "usageScenarios": "docs/agent/usage-scenarios.md",
   "agentWorkflowExample": "examples/agent-workflow.mjs",
   "minimalSpecs": "@taylorwong/ichartjs/recipes/minimal-specs",
+  "recipeManifest": "@taylorwong/ichartjs/recipes/manifest",
   "officialSkill": "skills/ichartjs/SKILL.md",
   "scenarios": {
     "charting": [
@@ -282,8 +283,8 @@
       "Short form `branding: false` and object form `branding: { enabled: false }` are both supported. Custom text, link, position, or font are intentionally NOT exposed in the current iteration."
     ]
   },
-  "packageVersion": "2.0.21",
-  "runtimeVersion": "2.0.21",
+  "packageVersion": "2.0.22",
+  "runtimeVersion": "2.0.22",
   "chartTypes": [
     "line",
     "area",
@@ -1464,6 +1465,146 @@
       "navigation": false,
       "editing": false,
       "motion": "auto"
+    },
+    "rendererSelection": {
+      "version": "1.0",
+      "auto": "deterministic-at-creation",
+      "default": "svg",
+      "largeSceneThreshold": 400,
+      "canvasReasons": [
+        "large-scene"
+      ],
+      "secondaryReasons": [
+        "continuous-interaction"
+      ],
+      "svgReasons": [
+        "accessibility-and-dom-inspection",
+        "text-and-structure-heavy",
+        "small-or-medium-scene"
+      ]
+    }
+  },
+  "canvasComposition": {
+    "version": "1.0",
+    "api": [
+      "createBoard",
+      "validateBoardSpec",
+      "planCanvas"
+    ],
+    "items": [
+      "image",
+      "text",
+      "shape",
+      "path",
+      "connector",
+      "chart"
+    ],
+    "shapes": [
+      "rectangle",
+      "ellipse",
+      "diamond",
+      "hexagon",
+      "polygon",
+      "arc",
+      "sector"
+    ],
+    "geometry": {
+      "primitives": [
+        "rectangle",
+        "ellipse",
+        "diamond",
+        "hexagon",
+        "polygon",
+        "arc",
+        "sector"
+      ],
+      "paths": [
+        "linear",
+        "cubic"
+      ],
+      "coordinateSpace": "normalized-item-local",
+      "angles": "degrees",
+      "maxPoints": 64
+    },
+    "text": {
+      "wrapping": true,
+      "alignment": [
+        "start",
+        "center",
+        "end"
+      ],
+      "verticalAlignment": [
+        "top",
+        "middle",
+        "bottom"
+      ],
+      "overflow": [
+        "scale",
+        "wrap",
+        "truncate"
+      ],
+      "defaultMaxLines": 3,
+      "minFontSize": 8
+    },
+    "renderers": [
+      "svg",
+      "canvas",
+      "auto"
+    ],
+    "exports": [
+      "json",
+      "svg",
+      "png",
+      "jpeg"
+    ],
+    "imageMimeTypes": [
+      "image/png",
+      "image/jpeg",
+      "image/webp"
+    ],
+    "limits": {
+      "maxAssetBytes": 10485760,
+      "maxImageDimension": 8192,
+      "minItemSize": 16,
+      "maxBoardDimension": 16384,
+      "maxItems": 2000
+    },
+    "defaults": {
+      "editing": false,
+      "zoom": false,
+      "pan": false,
+      "drag": false
+    },
+    "persistence": "host-owned JSON and asset adapter",
+    "grid": [
+      "dots",
+      "lines",
+      "cross"
+    ],
+    "interactions": [
+      "selection",
+      "multi-selection",
+      "drag",
+      "resize",
+      "keyboard",
+      "zoom",
+      "pan"
+    ],
+    "constraints": [
+      "grid-snap",
+      "object-snap",
+      "alignment-guides",
+      "bounds",
+      "locked-items"
+    ],
+    "history": [
+      "undo",
+      "redo"
+    ],
+    "headless": {
+      "json": true,
+      "svg": "inline images or explicitly linked assets",
+      "raster": "browser-only"
     }
   }
 }

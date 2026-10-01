@@ -13,7 +13,7 @@ The Playground is not a collection of iteration snapshots. Active pages are orga
 | Page | Role | Required content |
 | --- | --- | --- |
 | `index.html` | Unified Playground home and acceptance entry point. | Runtime version, available chart count, links grouped by catalog/workbench/lab, server instructions, page readiness status, and exact acceptance URLs. |
-| `project-gallery.html` | Canonical full catalog and first visual smoke test for all 16 public chart types. Keep this URL stable despite the historical filename. | Search and category filters, every public chart type, SVG/Canvas coverage, theme and viewport controls, enlarged preview, visible initialization status, Spec inspection, diagnostics, and links to specialized pages. |
+| `project-gallery.html` | Canonical full catalog and first visual smoke test for all 18 public chart types. Keep this URL stable despite the historical filename. | Search and category filters, every public chart type, SVG/Canvas coverage, theme and viewport controls, enlarged preview, visible initialization status, Spec inspection, diagnostics, and links to specialized pages. |
 | `github-promo.html` | English 16:9 promotional surface for the GitHub README and future GIF capture. | Brand message, real Runtime-rendered charts, Agent workflow sequence, English chart settings, and a stable screenshot composition. |
 | `foundational-gallery.html` | Focused regression gallery for reusable foundational features introduced in Iteration 7. | Grouped/stacked/percent charts, Donut, Combo, Histogram/Bin, Heatmap, Radar, renderer coverage, source record identity, and expected warnings. |
 

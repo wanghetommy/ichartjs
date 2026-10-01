@@ -1,0 +1,27 @@
+{
+  "version": "1.0",
+  "renderer": "svg",
+  "width": 640,
+  "height": 420,
+  "background": "#fffaf5",
+  "items": [
+    { "id": "tail", "kind": "path", "position": { "x": 392, "y": 176 }, "size": { "width": 170, "height": 150 }, "curve": "cubic", "points": [{ "x": 0.05, "y": 0.75 }, { "x": 0.45, "y": 0.95 }, { "x": 0.95, "y": 0.65 }, { "x": 0.78, "y": 0.15 }], "style": { "fill": "none", "stroke": "#b45309", "strokeWidth": 10 } },
+    { "id": "left-ear", "kind": "shape", "shape": "polygon", "position": { "x": 232, "y": 78 }, "size": { "width": 82, "height": 92 }, "points": [{ "x": 0.08, "y": 0.94 }, { "x": 0.18, "y": 0.06 }, { "x": 0.92, "y": 0.58 }, { "x": 0.68, "y": 0.9 }], "style": { "fill": "#f59e0b", "stroke": "#b45309", "strokeWidth": 3 } },
+    { "id": "right-ear", "kind": "shape", "shape": "polygon", "position": { "x": 326, "y": 78 }, "size": { "width": 82, "height": 92 }, "points": [{ "x": 0.08, "y": 0.58 }, { "x": 0.82, "y": 0.06 }, { "x": 0.92, "y": 0.94 }, { "x": 0.32, "y": 0.9 }], "style": { "fill": "#f59e0b", "stroke": "#b45309", "strokeWidth": 3 } },
+    { "id": "left-inner-ear", "kind": "shape", "shape": "polygon", "position": { "x": 251, "y": 100 }, "size": { "width": 42, "height": 48 }, "points": [{ "x": 0.2, "y": 0.8 }, { "x": 0.28, "y": 0.2 }, { "x": 0.8, "y": 0.58 }, { "x": 0.62, "y": 0.76 }], "style": { "fill": "#fca5a5", "stroke": "none" } },
+    { "id": "right-inner-ear", "kind": "shape", "shape": "polygon", "position": { "x": 347, "y": 100 }, "size": { "width": 42, "height": 48 }, "points": [{ "x": 0.2, "y": 0.58 }, { "x": 0.72, "y": 0.2 }, { "x": 0.8, "y": 0.8 }, { "x": 0.38, "y": 0.76 }], "style": { "fill": "#fca5a5", "stroke": "none" } },
+    { "id": "body", "kind": "shape", "shape": "ellipse", "position": { "x": 252, "y": 238 }, "size": { "width": 136, "height": 124 }, "style": { "fill": "#f59e0b", "stroke": "#b45309", "strokeWidth": 3 } },
+    { "id": "head", "kind": "shape", "shape": "ellipse", "position": { "x": 236, "y": 116 }, "size": { "width": 168, "height": 152 }, "style": { "fill": "#fbbf24", "stroke": "#b45309", "strokeWidth": 3 } },
+    { "id": "left-eye", "kind": "shape", "shape": "ellipse", "position": { "x": 272, "y": 160 }, "size": { "width": 30, "height": 36 }, "style": { "fill": "#292524" } },
+    { "id": "right-eye", "kind": "shape", "shape": "ellipse", "position": { "x": 338, "y": 160 }, "size": { "width": 30, "height": 36 }, "style": { "fill": "#292524" } },
+    { "id": "left-eye-light", "kind": "shape", "shape": "ellipse", "position": { "x": 282, "y": 168 }, "size": { "width": 16, "height": 16 }, "style": { "fill": "#ffffff" } },
+    { "id": "right-eye-light", "kind": "shape", "shape": "ellipse", "position": { "x": 346, "y": 168 }, "size": { "width": 16, "height": 16 }, "style": { "fill": "#ffffff" } },
+    { "id": "nose", "kind": "shape", "shape": "sector", "position": { "x": 312, "y": 202 }, "size": { "width": 32, "height": 28 }, "startAngle": 200, "endAngle": 340, "style": { "fill": "#ef4444", "stroke": "#991b1b", "strokeWidth": 1 } },
+    { "id": "mouth", "kind": "shape", "shape": "arc", "position": { "x": 304, "y": 220 }, "size": { "width": 48, "height": 34 }, "startAngle": 20, "endAngle": 160, "style": { "fill": "none", "stroke": "#7f1d1d", "strokeWidth": 3 } },
+    { "id": "left-whisker-top", "kind": "path", "position": { "x": 238, "y": 210 }, "size": { "width": 82, "height": 32 }, "curve": "cubic", "points": [{ "x": 1, "y": 0.35 }, { "x": 0.6, "y": 0.05 }, { "x": 0.25, "y": 0.1 }, { "x": 0, "y": 0.25 }], "style": { "fill": "none", "stroke": "#7f1d1d", "strokeWidth": 2 } },
+    { "id": "left-whisker-bottom", "kind": "path", "position": { "x": 238, "y": 226 }, "size": { "width": 80, "height": 34 }, "curve": "cubic", "points": [{ "x": 1, "y": 0.2 }, { "x": 0.58, "y": 0.45 }, { "x": 0.25, "y": 0.8 }, { "x": 0, "y": 0.72 }], "style": { "fill": "none", "stroke": "#7f1d1d", "strokeWidth": 2 } },
+    { "id": "right-whisker-top", "kind": "path", "position": { "x": 326, "y": 210 }, "size": { "width": 82, "height": 32 }, "curve": "cubic", "points": [{ "x": 0, "y": 0.35 }, { "x": 0.4, "y": 0.05 }, { "x": 0.75, "y": 0.1 }, { "x": 1, "y": 0.25 }], "style": { "fill": "none", "stroke": "#7f1d1d", "strokeWidth": 2 } },
+    { "id": "right-whisker-bottom", "kind": "path", "position": { "x": 328, "y": 226 }, "size": { "width": 80, "height": 34 }, "curve": "cubic", "points": [{ "x": 0, "y": 0.2 }, { "x": 0.42, "y": 0.45 }, { "x": 0.75, "y": 0.8 }, { "x": 1, "y": 0.72 }], "style": { "fill": "none", "stroke": "#7f1d1d", "strokeWidth": 2 } },
+    { "id": "caption", "kind": "text", "text": "simple drawing recipe", "position": { "x": 196, "y": 342 }, "size": { "width": 248, "height": 38 }, "fontSize": 18, "textAlign": "center", "verticalAlign": "middle", "style": { "fill": "#78350f" } }
+  ]
+}

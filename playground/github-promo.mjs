@@ -1,5 +1,25 @@
 import { createChart, getCapabilities, mountChartSettings } from './runtime.mjs';
 import { runtimeVersion } from './playground.mjs';
+import logoSpec from '../agent-recipes/logo-spec.json' with { type: 'json' };
+
+function renderLogo() {
+  const root = document.querySelector('#brand-logo');
+  const size = 42;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', `0 0 ${logoSpec.width} ${logoSpec.height}`);
+  svg.setAttribute('aria-hidden', 'true');
+  logoSpec.items.forEach(item => {
+    const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    polygon.setAttribute('points', item.points.map(point => `${point.x * logoSpec.width},${point.y * logoSpec.height}`).join(' '));
+    polygon.setAttribute('fill', item.style.fill);
+    polygon.setAttribute('stroke', item.style.stroke);
+    polygon.setAttribute('stroke-width', item.style.strokeWidth);
+    svg.appendChild(polygon);
+  });
+  svg.style.width = `${size}px`;
+  svg.style.height = `${size}px`;
+  root.replaceChildren(svg);
+}
 
 const charts = [];
 const base = { renderer: 'svg', accessibility: { enabled: true }, interaction: { tooltip: true, hover: true, keyboard: true }, editing: { enabled: false }, branding: { enabled: false }, theme: { mode: 'light', preset: 'presentation', palette: 'categorical', typography: { axis: { size: 10, font: '450 10px system-ui, sans-serif' }, legend: { size: 10, font: '550 10px system-ui, sans-serif' } } }, locale: 'en-US' };
@@ -26,6 +46,7 @@ function mount(id) {
 }
 
 const capabilities = getCapabilities();
+renderLogo();
 document.querySelector('#version').textContent = `Runtime ${runtimeVersion}`;
 document.querySelector('#chart-count').textContent = capabilities.chartTypes.length;
 Object.keys(specs).forEach(mount);

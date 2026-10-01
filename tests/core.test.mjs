@@ -89,6 +89,20 @@ test('bins numeric data deterministically without mutating source', () => {
   assert.equal(rows[0].score, 0);
 });
 
+test('validates encoding fields against transformed bin output', () => {
+  const spec = {
+    type: 'column',
+    renderer: 'svg',
+    data: [12, 18, 22, 25, 27, 31, 33, 34, 38, 44, 48, 53].map(score => ({ score })),
+    transform: { type: 'bin', field: 'score', step: 10, extent: [10, 60] },
+    encoding: { x: { field: 'name' }, y: { field: 'value' } }
+  };
+  assert.equal(validateSpec(spec).valid, true);
+  const chart = createChart(spec);
+  assert.equal(chart.model.data.rows.length, 5);
+  assert.deepEqual(Object.keys(chart.model.data.rows[0]).sort(), ['binEnd', 'binStart', 'count', 'name', 'sourceIndices', 'value']);
+});
+
 test('builds stacked, donut, combo, heatmap, and radar scenes', () => {
   const stacked = buildScene(normalizeSpec({ type: 'column', stack: 'stacked', data: [{ name: 'A', one: 2, two: 3 }], encoding: { x: { field: 'name' }, y: [{ field: 'one' }, { field: 'two' }] } }));
   assert.equal(stacked.scene.find('series-1-item-0').dataRef.stackStart, 2);

@@ -5,6 +5,7 @@
 import { chartProfiles } from './capabilities.mjs';
 import { themeModes, themePalettes, themePresets } from './theme.mjs';
 import { validateDiagram } from './diagram.mjs';
+import { applyTransforms } from './transforms.mjs';
 
 const chartTypes = new Set(Object.keys(chartProfiles));
 
@@ -125,7 +126,9 @@ function finiteDomain(domain) {
 }
 
 function validateEncodingContract(input, spec, errors) {
-  const rows = Array.isArray(spec.data?.values) ? spec.data.values : [], fields = new Set(rows.flatMap(row => Object.keys(row || {})));
+  const rawRows = Array.isArray(spec.data?.values) ? spec.data.values : [];
+  const rows = spec.transform ? applyTransforms(spec.data, spec.transform).rows : rawRows;
+  const fields = new Set(rows.flatMap(row => Object.keys(row || {})));
   if (!rows.length) return;
   const rawEncoding = input.encoding && typeof input.encoding === 'object' ? input.encoding : {};
   const allowed = new Set(encodingChannels[spec.type] || []);

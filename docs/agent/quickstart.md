@@ -22,12 +22,33 @@ Agents and developers use the same `@taylorwong/ichartjs` ESM entry. Agent behav
 Additional package resources:
 
 - `@taylorwong/ichartjs/capabilities.json`: machine-readable catalog, including per-chart exports, branding, and interaction declarations.
+- `@taylorwong/ichartjs/recipes/manifest`: machine-readable index of every chart, diagram, and BoardSpec recipe, including its validator and output contract.
 - `@taylorwong/ichartjs/recipes/foundational-analysis`: foundational chart recipes.
 - `@taylorwong/ichartjs/recipes/project-management`: project intelligence recipes.
 - `@taylorwong/ichartjs/recipes/diagrams/workflow`: diagram editing recipe.
 - `skills/ichartjs/SKILL.md`: optional workflow adapter for Codex, WorkBuddy, and other Agent Skills-compatible hosts.
 
 The Skill is not the runtime. Install or register it only when the Agent host supports Skills; it must still call the package's public APIs and capability contract.
+
+Recipes are declarative starting templates, not executable tasks. Copy a recipe before changing it, inject host-owned data or nodes, run the validator named by the recipe manifest, and only then call `createChart()`, `createBoard()`, or an edit preview API. The `diagrams/workflow` recipe is an edit-command template and is not directly renderable until its nodes and edges are populated.
+
+### Load and validate a Recipe
+
+Use the manifest to discover the public path and validator instead of guessing filenames or treating a Recipe as a ready-to-run task:
+
+```js
+import manifest from '@taylorwong/ichartjs/recipes/manifest' with { type: 'json' };
+import catalog from '@taylorwong/ichartjs/recipes/minimal-specs' with { type: 'json' };
+import { validateSpec } from '@taylorwong/ichartjs';
+
+const entry = manifest.entries.find(item => item.id === 'minimal-specs');
+const candidate = structuredClone(catalog.examples.line);
+candidate.data = { values: rows };
+const checked = validateSpec(candidate);
+if (!checked.valid) throw new Error(JSON.stringify({ validator: entry.validator, errors: checked.errors }));
+```
+
+For a BoardSpec, select the `drawings/cat` or `logo-spec` entry, import its JSON, call `validateBoardSpec()`, and then call `createBoard()`. For `diagrams/workflow`, validate both the populated Spec and each `commands[]` item before previewing an edit.
 
 For coding environments such as Codex, read [Coding Agent Integration](coding-agent-integration.md). For application integration, read [Frontend Integration](frontend-integration.md).
 

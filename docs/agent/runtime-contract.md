@@ -35,6 +35,7 @@ Unknown intent results also include `intentKnown`, `intentSuggestions`, and `fal
 
 - Use `svg` for DOM-level interaction, accessibility, and Diagram editing.
 - Use `canvas` for many marks and lower DOM overhead.
+- With `renderer: "auto"`, iChart.js makes one deterministic choice at creation: SVG for small or text/structure-heavy scenes, Canvas for large scenes. Continuous interaction alone does not force Canvas; in a large scene it is reported as an additional reason. The renderer is not replaced automatically when data later changes; inspect `chart.getState().rendererSelection` and `chart.explain().renderer` for the effective renderer and reason. Explicit `svg` or `canvas` always wins.
 
 ## Branding (Signature)
 

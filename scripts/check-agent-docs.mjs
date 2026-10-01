@@ -12,9 +12,10 @@ const capabilities = getCapabilities();
 const manifest = readJSON('docs/manifests/capabilities.json');
 const commands = readJSON('docs/manifests/commands.json');
 const schemas = readJSON('docs/manifests/schemas.json');
-const expectedDocs = ['README.md', 'usage-scenarios.md', 'quickstart.md', 'coding-agent-integration.md', 'frontend-integration.md', 'theme-guide.md', 'charting-scenario.md', 'project-scenario.md', 'diagram-scenario.md', 'runtime-contract.md', 'editing-contract.md', 'development-guide.md', 'conversational-workflow.md'];
+const expectedDocs = ['README.md', 'usage-scenarios.md', 'quickstart.md', 'coding-agent-integration.md', 'frontend-integration.md', 'theme-guide.md', 'charting-scenario.md', 'project-scenario.md', 'diagram-scenario.md', 'canvas-scenario.md', 'runtime-contract.md', 'editing-contract.md', 'development-guide.md', 'conversational-workflow.md'];
 expectedDocs.forEach(file => { if (!fs.existsSync(`docs/agent/${file}`)) failures.push(`Missing Agent document: docs/agent/${file}`); });
 expectedDocs.forEach(file => { if (!fs.existsSync(`docs/agent/zh-CN/${file}`)) failures.push(`Missing Chinese Agent document: docs/agent/zh-CN/${file}`); });
+if (!fs.existsSync('docs/agent/development/README.md')) failures.push('Missing development documentation index: docs/agent/development/README.md');
 fs.readdirSync('docs/agent', { withFileTypes: true })
   .filter(entry => entry.isFile() && entry.name.endsWith('.md'))
   .forEach(entry => {
@@ -26,6 +27,7 @@ fs.readdirSync('docs/agent', { withFileTypes: true })
 const manifestCharts = Object.values(manifest.scenarios).flat();
 if (JSON.stringify(manifestCharts) !== JSON.stringify(capabilities.chartTypes)) failures.push('Manifest chart scenarios do not match getCapabilities().chartTypes.');
 if (JSON.stringify(manifest.export) !== JSON.stringify(capabilities.export)) failures.push('Manifest export contract does not match getCapabilities().export.');
+if (JSON.stringify(manifest.canvasComposition) !== JSON.stringify(capabilities.canvasComposition)) failures.push('Manifest canvas composition contract does not match getCapabilities().canvasComposition.');
 if (JSON.stringify(manifest.preferences?.fields) !== JSON.stringify(capabilities.preferences?.fields)) failures.push('Manifest preference fields do not match getCapabilities().preferences.fields.');
 if (JSON.stringify(manifest.preferences?.precedence) !== JSON.stringify(capabilities.preferences?.precedence)) failures.push('Manifest preference precedence does not match getCapabilities().preferences.precedence.');
 if (!manifest.preferences?.discovery?.capabilities?.startsWith('getPreferenceCapabilities')) failures.push('Manifest is missing the preference discovery API.');
@@ -89,8 +91,14 @@ currentDocs.forEach(file => {
     if (match[1] !== currentVersion) failures.push(`${file}: pinned Skill tag v${match[1]} does not match package version ${currentVersion}.`);
   }
 });
-const previewPages = ['index.html', 'github-promo.html', 'agent-workbench.html', 'project-gallery.html', 'foundational-gallery.html', 'theme-gallery.html', 'preferences-lab.html', 'editing.html', 'project-intelligence.html', 'diagram-editor.html', 'interaction-lab.html', 'accessibility-lab.html', 'performance-lab.html'];
+const previewPages = ['index.html', 'github-promo.html', 'agent-workbench.html', 'canvas-board.html', 'project-gallery.html', 'foundational-gallery.html', 'theme-gallery.html', 'preferences-lab.html', 'editing.html', 'project-intelligence.html', 'diagram-editor.html', 'interaction-lab.html', 'accessibility-lab.html', 'performance-lab.html'];
 previewPages.forEach(file => { if (!fs.existsSync(`playground/${file}`)) failures.push(`Missing maintained Playground page: playground/${file}`); });
+const developmentPlan = fs.readFileSync('docs/agent/development/playground-plan.md', 'utf8');
+if (!developmentPlan.includes(`${capabilities.chartTypes.length} public chart types`)) failures.push('Playground plan chart count does not match getCapabilities().chartTypes.');
+for (const file of ['docs/agent/development/2.0-release-readiness.md', 'docs/agent/development/iteration-10.md']) {
+  const content = fs.readFileSync(file, 'utf8');
+  if (!content.includes('Historical')) failures.push(`${file}: historical release record must be explicitly marked.`);
+}
 const playgroundHome = fs.readFileSync('playground/index.html', 'utf8');
 if (!playgroundHome.includes('npm run playground')) failures.push('Playground Home must direct users to npm run playground.');
 if (playgroundHome.includes('python3 -m http.server')) failures.push('Playground Home must not direct users to the Python static server.');
