@@ -14,7 +14,7 @@ For post-creation visual settings, use `getPreferenceCapabilities(chartType, { l
 
 The effective preference precedence is `defaults → chart Spec → global PreferencesStore → chart PreferencesStore`. Use `chart.getState().preferenceResolution` to inspect the active scopes, storage mode, and source metadata. The runtime does not parse natural-language prose; use the [Conversational Workflow](conversational-workflow.md) to route prose to the correct mutation API.
 
-Iteration 8 adds per-chart profiles through `getChartCapability(type)`. Each profile declares required data roles, supported interactions, renderers, feature status, exports, and practical limits. Unsupported behavior must be handled from this profile or from validation diagnostics rather than guessed.
+Iteration 8 adds per-chart profiles through `getChartCapability(type)`. Iteration 20 adds `getChartContract(type)`, which packages the same profile with the field-channel contract, semantic notes, safe defaults, and discovery links needed to construct a Spec without reading source code. Each contract declares required data roles, supported interactions, renderers, feature status, exports, and practical limits. Unsupported behavior must be handled from this contract or from validation diagnostics rather than guessed.
 
 `planChart(data, { intent, renderer })` returns a versioned planning result with a primary chart, alternatives, confidence, reasons, required fields, suggested encodings, assumptions, warnings, unsupported requests, safe next actions, and the selected capability profile. `intent` must be one exact token from `getCapabilities().intents`; natural-language prose must be mapped before planning. An unknown token returns `UNKNOWN_INTENT` and a fallback plan, so Agents must inspect warnings before accepting `primary`. Planning never invents business meaning, units, dates, or missing fields.
 
@@ -24,6 +24,7 @@ Unknown intent results also include `intentKnown`, `intentSuggestions`, and `fal
 
 - Specs must be JSON-serializable.
 - Call `validateSpec()` before rendering.
+- Use quantitative fields for both Scatter coordinates; Gantt dependencies belong on `data.values[].dependencies` and chart dimensions use top-level `width`/`height`.
 - Chart layout and data semantics are renderer-independent.
 - Keep axis titles/formats on `xAxis`/`yAxis`, labels on `labels`, and legend settings on `legend`; misplaced options return structured warnings.
 - Numeric y-axes use readable domains by default (`yAxis.nice: true`, `yAxis.ticks: "auto"`). Use `yAxis.domain: [min, max]` for an explicit range, `yAxis.nice: false` to retain the raw boundary, and `yAxis.right` for a secondary numeric axis. `chart.getState().axes` and `chart.explain().axes` expose the raw domain, resolved domain, ticks, step, and policy for Agent verification. `xAxis.min/max` and `xAxis.domain` remain unsupported for categorical/time layouts. Chart-specific domains remain available through `gauge.domain`, `heatmap.colorScale.domain`, and `radar.indicators[].min/max`.
@@ -85,6 +86,8 @@ The signature gate inside `buildScene()` guarantees that live rendering, SVG exp
 - `chart.exportAsync({ type, as })` → Promise export path; enables optional Node `canvas` raster output.
 - `chart.download({ type })` / `downloadPNG()` / `downloadSVG()` / `downloadJSON()` → triggers a browser save-as. In headless, falls back to returning the raw string or structured error.
 
+`chart.export({ type: 'svg' })` returns an XML-declared SVG string. `chart.export({ type: 'json' })` returns a JSON string containing `{ version, spec, state }`; use `as: 'object'` when the host wants the parsed object.
+
 ### Structured Error Shape
 
 All export/download methods return a stable `{ valid:false, code, message?, suggestion?, rasterCode? }` object on failure for reliable agent automation. Common `code` values:
@@ -106,6 +109,7 @@ validateSpec(spec)
 createChart(spec)
 getCapabilities()
 getChartCapability(type)
+getChartContract(type)
 getPreferenceCapabilities(type, options)
 validatePreferences(patch, options)
 chart.describe()

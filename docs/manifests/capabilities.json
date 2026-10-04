@@ -283,8 +283,8 @@
       "Short form `branding: false` and object form `branding: { enabled: false }` are both supported. Custom text, link, position, or font are intentionally NOT exposed in the current iteration."
     ]
   },
-  "packageVersion": "2.0.22",
-  "runtimeVersion": "2.0.22",
+  "packageVersion": "2.0.23",
+  "runtimeVersion": "2.0.23",
   "chartTypes": [
     "line",
     "area",
@@ -1605,6 +1605,1352 @@
       "json": true,
       "svg": "inline images or explicitly linked assets",
       "raster": "browser-only"
+    }
+  },
+  "chartContracts": {
+    "line": {
+      "version": "1.0",
+      "type": "line",
+      "family": "cartesian",
+      "required": [
+        "dimension",
+        "measure"
+      ],
+      "optional": [
+        "series"
+      ],
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "encoding": {
+        "channels": {
+          "x": "dimension",
+          "y": "measure",
+          "series": "optional dimension"
+        },
+        "notes": [
+          "Use x/y for Cartesian fields."
+        ]
+      },
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "axes": "supported",
+        "grid": "supported",
+        "legend": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "multi-series": "supported",
+        "dual-axis": "supported"
+      },
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "crosshair",
+        "zoom",
+        "pan",
+        "keyboard"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {},
+      "defaults": {
+        "renderer": "auto",
+        "navigation": false,
+        "editing": false,
+        "motion": "auto"
+      },
+      "discovery": {
+        "capability": "getChartCapability(type)",
+        "contract": "getChartContract(type)",
+        "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
+      }
+    },
+    "area": {
+      "version": "1.0",
+      "type": "area",
+      "family": "cartesian",
+      "required": [
+        "dimension",
+        "measure"
+      ],
+      "optional": [
+        "series"
+      ],
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "encoding": {
+        "channels": {
+          "x": "dimension",
+          "y": "measure",
+          "series": "optional dimension"
+        },
+        "notes": [
+          "Use stack: \"stacked\" or \"percent\" for composition."
+        ]
+      },
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "axes": "supported",
+        "grid": "supported",
+        "legend": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "multi-series": "supported",
+        "stacked": "supported",
+        "percent-stacked": "supported"
+      },
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "crosshair",
+        "zoom",
+        "pan",
+        "keyboard"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {},
+      "defaults": {
+        "renderer": "auto",
+        "navigation": false,
+        "editing": false,
+        "motion": "auto"
+      },
+      "discovery": {
+        "capability": "getChartCapability(type)",
+        "contract": "getChartContract(type)",
+        "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
+      }
+    },
+    "bar": {
+      "version": "1.0",
+      "type": "bar",
+      "family": "cartesian",
+      "required": [
+        "dimension",
+        "measure"
+      ],
+      "optional": [
+        "series"
+      ],
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "encoding": {
+        "channels": {
+          "x": "measure",
+          "y": "dimension",
+          "series": "optional dimension"
+        },
+        "notes": [
+          "Bar uses a categorical y-axis."
+        ]
+      },
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "axes": "supported",
+        "grid": "supported",
+        "legend": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "multi-series": "supported",
+        "stacked": "supported",
+        "percent-stacked": "supported"
+      },
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "zoom",
+        "pan",
+        "keyboard"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {},
+      "defaults": {
+        "renderer": "auto",
+        "navigation": false,
+        "editing": false,
+        "motion": "auto"
+      },
+      "discovery": {
+        "capability": "getChartCapability(type)",
+        "contract": "getChartContract(type)",
+        "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
+      }
+    },
+    "column": {
+      "version": "1.0",
+      "type": "column",
+      "family": "cartesian",
+      "required": [
+        "dimension",
+        "measure"
+      ],
+      "optional": [
+        "series"
+      ],
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "encoding": {
+        "channels": {
+          "x": "dimension",
+          "y": "measure",
+          "series": "optional dimension"
+        },
+        "notes": [
+          "Use transform: { type: \"bin\" } for histogram workflows."
+        ]
+      },
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "axes": "supported",
+        "grid": "supported",
+        "legend": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "multi-series": "supported",
+        "stacked": "supported",
+        "percent-stacked": "supported",
+        "mixed-line-column": "supported",
+        "dual-axis": "supported",
+        "bin": "supported"
+      },
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "zoom",
+        "pan",
+        "keyboard"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {},
+      "defaults": {
+        "renderer": "auto",
+        "navigation": false,
+        "editing": false,
+        "motion": "auto"
+      },
+      "discovery": {
+        "capability": "getChartCapability(type)",
+        "contract": "getChartContract(type)",
+        "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
+      }
+    },
+    "pie": {
+      "version": "1.0",
+      "type": "pie",
+      "family": "part-to-whole",
+      "required": [
+        "dimension",
+        "measure"
+      ],
+      "optional": [],
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "encoding": {
+        "channels": {
+          "category": "dimension",
+          "value": "measure"
+        },
+        "notes": [
+          "Use innerRadius for a donut; keep category count small."
+        ]
+      },
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "legend": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "donut": "supported",
+        "zero-total": "supported",
+        "axes": "not-applicable",
+        "grid": "not-applicable",
+        "zoom": "not-applicable",
+        "pan": "not-applicable"
+      },
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "keyboard"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {
+        "recommendedCategories": 8
+      },
+      "defaults": {
+        "renderer": "auto",
+        "navigation": false,
+        "editing": false,
+        "motion": "auto"
+      },
+      "discovery": {
+        "capability": "getChartCapability(type)",
+        "contract": "getChartContract(type)",
+        "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
+      }
+    },
+    "scatter": {
+      "version": "1.0",
+      "type": "scatter",
+      "family": "cartesian",
+      "required": [
+        "measure",
+        "measure"
+      ],
+      "optional": [
+        "dimension"
+      ],
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "encoding": {
+        "channels": {
+          "x": "measure",
+          "y": "measure"
+        },
+        "notes": [
+          "Scatter does not infer a multi-series legend."
+        ]
+      },
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "axes": "supported",
+        "grid": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "stacked": "not-applicable"
+      },
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "brush",
+        "zoom",
+        "pan",
+        "keyboard"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {},
+      "defaults": {
+        "renderer": "auto",
+        "navigation": false,
+        "editing": false,
+        "motion": "auto"
+      },
+      "discovery": {
+        "capability": "getChartCapability(type)",
+        "contract": "getChartContract(type)",
+        "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
+      }
+    },
+    "funnel": {
+      "version": "1.0",
+      "type": "funnel",
+      "family": "stage",
+      "required": [
+        "dimension",
+        "measure"
+      ],
+      "optional": [],
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "encoding": {
+        "channels": {
+          "category": "dimension",
+          "value": "measure"
+        },
+        "notes": [
+          "Stage labels are rendered inside each segment when space allows."
+        ]
+      },
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "axes": "not-applicable",
+        "grid": "not-applicable",
+        "zoom": "not-applicable",
+        "pan": "not-applicable"
+      },
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "keyboard"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {},
+      "defaults": {
+        "renderer": "auto",
+        "navigation": false,
+        "editing": false,
+        "motion": "auto"
+      },
+      "discovery": {
+        "capability": "getChartCapability(type)",
+        "contract": "getChartContract(type)",
+        "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
+      }
+    },
+    "gauge": {
+      "version": "1.0",
+      "type": "gauge",
+      "family": "indicator",
+      "required": [
+        "measure"
+      ],
+      "optional": [],
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "encoding": {
+        "channels": {
+          "value": "measure"
+        },
+        "notes": [
+          "Declare domain explicitly; values outside it are clamped with a warning."
+        ]
+      },
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "domain": "supported",
+        "axes": "not-applicable",
+        "grid": "not-applicable",
+        "legend": "not-applicable",
+        "zoom": "not-applicable",
+        "pan": "not-applicable"
+      },
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "keyboard"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {},
+      "defaults": {
+        "renderer": "auto",
+        "navigation": false,
+        "editing": false,
+        "motion": "auto"
+      },
+      "discovery": {
+        "capability": "getChartCapability(type)",
+        "contract": "getChartContract(type)",
+        "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
+      }
+    },
+    "heatmap": {
+      "version": "1.0",
+      "type": "heatmap",
+      "family": "matrix",
+      "required": [
+        "dimension",
+        "dimension",
+        "measure"
+      ],
+      "optional": [],
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "encoding": {
+        "channels": {
+          "x": "dimension",
+          "y": "dimension",
+          "color": "measure"
+        },
+        "notes": [
+          "Null cells remain distinct from zero."
+        ]
+      },
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "matrix-labels": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "color-scale": "supported",
+        "missing-values": "supported",
+        "axes": "not-applicable",
+        "zoom": "not-applicable",
+        "pan": "not-applicable"
+      },
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "keyboard"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {
+        "recommendedCells": 2500
+      },
+      "defaults": {
+        "renderer": "auto",
+        "navigation": false,
+        "editing": false,
+        "motion": "auto"
+      },
+      "discovery": {
+        "capability": "getChartCapability(type)",
+        "contract": "getChartContract(type)",
+        "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
+      }
+    },
+    "radar": {
+      "version": "1.0",
+      "type": "radar",
+      "family": "radial",
+      "required": [
+        "three-or-more-measures"
+      ],
+      "optional": [
+        "series"
+      ],
+      "dataShapes": [
+        "records",
+        "data-table"
+      ],
+      "encoding": {
+        "channels": {
+          "indicators": "three or more measure fields"
+        },
+        "notes": [
+          "Declare indicator min/max when units or ranges differ."
+        ]
+      },
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "legend": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "multi-series": "supported",
+        "indicator-domains": "supported",
+        "mixed-unit-warning": "supported",
+        "axes": "not-applicable",
+        "grid": "not-applicable",
+        "zoom": "not-applicable",
+        "pan": "not-applicable"
+      },
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "keyboard"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {
+        "minimumIndicators": 3,
+        "recommendedIndicators": 8
+      },
+      "defaults": {
+        "renderer": "auto",
+        "navigation": false,
+        "editing": false,
+        "motion": "auto"
+      },
+      "discovery": {
+        "capability": "getChartCapability(type)",
+        "contract": "getChartContract(type)",
+        "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
+      }
+    },
+    "gantt": {
+      "version": "1.0",
+      "type": "gantt",
+      "family": "project",
+      "required": [
+        "id",
+        "start",
+        "end"
+      ],
+      "optional": [
+        "dependencies",
+        "progress",
+        "baseline",
+        "actual"
+      ],
+      "dataShapes": [
+        "records"
+      ],
+      "encoding": {
+        "channels": {
+          "records": "id/start/end"
+        },
+        "notes": [
+          "Use dependencies for schedule relationships."
+        ]
+      },
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "critical-path": "supported",
+        "slack": "supported",
+        "baseline-actual-variance": "supported",
+        "working-calendar": "supported",
+        "dependencies": "supported"
+      },
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "zoom",
+        "pan",
+        "keyboard",
+        "linked-filter",
+        "linked-selection"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {},
+      "defaults": {
+        "renderer": "auto",
+        "navigation": false,
+        "editing": false,
+        "motion": "auto"
+      },
+      "discovery": {
+        "capability": "getChartCapability(type)",
+        "contract": "getChartContract(type)",
+        "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
+      }
+    },
+    "timeline": {
+      "version": "1.0",
+      "type": "timeline",
+      "family": "project",
+      "required": [
+        "date",
+        "title"
+      ],
+      "optional": [
+        "status"
+      ],
+      "dataShapes": [
+        "records"
+      ],
+      "encoding": {
+        "channels": {
+          "records": "date/title"
+        },
+        "notes": [
+          "Event positions use date on the horizontal time axis."
+        ]
+      },
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "labels": "supported",
+        "formatting": "supported"
+      },
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "zoom",
+        "pan",
+        "keyboard"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {},
+      "defaults": {
+        "renderer": "auto",
+        "navigation": false,
+        "editing": false,
+        "motion": "auto"
+      },
+      "discovery": {
+        "capability": "getChartCapability(type)",
+        "contract": "getChartContract(type)",
+        "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
+      }
+    },
+    "milestone": {
+      "version": "1.0",
+      "type": "milestone",
+      "family": "project",
+      "required": [
+        "date",
+        "title"
+      ],
+      "optional": [
+        "baselineDate",
+        "actualDate"
+      ],
+      "dataShapes": [
+        "records"
+      ],
+      "encoding": {
+        "channels": {
+          "records": "date/title"
+        },
+        "notes": [
+          "Use baselineDate and actualDate for variance."
+        ]
+      },
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "baseline-actual-variance": "supported"
+      },
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "zoom",
+        "pan",
+        "keyboard"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {},
+      "defaults": {
+        "renderer": "auto",
+        "navigation": false,
+        "editing": false,
+        "motion": "auto"
+      },
+      "discovery": {
+        "capability": "getChartCapability(type)",
+        "contract": "getChartContract(type)",
+        "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
+      }
+    },
+    "burndown": {
+      "version": "1.0",
+      "type": "burndown",
+      "family": "project",
+      "required": [
+        "date",
+        "remaining"
+      ],
+      "optional": [
+        "ideal",
+        "scopeChange"
+      ],
+      "dataShapes": [
+        "records"
+      ],
+      "encoding": {
+        "channels": {
+          "records": "date/remaining"
+        },
+        "notes": [
+          "Use ideal and scopeChange when available."
+        ]
+      },
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "axes": "supported",
+        "labels": "supported",
+        "formatting": "supported",
+        "scope-change": "supported",
+        "release-forecast": "supported"
+      },
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "zoom",
+        "pan",
+        "keyboard"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {},
+      "defaults": {
+        "renderer": "auto",
+        "navigation": false,
+        "editing": false,
+        "motion": "auto"
+      },
+      "discovery": {
+        "capability": "getChartCapability(type)",
+        "contract": "getChartContract(type)",
+        "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
+      }
+    },
+    "flow": {
+      "version": "1.0",
+      "type": "flow",
+      "family": "diagram",
+      "required": [
+        "nodes"
+      ],
+      "optional": [
+        "edges",
+        "groups",
+        "ports",
+        "semantic-node-kinds",
+        "connectors"
+      ],
+      "dataShapes": [
+        "diagram-spec"
+      ],
+      "encoding": {
+        "channels": {
+          "nodes": "top-level nodes",
+          "edges": "optional from/to edges"
+        },
+        "notes": [
+          "Use semantic node kinds for start, decision, and connector meaning."
+        ]
+      },
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "labels": "supported",
+        "routing": "supported",
+        "manual-routing": "supported",
+        "layout": "supported",
+        "groups": "supported",
+        "ports": "supported",
+        "semantic-shapes": "supported",
+        "decision-branches": "supported",
+        "connectors": "supported",
+        "loops": "supported",
+        "history": "supported",
+        "axes": "not-applicable",
+        "grid": "not-applicable",
+        "legend": "not-applicable"
+      },
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "edge-selection",
+        "drag",
+        "edgeDrag",
+        "zoom",
+        "pan",
+        "keyboard",
+        "keyboard-edit",
+        "keyboard-port-connect",
+        "portConnect",
+        "copy-paste"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {},
+      "defaults": {
+        "renderer": "auto",
+        "navigation": false,
+        "editing": false,
+        "motion": "auto"
+      },
+      "discovery": {
+        "capability": "getChartCapability(type)",
+        "contract": "getChartContract(type)",
+        "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
+      }
+    },
+    "swimlane": {
+      "version": "1.0",
+      "type": "swimlane",
+      "family": "diagram",
+      "required": [
+        "nodes",
+        "lanes"
+      ],
+      "optional": [
+        "edges",
+        "groups",
+        "ports"
+      ],
+      "dataShapes": [
+        "diagram-spec"
+      ],
+      "encoding": {
+        "channels": {
+          "lanes": "top-level lanes",
+          "nodes": "top-level nodes"
+        },
+        "notes": [
+          "Assign nodes to lanes with laneId."
+        ]
+      },
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "labels": "supported",
+        "routing": "supported",
+        "manual-routing": "supported",
+        "layout": "supported",
+        "groups": "supported",
+        "ports": "supported",
+        "lanes": "supported",
+        "history": "supported",
+        "axes": "not-applicable",
+        "grid": "not-applicable",
+        "legend": "not-applicable"
+      },
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "edge-selection",
+        "drag",
+        "edgeDrag",
+        "zoom",
+        "pan",
+        "keyboard",
+        "keyboard-edit",
+        "keyboard-port-connect",
+        "portConnect",
+        "copy-paste"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {},
+      "defaults": {
+        "renderer": "auto",
+        "navigation": false,
+        "editing": false,
+        "motion": "auto"
+      },
+      "discovery": {
+        "capability": "getChartCapability(type)",
+        "contract": "getChartContract(type)",
+        "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
+      }
+    },
+    "architecture": {
+      "version": "1.0",
+      "type": "architecture",
+      "family": "diagram",
+      "required": [
+        "nodes"
+      ],
+      "optional": [
+        "edges",
+        "layers",
+        "boundaries",
+        "groups",
+        "ports"
+      ],
+      "dataShapes": [
+        "diagram-spec"
+      ],
+      "encoding": {
+        "channels": {
+          "nodes": "top-level nodes",
+          "layers": "optional top-level layers"
+        },
+        "notes": [
+          "Use layerId and boundaryId for structure."
+        ]
+      },
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "labels": "supported",
+        "routing": "supported",
+        "manual-routing": "supported",
+        "layout": "supported",
+        "layers": "supported",
+        "boundaries": "supported",
+        "groups": "supported",
+        "ports": "supported",
+        "history": "supported",
+        "axes": "not-applicable",
+        "grid": "not-applicable",
+        "legend": "not-applicable"
+      },
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "edge-selection",
+        "drag",
+        "edgeDrag",
+        "zoom",
+        "pan",
+        "keyboard",
+        "keyboard-edit",
+        "keyboard-port-connect",
+        "portConnect",
+        "copy-paste"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {},
+      "defaults": {
+        "renderer": "auto",
+        "navigation": false,
+        "editing": false,
+        "motion": "auto"
+      },
+      "discovery": {
+        "capability": "getChartCapability(type)",
+        "contract": "getChartContract(type)",
+        "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
+      }
+    },
+    "mindmap": {
+      "version": "1.0",
+      "type": "mindmap",
+      "family": "diagram",
+      "required": [
+        "nodes"
+      ],
+      "optional": [
+        "parentId",
+        "edges",
+        "groups"
+      ],
+      "dataShapes": [
+        "diagram-spec"
+      ],
+      "encoding": {
+        "channels": {
+          "nodes": "top-level nodes",
+          "parentId": "optional parent relation"
+        },
+        "notes": [
+          "Use parentId for generated tree edges."
+        ]
+      },
+      "features": {
+        "title": "supported",
+        "subtitle": "supported",
+        "theme": "supported",
+        "responsive": "supported",
+        "empty-state": "supported",
+        "invalid-data-state": "supported",
+        "export": "supported",
+        "branding": "supported",
+        "labels": "supported",
+        "routing": "supported",
+        "cubic-bezier": "supported",
+        "curve-tension": "supported",
+        "obstacle-fallback": "supported",
+        "manual-routing": "supported",
+        "layout": "supported",
+        "tree-layout": "supported",
+        "radial-layout": "supported",
+        "history": "supported",
+        "axes": "not-applicable",
+        "grid": "not-applicable",
+        "legend": "not-applicable"
+      },
+      "interactions": [
+        "hover",
+        "tooltip",
+        "selection",
+        "edge-selection",
+        "drag",
+        "edgeDrag",
+        "zoom",
+        "pan",
+        "keyboard",
+        "keyboard-edit",
+        "keyboard-port-connect",
+        "portConnect",
+        "copy-paste"
+      ],
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "exports": [
+        "png",
+        "jpeg",
+        "svg",
+        "json"
+      ],
+      "limits": {},
+      "defaults": {
+        "renderer": "auto",
+        "navigation": false,
+        "editing": false,
+        "motion": "auto"
+      },
+      "discovery": {
+        "capability": "getChartCapability(type)",
+        "contract": "getChartContract(type)",
+        "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
+      }
     }
   }
 }

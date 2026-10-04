@@ -56,7 +56,22 @@ export function inspectData(input) {
   const data = normalizeData(input);
   const dimensions = data.fields.filter(field => field.role === 'dimension' || field.role === 'temporal-dimension').map(field => field.name);
   const measures = data.fields.filter(field => field.type === 'quantitative').map(field => field.name);
-  return { version: '1.0', rows: data.rows.length, fields: data.fields, dimensions, measures, temporalFields: data.fields.filter(field => field.type === 'temporal').map(field => field.name), missingValueCount: data.fields.reduce((sum, field) => sum + field.nullCount, 0), warnings: data.warnings };
+  const qualityWarnings = [...data.warnings];
+  const identifier = data.fields.find(field => field.role === 'identifier');
+  if (identifier) {
+    const seen = new Map();
+    data.rows.forEach((row, index) => {
+      const value = row[identifier.name];
+      if (value === null || value === undefined || value === '') return;
+      const key = String(value), first = seen.get(key);
+      if (first === undefined) seen.set(key, index);
+      else qualityWarnings.push({ code: 'DUPLICATE_RECORD_ID', path: `data.values.${index}.${identifier.name}`, row: index, firstRow: first, message: `Record ID ${key} is duplicated.`, suggestion: 'Use stable unique IDs so Agent lineage and linked selection remain reliable.', severity: 'warning' });
+    });
+  }
+  const units = [...new Set(data.fields.filter(field => field.role === 'measure' && field.unit).map(field => field.unit))];
+  if (units.length > 1) qualityWarnings.push({ code: 'MIXED_MEASURE_UNITS', path: 'data.values', units, message: `Measures use multiple inferred units: ${units.join(', ')}.`, suggestion: 'Confirm units before combining measures or use separate axes.', severity: 'warning' });
+  const missingValueCount = data.fields.reduce((sum, field) => sum + field.nullCount, 0);
+  return { version: '1.0', rows: data.rows.length, fields: data.fields, dimensions, measures, temporalFields: data.fields.filter(field => field.type === 'temporal').map(field => field.name), missingValueCount, warnings: qualityWarnings, quality: { version: '1.0', status: qualityWarnings.length ? 'degraded' : 'ready', issues: [...new Set(qualityWarnings.map(item => item.code))], metrics: { rows: data.rows.length, fields: data.fields.length, missingValues: missingValueCount, warnings: qualityWarnings.length } } };
 }
 
 export class DataPipeline {

@@ -3,6 +3,7 @@
  * The normalized Spec is the stable contract shared by all renderers.
  */
 import { chartProfiles } from './capabilities.mjs';
+import { normalizeData } from './data.mjs';
 import { themeModes, themePalettes, themePresets } from './theme.mjs';
 import { validateDiagram } from './diagram.mjs';
 import { applyTransforms } from './transforms.mjs';
@@ -118,8 +119,7 @@ const encodingChannels = {
 const presentationEncodingKeys = new Set(['title', 'format', 'labels', 'legend']);
 const diagramTypes = new Set(['flow', 'swimlane', 'architecture', 'mindmap']);
 const diagramFields = ['nodes', 'edges', 'lanes', 'groups', 'layers', 'boundaries'];
-const nonCartesianAnalysisTypes = new Set(['pie', 'funnel', 'gauge', 'heatmap', 'radar']);
-const knownSpecKeys = new Set(['version', 'type', 'renderer', 'container', 'chartId', 'width', 'height', 'padding', 'colors', 'background', 'locale', 'data', 'encoding', 'title', 'legend', 'grid', 'labels', 'xAxis', 'yAxis', 'domain', 'colorScale', 'indicators', 'innerRadius', 'stack', 'transform', 'criticalPath', 'nodes', 'edges', 'lanes', 'layers', 'boundaries', 'groups', 'diagram', 'project', 'interaction', 'editing', 'accessibility', 'branding', 'theme', 'preferences', 'preferencesStore', 'plugins', 'schema', 'validationOptions', 'emptyText', 'responsive', 'view', 'context', 'intent', 'tasks', 'events']);
+const knownSpecKeys = new Set(['version', 'type', 'renderer', 'container', 'chartId', 'width', 'height', 'size', 'padding', 'colors', 'background', 'locale', 'data', 'encoding', 'title', 'legend', 'grid', 'labels', 'xAxis', 'yAxis', 'domain', 'colorScale', 'indicators', 'innerRadius', 'stack', 'transform', 'criticalPath', 'dependencies', 'nodes', 'edges', 'lanes', 'layers', 'boundaries', 'groups', 'diagram', 'project', 'interaction', 'editing', 'accessibility', 'branding', 'theme', 'preferences', 'preferencesStore', 'plugins', 'schema', 'validationOptions', 'emptyText', 'responsive', 'view', 'context', 'intent', 'tasks', 'events']);
 
 function finiteDomain(domain) {
   return Array.isArray(domain) && domain.length === 2 && domain.every(value => Number.isFinite(Number(value))) && Number(domain[1]) > Number(domain[0]);
@@ -148,6 +148,14 @@ function validateEncodingContract(input, spec, errors) {
   if (['pie', 'funnel'].includes(spec.type) && (rawEncoding.x !== undefined || rawEncoding.y !== undefined)) return;
   (encodingChannels[spec.type] || []).forEach(channel => check(`encoding.${channel}`, spec.encoding?.[channel]));
   if (spec.type === 'radar') (spec.indicators || []).forEach((indicator, index) => check(`indicators.${index}`, indicator));
+  if (spec.type === 'scatter') {
+    const inspected = normalizeData(rows);
+    const fieldTypes = new Map(inspected.fields.map(field => [field.name, field.type]));
+    for (const channel of ['x', 'y']) {
+      const field = spec.encoding?.[channel]?.field;
+      if (field && fieldTypes.get(field) !== 'quantitative') errors.push({ code: 'SCATTER_REQUIRES_QUANTITATIVE_FIELDS', path: `encoding.${channel}.field`, message: `Scatter ${channel} must use a quantitative field.`, expected: inspected.fields.filter(item => item.type === 'quantitative').map(item => item.name), suggestion: 'Use two numeric fields for x and y, or choose a chart that supports categorical dimensions.' });
+    }
+  }
 }
 
 export function normalizeSpec(input = {}) {
@@ -173,10 +181,9 @@ export function normalizeSpec(input = {}) {
     spec.encoding.x = spec.encoding.x || { field: 'name', type: 'category' };
     spec.encoding.y = spec.encoding.y || { field: 'value', type: 'quantitative' };
   }
-  if (nonCartesianAnalysisTypes.has(spec.type)) {
-    ['grid', 'xAxis', 'yAxis'].forEach(key => { if (input[key] === undefined) delete spec[key]; });
-    ['legend', 'labels'].forEach(key => { if (input[key] === undefined && chartProfiles[spec.type]?.features?.[key] !== 'supported') delete spec[key]; });
-  }
+  const profile = chartProfiles[spec.type];
+  ['legend', 'grid', 'labels'].forEach(key => { if (input[key] === undefined && profile?.features?.[key] !== 'supported') delete spec[key]; });
+  if (!['line', 'area', 'bar', 'column', 'scatter'].includes(spec.type)) ['xAxis', 'yAxis'].forEach(key => { if (input[key] === undefined) delete spec[key]; });
   return spec;
 }
 
@@ -184,6 +191,7 @@ export function validateSpec(input = {}) {
   const spec = normalizeSpec(input);
   const errors = [], warnings = [], normalizations = [];
   Object.keys(input || {}).filter(key => !knownSpecKeys.has(key)).forEach(key => warnings.push({ code: 'UNKNOWN_SPEC_OPTION', path: key, message: `Top-level option ${key} is not part of the iChart.js Spec contract and will be ignored.`, expected: [...knownSpecKeys].sort(), suggestion: 'Remove the option or place host metadata outside the chart Spec.' }));
+  if (input.size !== undefined) warnings.push({ code: 'UNSUPPORTED_SIZE_OPTION', path: 'size', message: 'Chart size is configured with top-level width and height, not size.width and size.height.', suggestion: 'Use width: 900, height: 500 at the top level.' });
   if (typeof input.title === 'string') {
     normalizations.push({ code: 'NORMALIZED_TITLE', path: 'title', from: 'string', to: 'title.text' });
     warnings.push({ code: 'NORMALIZED_TITLE', path: 'title', message: 'String titles are normalized to title.text.', suggestion: 'Prefer title: { text: "..." } for an explicit title contract.' });
@@ -266,6 +274,7 @@ export function validateSpec(input = {}) {
     }
   }
   if (spec.type === 'gantt') errors.push(...dependencyErrors(spec.data.values));
+  if (spec.type === 'gantt' && input.dependencies !== undefined) warnings.push({ code: 'UNSUPPORTED_GANTT_DEPENDENCY_PLACEMENT', path: 'dependencies', message: 'Gantt dependencies belong on each task row, not at the top level.', suggestion: 'Use data.values[].dependencies: ["task-id"] or dependency objects.' });
   if (spec.type === 'gantt') spec.data.values.forEach((row, index) => {
     if (row && row.dependsOn !== undefined && row.dependencies === undefined) warnings.push({ code: 'UNSUPPORTED_DEPENDENCY_FIELD', path: `data.values[${index}].dependsOn`, message: 'dependsOn is not a recognized Gantt dependency field and will be ignored.', suggestion: 'Rename dependsOn to dependencies.' });
   });

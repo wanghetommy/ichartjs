@@ -11,6 +11,7 @@ import {
   createChart,
   getCapabilities,
   getChartCapability,
+  getChartContract,
   inspectData,
   planChart,
   validateSpec
@@ -27,6 +28,8 @@ Additional package resources:
 - `@taylorwong/ichartjs/recipes/project-management`: project intelligence recipes.
 - `@taylorwong/ichartjs/recipes/diagrams/workflow`: diagram editing recipe.
 - `skills/ichartjs/SKILL.md`: optional workflow adapter for Codex, WorkBuddy, and other Agent Skills-compatible hosts.
+
+The current style enums are discoverable from `getCapabilities().styleSystem`: modes are `auto`, `light`, `dark`, and `contrast`; presets are `auto`, `analysis`, `dashboard`, `report`, `presentation`, `project`, and `diagram`; palettes are `auto`, `categorical`, `sequential`, `diverging`, and `status`.
 
 The Skill is not the runtime. Install or register it only when the Agent host supports Skills; it must still call the package's public APIs and capability contract.
 
@@ -144,7 +147,7 @@ Keep `encoding` for field roles and series semantics. Put presentation and axis 
 
 Numeric Cartesian charts use a readable y-axis domain by default: `yAxis.nice` is `true`, and `yAxis.ticks` is `"auto"`. For an explicit range, use `yAxis.domain: [min, max]`; for example, `{ domain: [0, 2000], ticks: 5 }` produces a stable five-label scale. Set `yAxis.nice: false` to retain the raw data boundary. `yAxis.format` only changes display formatting. `chart.getState().axes` and `chart.explain().axes` expose `rawDomain`, resolved `domain`, `ticks`, `step`, and `policy` for Agent self-checks. `yAxis.right` accepts the same controls for a secondary numeric axis. `xAxis.min/max` and `xAxis.domain` remain unsupported because categorical/time x-axis ranges are derived from records. The other supported domain controls are chart-specific: `gauge.domain`, `heatmap.colorScale.domain`, and `radar.indicators[].min/max`. Project chart date ranges are derived from their records in the current version.
 
-Chart-specific encoding is strict: Cartesian charts use `x`/`y`, Pie/Funnel use `category`/`value`, Gauge uses `value`, Heatmap uses `x`/`y`/`color`, and Radar uses `indicators[].field`. Missing or unsupported fields are validation errors, not silent fallbacks. Gauge Specs must declare `domain`; inspect `VALUE_CLAMPED` when a value falls outside it. Pie reports `NEGATIVE_VALUE_DROPPED` for signed values and `ZERO_TOTAL` for an empty part-to-whole result. Use the complete minimal catalog at `@taylorwong/ichartjs/recipes/minimal-specs` when starting a new chart:
+Chart-specific encoding is strict: Cartesian charts use `x`/`y`, Pie/Funnel use `category`/`value`, Gauge uses `value`, Heatmap uses `x`/`y`/`color`, and Radar uses `indicators[].field`. Missing or unsupported fields are validation errors, not silent fallbacks. Agents can inspect the complete per-chart contract with `getChartContract(type)` before constructing a Spec. Gauge Specs must declare `domain`; inspect `VALUE_CLAMPED` when a value falls outside it. Pie reports `NEGATIVE_VALUE_DROPPED` for signed values and `ZERO_TOTAL` for an empty part-to-whole result. Use the complete minimal catalog at `@taylorwong/ichartjs/recipes/minimal-specs` when starting a new chart:
 
 ```js
 import catalog from '@taylorwong/ichartjs/recipes/minimal-specs' with { type: 'json' };
@@ -153,6 +156,16 @@ const spec = structuredClone(catalog.examples.radar);
 ```
 
 For Agent self-checks, `chart.getState().health` and `chart.explain().health` expose `ready`, `degraded`, or `empty`, plus warning, suppressed-label, clamped-value, and rendered-mark metrics. `locale` defaults to `en-US`; use `locale: "zh-CN"` for localized number/date output while keeping input dates in ISO-8601 form.
+
+### Troubleshooting by diagnostic
+
+| Symptom | Inspect | Repair |
+| --- | --- | --- |
+| The selected chart type is unexpected | `plan.warnings`, `plan.fallbackUsed` | Map prose to a registered intent, then inspect `getChartContract(plan.primary)`. |
+| Linked selections do not remain stable | `data.quality.issues`, `explain().lineage` | Add unique string `id` values to every input record. |
+| Combined measures use different units | `data.quality.issues` for `MIXED_MEASURE_UNITS` | Confirm units and use separate axes or separate charts. |
+| A chart looks usable but should not be accepted | `getState().health`, `getState().warnings` | Stop on errors; repair warnings such as `VALUE_CLAMPED`, `LABEL_TRUNCATED`, or `ZERO_TOTAL`. |
+| Output choice is unclear | `getChartContract(type).exports`, `getCapabilities().export` | Use SVG for inspectable structure, PNG/JPEG for presentation, and JSON for persistence. |
 
 ### 5. Validate
 

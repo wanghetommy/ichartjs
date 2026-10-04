@@ -42,6 +42,49 @@ export function getChartCapability(type) {
   return chartProfiles[type] ? JSON.parse(JSON.stringify(chartProfiles[type])) : null;
 }
 
+const chartEncodingContracts = {
+  line: { channels: { x: 'dimension', y: 'measure', series: 'optional dimension' }, notes: ['Use x/y for Cartesian fields.'] },
+  area: { channels: { x: 'dimension', y: 'measure', series: 'optional dimension' }, notes: ['Use stack: "stacked" or "percent" for composition.'] },
+  bar: { channels: { x: 'measure', y: 'dimension', series: 'optional dimension' }, notes: ['Bar uses a categorical y-axis.'] },
+  column: { channels: { x: 'dimension', y: 'measure', series: 'optional dimension' }, notes: ['Use transform: { type: "bin" } for histogram workflows.'] },
+  pie: { channels: { category: 'dimension', value: 'measure' }, notes: ['Use innerRadius for a donut; keep category count small.'] },
+  scatter: { channels: { x: 'measure', y: 'measure' }, notes: ['Scatter does not infer a multi-series legend.'] },
+  funnel: { channels: { category: 'dimension', value: 'measure' }, notes: ['Stage labels are rendered inside each segment when space allows.'] },
+  gauge: { channels: { value: 'measure' }, notes: ['Declare domain explicitly; values outside it are clamped with a warning.'] },
+  heatmap: { channels: { x: 'dimension', y: 'dimension', color: 'measure' }, notes: ['Null cells remain distinct from zero.'] },
+  radar: { channels: { indicators: 'three or more measure fields' }, notes: ['Declare indicator min/max when units or ranges differ.'] },
+  gantt: { channels: { records: 'id/start/end' }, notes: ['Use dependencies for schedule relationships.'] },
+  timeline: { channels: { records: 'date/title' }, notes: ['Event positions use date on the horizontal time axis.'] },
+  milestone: { channels: { records: 'date/title' }, notes: ['Use baselineDate and actualDate for variance.'] },
+  burndown: { channels: { records: 'date/remaining' }, notes: ['Use ideal and scopeChange when available.'] },
+  flow: { channels: { nodes: 'top-level nodes', edges: 'optional from/to edges' }, notes: ['Use semantic node kinds for start, decision, and connector meaning.'] },
+  swimlane: { channels: { lanes: 'top-level lanes', nodes: 'top-level nodes' }, notes: ['Assign nodes to lanes with laneId.'] },
+  architecture: { channels: { nodes: 'top-level nodes', layers: 'optional top-level layers' }, notes: ['Use layerId and boundaryId for structure.'] },
+  mindmap: { channels: { nodes: 'top-level nodes', parentId: 'optional parent relation' }, notes: ['Use parentId for generated tree edges.'] }
+};
+
+export function getChartContract(type) {
+  const profile = chartProfiles[type];
+  if (!profile) return null;
+  const encoding = chartEncodingContracts[type] || { channels: {}, notes: [] };
+  return {
+    version: '1.0',
+    type,
+    family: profile.family,
+    required: [...profile.required],
+    optional: [...profile.optional],
+    dataShapes: [...profile.dataShapes],
+    encoding: JSON.parse(JSON.stringify(encoding)),
+    features: JSON.parse(JSON.stringify(profile.features)),
+    interactions: [...profile.interactions],
+    renderers: [...profile.renderers],
+    exports: [...profile.exports],
+    limits: JSON.parse(JSON.stringify(profile.limits || {})),
+    defaults: { renderer: 'auto', navigation: false, editing: false, motion: 'auto' },
+    discovery: { capability: 'getChartCapability(type)', contract: 'getChartContract(type)', recipe: '@taylorwong/ichartjs/recipes/minimal-specs' }
+  };
+}
+
 const preferenceMessages = {
   en: {
     groups: { theme: 'Theme', typography: 'Typography', components: 'Components', behavior: 'Behavior' },
@@ -104,7 +147,9 @@ export function planChart(input, options = {}) {
     const field = report.fields.find(item => item.name === report.dimensions[0]);
     if (field?.cardinality > 8) warnings.push(warning('HIGH_CARDINALITY_PART_TO_WHOLE', `data.${field.name}`, `${field.cardinality} categories may make ${primary} hard to read.`, 'Use bar for comparison or filter to the most important categories.'));
   }
-  if (profile.family === 'cartesian' || ['part-to-whole', 'stage'].includes(profile.family)) {
+  if (primary === 'scatter') {
+    if (report.measures.length < 2) requiredFields.push('two quantitative measures');
+  } else if (profile.family === 'cartesian' || ['part-to-whole', 'stage'].includes(profile.family)) {
     if (!report.dimensions.length) requiredFields.push('dimension');
     if (!report.measures.length) requiredFields.push('measure');
   }
@@ -161,6 +206,7 @@ export function explainChart(spec, model = {}) {
     renderer: model.rendererSelection?.effective || spec.renderer,
     requestedRenderer: spec.renderer,
     dataCount: model.data?.rows?.length || 0,
+    dataQuality: model.data?.quality || null,
     encodings,
     transforms: spec.transform ? (Array.isArray(spec.transform) ? spec.transform : [spec.transform]).map(item => item.type) : [],
     interactions: Object.keys(spec.interaction || {}).filter(key => spec.interaction[key]),
@@ -206,6 +252,7 @@ export function getCapabilities() {
     contractVersion,
     chartTypes,
     charts: JSON.parse(JSON.stringify(chartProfiles)),
+    chartContracts: Object.fromEntries(chartTypes.map(type => [type, getChartContract(type)])),
     intents,
     locale: { default: 'en-US', recommended: ['en-US', 'zh-CN'], appliesTo: ['axis', 'labels', 'tooltip', 'export'], inputDates: 'ISO-8601 strings; natural-language date parsing is not supported.' },
     chartModes: { stack: ['stacked', 'percent'], pie: ['standard', 'donut'], composition: ['multi-series', 'mixed-line-column', 'dual-axis'], transforms: ['bin'], diagrams: ['process', 'architecture', 'mindmap'], mindmapLayouts: ['tree', 'radial'], mindmapEdges: ['curved', 'straight', 'orthogonal'], flowNodeKinds: [...flowNodeKinds], flowBranchEdges: { label: 'edge.label', minimumOutgoing: 2 }, flowLoops: 'supported', flowConnectors: { kind: 'connector', linking: 'explicit from/to edges' } },

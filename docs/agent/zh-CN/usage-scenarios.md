@@ -62,7 +62,7 @@ chart.setPreferences({
 npm install @taylorwong/ichartjs@^2
 ```
 
-需要可复现构建时，请固定已发布版本：`npm install @taylorwong/ichartjs@2.0.22`。
+需要可复现构建时，请固定已发布版本：`npm install @taylorwong/ichartjs@2.0.23`。
 
 ```js
 import { createChart } from '@taylorwong/ichartjs';
@@ -123,7 +123,7 @@ npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --ye
 需要固定发布版本时，直接安装已发布的 Skill 目录：
 
 ```bash
-npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.22/skills/ichartjs \
+npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.23/skills/ichartjs \
   --agent codex --global --yes
 ```
 

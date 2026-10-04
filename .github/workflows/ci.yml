@@ -37,6 +37,9 @@ jobs:
       - name: Run executable Agent workflow
         run: npm run example:agent
 
+      - name: Run performance smoke check
+        run: npm run performance:check
+
       - name: Verify publish tarball
         run: npm pack --dry-run
 

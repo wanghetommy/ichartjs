@@ -47,7 +47,7 @@ Images are declared in `assets` and referenced by `assetId`; this keeps the Boar
 | `connector` | `from`, `to` | References item IDs; supports `straight` and `orthogonal` routing. |
 | `chart` | embedded `spec`, `position`, `size` | Reuses the normal chart Spec and Scene Graph. |
 
-`position` and `size` are measured in board pixels. Shape polygon points are normalized to `0..1` inside the item box. Keep item IDs unique and use string IDs so an Agent can explain, select, move, and audit items.
+`position` and `size` are measured in board pixels and item sizes must be at least 16px. Shape polygon points and path points are normalized to `0..1` inside the item box. Keep item IDs unique and use string IDs so an Agent can explain, select, move, and audit items.
 
 ## Outputs and self-check
 

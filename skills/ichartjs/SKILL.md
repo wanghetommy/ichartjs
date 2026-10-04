@@ -22,7 +22,7 @@ Recommended installation:
 npx skills add wanghetommy/ichartjs --skill ichartjs
 ```
 
-Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.22/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
+Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.23/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
 
 The Skill is a workflow adapter, not the chart runtime. If the current JavaScript or TypeScript project does not already depend on iChart.js, install the matching runtime from npm:
 
@@ -38,18 +38,32 @@ Do not install the unscoped npm registry package named `ichartjs`; it is current
 2. Call `getCapabilities()` before selecting a chart or interaction.
 3. Call `inspectData()` and preserve stable record IDs.
 4. Discover `getCapabilities().intents`; map natural-language requests to an exact registered token before calling `planChart(data, { intent, renderer, context })`.
-5. Inspect the complete planning result, including `styleRecommendation`, warnings, and fallback status.
+5. Inspect the complete planning result, including `styleRecommendation`, warnings, and fallback status; then call `getChartContract(plan.primary)` for the selected chart's channels, limits, renderers, exports, and defaults.
 6. Stop when `requiredFields` is non-empty; request data or explain a supported alternative.
-7. Build a JSON-serializable Spec using `suggestedEncodings`, the selected capability, and an applicable recipe.
+7. Build a JSON-serializable Spec using `suggestedEncodings`, the selected contract, and an applicable recipe.
 8. Use chart-specific channels: Cartesian `x`/`y`, Pie/Funnel `category`/`value`, Gauge `value`, Heatmap `x`/`y`/`color`, and Radar `indicators[].field`. Funnel stage text comes from `encoding.category` (default `name`) and `labels.enabled` additionally renders values; narrow stages may report `FUNNEL_LABEL_TRUNCATED`, so increase width or shorten the stage name. For Flow, use top-level `nodes` and `edges`, `nodes[].kind` from `getCapabilities().diagram.flowNodeKinds`, and edge `label` for decision branches. `connector` uses explicit `from`/`to` edges and loops are allowed. To discover recipes, import `@taylorwong/ichartjs/recipes/manifest`; recipes are declarative starting templates, not executable tasks. Copy one, inject host data, run its declared validator, and then render or preview. The `diagrams/workflow` entry is an edit template and is not directly renderable until nodes and edges are populated.
 9. Keep titles/formats under `xAxis`/`yAxis`, labels under `labels`, and legend under `legend`; do not place them inside `encoding`.
 10. Call `validateSpec()` before rendering and repair its preflight errors, warnings, and normalizations. After `createChart()`, inspect `chart.getState()` or `chart.explain()` for render-time diagnostics such as `FUNNEL_LABEL_TRUNCATED`, `VALUE_CLAMPED`, `LABELS_SUPPRESSED`, `LABEL_TRUNCATED`, `NEGATIVE_VALUE_DROPPED`, and `ZERO_TOTAL`; also inspect `getState().layout.labels` for wrapped, scaled, inline-edge, offset-edge, and diagram edge-label background counts. Ordinary chart labels do not use background plates. Do not assume every layout warning is available during preflight.
 11. Call `createChart()` only after validation succeeds. Gauge Specs must declare a meaningful `domain`.
-12. Self-check with `chart.explain()`, `chart.getState()`, `health.renderable`, and JSON export. Treat `VALUE_CLAMPED`, `LABELS_SUPPRESSED`, `NEGATIVE_VALUE_DROPPED`, `FUNNEL_LABEL_TRUNCATED`, and `ZERO_TOTAL` as material diagnostics to report.
-13. Provide an exact preview URL or artifact path and report assumptions, warnings, and deferred checks.
+12. Self-check with `chart.explain()`, `chart.getState()`, `health.renderable`, `dataQuality`, and JSON export. Treat `VALUE_CLAMPED`, `LABELS_SUPPRESSED`, `NEGATIVE_VALUE_DROPPED`, `FUNNEL_LABEL_TRUNCATED`, and `ZERO_TOTAL` as material diagnostics to report. Treat duplicate stable IDs and mixed inferred units as data-quality warnings that require host review.
+13. Provide an exact preview URL or artifact path and report assumptions, warnings, data-quality issues, and deferred checks.
 14. Prefer `theme: { mode: 'auto', preset, palette }`; preserve explicit user style choices and use `chart.setTheme()` for live switching.
 15. For post-creation visual changes, call `getPreferenceCapabilities(chartType, { locale })`, validate the patch with `validatePreferences()`, apply it with `chart.setPreferences(..., { source: 'agent' })`, and verify `chart.getState().preferences`.
 16. For natural-language changes, classify the request before mutating: visual → `setPreferences()`/`setTheme()`, complete data replacement → `setData()`, business or Diagram edit → `previewEdit()`/`applyEdit()`, normal Spec change → `update()`, exact JSON path → `applyPatch()`. Verify `chart.getState().preferenceResolution` and `chart.explain()` after commit.
+
+Common type-specific placements:
+
+| Type | Required data contract |
+| --- | --- |
+| Scatter | `encoding.x` and `encoding.y` must reference quantitative fields. |
+| Gantt | Put dependencies on `data.values[].dependencies`, not top-level `dependencies`. |
+| Swimlane | Use top-level `lanes[].label` for lane display text. |
+| Flow / Architecture / Mindmap | Keep `nodes`, `edges`, `layers`, and `boundaries` at Spec top level. |
+| Freeform Board | Board item `position`/`size` use pixels; path and polygon points are normalized inside the item box. |
+
+Use top-level `width` and `height` for chart dimensions. `size: { width, height }` is not a chart Spec option and returns `UNSUPPORTED_SIZE_OPTION`.
+
+Theme values are discoverable from `getCapabilities().styleSystem` or `getPreferenceCapabilities()`. The current values are `mode: auto | light | dark | contrast`, `preset: auto | analysis | dashboard | report | presentation | project | diagram`, and `palette: auto | categorical | sequential | diverging | status`.
 
 ## Freeform Board
 
@@ -60,7 +74,7 @@ const capabilities = getCapabilities();
 const boardContract = capabilities.canvasComposition;
 ```
 
-Supported board items are `image`, `text`, `shape`, `path`, `connector`, and embedded `chart`. Shape options are `rectangle`, `ellipse`, `diamond`, `hexagon`, normalized-point `polygon`, open `arc`, and filled `sector`; `path` supports normalized linear points or exactly four points for a cubic Bezier. Do not send arbitrary SVG path data. Text automatically fits by wrapping, bounded font reduction, and last-resort ellipsis; inspect `board.getState().layout.text`. Connectors use explicit `from`/`to` item IDs and `straight` or `orthogonal` routing. Images are declared in `assets`, referenced by `assetId`, and should include `alt` text.
+Supported board items are `image`, `text`, `shape`, `path`, `connector`, and embedded `chart`. Board item `position` and `size` are pixels; shape and path geometry points are normalized inside each item box. Shape options are `rectangle`, `ellipse`, `diamond`, `hexagon`, normalized-point `polygon`, open `arc`, and filled `sector`; `path` supports normalized linear points or exactly four points for a cubic Bezier. Do not send arbitrary SVG path data. Text automatically fits by wrapping, bounded font reduction, and last-resort ellipsis; inspect `board.getState().layout.text`. Connectors use explicit `from`/`to` item IDs and `straight` or `orthogonal` routing. Images are declared in `assets`, referenced by `assetId`, and should include `alt` text.
 
 Use `validateBoardSpec()` before `createBoard()`, then mount, await `ready()`, and inspect `board.getState()` and `board.explain()`. Boards are static by default; explicitly enable `editing` or `interaction.drag`, `interaction.zoom`, and `interaction.pan` only when the host requests them. Export JSON for persistence, SVG for vector delivery, and browser-mounted Canvas as PNG/JPEG.
 
