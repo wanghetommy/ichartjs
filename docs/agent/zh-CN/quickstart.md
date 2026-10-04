@@ -9,6 +9,7 @@ import {
   createChart,
   getCapabilities,
   getChartCapability,
+  getChartContract,
   inspectData,
   planChart,
   validateSpec
@@ -21,6 +22,8 @@ import {
 - `@taylorwong/ichartjs/recipes/*`：基础分析、项目管理和 Diagram Recipes。
 - `skills/ichartjs/SKILL.md`：适用于 Codex、WorkBuddy 等 Agent Skills 兼容宿主的可选编排层。
 
+主题枚举可从 `getCapabilities().styleSystem` 发现：`mode` 为 `auto`、`light`、`dark`、`contrast`；`preset` 为 `auto`、`analysis`、`dashboard`、`report`、`presentation`、`project`、`diagram`；`palette` 为 `auto`、`categorical`、`sequential`、`diverging`、`status`。
+
 Agent 与开发者使用同一个 ESM 入口。编码 Agent 的完整方式见 [编码 Agent 集成](coding-agent-integration.md)，普通应用集成见 [前端项目集成](frontend-integration.md)。
 
 Recipe 是声明式的起始模板，不是可直接执行的任务。Agent 应先复制 Recipe，再注入宿主拥有的数据或节点，按照 Recipe Manifest 指定的校验器校验，最后调用 `createChart()`、`createBoard()` 或编辑预览 API。`diagrams/workflow` 是编辑命令模板，补齐节点和边之前不能直接渲染。
@@ -32,12 +35,12 @@ Recipe 是声明式的起始模板，不是可直接执行的任务。Agent 应�
 ```
 
 1. 调用 `getCapabilities()`，不要自行创造图表类型或配置项。
-2. 调用 `inspectData()`，检查字段角色、标识符、维度、度量、时间范围、缺失值和警告。
-3. 调用 `planChart()`，同时读取主推荐、备选方案、置信度、缺失字段、假设、警告、不支持请求和 `styleRecommendation`。
+2. 调用 `inspectData()`，检查字段角色、标识符、维度、度量、时间范围、缺失值和警告；同时读取 `inspection.quality` 中的重复 ID、混合单位和缺失值摘要。
+3. 调用 `planChart()`，同时读取主推荐、备选方案、置信度、缺失字段、假设、警告、不支持请求和 `styleRecommendation`；对主推荐调用 `getChartContract(plan.primary)`，获取该图表的通道、限制、渲染器、导出和默认行为。
 4. 当 `requiredFields` 非空时停止渲染，向用户请求数据或选择有依据的备选方案。
 5. 构建 JSON 可序列化的 Spec，并调用 `validateSpec()`。Spec 可通过 `branding: false` 显式关闭品牌署名；默认保留署名以提升项目可见性。
 6. 仅在 `validation.valid` 为 `true` 时调用 `createChart()`。
-7. 用 `chart.explain()`、`chart.getState()`、JSON/SVG/PNG export 完成自检。JSON/SVG 可直接使用同步 `chart.export()`；浏览器 PNG 使用 `chart.toDataURL()` 或 `chart.downloadPNG()`；Node 无头 PNG/JPEG 使用 `chart.exportAsync()`，可选安装 `canvas`。最后调用 `chart.destroy()`。
+7. 用 `chart.explain()`、`chart.getState()`、`chart.explain().dataQuality`、JSON/SVG/PNG export 完成自检。JSON/SVG 可直接使用同步 `chart.export()`；浏览器 PNG 使用 `chart.toDataURL()` 或 `chart.downloadPNG()`；Node 无头 PNG/JPEG 使用 `chart.exportAsync()`，可选安装 `canvas`。最后调用 `chart.destroy()`。
 
 ### 意图必须使用注册词
 
@@ -64,6 +67,8 @@ Recipe 是声明式的起始模板，不是可直接执行的任务。Agent 应�
 数值型笛卡尔图表默认使用易读的纵轴域：`yAxis.nice` 默认为 `true`，`yAxis.ticks` 默认为 `"auto"`。需要固定范围时使用 `yAxis.domain: [min, max]`，例如 `{ domain: [0, 2000], ticks: 5 }` 可稳定生成五个标签；使用 `yAxis.nice: false` 可保留原始数据边界。`yAxis.format` 只负责格式化刻度显示，`yAxis.right` 支持同样的配置。Agent 可通过 `chart.getState().axes` 或 `chart.explain().axes` 获取原始域、计算域、刻度、步长和策略进行自检。分类/时间横轴的范围仍由数据记录推导，因此 `xAxis.min/max` 和 `xAxis.domain` 不支持。图表专用域配置仍包括：`gauge.domain`、`heatmap.colorScale.domain`、`radar.indicators[].min/max`；项目图表的日期范围当前由数据记录自动计算。
 
 图表通道是严格按类型定义的：笛卡尔图表使用 `x`/`y`，Pie/Funnel 使用 `category`/`value`，Gauge 只使用 `value`，Heatmap 使用 `x`/`y`/`color`，Radar 使用 `indicators[].field`。缺失字段或不支持的通道会校验失败；Gauge 必须声明 `domain`。Pie 遇到负数会报告 `NEGATIVE_VALUE_DROPPED`，没有正数占比时会报告 `ZERO_TOTAL`。新建图表可直接使用 `@taylorwong/ichartjs/recipes/minimal-specs` 中的最小目录：
+
+Scatter 的 `x/y` 必须是数值字段；Gantt 依赖写在 `data.values[].dependencies`；图表尺寸写在顶层 `width/height`，不要使用 `size`。完整按图表类型的 Contract 可通过 `getChartContract(type)` 获取。
 
 ```js
 import catalog from '@taylorwong/ichartjs/recipes/minimal-specs' with { type: 'json' };

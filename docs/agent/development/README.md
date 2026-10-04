@@ -7,6 +7,7 @@ This directory contains the product roadmap, release procedure, playground infor
 - [Roadmap](roadmap.md): current release status and completed iteration summary.
 - [Release SOP](release-sop.md): author-only release procedure.
 - [Playground Plan](playground-plan.md): maintained preview pages and acceptance responsibilities.
+- [Iteration 20](iteration-20.md): current Agent ecosystem and quality-scale work.
 
 ## Historical records
 

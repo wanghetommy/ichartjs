@@ -18,9 +18,9 @@ export const sampleRows = [
 ];
 
 // Convert the planning result into a candidate Chart Spec for validateSpec().
-function buildCandidate(rows, plan, renderer) {
+function buildCandidate(rows, plan, renderer, options = {}) {
   const measureFields = [plan.suggestedEncodings.measure, plan.suggestedEncodings.secondaryMeasure].filter(Boolean);
-  return {
+  const base = {
     type: plan.primary,
     renderer,
     data: { values: rows },
@@ -37,6 +37,32 @@ function buildCandidate(rows, plan, renderer) {
       palette: plan.styleRecommendation.palette
     }
   };
+  if (plan.primary === 'scatter') {
+    return { ...base, encoding: { x: { field: measureFields[0], type: 'quantitative' }, y: { field: measureFields[1], type: 'quantitative' } } };
+  }
+  if (['pie', 'funnel'].includes(plan.primary)) {
+    return { ...base, encoding: { category: { field: plan.suggestedEncodings.dimension, type: 'category' }, value: { field: plan.suggestedEncodings.measure, type: 'quantitative' } } };
+  }
+  if (plan.primary === 'heatmap') {
+    const dimensions = plan.data.dimensions || [];
+    return { ...base, encoding: { x: { field: dimensions[0], type: 'category' }, y: { field: dimensions[1], type: 'category' }, color: { field: plan.suggestedEncodings.measure, type: 'quantitative' } } };
+  }
+  if (plan.primary === 'radar') {
+    const fields = (plan.data.measures || []).slice(0, 3);
+    const indicators = fields.map(field => {
+      const metadata = plan.data.fields.find(item => item.name === field);
+      const min = Number.isFinite(metadata?.min) ? metadata.min : 0;
+      const max = Number.isFinite(metadata?.max) && metadata.max > min ? metadata.max : min + 1;
+      return { name: field, field, min, max };
+    });
+    return { ...base, encoding: {}, indicators };
+  }
+  if (plan.primary === 'gauge') {
+    if (!Array.isArray(options.domain) || options.domain.length !== 2) throw new Error('Gauge workflow requires options.domain with an explicit business range.');
+    return { ...base, encoding: { value: { field: plan.suggestedEncodings.measure, type: 'quantitative' } }, domain: options.domain };
+  }
+  if (['gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane', 'architecture', 'mindmap'].includes(plan.primary)) throw new Error(`${plan.primary} requires a chart-specific project or diagram Spec; use the matching Recipe instead of the generic tabular example.`);
+  return base;
 }
 
 // Run the complete Agent workflow and return structured results for inspection or presentation.
@@ -54,7 +80,12 @@ export function runAgentWorkflow(rows, options = {}) {
   }
 
   // Build and validate the candidate Spec before creating the chart.
-  const candidate = buildCandidate(rows, plan, renderer);
+  let candidate;
+  try {
+    candidate = buildCandidate(rows, plan, renderer, options);
+  } catch (error) {
+    return { ok: false, stage: 'spec-build', capabilitiesContract: capabilities.contractVersion, inspection, plan, error: error.message };
+  }
   const validation = validateSpec(candidate);
   if (!validation.valid) {
     return { ok: false, stage: 'validation', capabilitiesContract: capabilities.contractVersion, inspection, plan, candidate, validation };

@@ -18,6 +18,7 @@ const next = {
   contractVersion: capabilities.contractVersion,
   chartTypes: capabilities.chartTypes,
   chartProfiles: capabilities.charts,
+  chartContracts: capabilities.chartContracts,
   renderers: capabilities.renderers,
   canvasComposition: capabilities.canvasComposition,
   interactionDefaults: capabilities.interactionDefaults,

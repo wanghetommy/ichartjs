@@ -47,7 +47,7 @@ console.log(board.explain(), board.getState());
 | `connector` | `from`、`to` | 引用元素 ID，支持 `straight` 和 `orthogonal`。 |
 | `chart` | 嵌入式 `spec`、`position`、`size` | 复用普通图表 Spec 和 Scene Graph。 |
 
-`position` 和 `size` 使用画布像素。`polygon` 的点位归一化到元素盒子的 `0..1` 范围。元素 ID 必须唯一，并使用字符串 ID，便于 Agent 解释、选择、移动和审计。
+`position` 和 `size` 使用画布像素，元素尺寸至少为 16px。`polygon` 和 `path` 的点位归一化到元素盒子的 `0..1` 范围。元素 ID 必须唯一，并使用字符串 ID，便于 Agent 解释、选择、移动和审计。
 
 ## 输出和自检
 

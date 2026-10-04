@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.23 - 2026-10-04
+
+- Completed Iteration 20 Agent production-readiness hardening with chart contracts, data-quality diagnostics, and clearer validation guidance.
+- Added Scatter quantitative-field validation, idempotent Spec normalization, and targeted diagnostics for unsupported size and Gantt dependency placement.
+- Expanded Agent Skill, runtime, Board, TypeScript, recipe, performance, and bilingual documentation coverage.
+
 ## 2.0.22 - 2026-10-01
 
 - Added the Freeform Board foundation with SVG/Canvas composition, bounded text fitting, reusable drawing/logo Recipes, and renderer selection guidance.

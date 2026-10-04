@@ -16,6 +16,7 @@ Do not guess chart types or configuration fields from source code. Use the publi
 getCapabilities
   → inspectData
   → planChart
+  → getChartContract
   → build Spec
   → validateSpec
   → createChart
@@ -46,9 +47,9 @@ getCapabilities
 npm install @taylorwong/ichartjs@^2
 ```
 
-If the npm registry is unavailable, install directly from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.22`.
+If the npm registry is unavailable, install directly from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.23`.
 
-For a reproducible release-pinned install, use `npm install @taylorwong/ichartjs@2.0.22` instead of the moving `@^2` range.
+For a reproducible release-pinned install, use `npm install @taylorwong/ichartjs@2.0.23` instead of the moving `@^2` range.
 
 ### Optional Agent Skill
 
@@ -70,7 +71,7 @@ For a non-interactive global Codex installation:
 npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --yes
 ```
 
-For a release-pinned installation, use `npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.22/skills/ichartjs --agent codex --global --yes`. WorkBuddy users can import the same tagged `skills/ichartjs` URL through the host's Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it. Package consumers can still copy `node_modules/@taylorwong/ichartjs/skills/ichartjs` as a manual fallback. After installation, invoke `$ichartjs` when named Skill invocation is supported, or select `ichartjs` in the host UI.
+For a release-pinned installation, use `npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.23/skills/ichartjs --agent codex --global --yes`. WorkBuddy users can import the same tagged `skills/ichartjs` URL through the host's Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it. Package consumers can still copy `node_modules/@taylorwong/ichartjs/skills/ichartjs` as a manual fallback. After installation, invoke `$ichartjs` when named Skill invocation is supported, or select `ichartjs` in the host UI.
 
 ### Agent workflow
 
@@ -78,6 +79,7 @@ For a release-pinned installation, use `npx skills add https://github.com/wanghe
 import {
   createChart,
   getCapabilities,
+  getChartContract,
   inspectData,
   planChart,
   validateSpec
@@ -92,6 +94,7 @@ const rows = [
 const capabilities = getCapabilities();
 const inspection = inspectData(rows);
 const plan = planChart(rows, { intent: 'trend', renderer: 'svg' });
+const contract = getChartContract(plan.primary);
 
 const candidate = {
   type: plan.primary,
@@ -115,6 +118,7 @@ if (!validation.valid) throw new Error(JSON.stringify(validation.errors));
 const chart = createChart(validation.spec);
 const agentResult = {
   contractVersion: capabilities.contractVersion,
+  chartContract: contract,
   inspection,
   plan,
   explanation: chart.explain(),
