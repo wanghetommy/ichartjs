@@ -1473,7 +1473,8 @@ test('keeps stacked labels clear, centers funnel content, and sizes project labe
 
 test('keeps active Playground pages and a no-cache preview path', async () => {
   const { readFile } = await import('node:fs/promises');
-  const pages = ['index.html', 'project-gallery.html', 'foundational-gallery.html', 'theme-gallery.html', 'preferences-lab.html', 'agent-workbench.html', 'project-intelligence.html', 'editing.html', 'diagram-editor.html', 'interaction-lab.html', 'accessibility-lab.html', 'performance-lab.html'];
+  const { playgroundPages } = await import('../playground/playground.mjs');
+  const pages = playgroundPages.map(page => page.href);
   await Promise.all(pages.map(page => readFile(new URL(`../playground/${page}`, import.meta.url), 'utf8')));
   const preferencesUi = await readFile(new URL('../src/preferences-ui.mjs', import.meta.url), 'utf8');
   assert.match(preferencesUi, /aria-hidden="true">≡</);
@@ -1503,6 +1504,15 @@ test('keeps active Playground pages and a no-cache preview path', async () => {
   assert.equal(/from ['"][^'"]+\?/.test(browserEntry), false);
   const previewServer = await readFile(new URL('../scripts/serve-playground.mjs', import.meta.url), 'utf8');
   assert.match(previewServer, /Cache-Control.*no-store/);
+  assert.match(previewServer, /playgroundPages/);
+  const navModule = await readFile(new URL('../playground/playground.mjs', import.meta.url), 'utf8');
+  assert.match(navModule, /export const playgroundPages/);
+  assert.match(navModule, /filter\(page => page\.nav !== false\)/);
+  const playgroundHome = await readFile(new URL('../playground/index.html', import.meta.url), 'utf8');
+  assert.match(playgroundHome, /推荐演示/);
+  assert.match(playgroundHome, /专项验收与发布素材/);
+  assert.match(playgroundHome, /renderPages\('featured'/);
+  assert.match(playgroundHome, /renderPages\('validation'/);
 });
 
 test('exposes one package runtime entry and completes the Agent workflow', async () => {

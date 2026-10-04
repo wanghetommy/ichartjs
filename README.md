@@ -28,6 +28,10 @@ getCapabilities
 | Need | Entry point |
 | --- | --- |
 | Runtime and Agent planning APIs | `@taylorwong/ichartjs` |
+| Standard chart profile | `@taylorwong/ichartjs/standard` |
+| Project chart profile | `@taylorwong/ichartjs/project` |
+| Diagram profile | `@taylorwong/ichartjs/diagram` |
+| Freeform Board profile | `@taylorwong/ichartjs/board` |
 | Machine-readable capability manifest | `@taylorwong/ichartjs/capabilities.json` |
 | Machine-readable Recipe manifest | `@taylorwong/ichartjs/recipes/manifest` |
 | Intent and chart recipes | `@taylorwong/ichartjs/recipes/*` |
@@ -39,6 +43,8 @@ getCapabilities
 | Visual style and themes | [`docs/agent/theme-guide.md`](docs/agent/theme-guide.md) |
 | Chart and page preferences | [`docs/agent/theme-guide.md`](docs/agent/theme-guide.md#chart-and-page-preferences) |
 | Natural-language chart changes | [`docs/agent/conversational-workflow.md`](docs/agent/conversational-workflow.md) |
+| Agent task validation and output contract | [`docs/agent/task-validation.md`](docs/agent/task-validation.md) |
+| Runtime footprint and mobile loading | [`docs/agent/runtime-footprint.md`](docs/agent/runtime-footprint.md) |
 | Official Agent Skill for Codex and WorkBuddy | [`skills/ichartjs/SKILL.md`](skills/ichartjs/SKILL.md) |
 
 ### Install
@@ -47,9 +53,9 @@ getCapabilities
 npm install @taylorwong/ichartjs@^2
 ```
 
-If the npm registry is unavailable, install directly from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.23`.
+If the npm registry is unavailable, install directly from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.24`.
 
-For a reproducible release-pinned install, use `npm install @taylorwong/ichartjs@2.0.23` instead of the moving `@^2` range.
+For a reproducible release-pinned install, use `npm install @taylorwong/ichartjs@2.0.24` instead of the moving `@^2` range.
 
 ### Optional Agent Skill
 
@@ -71,10 +77,11 @@ For a non-interactive global Codex installation:
 npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --yes
 ```
 
-For a release-pinned installation, use `npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.23/skills/ichartjs --agent codex --global --yes`. WorkBuddy users can import the same tagged `skills/ichartjs` URL through the host's Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it. Package consumers can still copy `node_modules/@taylorwong/ichartjs/skills/ichartjs` as a manual fallback. After installation, invoke `$ichartjs` when named Skill invocation is supported, or select `ichartjs` in the host UI.
+For a release-pinned installation, use `npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.24/skills/ichartjs --agent codex --global --yes`. WorkBuddy users can import the same tagged `skills/ichartjs` URL through the host's Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it. Package consumers can still copy `node_modules/@taylorwong/ichartjs/skills/ichartjs` as a manual fallback. After installation, invoke `$ichartjs` when named Skill invocation is supported, or select `ichartjs` in the host UI.
 
 ### Agent workflow
 
+<!-- docs-check: agent-workflow -->
 ```js
 import {
   createChart,
@@ -163,8 +170,11 @@ npm run playground
 - GitHub Promo: `http://localhost:3000/playground/github-promo.html`
 - Agent Workbench: `http://localhost:3000/playground/agent-workbench.html`
 - Complete Gallery: `http://localhost:3000/playground/project-gallery.html`
+- Profile Loading: `http://localhost:3000/playground/profile-loading.html`
 - Foundational Gallery: `http://localhost:3000/playground/foundational-gallery.html`
 - Theme Gallery: `http://localhost:3000/playground/theme-gallery.html`
+- Page Preferences: `http://localhost:3000/playground/preferences-lab.html`
+- Freeform Board: `http://localhost:3000/playground/canvas-board.html`
 - Business Editing: `http://localhost:3000/playground/editing.html`
 - Project Intelligence: `http://localhost:3000/playground/project-intelligence.html`
 - Diagram Editor: `http://localhost:3000/playground/diagram-editor.html`
@@ -176,6 +186,7 @@ npm run playground
 
 Use the main package entry when the chart type and Spec are already known:
 
+<!-- docs-check: browser-chart -->
 ```js
 import { createChart } from '@taylorwong/ichartjs';
 
@@ -219,6 +230,8 @@ Checks + playground (for all contributors):
 npm run agent:check
 npm run playground
 ```
+
+README and Quickstart JavaScript snippets are extracted from Markdown and executed by `npm run docs:snippets` (Node) and `npm run test:browser` (DOM mounting). Node snippet checks also run in `npm test` and `npm run agent:check` on CI. Invisible `docs-check` markers bind each snippet to its test scenario; new JavaScript blocks must be registered rather than silently skipped. These checks never run installation, Skill setup, or release shell commands from the documentation.
 
 ### Release (AUTHOR ONLY)
 

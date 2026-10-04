@@ -4,6 +4,7 @@ import { extname, isAbsolute, join, normalize, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'node:http';
 import { spawn, spawnSync } from 'node:child_process';
+import { playgroundPages } from '../playground/playground.mjs';
 
 const root = normalize(fileURLToPath(new URL('../', import.meta.url)));
 const port = Number(process.env.PORT || 3000);
@@ -145,17 +146,7 @@ function escapeHtml(value) {
 const targetPortPlaceholder = String(port);
 
 function fallbackFile(response, message) {
-  const entries = [
-    ['首页', 'playground/index.html'],
-    ['完整 Gallery', 'playground/project-gallery.html'],
-    ['项目分析', 'playground/project-intelligence.html'],
-    ['业务编辑/编辑页', 'playground/editing.html'],
-    ['流程图编辑器', 'playground/diagram-editor.html'],
-    ['基础能力 Gallery', 'playground/foundational-gallery.html'],
-    ['主题样式', 'playground/theme-gallery.html'],
-    ['Agent 工作台', 'playground/agent-workbench.html']
-  ];
-  const urls = entries.map(([label, path]) => `- ${label.padEnd(18)} http://${host}:${targetPortPlaceholder}/${path}`).join('\n');
+  const urls = playgroundPages.map(({ label, href }) => `- ${label.padEnd(18)} http://${host}:${targetPortPlaceholder}/playground/${href}`).join('\n');
   response.writeHead(404, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-store'

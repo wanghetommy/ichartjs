@@ -1,7 +1,6 @@
 import { Scene, SceneNode } from './scene.mjs';
 import { CanvasRenderer, SVGRenderer } from './renderer.mjs';
 import { sceneToSvgString } from './scene-svg.mjs';
-import { buildScene } from './charts.mjs';
 import { validateSpec } from './spec.mjs';
 import { ChartValidationError } from './errors.mjs';
 import { EditHistory } from './history.mjs';
@@ -76,7 +75,7 @@ function gridNodes(spec) {
   return nodes;
 }
 
-function buildBoardScene(spec, loadedImages = new Map()) {
+function buildBoardScene(spec, loadedImages = new Map(), buildChartScene = null) {
   const scene = new Scene(spec.width, spec.height);
   scene._textLayout = [];
   gridNodes(spec).forEach(node => scene.add(node));
@@ -118,8 +117,8 @@ function buildBoardScene(spec, loadedImages = new Map()) {
       scene.add(new SceneNode({ id: item.id, type: 'path', geometry: { points, curve: item.curve || 'linear', closed: Boolean(item.closed) }, bounds, style, zIndex: item.zIndex, interactive: Boolean(spec.editing.enabled && !item.locked) }));
     } else if (item.kind === 'chart') {
       const result = validateSpec(item.spec || {});
-      if (result.valid) {
-        const chart = buildScene(result.spec).scene;
+      if (result.valid && buildChartScene) {
+        const chart = buildChartScene(result.spec).scene;
         const group = new SceneNode({ id: item.id, type: 'group', bounds, zIndex: item.zIndex, style });
         flattenChartScene(chart, bounds, item.id, group.children);
         scene.add(group);
@@ -136,7 +135,7 @@ function boardRenderer(spec) {
 }
 
 export class FreeformBoard {
-  constructor(input = {}) {
+  constructor(input = {}, options = {}) {
     const result = validateBoardSpec(input);
     if (!result.valid) throw new ChartValidationError('createBoard', result.errors);
     this.spec = result.spec;
@@ -145,10 +144,11 @@ export class FreeformBoard {
     this._selection = [];
     this._container = null;
     this._images = new Map();
+    this._buildChartScene = options.buildChartScene || null;
     this._assetStatus = new Map(this.spec.assets.map(asset => [asset.id, { id: asset.id, status: 'pending' }]));
     this._rendererSelection = boardRenderer(this.spec);
     this.renderer = this._rendererSelection.effective === 'canvas' ? new CanvasRenderer(this.spec) : new SVGRenderer(this.spec);
-    this.scene = buildBoardScene(this.spec, this._images);
+    this.scene = buildBoardScene(this.spec, this._images, this._buildChartScene);
   }
   async ready() {
     if (typeof Image === 'undefined') return this.getState();
@@ -165,7 +165,7 @@ export class FreeformBoard {
   }
   mount(container) { this._container = typeof container === 'string' ? document.querySelector(container) : container; if (!this._container) throw new Error('Board container was not found.'); this.renderer.mount(this._container); this.renderer.resize(this.spec.width, this.spec.height); this._render(); return this; }
   _render() { if (this._container) { this.renderer.resize(this.spec.width, this.spec.height); this.renderer.render(this.scene); } }
-  _rebuild() { this.scene = buildBoardScene(this.spec, this._images); this._render(); }
+  _rebuild() { this.scene = buildBoardScene(this.spec, this._images, this._buildChartScene); this._render(); }
   _commit(next) { const before = cloneBoard(this.spec); const result = validateBoardSpec(next); if (!result.valid) throw new ChartValidationError('updateBoard', result.errors); this._history.push({ before, after: result.spec }); this.spec = result.spec; this._diagnostics = result; this._rebuild(); return this.getState(); }
   update(patch = {}) { return this._commit({ ...this.spec, ...patch }); }
   getSpec() { return cloneBoard(this.spec); }
@@ -182,5 +182,5 @@ export class FreeformBoard {
   destroy() { this.renderer.destroy(); this._container = null; this.scene = null; }
 }
 
-export function createBoard(spec = {}) { return new FreeformBoard(spec); }
+export function createBoard(spec = {}, options = {}) { return new FreeformBoard(spec, options); }
 export { validateBoardSpec, planCanvas } from './board-contract.mjs';

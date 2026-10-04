@@ -1,6 +1,6 @@
 {
   "name": "@taylorwong/ichartjs",
-  "version": "2.0.23",
+  "version": "2.0.24",
   "description": "Agent-first, renderer-independent charting and project visualization runtime",
   "type": "module",
   "main": "./src/index.mjs",
@@ -12,6 +12,26 @@
       "types": "./types/index.d.ts",
       "import": "./src/index.mjs",
       "default": "./src/index.mjs"
+    },
+    "./standard": {
+      "types": "./types/standard.d.ts",
+      "import": "./src/standard.mjs",
+      "default": "./src/standard.mjs"
+    },
+    "./project": {
+      "types": "./types/project.d.ts",
+      "import": "./src/project-profile.mjs",
+      "default": "./src/project-profile.mjs"
+    },
+    "./diagram": {
+      "types": "./types/diagram.d.ts",
+      "import": "./src/diagram-profile.mjs",
+      "default": "./src/diagram-profile.mjs"
+    },
+    "./board": {
+      "types": "./types/board.d.ts",
+      "import": "./src/board-profile.mjs",
+      "default": "./src/board-profile.mjs"
     },
     "./capabilities.json": "./docs/manifests/capabilities.json",
     "./recipes/*": "./agent-recipes/*.json",
@@ -42,8 +62,13 @@
     "types:check": "node scripts/check-types.mjs",
     "deps:check": "node scripts/check-cycles.mjs",
     "docs:examples": "node examples/agent-workflow.mjs",
+    "docs:snippets": "node scripts/check-doc-snippets.mjs",
     "docs:check": "node scripts/check-agent-docs.mjs",
     "performance:check": "node scripts/check-performance.mjs",
+    "tasks:check": "node scripts/check-agent-tasks.mjs",
+    "consumer:check": "node scripts/check-consumer.mjs",
+    "footprint:check": "node scripts/check-footprint.mjs",
+    "profiles:check": "node scripts/check-profiles.mjs",
     "recipes:check": "node scripts/check-agent-recipes.mjs",
     "package:check": "node scripts/check-package.mjs",
     "example:agent": "node examples/agent-workflow.mjs",

@@ -14,6 +14,9 @@
 - [交互式 Diagram](diagram-scenario.md)：Flow、Swimlane、Architecture、Mindmap 与编辑。
 - [Freeform Board](canvas-scenario.md)：图片、文字、基础图形、连接线和嵌入式图表组合。
 - [Runtime 契约](runtime-contract.md)
+- [任务验收](task-validation.md)
+- [Runtime 体积与加载](runtime-footprint.md)
+- 能力入口：已知场景优先使用 `/standard`、`/project`、`/diagram` 或 `/board`，需要完整 API 时使用根入口。
 - [编辑契约](editing-contract.md)
 - 机器可读能力清单位于 `docs/manifests/`，供 Agent 按需读取。
 

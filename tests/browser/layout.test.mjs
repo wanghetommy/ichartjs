@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { chromium } from 'playwright-core';
+import { readDocumentSnippets, quickstartWorkflowSource } from '../../scripts/check-doc-snippets.mjs';
 
 const root = new URL('../../', import.meta.url);
 const chromeCandidates = [
@@ -172,4 +173,62 @@ test('applies Gallery top-level theme controls over stored chart preferences', a
   style = await readLineStyle();
   assert.equal(style.preset, 'dashboard');
   assert.equal(style.palette, 'sequential');
+});
+
+test('mounts and exports the installed browser consumer through SVG and Canvas', async () => {
+  const result = await page.evaluate(async () => {
+    const { createChart } = await import(`/src/index.mjs?consumer-test=${Date.now()}`);
+    const output = {};
+    for (const renderer of ['svg', 'canvas']) {
+      document.body.innerHTML = '<div id="chart"></div>';
+      const chart = createChart({
+        type: 'line', renderer, width: 420, height: 240, branding: false, container: '#chart',
+        data: [{ id: 'a', name: 'A', value: 1 }, { id: 'b', name: 'B', value: 2 }]
+      });
+      const state = chart.getState();
+      const svg = chart.export({ type: 'svg' });
+      const raster = chart.export({ type: 'png' });
+      output[renderer] = { renderable: state.health.renderable, svg: svg.startsWith('<svg'), raster: typeof raster === 'string' && raster.startsWith('data:image/png') };
+      chart.destroy();
+    }
+    return output;
+  });
+  assert.deepEqual(result, {
+    svg: { renderable: true, svg: true, raster: true },
+    canvas: { renderable: true, svg: true, raster: true }
+  });
+});
+
+test('loads each public capability profile in the Profile Loading Playground', async () => {
+  await page.goto('http://127.0.0.1:3000/playground/profile-loading.html');
+  await page.locator('#chart-board svg').waitFor({ state: 'visible', timeoutMs: 5000 });
+  const result = await page.locator('.profile-card').evaluateAll(cards => cards.map(card => ({ status: card.querySelector('[data-status]')?.textContent, type: card.querySelector('[data-type]')?.textContent, hasSvg: Boolean(card.querySelector('svg')) })));
+  assert.equal(result.length, 4);
+  assert.ok(result.every(item => item.status === 'ready'));
+  assert.ok(result.every(item => item.hasSvg));
+});
+
+test('mounts the actual README and Quickstart browser snippets', async () => {
+  const snippets = readDocumentSnippets();
+  const scenarios = [
+    { name: 'README', source: snippets['README.md:browser-chart'].code + '\nexport { chart as outcome };', ids: ['jan', 'feb'] },
+    { name: 'Quickstart', source: quickstartWorkflowSource(snippets, 'render-browser') + '\nexport { outcome };', ids: ['jan', 'feb', 'mar'] }
+  ];
+  await page.goto('http://127.0.0.1:3000/playground/index.html');
+  for (const scenario of scenarios) {
+    const result = await page.evaluate(async source => {
+      document.body.innerHTML = '<div id="chart"></div>';
+      const browserSource = source.replaceAll("'@taylorwong/ichartjs'", `'${location.origin}/src/index.mjs'`);
+      const url = URL.createObjectURL(new Blob([browserSource], { type: 'text/javascript' }));
+      let chart;
+      try {
+        chart = (await import(url)).outcome;
+        return { renderable: chart.getState().health.renderable, svg: Boolean(document.querySelector('#chart svg')), exported: chart.export({ type: 'svg' }).includes('<svg'), ids: chart.explain().lineage.recordIds };
+      } finally {
+        chart?.destroy();
+        URL.revokeObjectURL(url);
+      }
+    }, scenario.source);
+    assert.deepEqual(result, { renderable: true, svg: true, exported: true, ids: scenario.ids }, scenario.name);
+  }
 });

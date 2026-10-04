@@ -6,7 +6,7 @@ import { join } from 'node:path';
 const packageJson = JSON.parse(readFileSync('package.json', 'utf8'));
 const cache = mkdtempSync(join(tmpdir(), 'ichartjs-package-check-'));
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const required = ['package.json', 'src/index.mjs', 'types/index.d.ts', 'docs/manifests/capabilities.json', 'skills/ichartjs/SKILL.md', 'agent-recipes/minimal-specs.json'];
+const required = ['package.json', 'src/index.mjs', 'src/standard.mjs', 'src/project-profile.mjs', 'src/diagram-profile.mjs', 'src/board-profile.mjs', 'types/index.d.ts', 'types/standard.d.ts', 'types/project.d.ts', 'types/diagram.d.ts', 'types/board.d.ts', 'docs/manifests/capabilities.json', 'skills/ichartjs/SKILL.md', 'agent-recipes/minimal-specs.json'];
 const forbiddenPrefixes = ['.trae/', '.github/', 'tests/', 'playground/'];
 try {
   const output = execFileSync(npm, ['pack', '--dry-run', '--json', '--ignore-scripts'], { encoding: 'utf8', env: { ...process.env, npm_config_cache: cache } });

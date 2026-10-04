@@ -1,10 +1,25 @@
-export const runtimeVersion = '2.0.23';
+export const runtimeVersion = '2.0.24';
+
+export const playgroundPages = [
+  { href: 'index.html', label: '首页', description: '统一的 Playground 入口、页面状态和验收地址。', kind: 'entry' },
+  { href: 'github-promo.html', label: 'GitHub Promo', description: '用于 README/GitHub 展示的英文 16:9 宣传页。', kind: 'promo', nav: false, homeGroup: 'validation' },
+  { href: 'project-gallery.html', label: '完整 Gallery', description: '全部 18 类图表的一类一例视觉与渲染冒烟入口。', kind: 'catalog', homeGroup: 'featured' },
+  { href: 'profile-loading.html', label: '按需加载', description: '四个公开 Profile 入口的独立加载、渲染和健康状态验收。', kind: 'runtime', homeGroup: 'validation' },
+  { href: 'foundational-gallery.html', label: '基础能力', description: 'Stack、Donut、Combo、Bin、Heatmap、Radar 专项回归。', kind: 'catalog', homeGroup: 'validation' },
+  { href: 'theme-gallery.html', label: '主题样式', description: '模式、预设、配色、对比度与实时切换验收。', kind: 'catalog', homeGroup: 'featured' },
+  { href: 'preferences-lab.html', label: '页面设置', description: '全局主题、布局、显示内容、localStorage 和 Agent 调整。', kind: 'lab', homeGroup: 'validation' },
+  { href: 'agent-workbench.html', label: 'Agent 工作台', description: '检查数据、规划图表、验证 Spec、解释结果和导出。', kind: 'workbench', homeGroup: 'featured' },
+  { href: 'canvas-board.html', label: 'Freeform Board', description: '图片、文字、基础图形、连接线和嵌入式图表组合。', kind: 'workbench', homeGroup: 'featured' },
+  { href: 'project-intelligence.html', label: '项目分析', description: '进度、关键路径、容量、风险和联动状态。', kind: 'workbench', homeGroup: 'featured' },
+  { href: 'editing.html', label: '业务编辑', description: '预览、确认、提交、审计和撤销/重做。', kind: 'workbench', homeGroup: 'validation' },
+  { href: 'diagram-editor.html', label: 'Diagram', description: '节点、组、Port、连线、布局和历史。', kind: 'workbench', homeGroup: 'featured' },
+  { href: 'interaction-lab.html', label: '交互', description: 'Tooltip、选择、缩放、平移、键盘和事件状态。', kind: 'lab', homeGroup: 'validation' },
+  { href: 'accessibility-lab.html', label: '无障碍', description: '语义、键盘、焦点、对比度和 reduced motion。', kind: 'lab', homeGroup: 'validation' },
+  { href: 'performance-lab.html', label: '性能', description: '渲染、更新、缩放、导出和生命周期测量。', kind: 'lab', homeGroup: 'validation' }
+];
 
 export function pageNav(active = '') {
-  const pages = [
-    ['index.html', '首页'], ['github-promo.html', 'GitHub Promo'], ['project-gallery.html', '完整 Gallery'], ['foundational-gallery.html', '基础能力'], ['theme-gallery.html', '主题样式'], ['preferences-lab.html', '页面设置'], ['agent-workbench.html', 'Agent 工作台'], ['canvas-board.html', 'Freeform Board'], ['project-intelligence.html', '项目分析'], ['editing.html', '业务编辑'], ['diagram-editor.html', 'Diagram'], ['interaction-lab.html', '交互'], ['accessibility-lab.html', '无障碍'], ['performance-lab.html', '性能']
-  ];
-  return `<nav class="nav" aria-label="Playground 导航">${pages.map(([href, label]) => `<a href="./${href}"${href === active ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
+  return `<nav class="nav" aria-label="Playground 导航">${playgroundPages.filter(page => page.nav !== false).map(({ href, label }) => `<a href="./${href}"${href === active ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
 }
 
 export function setStatus(element, state, text) {
