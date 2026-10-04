@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.25 - 2026-10-05
+
+- Added consistent left, center, and right legend alignment across Cartesian, Pie, and standard profile entries.
+- Fixed Preferences Lab legend visibility controls and enabled position/alignment settings only when legend display is explicitly enabled.
+- Added regression coverage for legend alignment validation and profile rendering.
+
 ## 2.0.24 - 2026-10-05
 
 - Completed Iteration 21F–21H with additive `standard`, `project`, `diagram`, and `board` profile entries, measured footprint checks, and npm tarball consumer verification.

@@ -55,7 +55,7 @@ export interface AxisSpec { type?: 'linear' | 'log' | 'quantitative' | 'temporal
 export interface ChartPadding { top?: number; right?: number; bottom?: number; left?: number; }
 export interface EncodingSpec { field?: string; type?: string; aggregate?: string; stack?: string | boolean; [key: string]: unknown; }
 export interface ChartData { values?: Array<Record<string, unknown>>; nodes?: DiagramNode[]; edges?: DiagramEdge[]; lanes?: DiagramLane[]; layers?: ArchitectureLayer[]; boundaries?: ArchitectureBoundary[]; groups?: DiagramGroup[]; schema?: BusinessDataSchema; [key: string]: unknown; }
-export interface ChartLegend { visible?: boolean; position?: 'top' | 'bottom' | 'left' | 'right' | string; [key: string]: unknown; }
+export interface ChartLegend { visible?: boolean; position?: 'top' | 'bottom' | 'left' | 'right' | string; align?: 'left' | 'center' | 'right'; [key: string]: unknown; }
 export interface ChartLabels { enabled?: boolean; format?: string | Record<string, unknown>; color?: string; font?: string; position?: 'inside' | 'outside' | string; [key: string]: unknown; }
 export interface ColorScaleSpec { domain?: [number, number]; range?: string[]; missing?: string; [key: string]: unknown; }
 export interface StackSpec { mode: 'stacked' | 'percent'; [key: string]: unknown; }
