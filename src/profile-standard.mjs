@@ -32,15 +32,24 @@ function legendEntries(spec, data, series) {
 function addLegend(scene, spec, entries, title) {
   if (!entries.length) return { bottom: title.bottom, visible: false };
   const size = fontSize(spec, 'legend', 12), lineHeight = Math.max(18, size * 1.4), available = spec.width - spec.padding.left - spec.padding.right;
-  let x = spec.padding.left, y = title.bottom ? title.bottom + 12 : spec.padding.top, row = 0;
+  const align = ['left', 'center', 'right'].includes(spec.legend?.align) ? spec.legend.align : 'center', y = title.bottom ? title.bottom + 12 : spec.padding.top, rows = [];
   entries.forEach((entry, index) => {
     const label = truncateText(entry.name, Math.max(size * 4, available - 20), size), width = 18 + estimateTextWidth(label, size) + 16;
-    if (x + width > spec.width - spec.padding.right && x > spec.padding.left) { row += 1; x = spec.padding.left; }
-    scene.add(new SceneNode({ id: `legend-swatch-${index}`, type: 'rect', geometry: { x, y: y + row * lineHeight - 6, width: 10, height: 10 }, style: { fill: entry.color }, zIndex: 4 }));
-    text(scene, `legend-label-${index}`, label, x + 16, y + row * lineHeight, { fill: spec.theme.text, font: font(spec, 'legend'), textBaseline: 'middle', baseline: 'middle' });
-    x += width;
+    let row = rows.at(-1);
+    if (!row || row.width + width > available) { row = { width: 0, items: [] }; rows.push(row); }
+    row.items.push({ entry, index, label, width });
+    row.width += width;
   });
-  return { bottom: y + (row + 1) * lineHeight, visible: true };
+  rows.forEach((row, rowIndex) => {
+    const freeWidth = Math.max(0, available - row.width);
+    let x = spec.padding.left + (align === 'left' ? 0 : align === 'right' ? freeWidth : freeWidth / 2);
+    row.items.forEach(({ entry, index, label, width }) => {
+      scene.add(new SceneNode({ id: `legend-swatch-${index}`, type: 'rect', geometry: { x, y: y + rowIndex * lineHeight - 6, width: 10, height: 10 }, style: { fill: entry.color }, zIndex: 4 }));
+      text(scene, `legend-label-${index}`, label, x + 16, y + rowIndex * lineHeight, { fill: spec.theme.text, font: font(spec, 'legend'), textBaseline: 'middle', baseline: 'middle' });
+      x += width;
+    });
+  });
+  return { bottom: y + rows.length * lineHeight, visible: true, align };
 }
 
 function layout(spec, data, series, title, legend) {

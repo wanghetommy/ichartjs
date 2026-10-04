@@ -71,11 +71,12 @@ const axisFreeTypes = new Set(['pie', 'funnel', 'gauge', 'radar']);
 function chromeLayout(spec, entries = []) {
   const title = titleLayout(spec);
   const visible = spec.legend?.visible !== false && entries.length >= 1;
-  if (!visible) return { title, legend: { visible: false, items: [], position: 'top', top: title.bottom, bottom: title.bottom, left: spec.padding.left, right: spec.width - spec.padding.right, width: 0, height: 0 }, bottom: title.bottom };
+  if (!visible) return { title, legend: { visible: false, items: [], position: 'top', align: 'center', top: title.bottom, bottom: title.bottom, left: spec.padding.left, right: spec.width - spec.padding.right, width: 0, height: 0 }, bottom: title.bottom };
   const size = fontSize(spec, 'legend', 12), lineHeight = Math.max(18, size * Number(spec.theme?.typography?.legend?.lineHeight || 1.4));
   const swatchSize = Math.max(8, Math.round(size * 0.75)), gap = Math.max(12, Math.round(size));
   const availableWidth = Math.max(1, spec.width - spec.padding.left - spec.padding.right);
   const requestedPosition = axisFreeTypes.has(spec.type) && ['top', 'right', 'bottom', 'left'].includes(spec.legend?.position) ? spec.legend.position : 'top';
+  const requestedAlign = ['left', 'center', 'right'].includes(spec.legend?.align) ? spec.legend.align : 'center';
   const sideLegend = requestedPosition === 'left' || requestedPosition === 'right';
   const labelBudget = sideLegend ? Math.max(size * 4, availableWidth * 0.34 - swatchSize - 6 - gap) : availableWidth - swatchSize - 6 - gap;
   const maxLabelWidth = Math.max(size, labelBudget);
@@ -88,7 +89,7 @@ function chromeLayout(spec, entries = []) {
     const top = Math.max(spec.padding.top, title.bottom ? title.bottom + 8 : spec.padding.top);
     const items = measured.map((item, index) => ({ ...item, x: requestedPosition === 'left' ? spec.padding.left : spec.width - spec.padding.right - width, y: top + index * lineHeight + lineHeight / 2, swatchSize }));
     const bottom = top + measured.length * lineHeight;
-    return { title, legend: { visible: true, items, position: requestedPosition, top, bottom, left: requestedPosition === 'left' ? spec.padding.left : spec.width - spec.padding.right - width, right: requestedPosition === 'left' ? spec.padding.left + width : spec.width - spec.padding.right, width, height: measured.length * lineHeight, truncatedCount: measured.filter(item => item.truncated).length }, bottom: title.bottom };
+    return { title, legend: { visible: true, items, position: requestedPosition, align: requestedAlign, top, bottom, left: requestedPosition === 'left' ? spec.padding.left : spec.width - spec.padding.right - width, right: requestedPosition === 'left' ? spec.padding.left + width : spec.width - spec.padding.right, width, height: measured.length * lineHeight, truncatedCount: measured.filter(item => item.truncated).length }, bottom: title.bottom };
   }
   const rows = [];
   measured.forEach(item => {
@@ -101,12 +102,13 @@ function chromeLayout(spec, entries = []) {
   const top = requestedPosition === 'bottom' ? spec.height - spec.padding.bottom - legendHeight : title.bottom ? title.bottom + 8 : Math.max(8, (spec.padding.top - legendHeight) / 2);
   const items = [];
   rows.forEach((row, rowIndex) => {
-    let x = Math.max(spec.padding.left, spec.width - spec.padding.right - row.width);
+    const freeWidth = Math.max(0, availableWidth - row.width);
+    let x = spec.padding.left + (requestedAlign === 'left' ? 0 : requestedAlign === 'right' ? freeWidth : freeWidth / 2);
     const y = top + rowIndex * lineHeight + lineHeight / 2;
     row.items.forEach(item => { items.push({ ...item, x, y, swatchSize }); x += item.width; });
   });
   const bottom = top + rows.length * lineHeight;
-  return { title, legend: { visible: true, items, position: requestedPosition, top, bottom, left: spec.padding.left, right: spec.width - spec.padding.right, width: availableWidth, height: legendHeight, truncatedCount: measured.filter(item => item.truncated).length }, bottom: requestedPosition === 'bottom' ? title.bottom : Math.max(title.bottom, bottom) };
+  return { title, legend: { visible: true, items, position: requestedPosition, align: requestedAlign, top, bottom, left: spec.padding.left, right: spec.width - spec.padding.right, width: availableWidth, height: legendHeight, truncatedCount: measured.filter(item => item.truncated).length }, bottom: requestedPosition === 'bottom' ? title.bottom : Math.max(title.bottom, bottom) };
 }
 
 function styledSpec(spec) {

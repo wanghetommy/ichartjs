@@ -20,7 +20,7 @@ const defaults = {
   background: '#ffffff',
   theme: 'auto',
   title: { text: '', subtitle: '' },
-  legend: { visible: true, position: 'top' },
+  legend: { visible: true, position: 'top', align: 'center' },
   grid: { visible: true },
   labels: { enabled: false },
   branding: { enabled: true },
@@ -212,6 +212,7 @@ export function validateSpec(input = {}) {
     else if (spec.theme.branding && typeof spec.theme.branding === 'object' && (Object.keys(spec.theme.branding).some(key => key !== 'enabled') || typeof spec.theme.branding.enabled !== 'boolean')) errors.push({ code: 'INVALID_BRANDING', path: 'theme.branding', message: 'theme.branding objects only support a boolean enabled property.', suggestion: 'Use theme: { branding: { enabled: false } }.' });
   }
   if (typeof spec.locale !== 'string' || !spec.locale.trim()) errors.push({ code: 'INVALID_LOCALE', path: 'locale', message: 'locale must be a non-empty BCP 47 locale string.', suggestion: 'Use for example locale: "en-US" or locale: "zh-CN".' });
+  if (spec.legend?.align !== undefined && !['left', 'center', 'right'].includes(spec.legend.align)) errors.push({ code: 'INVALID_LEGEND_ALIGN', path: 'legend.align', message: `Unsupported legend alignment: ${spec.legend.align}`, expected: ['left', 'center', 'right'], suggestion: 'Use legend.align: "left", "center", or "right".' });
   validateEncodingContract(input, spec, errors);
   const axisEncodings = [['x', 'xAxis'], ['y', 'yAxis']];
   axisEncodings.forEach(([encodingName, axisName]) => {
