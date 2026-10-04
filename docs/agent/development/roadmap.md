@@ -1,6 +1,6 @@
 # iChart.js 2.0 Roadmap
 
-> Roadmap baseline: 2026-09-14. Current release status: `v2.0.23` includes the completed Iteration 12 structured-diagram work, Iteration 13 contract hardening, Iteration 14 lightweight Flow semantics, Iteration 15 text-readability hardening, Iteration 16 Agent presentation and acceptance hardening, Iteration 17 production trust and Agent reliability hardening, Freeform Board foundation, Recipe manifest validation, Iteration 20 Agent contracts and data-quality hardening, and the preceding layout and diagnostic improvements. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
+> Roadmap baseline: 2026-09-14. Current release status: `v2.0.24` includes the completed Iteration 12 structured-diagram work, Iteration 13 contract hardening, Iteration 14 lightweight Flow semantics, Iteration 15 text-readability hardening, Iteration 16 Agent presentation and acceptance hardening, Iteration 17 production trust and Agent reliability hardening, Freeform Board foundation, Recipe manifest validation, Iteration 20 Agent contracts and data-quality hardening, Iteration 21 profile entries and documentation execution checks, and the preceding layout and diagnostic improvements. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
 
 ## Current Status
 
@@ -22,6 +22,7 @@
 - Flow start/end nodes now use native ellipse geometry across Scene Graph, SVG, Canvas, export, scaling, and hit testing.
 - Iteration 17A–17E is complete and included in `v2.0.21`: unknown-option diagnostics, effective Agent explanations, unsupported renderer planning diagnostics, `agentReliability` discovery, npm package-content checks, and production-trust documentation. See `docs/agent/development/iteration-17.md`.
 - Iteration 20A–20E is implemented after the completed Iterations 18–19: per-chart Agent contracts, generated contract discovery, duplicate-ID and mixed-unit data-quality diagnostics, contract-level regression coverage, local scale smoke checks, and Agent output/troubleshooting guidance. Browser screenshots and physical-device measurements remain environment evidence rather than runtime guarantees. See `docs/agent/development/iteration-20.md`.
+- Iteration 21A–21H is implemented in the current development line: executable Agent task fixtures, repair/output guidance, SVG/Canvas browser consumer evidence, npm tarball consumption checks, a measured runtime footprint baseline, and real `standard`/`project`/`diagram`/`board` profile entries. The root entry remains the complete compatibility runtime; profiles are additive and validated by `npm run profiles:check`.
 - The original `2.0.0` readiness record is historical and superseded by the published `2.0.x` releases. Current release checks are defined by `docs/agent/development/release-sop.md`.
 
 ## Iteration 4 — Agent Data Contract and Business Editing

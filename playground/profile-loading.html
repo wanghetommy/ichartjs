@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>iChart.js Profile Loading</title>
+  <link rel="stylesheet" href="./shared.css">
+  <style>
+    .profile-card code { display:block; margin:8px 0 12px; color:#1d4ed8; }
+    .profile-card .chart { height:240px; }
+    .profile-card pre { max-height:180px; }
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header class="topbar">
+    <div><h1>Profile Loading · 按需加载</h1><p>每个卡片只从一个公开能力入口加载。完整 Gallery 仍使用根入口，因为它需要展示全部图表族。</p></div>
+    <div id="nav"></div>
+  </header>
+  <section class="panel">
+    <h2>入口选择</h2>
+    <p class="muted">生产项目请从 npm 子路径导入；本页面使用仓库中的对应 ESM 文件模拟同样的入口边界。体积数据来自 <code>npm run footprint:check</code> 的源模块图基线，不等同于最终 bundler 压缩包。</p>
+    <pre>import { createChart } from '@taylorwong/ichartjs/standard';
+import { createChart } from '@taylorwong/ichartjs/project';
+import { createChart } from '@taylorwong/ichartjs/diagram';
+import { createBoard } from '@taylorwong/ichartjs/board';</pre>
+  </section>
+  <section class="grid" id="profiles" aria-label="Capability profiles"></section>
+</main>
+<script type="module">
+import { pageNav, json, setStatus } from './playground.mjs';
+document.querySelector('#nav').innerHTML = pageNav('profile-loading.html');
+const root = '/src/';
+const profiles = [
+  { id:'standard', label:'Standard charts', entry:'@taylorwong/ichartjs/standard', size:'214 KB raw · 54 KB gzip', load:()=>import(`${root}standard.mjs`), create:module=>module.createChart({ type:'line', renderer:'svg', container:'#chart-standard', width:560, height:220, branding:false, data:[{name:'Jan',value:18},{name:'Feb',value:26},{name:'Mar',value:22}] }) },
+  { id:'project', label:'Project charts', entry:'@taylorwong/ichartjs/project', size:'271 KB raw · 69 KB gzip', load:()=>import(`${root}project-profile.mjs`), create:module=>module.createChart({ type:'gantt', renderer:'svg', container:'#chart-project', width:560, height:220, branding:false, data:{values:[{id:'plan',name:'Plan',start:'2026-01-01',end:'2026-01-05'},{id:'build',name:'Build',start:'2026-01-06',end:'2026-01-12'}]} }) },
+  { id:'diagram', label:'Diagram charts', entry:'@taylorwong/ichartjs/diagram', size:'271 KB raw · 69 KB gzip', load:()=>import(`${root}diagram-profile.mjs`), create:module=>module.createChart({ type:'flow', renderer:'svg', container:'#chart-diagram', width:560, height:220, branding:false, nodes:[{id:'start',label:'Start',kind:'start'},{id:'process',label:'Process',kind:'process'},{id:'end',label:'End',kind:'end'}], edges:[{id:'e1',from:'start',to:'process'},{id:'e2',from:'process',to:'end'}] }) },
+  { id:'board', label:'Freeform Board', entry:'@taylorwong/ichartjs/board', size:'244 KB raw · 62 KB gzip', load:()=>import(`${root}board-profile.mjs`), create:module=>{const board=module.createBoard({width:560,height:220,renderer:'svg',items:[{id:'title',kind:'text',position:{x:24,y:28},size:{width:240,height:42},text:'Freeform Board',fontSize:24,fontWeight:'bold',textAlign:'start'},{id:'shape',kind:'shape',shape:'hexagon',position:{x:320,y:38},size:{width:120,height:100},style:{fill:'#2563eb',stroke:'#1e3a8a',strokeWidth:2}},{id:'note',kind:'text',position:{x:80,y:125},size:{width:360,height:42},text:'SVG board surface',textAlign:'center',background:'#dbeafe'}]});return board.mount('#chart-board');} }
+];
+const host=document.querySelector('#profiles');
+for(const item of profiles){
+  const card=document.createElement('article');card.className='card profile-card';card.innerHTML=`<div class="row"><h2>${item.label}</h2><span class="badge">profile</span></div><code>${item.entry}</code><p class="muted">${item.size}</p><div class="chart" id="chart-${item.id}"></div><div class="row"><span class="status" data-status>loading…</span><span class="muted" data-type></span></div><details><summary>Runtime state</summary><pre data-output>waiting…</pre></details>`;host.appendChild(card);
+  try{const module=await item.load(),instance=item.create(module),state=instance.getState();card.querySelector('[data-status]').textContent=state.health.renderable?'ready':'degraded';card.querySelector('[data-status]').className=`status ${state.health.renderable?'ready':'warning'}`;card.querySelector('[data-type]').textContent=`${state.profile||'board'} · ${state.renderer}`;card.querySelector('[data-output]').textContent=json({health:state.health,renderer:state.renderer,chartTypes:module.getCapabilities?.().chartTypes||['board']});card._instance=instance;}catch(error){setStatus(card.querySelector('[data-status]'),'error',error.message);card.querySelector('[data-output]').textContent=json(error.details||{message:error.message});}
+}
+</script>
+</body>
+</html>

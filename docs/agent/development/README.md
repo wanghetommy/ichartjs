@@ -8,6 +8,7 @@ This directory contains the product roadmap, release procedure, playground infor
 - [Release SOP](release-sop.md): author-only release procedure.
 - [Playground Plan](playground-plan.md): maintained preview pages and acceptance responsibilities.
 - [Iteration 20](iteration-20.md): current Agent ecosystem and quality-scale work.
+- [Iteration 21](iteration-21.md): executable Agent tasks, browser evidence, consumer verification, and runtime footprint baselines.
 
 ## Historical records
 

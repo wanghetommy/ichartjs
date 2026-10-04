@@ -26,6 +26,8 @@ import {
 
 Agent 与开发者使用同一个 ESM 入口。编码 Agent 的完整方式见 [编码 Agent 集成](coding-agent-integration.md)，普通应用集成见 [前端项目集成](frontend-integration.md)。
 
+任务交付验收见[任务验收](task-validation.md)；移动端加载和 Runtime 体积见[Runtime 体积与加载](runtime-footprint.md)。已知能力族时使用 `/standard`、`/project`、`/diagram` 或 `/board`；需要完整 API 时使用根入口。
+
 Recipe 是声明式的起始模板，不是可直接执行的任务。Agent 应先复制 Recipe，再注入宿主拥有的数据或节点，按照 Recipe Manifest 指定的校验器校验，最后调用 `createChart()`、`createBoard()` 或编辑预览 API。`diagrams/workflow` 是编辑命令模板，补齐节点和边之前不能直接渲染。
 
 ## 标准流程

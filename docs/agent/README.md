@@ -20,6 +20,9 @@ This is the user-facing Agent entry point for iChart.js 2.0. Read this file firs
 - [Interactive Diagrams](diagram-scenario.md): Flow, Swimlane, Architecture, Mindmap, Groups, Ports, and editing.
 - [Freeform Board](canvas-scenario.md): compose images, text, shapes, connectors, and embedded charts with SVG/Canvas.
 - [Runtime Contract](runtime-contract.md): shared Spec, renderer, interaction, and export rules.
+- [Runtime Footprint](runtime-footprint.md): current loading model, measured package size, and mobile guidance.
+- Profile entries: use `@taylorwong/ichartjs/standard`, `/project`, `/diagram`, or `/board` when the host knows the capability family.
+- [Task Validation](task-validation.md): executable delivery contract, repair policy, and output choices.
 - [Editing Contract](editing-contract.md): schemas, commands, preview, commit, and undo/redo.
 - Machine-readable capability manifests are in `docs/manifests/` and should be loaded on demand.
 

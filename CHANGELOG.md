@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.24 - 2026-10-05
+
+- Completed Iteration 21F–21H with additive `standard`, `project`, `diagram`, and `board` profile entries, measured footprint checks, and npm tarball consumer verification.
+- Unified Playground page catalog and navigation, added Profile Loading coverage, and reduced the home page to recommended demos plus collapsible acceptance pages.
+- Added executable README and Quickstart snippet checks for Node and browser mounting so documented Agent workflows stay aligned with the public API.
+
 ## 2.0.23 - 2026-10-04
 
 - Completed Iteration 20 Agent production-readiness hardening with chart contracts, data-quality diagnostics, and clearer validation guidance.

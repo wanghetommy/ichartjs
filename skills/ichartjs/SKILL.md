@@ -22,7 +22,7 @@ Recommended installation:
 npx skills add wanghetommy/ichartjs --skill ichartjs
 ```
 
-Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.23/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
+Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.24/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
 
 The Skill is a workflow adapter, not the chart runtime. If the current JavaScript or TypeScript project does not already depend on iChart.js, install the matching runtime from npm:
 
@@ -35,6 +35,8 @@ Do not install the unscoped npm registry package named `ichartjs`; it is current
 ## Workflow
 
 1. Locate the package or repository root. Read `docs/agent/quickstart.md` when available.
+   For delivery-oriented work, also read `docs/agent/task-validation.md`; for mobile loading, read `docs/agent/runtime-footprint.md`.
+   If the host knows the capability family, use `@taylorwong/ichartjs/standard`, `/project`, `/diagram`, or `/board`; use the root package when full discovery or cross-family composition is required.
 2. Call `getCapabilities()` before selecting a chart or interaction.
 3. Call `inspectData()` and preserve stable record IDs.
 4. Discover `getCapabilities().intents`; map natural-language requests to an exact registered token before calling `planChart(data, { intent, renderer, context })`.

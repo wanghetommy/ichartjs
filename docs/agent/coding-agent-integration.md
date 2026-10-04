@@ -18,7 +18,7 @@ Inside a consumer project:
 npm install @taylorwong/ichartjs@^2
 ```
 
-For reproducible builds, pin the release explicitly: `npm install @taylorwong/ichartjs@2.0.23`.
+For reproducible builds, pin the release explicitly: `npm install @taylorwong/ichartjs@2.0.24`.
 
 Do not install the unscoped npm registry package named `ichartjs`; it is an npm security holding package and is not this project. The published package is `@taylorwong/ichartjs`.
 
@@ -35,7 +35,7 @@ Install the official Skill with the standard Agent Skills CLI:
 npx skills add wanghetommy/ichartjs --skill ichartjs
 ```
 
-For global non-interactive Codex setup, append `--agent codex --global --yes`. To pin the released workflow, install `https://github.com/wanghetommy/ichartjs/tree/v2.0.23/skills/ichartjs`. WorkBuddy can import that tagged directory through its Skill interface; only use a host-specific `--agent` value when the installed CLI declares it.
+For global non-interactive Codex setup, append `--agent codex --global --yes`. To pin the released workflow, install `https://github.com/wanghetommy/ichartjs/tree/v2.0.24/skills/ichartjs`. WorkBuddy can import that tagged directory through its Skill interface; only use a host-specific `--agent` value when the installed CLI declares it.
 
 Verify discovery with `npx skills add wanghetommy/ichartjs --list`; the result should include `ichartjs`.
 

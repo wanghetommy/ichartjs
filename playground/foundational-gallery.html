@@ -4,17 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>iChart.js Iteration 7 · Foundational Gallery</title>
+  <link rel="stylesheet" href="./shared.css">
   <style>
     *{box-sizing:border-box}body{margin:0;background:#f1f5f9;color:#0f172a;font:14px system-ui,sans-serif}main{max-width:1320px;margin:auto;padding:24px}header{display:flex;justify-content:space-between;gap:20px;align-items:end;flex-wrap:wrap}h1{margin:0 0 6px}.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:16px 0;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:10px 14px}.toolbar label{display:inline-flex;gap:6px;align-items:center;color:#475569;cursor:pointer}.toolbar label input{width:auto;accent-color:#2563eb}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;margin-top:20px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px}.head{display:flex;justify-content:space-between;align-items:center}.chart{height:300px}.status{color:#15803d}.error{color:#b91c1c}a{color:#1d4ed8}p{color:#475569}.card-tools{display:flex;gap:10px;align-items:center;margin-top:8px;justify-content:space-between;flex-wrap:wrap}.card-tools label{display:inline-flex;gap:6px;align-items:center;font:12px system-ui;color:#475569;cursor:pointer}.card-tools label input{width:auto;accent-color:#2563eb}.export-row{display:flex;gap:6px;flex-wrap:wrap}.export-row button{font:12px system-ui;padding:4px 10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;color:#1e293b}.export-row button:hover{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8}
   </style>
 </head>
 <body><main>
-  <header><div><h1>Iteration 7 Foundational Gallery</h1><p>Stack、Donut、Combo、Bin、Heatmap 和 Radar 的统一验收入口。</p></div><div><a href="./index.html">Playground 首页</a> · <a href="./project-gallery.html">完整 Gallery →</a></div></header>
+  <header><div><h1>Iteration 7 Foundational Gallery</h1><p>Stack、Donut、Combo、Bin、Heatmap 和 Radar 的统一验收入口。</p></div><div id="nav"></div></header>
   <section class="toolbar" aria-label="Global controls"><label title="全局切换所有卡片的品牌署名"><input type="checkbox" id="globalBranding" checked> 显示品牌署名（全部）</label><span class="status" id="count">initializing…</span></section>
   <section class="grid" id="gallery"></section>
 </main>
 <script type="module">
 import { createChart } from './runtime.mjs';
+import { pageNav } from './playground.mjs';
+document.querySelector('#nav').innerHTML = pageNav('foundational-gallery.html');
 const monthly=[{name:'Jan',product:24,service:12,rate:42},{name:'Feb',product:30,service:18,rate:55},{name:'Mar',product:22,service:20,rate:49},{name:'Apr',product:36,service:24,rate:68}];
 const matrix=[{id:'m-am',x:'Mon',y:'AM',value:0},{id:'t-am',x:'Tue',y:'AM',value:18},{id:'w-am',x:'Wed',y:'AM',value:35},{id:'m-pm',x:'Mon',y:'PM',value:22},{id:'t-pm',x:'Tue',y:'PM',value:null},{id:'w-pm',x:'Wed',y:'PM',value:48}];
 const indicators=[{name:'质量',field:'quality',min:0,max:100},{name:'速度',field:'speed',min:0,max:100},{name:'稳定性',field:'stability',min:0,max:100},{name:'体验',field:'ux',min:0,max:100},{name:'成本',field:'cost',min:0,max:100}];

@@ -8,8 +8,12 @@ import { binData, applyTransforms } from './transforms.mjs';
 import { buildScene } from './charts.mjs';
 import { CanvasRenderer, SVGRenderer } from './renderer.mjs';
 import { sceneToSvgString } from './scene-svg.mjs';
-import { createBoard, FreeformBoard, validateBoardSpec, planCanvas } from './board.mjs';
-export { createBoard, FreeformBoard, validateBoardSpec, planCanvas };
+import { createBoard as createBoardRuntime, FreeformBoard as FreeformBoardRuntime, validateBoardSpec, planCanvas } from './board.mjs';
+export class FreeformBoard extends FreeformBoardRuntime {
+  constructor(spec = {}) { super(spec, { buildChartScene: buildScene }); }
+}
+export function createBoard(spec = {}) { return new FreeformBoard(spec); }
+export { validateBoardSpec, planCanvas };
 import { resolveRenderer } from './renderer-policy.mjs';
 import { contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast } from './theme.mjs';
 import { PluginHost, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin } from './plugin.mjs';
@@ -660,4 +664,4 @@ export { normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, cr
 
 export { contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin };
 export { applyPreferencesToSpec, createPreferencesStore, defaultPreferences, mergePreferences, mergeThemePreference, mountChartSettings, normalizePreferences, validatePreferences };
-export const iChart = { version: '2.0.23', createChart, createBoard, validateBoardSpec, planCanvas, boardCapabilities, ChartValidationError, inspectData, normalizeData, binData, applyTransforms, data, getCapabilities, getChartCapability, getChartContract, getPreferenceCapabilities, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, createPreferencesStore, defaultPreferences, normalizePreferences, mergePreferences, validatePreferences, applyPreferencesToSpec, mountChartSettings, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };
+export const iChart = { version: '2.0.24', createChart, createBoard, validateBoardSpec, planCanvas, boardCapabilities, ChartValidationError, inspectData, normalizeData, binData, applyTransforms, data, getCapabilities, getChartCapability, getChartContract, getPreferenceCapabilities, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, createPreferencesStore, defaultPreferences, normalizePreferences, mergePreferences, validatePreferences, applyPreferencesToSpec, mountChartSettings, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };

@@ -5,6 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { getCapabilities } from '../src/index.mjs';
+import { playgroundPages } from '../playground/playground.mjs';
 
 const readJSON = path => JSON.parse(fs.readFileSync(path, 'utf8'));
 const failures = [];
@@ -91,7 +92,7 @@ currentDocs.forEach(file => {
     if (match[1] !== currentVersion) failures.push(`${file}: pinned Skill tag v${match[1]} does not match package version ${currentVersion}.`);
   }
 });
-const previewPages = ['index.html', 'github-promo.html', 'agent-workbench.html', 'canvas-board.html', 'project-gallery.html', 'foundational-gallery.html', 'theme-gallery.html', 'preferences-lab.html', 'editing.html', 'project-intelligence.html', 'diagram-editor.html', 'interaction-lab.html', 'accessibility-lab.html', 'performance-lab.html'];
+const previewPages = playgroundPages.map(page => page.href);
 previewPages.forEach(file => { if (!fs.existsSync(`playground/${file}`)) failures.push(`Missing maintained Playground page: playground/${file}`); });
 const developmentPlan = fs.readFileSync('docs/agent/development/playground-plan.md', 'utf8');
 if (!developmentPlan.includes(`${capabilities.chartTypes.length} public chart types`)) failures.push('Playground plan chart count does not match getCapabilities().chartTypes.');

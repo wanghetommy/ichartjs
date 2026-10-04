@@ -2,10 +2,21 @@
 
 Use this guide when an Agent needs to turn user data or project information into an iChart.js visualization. Use public contracts only; do not inspect renderer or chart implementation files to guess behavior.
 
+## Install
+
+For a new JavaScript or TypeScript project, install the runtime before importing it:
+
+```bash
+npm install @taylorwong/ichartjs@^2
+```
+
+Pin `@taylorwong/ichartjs@2.0.24` for a reproducible release. Use the package root when the Agent needs discovery and cross-family APIs; use `/standard`, `/project`, `/diagram`, or `/board` when the chart family is already known and the host wants a smaller entry.
+
 ## Import Surface
 
 Choose the integration mode before starting: use the Runtime for a product component, the Coding Agent guide when modifying a repository, or the official Skill when an Agent must repeatedly plan and deliver charts. See [Usage Scenarios](usage-scenarios.md) for the input/output contract.
 
+<!-- docs-check: imports -->
 ```js
 import {
   createChart,
@@ -39,6 +50,7 @@ Recipes are declarative starting templates, not executable tasks. Copy a recipe 
 
 Use the manifest to discover the public path and validator instead of guessing filenames or treating a Recipe as a ready-to-run task:
 
+<!-- docs-check: recipe-line -->
 ```js
 import manifest from '@taylorwong/ichartjs/recipes/manifest' with { type: 'json' };
 import catalog from '@taylorwong/ichartjs/recipes/minimal-specs' with { type: 'json' };
@@ -54,6 +66,8 @@ if (!checked.valid) throw new Error(JSON.stringify({ validator: entry.validator,
 For a BoardSpec, select the `drawings/cat` or `logo-spec` entry, import its JSON, call `validateBoardSpec()`, and then call `createBoard()`. For `diagrams/workflow`, validate both the populated Spec and each `commands[]` item before previewing an edit.
 
 For coding environments such as Codex, read [Coding Agent Integration](coding-agent-integration.md). For application integration, read [Frontend Integration](frontend-integration.md).
+
+For delivery-oriented tasks, read [Task Validation](task-validation.md). For mobile loading and bundle boundaries, read [Runtime Footprint](runtime-footprint.md). Use a documented profile entry for mobile or focused applications; use the root entry when the complete API is required. Profile imports are `@taylorwong/ichartjs/standard`, `/project`, `/diagram`, and `/board`.
 
 ## Standard Workflow
 
@@ -101,6 +115,7 @@ If the user gives prose, map it to a registered token before calling `planChart(
 
 For a trend or comparison with one dimension and one or more measures:
 
+<!-- docs-check: build -->
 ```js
 const y = [plan.suggestedEncodings.measure, plan.suggestedEncodings.secondaryMeasure]
   .filter(Boolean)
@@ -149,6 +164,7 @@ Numeric Cartesian charts use a readable y-axis domain by default: `yAxis.nice` i
 
 Chart-specific encoding is strict: Cartesian charts use `x`/`y`, Pie/Funnel use `category`/`value`, Gauge uses `value`, Heatmap uses `x`/`y`/`color`, and Radar uses `indicators[].field`. Missing or unsupported fields are validation errors, not silent fallbacks. Agents can inspect the complete per-chart contract with `getChartContract(type)` before constructing a Spec. Gauge Specs must declare `domain`; inspect `VALUE_CLAMPED` when a value falls outside it. Pie reports `NEGATIVE_VALUE_DROPPED` for signed values and `ZERO_TOTAL` for an empty part-to-whole result. Use the complete minimal catalog at `@taylorwong/ichartjs/recipes/minimal-specs` when starting a new chart:
 
+<!-- docs-check: recipe-radar -->
 ```js
 import catalog from '@taylorwong/ichartjs/recipes/minimal-specs' with { type: 'json' };
 
@@ -169,6 +185,7 @@ For Agent self-checks, `chart.getState().health` and `chart.explain().health` ex
 
 ### 5. Validate
 
+<!-- docs-check: validate -->
 ```js
 const validation = validateSpec(spec);
 if (!validation.valid) {
@@ -189,12 +206,14 @@ Diagnostics have two phases: `validateSpec()` reports preflight contract problem
 
 Browser rendering:
 
+<!-- docs-check: render-browser -->
 ```js
 const chart = createChart({ ...validation.spec, container: '#chart' });
 ```
 
 Headless planning and scene creation:
 
+<!-- docs-check: render-headless -->
 ```js
 const chart = createChart(validation.spec);
 ```
@@ -207,6 +226,7 @@ Headless environment capabilities:
 
 ### 7. Explain, Export, and Self-Check
 
+<!-- docs-check: export -->
 ```js
 // JSON export (zero-dependency, all environments)
 const jsonPayload = chart.export({ type: 'json', as: 'object' });

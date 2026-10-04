@@ -40,6 +40,18 @@ jobs:
       - name: Run performance smoke check
         run: npm run performance:check
 
+      - name: Run executable task fixtures
+        run: npm run tasks:check
+
+      - name: Verify installed consumer package
+        run: npm run consumer:check
+
+      - name: Verify runtime footprint
+        run: npm run footprint:check
+
+      - name: Verify capability profile entries
+        run: npm run profiles:check
+
       - name: Verify publish tarball
         run: npm pack --dry-run
 
