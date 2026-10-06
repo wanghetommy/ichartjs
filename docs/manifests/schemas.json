@@ -104,6 +104,8 @@
         "label",
         "status",
         "routing",
+        "routingMode",
+        "lineStyle",
         "curveTension",
         "waypoints"
       ]
@@ -144,9 +146,13 @@
       "editable": [
         "from",
         "to",
+        "fromPort",
+        "toPort",
         "label",
         "relation",
         "routing",
+        "routingMode",
+        "lineStyle",
         "curveTension",
         "waypoints",
         "status"
@@ -162,8 +168,12 @@
       "editable": [
         "from",
         "to",
+        "fromPort",
+        "toPort",
         "label",
         "routing",
+        "routingMode",
+        "lineStyle",
         "curveTension",
         "waypoints",
         "status"

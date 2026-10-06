@@ -22,6 +22,8 @@ import {
 - `@taylorwong/ichartjs/recipes/*`：基础分析、项目管理和 Diagram Recipes。
 - `skills/ichartjs/SKILL.md`：适用于 Codex、WorkBuddy 等 Agent Skills 兼容宿主的可选编排层。
 
+四个 Profile 入口可以独立使用，不需要先引入根入口：已知图表族时直接使用 `/standard`、`/project`、`/diagram` 或 `/board`；需要跨图表族发现和完整 API 时才使用根入口。可运行的消费者示例是 `examples/consumer-quickstart.mjs`，浏览器示例是 `examples/consumer-browser.html`。
+
 主题枚举可从 `getCapabilities().styleSystem` 发现：`mode` 为 `auto`、`light`、`dark`、`contrast`；`preset` 为 `auto`、`analysis`、`dashboard`、`report`、`presentation`、`project`、`diagram`；`palette` 为 `auto`、`categorical`、`sequential`、`diverging`、`status`。
 
 Agent 与开发者使用同一个 ESM 入口。编码 Agent 的完整方式见 [编码 Agent 集成](coding-agent-integration.md)，普通应用集成见 [前端项目集成](frontend-integration.md)。

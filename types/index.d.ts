@@ -110,7 +110,7 @@ export interface DiagramNode { id: string; label?: string; kind?: FlowNodeKind; 
 export interface ArchitectureNode extends DiagramNode { layerId?: string; boundaryId?: string; role?: string; description?: string; }
 export interface MindmapNode extends DiagramNode { parentId?: string; branch?: string; description?: string; }
 export interface DiagramPoint { x: number; y: number; }
-export interface DiagramEdge { id?: string; from: string; to: string; fromPort?: string; toPort?: string; label?: string; relation?: string; routing?: 'straight' | 'orthogonal' | 'curved'; curveTension?: number; waypoints?: DiagramPoint[]; }
+export interface DiagramEdge { id?: string; from: string; to: string; fromPort?: string; toPort?: string; label?: string; relation?: string; routing?: 'auto' | 'straight' | 'orthogonal' | 'curved'; routingMode?: 'auto' | 'manual'; lineStyle?: 'solid' | 'dashed' | 'dotted'; curveTension?: number; waypoints?: DiagramPoint[]; }
 export interface DiagramLane { id: string; label?: string; [key: string]: unknown; }
 export interface DiagramGroup { id: string; label?: string; collapsed?: boolean; padding?: number; [key: string]: unknown; }
 export interface DiagramElement { id?: string; type?: string; dataRef?: Record<string, unknown>; geometry?: Record<string, unknown>; [key: string]: unknown; }
@@ -122,7 +122,7 @@ export interface ChartLayoutState { family: string | null; plot: Record<string, 
 export interface ChartAxesState { y?: AxisState; right?: AxisState; [key: string]: unknown; }
 export interface ChartBrandingState { enabled: boolean; signature: string; text: string | null; }
 export interface ChartState { renderer: string; rendererSelection?: RendererSelection; width: number; height: number; dataCount: number; selected: unknown[]; revision: number; history: { undo: number; redo: number }; view: Record<string, unknown> | null; style?: Partial<StyleRecommendation> & { name?: string; mode?: ThemeMode; resolvedMode?: string; palette?: ThemePalette }; layout?: ChartLayoutState | null; timeAxis?: TimeAxisState | null; axes?: ChartAxesState | null; health: ChartHealth; preferences: ChartPreferences; preferenceResolution: PreferenceResolution; branding?: ChartBrandingState; warnings: Diagnostic[]; assumptions?: string[]; normalizations?: Diagnostic[]; collapsedGroups?: string[]; projectAnalytics?: ProjectAnalyticsState | null; linked?: LinkedState | null; clipboard: { nodes: number; edges: number }; [key: string]: unknown; }
-export interface DiagramConfig { mode?: 'process' | 'architecture' | 'mindmap'; layout?: 'manual' | 'layered' | 'tree' | 'radial'; routing?: 'straight' | 'orthogonal' | 'curved'; curveTension?: number; grid?: number; snap?: boolean; }
+export interface DiagramConfig { mode?: 'process' | 'architecture' | 'mindmap'; layout?: 'manual' | 'layered' | 'tree' | 'radial'; routing?: 'auto' | 'straight' | 'orthogonal' | 'curved'; curveTension?: number; grid?: number; snap?: boolean; }
 export interface ArchitectureLayer { id: string; label?: string; }
 export interface ArchitectureBoundary { id: string; label?: string; nodeIds?: string[]; padding?: number; color?: string; }
 export type BusinessFieldType = 'string' | 'number' | 'boolean' | 'date' | 'enum' | 'array' | 'object';

@@ -1,6 +1,6 @@
 {
   "name": "@taylorwong/ichartjs",
-  "version": "2.0.25",
+  "version": "2.0.26",
   "description": "Agent-first, renderer-independent charting and project visualization runtime",
   "type": "module",
   "main": "./src/index.mjs",
@@ -66,14 +66,17 @@
     "docs:check": "node scripts/check-agent-docs.mjs",
     "performance:check": "node scripts/check-performance.mjs",
     "tasks:check": "node scripts/check-agent-tasks.mjs",
+    "adoption:check": "node scripts/check-agent-adoption.mjs",
+    "first-run:check": "node scripts/check-first-run.mjs",
     "consumer:check": "node scripts/check-consumer.mjs",
     "footprint:check": "node scripts/check-footprint.mjs",
+    "footprint:generate": "node scripts/generate-footprint.mjs",
     "profiles:check": "node scripts/check-profiles.mjs",
     "recipes:check": "node scripts/check-agent-recipes.mjs",
     "package:check": "node scripts/check-package.mjs",
     "example:agent": "node examples/agent-workflow.mjs",
     "playground": "node scripts/serve-playground.mjs",
-    "agent:check": "npm run contracts:check && npm run types:check && npm run deps:check && npm run recipes:check && npm run docs:check && npm run package:check && npm run docs:examples && npm run check && npm test",
+    "agent:check": "npm run contracts:check && npm run types:check && npm run deps:check && npm run recipes:check && npm run docs:check && npm run package:check && npm run docs:examples && npm run adoption:check && npm run first-run:check && npm run tasks:check && npm run consumer:check && npm run footprint:check && npm run profiles:check && npm run check && npm test",
     "rc:check": "npm test && npm run check && git diff --check"
   },
   "devDependencies": {

@@ -47,15 +47,17 @@ getCapabilities
 | Runtime footprint and mobile loading | [`docs/agent/runtime-footprint.md`](docs/agent/runtime-footprint.md) |
 | Official Agent Skill for Codex and WorkBuddy | [`skills/ichartjs/SKILL.md`](skills/ichartjs/SKILL.md) |
 
+The public runtime entries are independent. A focused application can import `@taylorwong/ichartjs/standard`, `/project`, `/diagram`, or `/board` directly; a Profile entry does not require importing the root entry first. Import the root package when the Agent needs cross-family discovery or the complete API. The runnable consumer fixtures are [`examples/consumer-quickstart.mjs`](examples/consumer-quickstart.mjs) and [`examples/consumer-browser.html`](examples/consumer-browser.html).
+
 ### Install
 
 ```bash
 npm install @taylorwong/ichartjs@^2
 ```
 
-If the npm registry is unavailable, install directly from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.25`.
+If the npm registry is unavailable, install directly from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.26`.
 
-For a reproducible release-pinned install, use `npm install @taylorwong/ichartjs@2.0.25` instead of the moving `@^2` range.
+For a reproducible release-pinned install, use `npm install @taylorwong/ichartjs@2.0.26` instead of the moving `@^2` range.
 
 ### Optional Agent Skill
 
@@ -77,7 +79,7 @@ For a non-interactive global Codex installation:
 npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --yes
 ```
 
-For a release-pinned installation, use `npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.25/skills/ichartjs --agent codex --global --yes`. WorkBuddy users can import the same tagged `skills/ichartjs` URL through the host's Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it. Package consumers can still copy `node_modules/@taylorwong/ichartjs/skills/ichartjs` as a manual fallback. After installation, invoke `$ichartjs` when named Skill invocation is supported, or select `ichartjs` in the host UI.
+For a release-pinned installation, use `npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.26/skills/ichartjs --agent codex --global --yes`. WorkBuddy users can import the same tagged `skills/ichartjs` URL through the host's Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it. Package consumers can still copy `node_modules/@taylorwong/ichartjs/skills/ichartjs` as a manual fallback. After installation, invoke `$ichartjs` when named Skill invocation is supported, or select `ichartjs` in the host UI.
 
 ### Agent workflow
 

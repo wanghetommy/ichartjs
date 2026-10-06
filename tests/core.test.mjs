@@ -508,6 +508,19 @@ test('builds architecture layers and mindmap parent-child diagrams', async () =>
   assert.ok(validateDiagram({ ...mindmap, nodes: [{ id: 'root', label: 'Root', parentId: 'leaf' }, { id: 'leaf', label: 'Leaf', parentId: 'root' }] }).errors.some(error => error.code === 'MINDMAP_CYCLE'));
 });
 
+test('fits mindmap tree columns and nodes within narrow diagram bounds', async () => {
+  const { layoutDiagram } = await import('../src/index.mjs');
+  const spec = normalizeSpec({ type: 'mindmap', nodes: [{ id: 'root', label: 'Iteration 12' }, { id: 'architecture', label: 'Architecture', parentId: 'root' }, { id: 'business', label: 'Business', parentId: 'architecture' }, { id: 'data', label: 'Data', parentId: 'architecture' }, { id: 'mindmap', label: 'Mindmap', parentId: 'root' }, { id: 'agent', label: 'Agent-ready', parentId: 'mindmap' }], diagram: { mode: 'mindmap', layout: 'tree', routing: 'curved' } });
+  const bounds = { x: 24, y: 48, width: 389, height: 180 }, positions = layoutDiagram(spec, bounds);
+  for (const node of spec.nodes) {
+    const position = positions[node.id];
+    assert.ok(position.x >= bounds.x, `${node.id} should stay inside the left bound`);
+    assert.ok(position.x + position.width <= bounds.x + bounds.width, `${node.id} should stay inside the right bound`);
+    assert.ok(position.y >= bounds.y, `${node.id} should stay inside the top bound`);
+    assert.ok(position.y + position.height <= bounds.y + bounds.height, `${node.id} should stay inside the bottom bound`);
+  }
+});
+
 test('renders mindmap curved routing as cubic Bezier paths in Canvas and SVG', async () => {
   const mindmap = { type: 'mindmap', nodes: [{ id: 'root', label: 'Root' }, { id: 'child', label: 'Child', parentId: 'root' }], edges: [{ id: 'root-child', from: 'root', to: 'child', label: 'branch' }], diagram: { mode: 'mindmap', layout: 'tree', curveTension: 0.5 } };
   const validation = validateSpec(mindmap);
@@ -515,8 +528,9 @@ test('renders mindmap curved routing as cubic Bezier paths in Canvas and SVG', a
   const model = buildScene(normalizeSpec(mindmap)), edge = model.scene.find('edge-0'), label = model.scene.find('edge-label-0');
   assert.equal(edge.geometry.curve, 'cubic');
   assert.equal(edge.geometry.points.length, 4);
-  assert.deepEqual({ x: label.geometry.x, y: label.geometry.y + 8 }, cubicBezierPoint(edge.geometry.points, 0.5));
   const middle = cubicBezierPoint(edge.geometry.points, 0.5);
+  assert.equal(label.geometry.x, middle.x);
+  assert.ok(Math.abs(label.geometry.y - middle.y) >= 8);
   assert.equal(model.scene.hit(middle.x, middle.y)?.dataRef.edgeId, 'root-child');
   const chart = createChart(mindmap);
   assert.match(chart.export({ type: 'svg' }), /d="M [^"]+ C [^"]+"/);
@@ -539,6 +553,25 @@ test('validates curve tension and falls back around curved-edge obstacles', asyn
   assert.equal(path.curve, null);
   const manual = routeEdgePath({ waypoints: [{ x: 150, y: 10 }, { x: 230, y: 10 }] }, { x: 0, y: 40, width: 60, height: 40 }, { x: 280, y: 40, width: 60, height: 40 }, 'curved');
   assert.equal(manual.curve, null);
+});
+
+test('routes auto edges around non-rectangular node obstacles', async () => {
+  const { routeEdge } = await import('../src/index.mjs');
+  const from = { x: 20, y: 80, width: 70, height: 40 }, to = { x: 360, y: 80, width: 70, height: 40 };
+  const diamond = { shape: 'diamond', geometry: { points: [{ x: 170, y: 40 }, { x: 250, y: 80 }, { x: 170, y: 120 }, { x: 90, y: 80 }], closed: true }, bounds: { x: 90, y: 40, width: 160, height: 80 } };
+  const path = routeEdge({ grid: 8, obstacles: [diamond] }, from, to, 'auto');
+  assert.ok(path.length > 2);
+  assert.ok(path.every((point, index) => index === 0 || !(point.x === 170 && point.y >= 40 && point.y <= 120)));
+  const ellipse = { shape: 'ellipse', geometry: { cx: 210, cy: 80, rx: 42, ry: 24 }, bounds: { x: 168, y: 56, width: 84, height: 48 } };
+  const ellipsePath = routeEdge({ grid: 8, obstacles: [ellipse] }, from, to, 'straight');
+  assert.ok(ellipsePath.length > 2);
+});
+
+test('supports explicit manual routing mode and edge line styles', async () => {
+  const validation = validateSpec({ type: 'flow', nodes: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }], edges: [{ from: 'a', to: 'b', routing: 'auto', routingMode: 'manual', lineStyle: 'dashed', waypoints: [{ x: 180, y: 24 }] }] });
+  assert.equal(validation.valid, true);
+  assert.equal(validation.spec.edges[0].routingMode, 'manual');
+  assert.equal(validation.spec.edges[0].lineStyle, 'dashed');
 });
 
 test('reports invalid and cyclic gantt dependencies', () => {

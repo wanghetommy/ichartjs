@@ -78,9 +78,15 @@ function flowNodeVisual(kind, box) {
   return { type: 'rect', geometry: box };
 }
 
+function diagramObstacle(kind, box, id = null) {
+  const visual = flowNodeVisual(kind, box);
+  const shape = visual.type === 'ellipse' ? 'ellipse' : visual.type === 'circle' ? 'circle' : visual.type === 'path' ? 'polygon' : 'rect';
+  return { id, shape, geometry: visual.geometry, bounds: { ...box }, padding: 0, obstacle: true };
+}
+
 function flowNodeBox(row, generated, fallback) {
   const kind = flowNodeKind(row), connector = kind === 'connector';
-  const width = Number(row.size?.width) || (connector ? 28 : 112), height = Number(row.size?.height) || (connector ? 28 : 36);
+  const width = Number(row.size?.width) || Number(generated?.width) || (connector ? 28 : 112), height = Number(row.size?.height) || Number(generated?.height) || (connector ? 28 : 36);
   return { x: row.position?.x ?? generated?.x ?? fallback.x, y: row.position?.y ?? generated?.y ?? fallback.y, width, height };
 }
 
@@ -168,7 +174,8 @@ function arrow(scene, id, points, reference, critical = false, curve = null) {
   const color = critical ? scene.theme?.status?.danger || '#dc2626' : scene.theme?.axis || '#64748b';
   const tip = points.at(-1), previous = points.at(-2);
   const angle = Math.atan2(tip.y - previous.y, tip.x - previous.x), size = 7;
-  scene.add({ id, type: 'path', geometry: { points, ...(curve ? { curve } : {}) }, style: { fill: 'none', stroke: color, strokeWidth: critical ? 2.5 : 1.5 }, dataRef: reference, interactive: Boolean(reference?.edgeId), hitTolerance: 8, zIndex: 1 });
+  const lineDash = reference?.lineStyle === 'dashed' ? [7, 5] : reference?.lineStyle === 'dotted' ? [2, 4] : [];
+  scene.add({ id, type: 'path', geometry: { points, ...(curve ? { curve } : {}) }, style: { fill: 'none', stroke: color, strokeWidth: critical ? 2.5 : 1.5, lineDash }, dataRef: reference, interactive: Boolean(reference?.edgeId), hitTolerance: 8, zIndex: 1 });
   scene.add({ id: id.startsWith('dependency-') ? id.replace('dependency-', 'dependency-arrow-') : `${id}-arrow`, type: 'path', geometry: { points: [tip, { x: tip.x - size * Math.cos(angle - Math.PI / 6), y: tip.y - size * Math.sin(angle - Math.PI / 6) }, { x: tip.x - size * Math.cos(angle + Math.PI / 6), y: tip.y - size * Math.sin(angle + Math.PI / 6) }, tip] }, style: { fill: color, stroke: color }, zIndex: 3 });
 }
 
@@ -402,6 +409,7 @@ function diagramScene(scene, spec, rows, state) {
   const gapX = Math.max(144, plot.width / columns), laneHeight = Math.max(80, plot.height / Math.max(1, lanes.length));
   const positions = new Map(), slots = new Map();
   const edgeLabelBoxes = [], labelLayout = { visible: 0, wrapped: 0, scaled: 0, truncated: 0, suppressed: 0, edgeOnLine: 0, edgeOffset: 0, backgrounded: 0 };
+  state.routingWarnings = [];
   state.labelLayout = { ...(state.labelLayout || {}), diagram: labelLayout };
   state.labelWarnings = [];
   lanes.forEach((lane, index) => {
@@ -477,13 +485,18 @@ function diagramScene(scene, spec, rows, state) {
     const from = fromNode.groupId && collapsedGroups.has(fromNode.groupId) ? groupBoxes.get(fromNode.groupId) : positions.get(edge.from);
     const to = toNode.groupId && collapsedGroups.has(toNode.groupId) ? groupBoxes.get(toNode.groupId) : positions.get(edge.to);
     if (!from || !to) return;
-    const obstacles = [...positions.entries()].filter(([id]) => id !== edge.from && id !== edge.to && !collapsedGroups.has(rows.find(row => row.id === id)?.groupId)).map(([, box]) => box);
+    const obstacles = [...positions.entries()]
+      .filter(([id]) => id !== edge.from && id !== edge.to && !collapsedGroups.has(rows.find(row => row.id === id)?.groupId))
+      .map(([id, box]) => { const row = rows.find(item => item.id === id); return diagramObstacle(mode === 'process' && spec.type === 'flow' ? flowNodeKind(row) : 'process', box, id); });
+    groupBoxes.forEach((box, groupId) => { if (collapsedGroups.has(groupId) && groupId !== fromNode.groupId && groupId !== toNode.groupId) obstacles.push({ id: groupId, shape: 'rect', geometry: box, bounds: { ...box }, obstacle: true }); });
     const fromPortDefinition = fromNode.groupId && collapsedGroups.has(fromNode.groupId) ? null : fromNode?.ports?.find(port => port.id === edge.fromPort);
     const toPortDefinition = toNode.groupId && collapsedGroups.has(toNode.groupId) ? null : toNode?.ports?.find(port => port.id === edge.toPort);
     const routing = edge.routing || diagramSpec.diagram.routing;
     const path = routeEdgePath({ ...edge, curveTension: edge.curveTension ?? diagramSpec.diagram.curveTension, grid: diagramSpec.diagram.grid, obstacles, fromPortDefinition, toPortDefinition, preserveSides: mode === 'architecture' }, from, to, routing);
+    if (path.warning) state.routingWarnings.push({ ...path.warning, edgeId: edge.id || `edge-${index}`, path: `edges.${index}` });
     const points = path.points;
-    arrow(scene, `edge-${index}`, points, { from: edge.from, to: edge.to, edgeId: edge.id || `edge-${index}`, status: edge.status, routing, curveTension: edge.curveTension ?? diagramSpec.diagram.curveTension, waypoints: edge.waypoints || [], fromPortDefinition, toPortDefinition, fromGroupId: fromNode.groupId || null, toGroupId: toNode.groupId || null }, edge.critical === true, path.curve);
+    if (points.length < 2) return;
+    arrow(scene, `edge-${index}`, points, { from: edge.from, to: edge.to, edgeId: edge.id || `edge-${index}`, status: edge.status, routing, routingMode: edge.routingMode || (edge.waypoints?.length ? 'manual' : 'auto'), lineStyle: edge.lineStyle || 'solid', curveTension: edge.curveTension ?? diagramSpec.diagram.curveTension, waypoints: edge.waypoints || [], fromPortDefinition, toPortDefinition, fromGroupId: fromNode.groupId || null, toGroupId: toNode.groupId || null }, edge.critical === true, path.curve);
     if (edge.label) {
       const placement = edgeLabelLayout({ ...edge, points, curve: path.curve }, spec, positions, edgeLabelBoxes);
       if (placement) {
@@ -544,6 +557,7 @@ export function buildProjectScene(spec) {
   else if (diagram) {
     diagramScene(scene, spec, data.rows, state);
     if (state.labelWarnings?.length) data.warnings.push(...state.labelWarnings);
+    if (state.routingWarnings?.length) data.warnings.push(...state.routingWarnings);
   }
   else if (spec.type === 'burndown') burndownScene(scene, spec, data.rows, state);
   else tasksScene(scene, spec, data.rows, state);
@@ -598,20 +612,34 @@ export function projectTooltip(type, row, locale = 'en-US') {
 
 export function rerouteDiagramScene(scene) {
   const nodeGeometries = new Map();
-  scene.walk(item => { if (item.id.startsWith('node-') && !item.id.startsWith('node-label-') && item.dataRef?.nodeId && item.geometry) nodeGeometries.set(item.dataRef.nodeId, item.geometry); });
+  scene.walk(item => {
+    if (!item.id.startsWith('node-') || item.id.startsWith('node-label-') || !item.dataRef?.nodeId || !item.geometry) return;
+    const bounds = item.type === 'rect' ? item.geometry : item.bounds || (item.type === 'ellipse' ? { x: item.geometry.cx - item.geometry.rx, y: item.geometry.cy - item.geometry.ry, width: item.geometry.rx * 2, height: item.geometry.ry * 2 } : item.type === 'circle' ? { x: item.geometry.cx - item.geometry.r, y: item.geometry.cy - item.geometry.r, width: item.geometry.r * 2, height: item.geometry.r * 2 } : item.geometry);
+    nodeGeometries.set(item.dataRef.nodeId, { geometry: bounds, obstacle: { shape: item.type === 'ellipse' ? 'ellipse' : item.type === 'circle' ? 'circle' : item.type === 'path' ? 'polygon' : 'rect', geometry: item.geometry, bounds, obstacle: true } });
+  });
   scene.walk(node => {
     if (!node.id.startsWith('edge-') || !node.dataRef?.from || !node.dataRef?.to) return;
-    const source = nodeGeometries.get(node.dataRef.from), destination = nodeGeometries.get(node.dataRef.to);
+    const source = nodeGeometries.get(node.dataRef.from)?.geometry, destination = nodeGeometries.get(node.dataRef.to)?.geometry;
     if (!source || !destination) return;
-    const obstacles = [...nodeGeometries.entries()].filter(([id]) => id !== node.dataRef.from && id !== node.dataRef.to).map(([, geometry]) => geometry);
+    const obstacles = [...nodeGeometries.entries()].filter(([id]) => id !== node.dataRef.from && id !== node.dataRef.to).map(([, item]) => item.obstacle);
     const path = routeEdgePath({ ...node.dataRef, obstacles, grid: 8 }, source, destination, node.dataRef.routing || 'orthogonal');
+    node.visible = path.points.length >= 2;
+    if (path.points.length < 2) {
+      const arrowNode = scene.find(`${node.id}-arrow`);
+      if (arrowNode) arrowNode.visible = false;
+      const edgeIndex = Number(node.id.slice(5));
+      scene.walk(item => { if (item.id === `edge-label-${edgeIndex}` || item.id.startsWith(`edge-label-${edgeIndex}-`)) item.visible = false; });
+      return;
+    }
     node.geometry.points = path.points;
     if (path.curve) node.geometry.curve = path.curve;
     else delete node.geometry.curve;
     const end = node.geometry.points.at(-1);
     const arrowNode = scene.find(`${node.id}-arrow`), beforeTip = node.geometry.points.at(-2);
+    if (arrowNode) arrowNode.visible = true;
     if (arrowNode) arrowNode.geometry.points = [end, { x: end.x - 7 * Math.cos(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) - Math.PI / 6), y: end.y - 7 * Math.sin(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) - Math.PI / 6) }, { x: end.x - 7 * Math.cos(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) + Math.PI / 6), y: end.y - 7 * Math.sin(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) + Math.PI / 6) }, end];
     const edgeIndex = Number(node.id.slice(5)), label = scene.find(`edge-label-${edgeIndex}`), labelPoint = node.geometry.curve === 'cubic' ? cubicBezierPoint(node.geometry.points, 0.5) : node.geometry.points[Math.floor(node.geometry.points.length / 2)];
+    scene.walk(item => { if (item.id === `edge-label-${edgeIndex}` || item.id.startsWith(`edge-label-${edgeIndex}-`)) item.visible = true; });
     if (label && labelPoint) {
       const old = { x: label.geometry.x, y: label.geometry.y }, offsetX = Number(label.dataRef?.offsetX) || 0, offsetY = Number(label.dataRef?.offsetY) || 0;
       label.geometry.x = labelPoint.x + offsetX; label.geometry.y = labelPoint.y + offsetY;

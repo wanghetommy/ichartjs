@@ -108,7 +108,8 @@ export function diagramPointer(chart, phase, event, target) {
         chart.emit('connectionpreview', { chart, source: source.dataRef, coordinate: point });
       }
     } else if (gesture.mode === 'edge-handle') {
-      const grid = chart.spec.diagram?.grid ?? 8, snapped = chart.spec.diagram?.snap === false || event.altKey ? point : { x: Math.round(point.x / grid) * grid, y: Math.round(point.y / grid) * grid }, routePoints = gesture.routePoints.map(value => ({ ...value }));
+      const toDiagram = value => ({ x: (value.x - gesture.view.offsetX) / gesture.view.scale, y: (value.y - gesture.view.offsetY) / gesture.view.scale });
+      const grid = chart.spec.diagram?.grid ?? 8, position = toDiagram(point), snapped = chart.spec.diagram?.snap === false || event.altKey ? position : { x: Math.round(position.x / grid) * grid, y: Math.round(position.y / grid) * grid }, routePoints = gesture.routePoints.map(toDiagram);
       if (gesture.edgeHandle === 'waypoint') routePoints[gesture.pointIndex] = snapped;
       else {
         const first = routePoints[gesture.segmentIndex], second = routePoints[gesture.segmentIndex + 1];
@@ -116,7 +117,7 @@ export function diagramPointer(chart, phase, event, target) {
         else first.y = second.y = snapped.y;
       }
       gesture.waypoints = routePoints.slice(1, -1);
-      const edges = chart.getDiagramEdges().map((edge, index) => (edge.id || `edge-${index}`) === gesture.edgeId ? { ...edge, waypoints: gesture.waypoints } : edge);
+      const edges = chart.getDiagramEdges().map((edge, index) => (edge.id || `edge-${index}`) === gesture.edgeId ? { ...edge, routingMode: 'manual', waypoints: gesture.waypoints } : edge);
       chart.model = buildScene({ ...chart.spec, edges });
       paintSelection(chart);
       if (chart.renderer.container) chart.renderer.render(chart.model.scene);
@@ -151,7 +152,7 @@ export function diagramPointer(chart, phase, event, target) {
     if (preview.requiresConfirmation) chart.emit('editrequest', { chart, preview, source: 'pointer' });
     else chart.applyEdit(preview.command, { preview, source: 'pointer', confirmed: true });
   } else if (!cancelled && gesture.moved && gesture.mode === 'edge-handle' && gesture.waypoints) {
-    const preview = chart.previewEdit({ type: 'layout-edit', reason: 'Drag diagram edge handle', operations: [{ op: 'updateEdge', edgeId: gesture.edgeId, changes: { waypoints: gesture.waypoints } }] });
+    const preview = chart.previewEdit({ type: 'layout-edit', reason: 'Drag diagram edge handle', operations: [{ op: 'updateEdge', edgeId: gesture.edgeId, changes: { routingMode: 'manual', waypoints: gesture.waypoints } }] });
     if (preview.requiresConfirmation) chart.emit('editrequest', { chart, preview, source: 'pointer' });
     else chart.applyEdit(preview.command, { preview, source: 'pointer', confirmed: true });
   } else if (!cancelled && gesture.moved && gesture.mode === 'box') {

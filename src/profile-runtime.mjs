@@ -29,6 +29,14 @@ function isEmptyOrZero(result) {
   return result.data.rows.length === 0 || result.data.warnings?.some(item => item.code === 'ZERO_TOTAL');
 }
 
+function lineageFor(model) {
+  const rows = model?.data?.rows || [];
+  return {
+    recordIds: rows.map((row, index) => String(row.id ?? row.key ?? `record-${index}`)),
+    sourcePreserved: true
+  };
+}
+
 export class ProfileChart {
   constructor(input, options = {}) {
     const result = validateSpec(input);
@@ -96,7 +104,7 @@ export class ProfileChart {
       normalizations: this._diagnostics.normalizations || [],
       health: { status: empty ? 'empty' : warnings.length ? 'degraded' : 'ready', renderable: !empty, issues: warnings.map(item => item.code) },
       layout: this.model?.state || {},
-      lineage: this.model?.data?.lineage || null
+      lineage: lineageFor(this.model)
     };
   }
 

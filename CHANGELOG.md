@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.26 - 2026-10-07
+
+- Hardened diagram routing with shape-aware obstacles, orthogonal-first automatic paths, explicit routing modes, and consistent SVG/Canvas line styles.
+- Fixed connector drags reverting on release or becoming ineffective on subsequent drags; manual waypoints now persist in diagram coordinates across zoom, pan, rerender, and Undo/Redo.
+- Preserved existing waypoint routes during edit normalization and aligned port fields in diagram edge schemas.
+- Improved Mindmap Gallery fitting, Profile lineage, consumer fixtures, Agent adoption checks, and Playground runtime/package/documentation footprint reporting.
+- Kept enlarged Gallery previews scaling manual diagram layouts without double-scaling automatically fitted diagrams.
+- Synchronized release-pinned installation guidance, runtime versions, manifests, and bilingual Agent documentation.
+
 ## 2.0.25 - 2026-10-05
 
 - Added consistent left, center, and right legend alignment across Cartesian, Pie, and standard profile entries.

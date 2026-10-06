@@ -1,4 +1,4 @@
-export const runtimeVersion = '2.0.25';
+export const runtimeVersion = '2.0.26';
 
 export const playgroundPages = [
   { href: 'index.html', label: '首页', description: '统一的 Playground 入口、页面状态和验收地址。', kind: 'entry' },

@@ -76,7 +76,7 @@ Flow 的 `start` 和 `end` 节点使用真正的椭圆图元；`process` 使用�
 
 ## 当前能力
 
-已支持节点、边、泳道、Group、Port、Flow 语义图形、四种布局、三种路由、Mindmap 三次贝塞尔曲线、节点拖动、多选、对齐、网格吸附、键盘移动、Copy/Paste、Group 折叠展开、Port 键盘连线、边选择、折点/正交线段手柄、持久化 `waypoints`、边删除和 Undo/Redo。
+已支持节点、边、泳道、Group、Port、Flow 语义图形、四种布局、`auto`/直线/折线/曲线路由、形状级避障、Mindmap 三次贝塞尔曲线、节点拖动、多选、对齐、网格吸附、键盘移动、Copy/Paste、Group 折叠展开、Port 键盘连线、边选择、折点/正交线段手柄、持久化 `waypoints`、边删除和 Undo/Redo。
 
 导航和编辑能力默认关闭。普通图表保持静态，缩放、平移、框选、节点拖动、线段拖动、Port 连线和结构编辑必须由宿主显式开启：
 
@@ -87,7 +87,11 @@ editing: { enabled: true, allowDelete: true, allowStructuralChanges: true }
 
 Canvas 与 SVG 共用 Scene Graph 命中、`waypoints`、命令、历史和交互行为，不提供渲染器专属编辑能力。
 
-Mindmap 默认使用曲线父子连线。`diagram.curveTension` 支持 `0.2` 到 `0.8`；显式边可以覆盖 `routing` 或 `curveTension`。存在 `waypoints` 时优先使用人工折线，当前不支持直接拖动贝塞尔控制点。
+拖动折点或线段手柄会自动设置 `routingMode: 'manual'`，并以图表坐标保存 `waypoints`，避免重新渲染、缩放/平移或连续拖动时位置回退。Undo/Redo 同时恢复路由模式和折点。通过 `updateEdge` 设置 `routingMode: 'auto'` 可恢复自动路由，此时忽略已有折点；未指定模式但已有 `waypoints` 时保留人工路径。
+
+Mindmap 默认使用曲线父子连线。`diagram.curveTension` 支持 `0.2` 到 `0.8`；显式边可以覆盖 `routing` 或 `curveTension`。需要自动避障时使用 `routing: 'auto'`；需要持久化人工折线时使用 `routingMode: 'manual'` 和 `waypoints`。人工路径穿过任意可见节点形状时不会提交。`lineStyle` 支持 `solid`、`dashed`、`dotted`，当前不支持直接拖动贝塞尔控制点。
+
+自动路由优先正交折线：只有连接点同轴（水平或垂直）、端口朝向正确且无遮挡时才直连；其他情况仅使用水平和垂直线段，同时兼顾路径长度和较少转折。反向连接也避开源节点与目标节点内部。找不到安全正交路径时不退化为斜线，而是隐藏该连线，在 `getState().warnings` 和 `explain().warnings` 中返回 `EDGE_ROUTE_BLOCKED`，提示调整节点位置或端口。显式 `straight`、`curved` 及人工路径保持用户意图，不因消除斜线而自动改写。
 
 当前限制：
 

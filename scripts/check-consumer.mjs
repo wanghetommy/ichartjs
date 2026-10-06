@@ -14,6 +14,10 @@ try {
   if (!existsSync(tarball)) throw new Error(`Package tarball was not created: ${tarball}`);
   execFileSync(npm, ['init', '-y'], { cwd: work, env, stdio: 'ignore' });
   execFileSync(npm, ['install', '--ignore-scripts', '--no-audit', '--no-fund', tarball], { cwd: work, env, stdio: 'ignore' });
+  const packageRoot = join(work, 'node_modules/@taylorwong/ichartjs');
+  const fixtureOutput = execFileSync(process.execPath, [join(packageRoot, 'examples/consumer-quickstart.mjs')], { cwd: work, env, encoding: 'utf8' }).trim();
+  const fixture = JSON.parse(fixtureOutput);
+  if (fixture.rootEntry.chartTypes !== 18 || !fixture.rootEntry.renderable || !fixture.independentProfiles.standard.renderable || fixture.independentProfiles.project.type !== 'gantt' || fixture.independentProfiles.diagram.type !== 'flow' || !fixture.independentProfiles.board.svg) throw new Error(`Published consumer fixture failed: ${fixtureOutput}`);
   const consumer = `
 import { createChart, getCapabilities } from '@taylorwong/ichartjs';
 import { createChart as createStandardChart, getCapabilities as getStandardCapabilities } from '@taylorwong/ichartjs/standard';
@@ -39,7 +43,6 @@ console.log(JSON.stringify(result));
   const entry = join(work, 'consumer.mjs');
   writeFileSync(entry, consumer);
   const output = execFileSync(process.execPath, [entry], { cwd: work, env, encoding: 'utf8' }).trim();
-  const packageRoot = join(work, 'node_modules/@taylorwong/ichartjs');
   if (!existsSync(join(packageRoot, 'types/index.d.ts'))) throw new Error('Consumer package is missing TypeScript declarations.');
   console.log(`Consumer package check passed: ${JSON.parse(output).types} chart types from installed tarball.`);
 } finally {
