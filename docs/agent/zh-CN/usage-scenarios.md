@@ -8,6 +8,8 @@ iChart.js 可以分成三层：
 
 Skill 不是第二套渲染器，也不是服务端。使用 Skill 的 Agent 仍然需要 JavaScript 宿主，才能生成交互页面或文件。
 
+Runtime 的根入口和四个 Profile 入口是并列的公共入口。Profile 不需要先引入根入口；已知能力族时直接选择对应 Profile，只有需要跨能力族发现或完整 API 时才选择根入口。
+
 修改已有图表的自然语言请求请阅读[自然语言修改工作流](conversational-workflow.md)。Runtime 本身不解析自然语言；宿主 Agent 负责把自然语言映射为经过校验的 Runtime 调用。
 
 ## 场景选择
@@ -62,7 +64,7 @@ chart.setPreferences({
 npm install @taylorwong/ichartjs@^2
 ```
 
-需要可复现构建时，请固定已发布版本：`npm install @taylorwong/ichartjs@2.0.25`。
+需要可复现构建时，请固定已发布版本：`npm install @taylorwong/ichartjs@2.0.26`。
 
 ```js
 import { createChart } from '@taylorwong/ichartjs';
@@ -123,7 +125,7 @@ npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --ye
 需要固定发布版本时，直接安装已发布的 Skill 目录：
 
 ```bash
-npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.25/skills/ichartjs \
+npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.26/skills/ichartjs \
   --agent codex --global --yes
 ```
 

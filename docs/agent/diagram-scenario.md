@@ -83,7 +83,8 @@ Supported:
 - Flow semantic shapes: start/end, process, decision, input/output, and connector.
 - `manual`, `layered`, `tree`, and `radial` layouts.
 - Architecture layers and boundaries, plus mindmap parent-child derivation.
-- `straight`, `orthogonal`, and true cubic-Bezier `curved` routing, with adjustable `curveTension` and obstacle-aware orthogonal fallback.
+- `auto`, `straight`, `orthogonal`, and true cubic-Bezier `curved` routing. Automatic and fallback routes avoid all visible node shapes, not only rectangles.
+- `routingMode: 'auto' | 'manual'`, persistent `waypoints`, and `lineStyle: 'solid' | 'dashed' | 'dotted'` for explicit edge control.
 - Node dragging, multi-selection, alignment, and grid snapping.
 - Keyboard movement, copy/paste, duplicate, group collapse/expand, undo/redo, and a shared Canvas/SVG Scene.
 - Port-aware drag-to-connect interaction and typed edge creation.
@@ -99,7 +100,11 @@ editing: { enabled: true, allowDelete: true, allowStructuralChanges: true }
 
 Canvas and SVG use the same Scene Graph hit testing, `waypoints` contract, commands, history, and interaction behavior.
 
-Mindmap defaults to curved parent-child edges. Set `diagram.curveTension` from `0.2` to `0.8`, override `routing` or `curveTension` on one explicit edge, or use `waypoints` when a persistent manual polyline is required. Bezier control points are not directly editable.
+Dragging a waypoint or segment handle automatically sets `routingMode: 'manual'` and saves diagram-space `waypoints`, so rerendering, zoom/pan, and subsequent drags retain the edited path. Undo/Redo restores both the route mode and the points. Set `routingMode: 'auto'` through `updateEdge` to resume automatic routing; saved waypoints are then ignored. If `routingMode` is omitted, existing waypoints imply a manual route.
+
+Mindmap defaults to curved parent-child edges. Set `diagram.curveTension` from `0.2` to `0.8`, use `routing: 'auto'` for orthogonal-first obstacle-aware routing, override `routing` or `curveTension` on one explicit edge, or set `routingMode: 'manual'` with `waypoints` for a persistent manual polyline. Bezier control points are not directly editable. Manual routes that cross a visible node shape are rejected and recalculated automatically.
+
+Automatic routes use a direct segment only when connection points are horizontally or vertically aligned, ports face outward, and the segment is clear. Other automatic connections use orthogonal segments with a penalty for unnecessary bends. Backward routes also avoid the source and destination interiors. If no safe orthogonal route exists, the connector is omitted with `EDGE_ROUTE_BLOCKED` in `getState().warnings` and `explain().warnings`; adjust the node positions or ports. Explicit `straight`/`curved` requests and manual routes are not converted solely to eliminate diagonals.
 
 Current limitations:
 

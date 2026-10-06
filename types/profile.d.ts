@@ -2,6 +2,9 @@ import type { ChartSpec, ChartType, DataInspection, Diagnostic, ExportAs, Export
 
 export declare const profile: string;
 export declare const chartTypes: readonly ChartType[];
+export interface ProfileLineage { recordIds: string[]; sourcePreserved: boolean; }
+export interface ProfileState { version: string; profile: string; type: ChartType; renderer: Renderer; warnings: Diagnostic[]; normalizations: unknown[]; health: { status: string; renderable: boolean; issues: string[] }; lineage: ProfileLineage; [key: string]: unknown; }
+export interface ProfileExplanation { version: string; profile: string; type: ChartType; renderer: Renderer; requiredFields: string[]; assumptions: string[]; warnings: Diagnostic[]; health: ProfileState['health']; lineage: ProfileLineage; [key: string]: unknown; }
 export declare class ProfileChart {
   readonly profile: string;
   readonly spec: ChartSpec;
@@ -13,8 +16,8 @@ export declare class ProfileChart {
   setTheme(theme: ChartSpec['theme']): this;
   getSpec(): ChartSpec;
   getData(): unknown;
-  getState(): { version: string; profile: string; type: ChartType; renderer: Renderer; warnings: Diagnostic[]; normalizations: unknown[]; health: { status: string; renderable: boolean; issues: string[] }; [key: string]: unknown };
-  explain(): Record<string, unknown>;
+  getState(): ProfileState;
+  explain(): ProfileExplanation;
   export(options?: { type?: ExportKind; as?: ExportAs }): string | Record<string, unknown>;
   destroy(): void;
 }

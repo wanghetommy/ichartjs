@@ -41,7 +41,7 @@ Core APIs:
 - Host confirmation is required by default; `confirmed: true` is not an authorization system.
 - External persistence, permissions, and authentication belong to the host application.
 - Pointer navigation and editing are disabled by default. `editing.enabled` authorizes edit transactions; `interaction.drag`, `interaction.edgeDrag`, and `interaction.portConnect` separately expose direct-manipulation UI.
-- Diagram edge routes use JSON-safe `waypoints` and update through `updateEdge`; edge deletion uses `removeEdge` and requires structural-edit permission.
+- Diagram edge routes use JSON-safe `routing`, `routingMode`, `waypoints`, and `lineStyle` fields and update through `updateEdge`; invalid waypoints that cross any visible node shape are not committed and fall back to automatic routing. Edge deletion uses `removeEdge` and requires structural-edit permission.
 
 ## Supported Models
 

@@ -22,8 +22,7 @@ function selectedCases(){const term=controls.search.value.trim().toLowerCase(),c
 function clear(){settingsInstances.forEach(controller=>controller.destroy?.());settingsInstances.clear();instances.forEach(chart=>chart.destroy());instances.clear();document.querySelector('#gallery').replaceChildren();}
 let activePreview=null;
 const computePreviewSize=()=>{const host=document.querySelector('#dialogChart');if(!host)return{width:1040,height:600};const hostStyle=getComputedStyle(host);const borderWidth=parseFloat(hostStyle.borderTopWidth)||0,padding=parseFloat(hostStyle.paddingTop)||0;const width=Math.max(720,host.clientWidth-borderWidth*2-padding*2);const height=Math.max(520,host.clientHeight-borderWidth*2-padding*2);return{width,height};};
-const diagramTypes=new Set(['flow','swimlane','architecture','mindmap']);
-const previewDiagramView=(item,width,height,baseWidth,baseHeight)=>{if(!diagramTypes.has(item.spec.type))return null;const scale=Math.max(1,Math.min(width/Math.max(1,baseWidth),height/Math.max(1,baseHeight)));return scale>1?{scale,offsetX:0,offsetY:0}:null;};
+const previewDiagramView=(item,width,height,baseWidth,baseHeight)=>{if(item.spec.diagram?.layout!=='manual')return null;const scale=Math.max(1,Math.min(width/Math.max(1,baseWidth),height/Math.max(1,baseHeight)));return scale>1?{scale,offsetX:0,offsetY:0}:null;};
 const resetPreviewState=()=>{activePreview=null;const dialog=document.querySelector('#dialog');dialog._chart?.destroy?.();dialog._chart=null;dialog.classList.remove('open');};
 resetPreviewState();
 const closePreview=()=>{if(!activePreview)return resetPreviewState();const{chart,host,placeholder,width,height,view,diagramView}=activePreview;try{placeholder.parentNode?.replaceChild(host,placeholder);}catch{}try{if(chart.resize)chart.resize(width,height);if(diagramView){if(view)chart.zoomTo(view);else if(chart.resetZoom)chart.resetZoom();}}catch{}resetPreviewState();};

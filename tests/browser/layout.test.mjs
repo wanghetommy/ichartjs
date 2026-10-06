@@ -44,6 +44,72 @@ after(async () => {
   server?.kill('SIGTERM');
 });
 
+test('Diagram Editor keeps auto routes orthogonal after dragging Done left of QA', async () => {
+  await page.goto('http://127.0.0.1:3000/playground/diagram-editor.html');
+  const done = page.locator('#node-done');
+  await done.scrollIntoViewIfNeeded();
+  const position = await done.evaluate(element => {
+    const box = element.getBBox(), matrix = element.getCTM(), svgBox = element.ownerSVGElement.getBoundingClientRect();
+    const center = new DOMPoint(box.x + box.width / 2, box.y + box.height / 2).matrixTransform(matrix);
+    const target = new DOMPoint(200, 265).matrixTransform(matrix);
+    return { start: { x: svgBox.x + center.x, y: svgBox.y + center.y }, end: { x: svgBox.x + target.x, y: svgBox.y + target.y } };
+  });
+  await page.mouse.move(position.start.x, position.start.y);
+  await page.mouse.down();
+  await page.mouse.move(position.end.x, position.end.y, { steps: 10 });
+  await page.mouse.up();
+  const result = await page.evaluate(() => {
+    const done = document.querySelector('#node-done'), qa = document.querySelector('#node-qa');
+    const edges = [...document.querySelectorAll('path[data-data-ref]')].filter(element => JSON.parse(element.getAttribute('data-data-ref')).edgeId);
+    const routes = edges.map(element => ({ id: JSON.parse(element.getAttribute('data-data-ref')).edgeId, points: element.getAttribute('d').match(/-?\d+(?:\.\d+)?/g).map(Number) }));
+    return { doneX: Number(done.getAttribute('x')), qaX: Number(qa.getAttribute('x')), routes };
+  });
+  assert.ok(result.doneX < result.qaX);
+  assert.equal(result.routes.length, 3);
+  for (const route of result.routes) {
+    for (let index = 2; index < route.points.length; index += 2) assert.ok(route.points[index] === route.points[index - 2] || route.points[index + 1] === route.points[index - 1], `${route.id} has a diagonal segment`);
+  }
+  assert.ok(result.routes.find(route => route.id === 'qa-done').points.length > 4);
+});
+
+test('Diagram Editor preserves a connector after two successive segment drags', async () => {
+  await page.goto('http://127.0.0.1:3000/playground/diagram-editor.html');
+  await page.locator('#select-edge').click();
+  const edge = page.locator('path#edge-1');
+  const original = await edge.getAttribute('d');
+  const routes = [];
+  for (let iteration = 0; iteration < 2; iteration += 1) {
+    const handle = page.locator('[id^="edge-handle-segment-edge-1-"]').first();
+    await handle.scrollIntoViewIfNeeded();
+    const position = await handle.evaluate(element => {
+      const reference = JSON.parse(element.getAttribute('data-data-ref'));
+      const first = reference.routePoints[reference.segmentIndex], second = reference.routePoints[reference.segmentIndex + 1];
+      const box = element.getBBox();
+      const start = new DOMPoint(box.x + box.width / 2, box.y + box.height / 2);
+      const end = new DOMPoint(start.x + (first.x === second.x ? 24 : 0), start.y + (first.x === second.x ? 0 : 24));
+      const matrix = element.getScreenCTM();
+      const from = start.matrixTransform(matrix), to = end.matrixTransform(matrix);
+      return { start: { x: from.x, y: from.y }, end: { x: to.x, y: to.y } };
+    });
+    await page.mouse.move(position.start.x, position.start.y);
+    await page.mouse.down();
+    await page.mouse.move(position.end.x, position.end.y, { steps: 6 });
+    const preview = await edge.getAttribute('d');
+    await page.mouse.up();
+    assert.equal(await edge.getAttribute('d'), preview, 'release preserves the dragged connector');
+    assert.notEqual(preview, routes.at(-1) || original, 'each drag changes the connector');
+    routes.push(preview);
+    await page.locator('#select-edge').click();
+    const selected = JSON.parse(await page.locator('#output').textContent()).selectedData;
+    assert.equal(selected[0].routingMode, 'manual');
+    assert.ok(selected[0].waypoints.length > 0);
+  }
+  await page.locator('#undo').click();
+  assert.equal(await edge.getAttribute('d'), routes[0]);
+  await page.locator('#redo').click();
+  assert.equal(await edge.getAttribute('d'), routes[1]);
+});
+
 test('keeps legend, y-axis title, and project labels collision-free in Chrome', async () => {
   const result = await page.evaluate(async () => {
     const { createChart } = await import(`/src/index.mjs?layout-test=${Date.now()}`);
@@ -159,6 +225,24 @@ test('re-renders Flow content at the enlarged Gallery preview size', async () =>
   const after = await page.locator('#dialogChart #node-load').evaluate(node => node.getBBox().width);
   assert.ok(after > before * 1.1, `Flow preview geometry did not scale: before=${before}, after=${after}`);
   await page.locator('#dialogClose').click();
+  assert.equal(await page.locator('#chart-flow #node-load').evaluate(node => node.getBBox().width), before);
+});
+
+test('enlarges automatically fitted Mindmap content without applying a second view scale', async () => {
+  await page.goto('http://127.0.0.1:3000/playground/project-gallery.html');
+  await page.selectOption('#renderer', 'svg');
+  await page.locator('[data-case="mindmap"] [data-preview]').click();
+  const result = await page.locator('#dialogChart svg').evaluate(svg => {
+    const nodes = [...svg.querySelectorAll('[id^="node-"]')].filter(node => node.tagName === 'rect');
+    const boxes = nodes.map(node => node.getBBox());
+    return { width: Number(svg.getAttribute('width')), height: Number(svg.getAttribute('height')), boxes: boxes.map(box => ({ x: box.x, y: box.y, width: box.width, height: box.height })) };
+  });
+  assert.ok(result.boxes.length > 0);
+  for (const box of result.boxes) {
+    assert.ok(box.x >= 0 && box.x + box.width <= result.width);
+    assert.ok(box.y >= 0 && box.y + box.height <= result.height);
+  }
+  await page.locator('#dialogClose').click();
 });
 
 test('applies Gallery top-level theme controls over stored chart preferences', async () => {
@@ -206,6 +290,19 @@ test('loads each public capability profile in the Profile Loading Playground', a
   assert.equal(result.length, 4);
   assert.ok(result.every(item => item.status === 'ready'));
   assert.ok(result.every(item => item.hasSvg));
+});
+
+test('runs the published browser consumer fixture through the public root entry', async () => {
+  await page.goto('http://127.0.0.1:3000/examples/consumer-browser.html');
+  await page.locator('#chart svg').waitFor({ state: 'visible', timeoutMs: 5000 });
+  const result = await page.evaluate(() => ({
+    status: document.querySelector('#status')?.textContent,
+    renderable: window.consumerChart?.getState().health.renderable,
+    chartTypes: window.consumerChart ? window.consumerChart.explain().type : null
+  }));
+  assert.match(result.status, /18 chart types available/);
+  assert.equal(result.renderable, true);
+  assert.equal(result.chartTypes, 'line');
 });
 
 test('mounts the actual README and Quickstart browser snippets', async () => {

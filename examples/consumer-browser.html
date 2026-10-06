@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>iChart.js Browser Consumer Example</title>
+  <style>body{margin:0;padding:24px;font:14px/1.5 system-ui,sans-serif;background:#f8fafc;color:#0f172a}main{max-width:760px;margin:auto}#chart{height:360px;background:#fff;border:1px solid #dbe3ee;border-radius:12px;padding:12px}#status{margin:12px 0;color:#15803d}code{background:#e2e8f0;padding:2px 5px;border-radius:4px}</style>
+</head>
+<body>
+  <main>
+    <h1>Browser consumer example</h1>
+    <p id="status">Loading the public root entry…</p>
+    <div id="chart" aria-label="Monthly revenue trend"></div>
+    <p>This repository fixture uses an import map to point the package name at <code>src/index.mjs</code>. A published consumer should resolve the same package imports through its bundler.</p>
+  </main>
+  <script type="importmap">
+  {
+    "imports": {
+      "@taylorwong/ichartjs": "../src/index.mjs",
+      "@taylorwong/ichartjs/standard": "../src/standard.mjs"
+    }
+  }
+  </script>
+  <script type="module">
+    import { createChart, getCapabilities } from '@taylorwong/ichartjs';
+    const chart = createChart({
+      container: '#chart',
+      type: 'line',
+      renderer: 'svg',
+      data: { values: [
+        { id: 'jan', month: 'Jan', revenue: 120 },
+        { id: 'feb', month: 'Feb', revenue: 148 },
+        { id: 'mar', month: 'Mar', revenue: 136 }
+      ] },
+      encoding: { x: { field: 'month' }, y: { field: 'revenue' } },
+      accessibility: { enabled: true, description: 'Monthly revenue trend' }
+    });
+    document.querySelector('#status').textContent = `${getCapabilities().chartTypes.length} chart types available · ${chart.getState().health.status}`;
+    window.consumerChart = chart;
+  </script>
+</body>
+</html>

@@ -8,6 +8,8 @@ iChart.js has three layers:
 
 The Skill is not a second renderer or service. A Skill-enabled Agent still needs a JavaScript host to render an interactive chart or create a file.
 
+The public runtime has one complete root entry and four independent focused entries. The root entry is not a prerequisite for `/standard`, `/project`, `/diagram`, or `/board`; import only the entry that matches the host's known capability family. The root is the right choice when an Agent needs cross-family discovery, while a focused entry is the right choice for a smaller application bundle.
+
 For natural-language changes to an existing chart, use the [Conversational Workflow](conversational-workflow.md). The Runtime does not parse prose itself; the host Agent maps prose to validated Runtime calls.
 
 ## Choose a Scenario
@@ -62,7 +64,7 @@ Install the runtime in the host application:
 npm install @taylorwong/ichartjs@^2
 ```
 
-For reproducible builds, pin the installed release instead: `npm install @taylorwong/ichartjs@2.0.25`.
+For reproducible builds, pin the installed release instead: `npm install @taylorwong/ichartjs@2.0.26`.
 
 Use the normal component lifecycle:
 
@@ -128,7 +130,7 @@ npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --ye
 For reproducible installation, pin the released Skill directory:
 
 ```bash
-npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.25/skills/ichartjs \
+npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.26/skills/ichartjs \
   --agent codex --global --yes
 ```
 
@@ -149,6 +151,8 @@ If the host can edit and run a JavaScript project, the output can be an interact
 ## Scenario 4: Create a One-Off Artifact
 
 For a single chart, an Agent can create a small ESM script or standalone HTML page.
+
+The repository includes a runnable Node consumer at [`examples/consumer-quickstart.mjs`](../../examples/consumer-quickstart.mjs) and a browser fixture at [`examples/consumer-browser.html`](../../examples/consumer-browser.html). The browser fixture uses an import map only to point the repository example at local source modules; published applications should resolve the same package names through their bundler.
 
 Recommended outputs:
 

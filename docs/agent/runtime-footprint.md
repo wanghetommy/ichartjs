@@ -29,7 +29,11 @@ Run:
 npm run footprint:check
 ```
 
-`npm run footprint:check` reports the root ESM module graph, gzip size, npm tarball size, and unpacked package size. `npm run profiles:check` verifies the profile graphs and renders one representative artifact per entry. A consumer bundler should build from the profile entry it actually uses rather than from the complete root.
+`npm run footprint:check` reports the root ESM module graph, gzip size, npm tarball size, unpacked package size, and grouped packaged resources. `npm run footprint:generate` refreshes the checked-in `playground/footprint.json` used by the Playground home page. CI compares the generated report with the current repository state, so stale size data fails the check instead of silently drifting.
+
+The Playground home page at `playground/index.html` displays the same report in a collapsed “Footprint and on-demand integration” panel. Runtime entries are shown separately from documentation, Skill, Recipes, manifests, and TypeScript declarations because Agent resources do not enter the browser runtime automatically.
+
+`npm run profiles:check` verifies the profile graphs and renders one representative artifact per entry. A consumer bundler should build from the profile entry it actually uses rather than from the complete root.
 
 Documentation, Skill files, Recipes, and capability manifests are package resources for Agents; they are not browser runtime modules unless the host imports or requests them.
 

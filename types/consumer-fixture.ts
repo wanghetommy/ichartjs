@@ -9,6 +9,7 @@ import {
   type EditCommand,
   type LinkedFilters
 } from '@taylorwong/ichartjs';
+import { createChart as createProfileChart } from '@taylorwong/ichartjs/standard';
 
 declare const spec: ChartSpec;
 declare const command: EditCommand;
@@ -26,6 +27,10 @@ chart.export({ type: 'json', as: 'object' });
 chart.export({ type: 'svg', as: 'string' });
 chart.export({ type: 'png', as: 'dataurl' });
 chart.export({ type: 'jpeg', as: 'blob' });
+const profileChart = createProfileChart({ type: 'line', data: [{ id: 'profile-row', name: 'A', value: 1 }] });
+profileChart.getState().lineage.recordIds;
+profileChart.explain().lineage.sourcePreserved;
+profileChart.destroy();
 chart.previewEdit(command);
 chart.validateData();
 getCapabilities().contractVersion;
