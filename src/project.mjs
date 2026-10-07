@@ -8,7 +8,8 @@ import { layoutArchitectureNodes, layoutDiagram, normalizeDiagramData, routeEdge
 import { analyzeBurndownSeries, analyzeSchedule } from './project-analytics.mjs';
 import { createLinkedProjectState, filterProjectRows, linkedRecordId } from './project-linking.mjs';
 import { contrastRatio, resolveTheme } from './theme.mjs';
-import { axisLabelLayout, boxesOverlap, estimateTextWidth, fitTextBlock, fontSize, titleLayout, truncateText } from './layout.mjs';
+import { axisLabelLayout, boxesOverlap, estimateTextWidth, fitTextBlock, fontAtSize, fontSize, titleLayout, truncateText } from './layout.mjs';
+import { addTitleText } from './text-scene.mjs';
 
 export const projectTypes = ['gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane', 'architecture', 'mindmap'];
 const day = 86400000;
@@ -63,7 +64,7 @@ function diagramNodeLabelLayout(row, kind, geometry, spec, font = null) {
   const horizontalPadding = kind === 'decision' ? size * 1.8 : size * 1.25;
   const maxWidth = Math.max(0, geometry.width - horizontalPadding * 2);
   if (minDimension < Math.max(24, size * 2) || maxWidth < size * 2.4) return null;
-  return fitTextBlock(row.label || row.id, { maxWidth, maxHeight: Math.max(size, geometry.height - size * 0.45), size, minSize: Math.max(10, Math.min(size, size - 2)), maxLines: 2 });
+  return fitTextBlock(row.label || row.id, { maxWidth, maxHeight: Math.max(size, geometry.height - size * 0.45), size, minSize: Math.max(10, Math.min(size, size - 2)), maxLines: 2, font: font || spec.theme.typography.label.font });
 }
 
 function flowNodeVisual(kind, box) {
@@ -152,31 +153,69 @@ function polylineMidpoint(points) {
 function edgeLabelLayout(edge, spec, positions, occupied = []) {
   const points = edge.points, midpoint = edge.curve === 'cubic' ? { point: cubicBezierPoint(points, 0.5), start: cubicBezierPoint(points, 0.45), end: cubicBezierPoint(points, 0.55) } : polylineMidpoint(points);
   if (!midpoint) return null;
-  const length = Math.max(1, edge.curve === 'cubic' ? Math.hypot(points.at(-1).x - points[0].x, points.at(-1).y - points[0].y) : Math.hypot(midpoint.end.x - midpoint.start.x, midpoint.end.y - midpoint.start.y));
   const angle = Math.atan2(midpoint.end.y - midpoint.start.y, midpoint.end.x - midpoint.start.x), normal = { x: -Math.sin(angle), y: Math.cos(angle) }, size = fontSize(spec, 'axis', 12);
-  const block = fitTextBlock(edge.label, { maxWidth: Math.max(size * 3, Math.min(180, length - 10)), maxHeight: size * 2.6, size, minSize: 10, maxLines: 2 });
-  const inlineOffset = 8, candidates = [
-    { x: midpoint.point.x, y: midpoint.point.y - inlineOffset, onLine: true },
-    { x: midpoint.point.x + normal.x * (inlineOffset + block.height + 6), y: midpoint.point.y + normal.y * (inlineOffset + block.height + 6), onLine: false },
-    { x: midpoint.point.x - normal.x * (inlineOffset + block.height + 6), y: midpoint.point.y - normal.y * (inlineOffset + block.height + 6), onLine: false },
-    { x: midpoint.point.x + normal.x * (inlineOffset + 2 * (block.height + 6)), y: midpoint.point.y + normal.y * (inlineOffset + 2 * (block.height + 6)), onLine: false },
-    { x: midpoint.point.x - normal.x * (inlineOffset + 2 * (block.height + 6)), y: midpoint.point.y - normal.y * (inlineOffset + 2 * (block.height + 6)), onLine: false }
-  ];
-  const nodeBoxes = [...positions.values()];
-  for (const candidate of candidates) {
-    const box = { x: candidate.x - block.width / 2, y: candidate.y - block.height / 2, width: block.width, height: block.height };
-    if (!nodeBoxes.some(node => boxesOverlap(box, node, 2)) && !occupied.some(item => boxesOverlap(box, item, 3))) return { ...candidate, anchor: midpoint.point, box, block };
+  const nodeBoxes = [...positions.values()], view = projectView(spec);
+  let fallback;
+  for (const maxLines of [1, 2]) {
+    const height = size * 1.2 * maxLines, inlineOffset = 8;
+    const candidates = [
+      { x: midpoint.point.x, y: midpoint.point.y - inlineOffset, onLine: true },
+      ...[1, -1, 2, -2].map(step => ({ x: midpoint.point.x + normal.x * (inlineOffset + Math.abs(step) * (height + 6)) * Math.sign(step), y: midpoint.point.y + normal.y * (inlineOffset + Math.abs(step) * (height + 6)) * Math.sign(step), onLine: false }))
+    ];
+    for (const candidate of candidates) {
+      const top = (4 - view.offsetY) / view.scale, bottom = (spec.height - 4 - view.offsetY) / view.scale;
+      if (candidate.y - height / 2 < top || candidate.y + height / 2 > bottom) continue;
+      let left = (4 - view.offsetX) / view.scale, right = (spec.width - 4 - view.offsetX) / view.scale;
+      for (const box of [...nodeBoxes, ...occupied]) {
+        if (box.y + box.height + 5 <= candidate.y - height / 2 || box.y - 5 >= candidate.y + height / 2) continue;
+        if (box.x + box.width < candidate.x) left = Math.max(left, box.x + box.width + 5);
+        else if (box.x > candidate.x) right = Math.min(right, box.x - 5);
+        else { left = candidate.x; right = candidate.x; break; }
+      }
+      const maxWidth = 2 * Math.min(candidate.x - left, right - candidate.x);
+      if (maxWidth < 10) continue;
+      const block = fitTextBlock(edge.label, { maxWidth, maxHeight: size * 2.6, size, minSize: 10, maxLines, wordWrap: true, font: spec.theme.typography.axis.font });
+      const box = { x: candidate.x - block.width / 2, y: candidate.y - block.height / 2, width: block.width, height: block.height };
+      const placement = { ...candidate, anchor: midpoint.point, box, block };
+      if (!fallback || block.lines.join('').length > fallback.block.lines.join('').length) fallback = placement;
+      if (!block.truncated && !nodeBoxes.some(node => boxesOverlap(box, node, 2)) && !occupied.some(item => boxesOverlap(box, item, 3))) return placement;
+    }
   }
-  return { ...candidates[0], anchor: midpoint.point, box: { x: candidates[0].x - block.width / 2, y: candidates[0].y - block.height / 2, width: block.width, height: block.height }, block, suppressed: false };
+  if (fallback) return fallback;
+  const block = fitTextBlock(edge.label, { maxWidth: 36, maxHeight: size * 2.6, size, minSize: 10, maxLines: 2, wordWrap: true, font: spec.theme.typography.axis.font });
+  const candidate = { x: midpoint.point.x, y: midpoint.point.y - 8, onLine: true };
+  return { ...candidate, anchor: midpoint.point, box: { x: candidate.x - block.width / 2, y: candidate.y - block.height / 2, width: block.width, height: block.height }, block, suppressed: false };
+}
+
+function connectorGeometry(points, curve = null) {
+  const tip = points.at(-1), previous = points.at(-2), nominalDepth = 7 * Math.cos(Math.PI / 6);
+  let renderPoints;
+  if (curve === 'cubic' && points.length === 4) {
+    const middle = cubicBezierPoint(points, 0.5), depth = Math.min(nominalDepth, Math.hypot(tip.x - middle.x, tip.y - middle.y) / 2);
+    let low = 0.5, high = 1;
+    for (let iteration = 0; iteration < 24; iteration += 1) {
+      const ratio = (low + high) / 2, point = cubicBezierPoint(points, ratio);
+      if (Math.hypot(tip.x - point.x, tip.y - point.y) > depth) low = ratio; else high = ratio;
+    }
+    const ratio = (low + high) / 2, interpolate = (first, second) => ({ x: first.x + (second.x - first.x) * ratio, y: first.y + (second.y - first.y) * ratio });
+    const first = interpolate(points[0], points[1]), second = interpolate(points[1], points[2]);
+    renderPoints = [{ ...points[0] }, first, interpolate(first, second), cubicBezierPoint(points, ratio)];
+  } else {
+    const length = Math.hypot(tip.x - previous.x, tip.y - previous.y), depth = Math.min(nominalDepth, length / 2);
+    const base = { x: tip.x - (tip.x - previous.x) * depth / (length || 1), y: tip.y - (tip.y - previous.y) * depth / (length || 1) };
+    renderPoints = [...points.slice(0, -1).map(point => ({ ...point })), base];
+  }
+  const base = renderPoints.at(-1), offsetX = -(tip.y - base.y) / Math.sqrt(3), offsetY = (tip.x - base.x) / Math.sqrt(3);
+  const arrowPoints = [{ ...tip }, { x: base.x + offsetX, y: base.y + offsetY }, { x: base.x - offsetX, y: base.y - offsetY }, { ...tip }];
+  return { renderPoints, arrowPoints };
 }
 
 function arrow(scene, id, points, reference, critical = false, curve = null) {
   const color = critical ? scene.theme?.status?.danger || '#dc2626' : scene.theme?.axis || '#64748b';
-  const tip = points.at(-1), previous = points.at(-2);
-  const angle = Math.atan2(tip.y - previous.y, tip.x - previous.x), size = 7;
+  const { renderPoints, arrowPoints } = connectorGeometry(points, curve);
   const lineDash = reference?.lineStyle === 'dashed' ? [7, 5] : reference?.lineStyle === 'dotted' ? [2, 4] : [];
-  scene.add({ id, type: 'path', geometry: { points, ...(curve ? { curve } : {}) }, style: { fill: 'none', stroke: color, strokeWidth: critical ? 2.5 : 1.5, lineDash }, dataRef: reference, interactive: Boolean(reference?.edgeId), hitTolerance: 8, zIndex: 1 });
-  scene.add({ id: id.startsWith('dependency-') ? id.replace('dependency-', 'dependency-arrow-') : `${id}-arrow`, type: 'path', geometry: { points: [tip, { x: tip.x - size * Math.cos(angle - Math.PI / 6), y: tip.y - size * Math.sin(angle - Math.PI / 6) }, { x: tip.x - size * Math.cos(angle + Math.PI / 6), y: tip.y - size * Math.sin(angle + Math.PI / 6) }, tip] }, style: { fill: color, stroke: color }, zIndex: 3 });
+  scene.add({ id, type: 'path', geometry: { points, renderPoints, ...(curve ? { curve } : {}) }, style: { fill: 'none', stroke: color, strokeWidth: critical ? 2.5 : 1.5, lineDash }, dataRef: reference, interactive: Boolean(reference?.edgeId), hitTolerance: 8, zIndex: 1 });
+  scene.add({ id: id.startsWith('dependency-') ? id.replace('dependency-', 'dependency-arrow-') : `${id}-arrow`, type: 'path', geometry: { points: arrowPoints }, style: { fill: color, stroke: color }, zIndex: 3 });
 }
 
 function timeAxis(scene, plot, min, max, locale = 'en-US') {
@@ -390,6 +429,12 @@ function burndownScene(scene, spec, rows, state) {
   text(scene, 'burndown-projected', forecast.date ? `${messages.estimatedFinish}: ${forecast.date}` : `${messages.forecastUnavailable}: ${forecast.reason}`, plot.x, plot.y - 16, { font: spec.theme.typography.axis.font });
 }
 
+function diagramGroupBox(group, boxes) {
+  const padding = typeof group.padding === 'number' ? { left: group.padding, right: group.padding, top: group.padding, bottom: group.padding } : { left: group.padding?.left ?? 16, right: group.padding?.right ?? 16, top: group.padding?.top ?? 24, bottom: group.padding?.bottom ?? 16 };
+  const left = Math.min(...boxes.map(box => box.x)) - padding.left, top = Math.min(...boxes.map(box => box.y)) - padding.top, right = Math.max(...boxes.map(box => box.x + box.width)) + padding.right, bottom = Math.max(...boxes.map(box => box.y + box.height)) + padding.bottom;
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
 function diagramScene(scene, spec, rows, state) {
   const diagramSpec = normalizeDiagramData(spec);
   const plot = state.plot, mode = diagramSpec.diagram.mode, edges = diagramSpec.edges, lanes = diagramSpec.lanes, layers = diagramSpec.layers, groups = diagramSpec.groups, layout = layoutDiagram(diagramSpec, plot);
@@ -410,6 +455,7 @@ function diagramScene(scene, spec, rows, state) {
   const positions = new Map(), slots = new Map();
   const edgeLabelBoxes = [], labelLayout = { visible: 0, wrapped: 0, scaled: 0, truncated: 0, suppressed: 0, edgeOnLine: 0, edgeOffset: 0, backgrounded: 0 };
   state.routingWarnings = [];
+  state.edgeRoutes = [];
   state.labelLayout = { ...(state.labelLayout || {}), diagram: labelLayout };
   state.labelWarnings = [];
   lanes.forEach((lane, index) => {
@@ -445,7 +491,7 @@ function diagramScene(scene, spec, rows, state) {
     });
     const label = diagramNodeLabelLayout(row, kind, geometry, spec, nodeFont);
     if (label) {
-      const rawLabel = String(row.label || row.id), labelFont = nodeFont ? nodeFont.replace(/\d+(?:\.\d+)?px/, `${label.size}px`) : `${label.size}px system-ui`;
+      const rawLabel = String(row.label || row.id), labelFont = fontAtSize(nodeFont || spec.theme.typography.label.font, label.size);
       textBlock(scene, `node-label-${row.id}`, label, geometry.x + geometry.width / 2, geometry.y + geometry.height / 2, { fill: markText(spec.theme, spec.colors[lane % spec.colors.length]), font: labelFont }, { nodeId: row.id, rawLabel, renderedLabel: label.lines.join('\n'), truncated: label.truncated });
       labelLayout.visible += 1;
       if (label.wrapped) labelLayout.wrapped += 1;
@@ -456,18 +502,17 @@ function diagramScene(scene, spec, rows, state) {
       state.labelWarnings.push({ code: 'LABELS_SUPPRESSED', path: `nodes.${index}.label`, count: 1, nodeId: row.id, message: `Node label for "${row.label || row.id}" was hidden because the node is too small.`, suggestion: 'Increase node size or use the node tooltip/accessibility text.' });
     }
   });
-  const groupBoxes = new Map();
+  const groupBoxes = new Map(), groupContents = new Map();
   groups.forEach(group => {
     const boxes = rows.filter(row => row.groupId === group.id).map(row => positions.get(row.id)).filter(Boolean);
     if (!boxes.length) return;
-    const padding = typeof group.padding === 'number' ? { left: group.padding, right: group.padding, top: group.padding, bottom: group.padding } : { left: group.padding?.left ?? 16, right: group.padding?.right ?? 16, top: group.padding?.top ?? 24, bottom: group.padding?.bottom ?? 16 };
-    const left = Math.min(...boxes.map(box => box.x)) - padding.left, top = Math.min(...boxes.map(box => box.y)) - padding.top, right = Math.max(...boxes.map(box => box.x + box.width)) + padding.right, bottom = Math.max(...boxes.map(box => box.y + box.height)) + padding.bottom;
-    const geometry = { x: left, y: top, width: right - left, height: bottom - top };
+    groupContents.set(group.id, boxes);
+    const geometry = diagramGroupBox(group, boxes), { x: left, y: top, width } = geometry;
     groupBoxes.set(group.id, geometry);
     scene.add({ id: `group-${group.id}`, type: 'rect', geometry, bounds: { ...geometry }, style: { fill: group.collapsed ? spec.theme.surface : 'none', stroke: group.collapsed ? spec.theme.focus : spec.theme.axis, strokeWidth: group.collapsed ? 2 : 1.5, opacity: 0.9 }, dataRef: { groupId: group.id, collapsed: Boolean(group.collapsed) }, interactive: false, zIndex: 0 });
     text(scene, `group-label-${group.id}`, group.collapsed ? `${group.label || group.id} (${boxes.length})` : group.label || group.id, left + 8, top + 15, { font: spec.theme.typography.legend.font });
     const label = scene.find(`group-label-${group.id}`);
-    if (label) { label.bounds = { x: left, y: top, width: right - left, height: 20 }; label.dataRef = { groupId: group.id, collapsed: Boolean(group.collapsed) }; label.interactive = true; }
+    if (label) { label.bounds = { x: left, y: top, width, height: 20 }; label.dataRef = { groupId: group.id, collapsed: Boolean(group.collapsed) }; label.interactive = true; }
   });
   if (mode === 'architecture') {
     diagramSpec.boundaries.forEach((boundary, boundaryIndex) => {
@@ -493,25 +538,54 @@ function diagramScene(scene, spec, rows, state) {
     const toPortDefinition = toNode.groupId && collapsedGroups.has(toNode.groupId) ? null : toNode?.ports?.find(port => port.id === edge.toPort);
     const routing = edge.routing || diagramSpec.diagram.routing;
     const path = routeEdgePath({ ...edge, curveTension: edge.curveTension ?? diagramSpec.diagram.curveTension, grid: diagramSpec.diagram.grid, obstacles, fromPortDefinition, toPortDefinition, preserveSides: mode === 'architecture' }, from, to, routing);
-    if (path.warning) state.routingWarnings.push({ ...path.warning, edgeId: edge.id || `edge-${index}`, path: `edges.${index}` });
+    const requestedRoutingMode = edge.routingMode || (edge.waypoints?.length ? 'manual' : 'auto'), effectiveRoutingMode = path.routingMode || 'auto';
+    state.edgeRoutes.push({ edgeId: edge.id || `edge-${index}`, requestedRoutingMode, effectiveRoutingMode, visible: path.points.length >= 2, reason: path.warning?.reason || path.warning?.code || null });
+    (path.warnings || (path.warning ? [path.warning] : [])).forEach(warning => state.routingWarnings.push({ ...warning, edgeId: edge.id || `edge-${index}`, path: warning.code === 'EDGE_MANUAL_ROUTE_INVALID' ? `edges.${index}.waypoints` : `edges.${index}` }));
     const points = path.points;
     if (points.length < 2) return;
-    arrow(scene, `edge-${index}`, points, { from: edge.from, to: edge.to, edgeId: edge.id || `edge-${index}`, status: edge.status, routing, routingMode: edge.routingMode || (edge.waypoints?.length ? 'manual' : 'auto'), lineStyle: edge.lineStyle || 'solid', curveTension: edge.curveTension ?? diagramSpec.diagram.curveTension, waypoints: edge.waypoints || [], fromPortDefinition, toPortDefinition, fromGroupId: fromNode.groupId || null, toGroupId: toNode.groupId || null }, edge.critical === true, path.curve);
+    arrow(scene, `edge-${index}`, points, { from: edge.from, to: edge.to, edgeId: edge.id || `edge-${index}`, status: edge.status, diagramPoints: points, routing, routingMode: effectiveRoutingMode, requestedRoutingMode, lineStyle: edge.lineStyle || 'solid', curveTension: edge.curveTension ?? diagramSpec.diagram.curveTension, waypoints: edge.waypoints || [], fromPortDefinition, toPortDefinition, fromGroupId: fromNode.groupId || null, toGroupId: toNode.groupId || null }, edge.critical === true, path.curve);
+    const groupContent = fromNode.groupId && fromNode.groupId === toNode.groupId ? groupContents.get(fromNode.groupId) : null;
+    if (groupContent) {
+      const routePoints = [...points, ...scene.find(`edge-${index}-arrow`).geometry.points], stroke = (edge.critical === true ? 2.5 : 1.5) / 2;
+      const left = Math.min(...routePoints.map(point => point.x)) - stroke, top = Math.min(...routePoints.map(point => point.y)) - stroke, right = Math.max(...routePoints.map(point => point.x)) + stroke, bottom = Math.max(...routePoints.map(point => point.y)) + stroke;
+      groupContent.push({ x: left, y: top, width: right - left, height: bottom - top });
+    }
     if (edge.label) {
       const placement = edgeLabelLayout({ ...edge, points, curve: path.curve }, spec, positions, edgeLabelBoxes);
       if (placement) {
         edgeLabelBoxes.push(placement.box);
-        const rawLabel = String(edge.label), labelFont = `${placement.block.size}px system-ui`;
+        if (groupContent) groupContent.push({ x: placement.box.x - 3, y: placement.box.y - 2, width: placement.box.width + 6, height: placement.box.height + 4 });
+        const rawLabel = String(edge.label), labelFont = fontAtSize(spec.theme.typography.axis.font, placement.block.size);
         if (placement.onLine) labelLayout.edgeOnLine += 1; else labelLayout.edgeOffset += 1;
         if (placement.block.wrapped) labelLayout.wrapped += 1;
         if (placement.block.scaled) labelLayout.scaled += 1;
-        if (placement.block.truncated) { labelLayout.truncated += 1; state.labelWarnings.push({ code: 'LABEL_TRUNCATED', path: `edges.${index}.label`, edgeId: edge.id || `edge-${index}`, rawLabel, renderedLabel: placement.block.lines.join('\n'), message: `Edge label "${rawLabel}" was truncated to fit the available line space.`, suggestion: 'Increase the edge length or shorten the label.' }); }
+        if (placement.block.truncated) { labelLayout.truncated += 1; state.labelWarnings.push({ code: 'LABEL_TRUNCATED', path: `edges.${index}.label`, edgeId: edge.id || `edge-${index}`, rawLabel, renderedLabel: placement.block.lines.join('\n'), message: `Edge label "${rawLabel}" was truncated to fit the available label space.`, suggestion: 'Increase the space around the connector or shorten the label.' }); }
         if (placement.onLine) { labelPlate(scene, `edge-label-${index}`, placement.box, spec.theme.background); labelLayout.backgrounded += 1; }
         textBlock(scene, `edge-label-${index}`, placement.block, placement.x, placement.y, { fill: spec.theme.text, font: labelFont }, { edgeId: edge.id || `edge-${index}`, rawLabel, renderedLabel: placement.block.lines.join('\n'), onLine: placement.onLine, offsetX: placement.x - placement.anchor.x, offsetY: placement.y - placement.anchor.y });
       }
     }
   });
+  groups.filter(group => !group.collapsed && groupContents.has(group.id)).forEach(group => {
+    const geometry = diagramGroupBox(group, groupContents.get(group.id)), frame = scene.find(`group-${group.id}`), label = scene.find(`group-label-${group.id}`);
+    groupBoxes.set(group.id, geometry);
+    frame.geometry = geometry;
+    frame.bounds = { ...geometry };
+    if (label) { label.geometry.x = geometry.x + 8; label.geometry.y = geometry.y + 15; label.bounds = { x: geometry.x, y: geometry.y, width: geometry.width, height: 20 }; }
+  });
   state.nodePositions = Object.fromEntries(positions);
+  state.diagramWarnings = [];
+  if (spec.type === 'flow' && diagramSpec.diagram.layout === 'layered') {
+    const visible = rows.filter(row => !collapsedGroups.has(row.groupId));
+    const overflow = visible.filter(row => {
+      const box = positions.get(row.id);
+      return box.x < plot.x - 1e-6 || box.y < plot.y - 1e-6 || box.x + box.width > plot.x + plot.width + 1e-6 || box.y + box.height > plot.y + plot.height + 1e-6;
+    }).map(row => row.id);
+    if (overflow.length) state.diagramWarnings.push({ code: 'FLOW_LAYOUT_OVERFLOW', path: 'diagram.layout', nodeIds: overflow, message: 'Flow nodes exceed the available plot area; node sizes and the viewport were preserved.', suggestion: 'Increase chart width/height or simplify the visible workflow.' });
+    const overlaps = [];
+    visible.forEach((row, index) => visible.slice(index + 1).forEach(other => { if (boxesOverlap(positions.get(row.id), positions.get(other.id))) overlaps.push([row.id, other.id]); }));
+    if (overlaps.length) state.diagramWarnings.push({ code: 'FLOW_NODE_OVERLAP', path: 'nodes', pairs: overlaps, message: 'Flow nodes overlap, including explicitly positioned nodes.', suggestion: 'Adjust explicit positions or increase the available chart area.' });
+  }
+  state.diagramLayout = { mode: diagramSpec.diagram.layout, coordinate: 'diagram', nodes: Object.fromEntries([...positions].map(([id, box]) => [id, { ...box }])), edgeRoutes: state.edgeRoutes.map(route => ({ ...route })), warnings: state.diagramWarnings.map(warning => ({ ...warning })) };
   state.groupBoxes = Object.fromEntries(groupBoxes);
 }
 
@@ -553,11 +627,15 @@ export function buildProjectScene(spec) {
     state.projectAnalytics.assumptions = state.schedule.assumptions;
     state.projectAnalytics.warnings = state.schedule.warnings;
   }
-  if (!data.rows.length) text(scene, 'empty', sourceRows.length && linked.visibleCount === 0 ? 'No matching data' : spec.emptyText || 'No data', spec.width / 2, spec.height / 2, { textAnchor: 'middle' });
+  if (!data.rows.length) {
+    if (['flow', 'swimlane', 'architecture', 'mindmap'].includes(spec.type)) state.diagramLayout = { mode: normalizeDiagramData(spec).diagram.layout, coordinate: 'diagram', nodes: {}, edgeRoutes: [], warnings: [] };
+    text(scene, 'empty', sourceRows.length && linked.visibleCount === 0 ? 'No matching data' : spec.emptyText || 'No data', spec.width / 2, spec.height / 2, { textAnchor: 'middle' });
+  }
   else if (diagram) {
     diagramScene(scene, spec, data.rows, state);
     if (state.labelWarnings?.length) data.warnings.push(...state.labelWarnings);
     if (state.routingWarnings?.length) data.warnings.push(...state.routingWarnings);
+    if (state.diagramWarnings?.length) data.warnings.push(...state.diagramWarnings);
   }
   else if (spec.type === 'burndown') burndownScene(scene, spec, data.rows, state);
   else tasksScene(scene, spec, data.rows, state);
@@ -573,10 +651,10 @@ export function buildProjectScene(spec) {
     ['y', 'y1', 'y2', 'cy'].forEach(key => { if (geometry[key] != null) geometry[key] = mapY(geometry[key]); });
     ['width', 'height', 'r', 'rx', 'ry'].forEach(key => { if (geometry[key] != null) geometry[key] *= view.scale; });
     if (geometry.points) geometry.points = geometry.points.map(point => ({ x: mapX(point.x), y: mapY(point.y) }));
+    if (geometry.renderPoints) geometry.renderPoints = geometry.renderPoints.map(point => ({ x: mapX(point.x), y: mapY(point.y) }));
     if (node.bounds) node.bounds = { x: mapX(node.bounds.x), y: mapY(node.bounds.y), width: node.bounds.width * view.scale, height: node.bounds.height * view.scale };
   });
-  if (spec.title?.text) text(scene, 'title', spec.title.text, spec.width / 2, title.titleY, { fill: spec.theme.text, font: spec.theme.typography.title.font, textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle' });
-  if (spec.title?.subtitle) text(scene, 'subtitle', spec.title.subtitle, spec.width / 2, title.subtitleY, { fill: spec.theme.muted, font: spec.theme.typography.subtitle.font, textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle' });
+  addTitleText(scene, spec, title, data.warnings);
   state.view = view;
   return { scene, data, state };
 }
@@ -634,10 +712,11 @@ export function rerouteDiagramScene(scene) {
     node.geometry.points = path.points;
     if (path.curve) node.geometry.curve = path.curve;
     else delete node.geometry.curve;
-    const end = node.geometry.points.at(-1);
-    const arrowNode = scene.find(`${node.id}-arrow`), beforeTip = node.geometry.points.at(-2);
+    const { renderPoints, arrowPoints } = connectorGeometry(path.points, path.curve);
+    node.geometry.renderPoints = renderPoints;
+    const arrowNode = scene.find(`${node.id}-arrow`);
     if (arrowNode) arrowNode.visible = true;
-    if (arrowNode) arrowNode.geometry.points = [end, { x: end.x - 7 * Math.cos(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) - Math.PI / 6), y: end.y - 7 * Math.sin(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) - Math.PI / 6) }, { x: end.x - 7 * Math.cos(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) + Math.PI / 6), y: end.y - 7 * Math.sin(Math.atan2(end.y - beforeTip.y, end.x - beforeTip.x) + Math.PI / 6) }, end];
+    if (arrowNode) arrowNode.geometry.points = arrowPoints;
     const edgeIndex = Number(node.id.slice(5)), label = scene.find(`edge-label-${edgeIndex}`), labelPoint = node.geometry.curve === 'cubic' ? cubicBezierPoint(node.geometry.points, 0.5) : node.geometry.points[Math.floor(node.geometry.points.length / 2)];
     scene.walk(item => { if (item.id === `edge-label-${edgeIndex}` || item.id.startsWith(`edge-label-${edgeIndex}-`)) item.visible = true; });
     if (label && labelPoint) {

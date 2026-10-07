@@ -92,7 +92,7 @@ Iteration 8A–8D is complete. The runtime exposes per-chart capability profiles
 
 ## Preview and Acceptance
 
-- The target Playground information architecture, page responsibilities, migration decisions, and delivery order are defined in `docs/agent/development/playground-plan.md`.
+- The maintained Playground ownership and page requirements are defined in [Playground Policy](playground-plan.md); this iteration records the original phased delivery plan.
 - Full chart Gallery: `http://localhost:3000/playground/project-gallery.html`
 - Foundational chart Gallery: `http://localhost:3000/playground/foundational-gallery.html`
 - Project intelligence: `http://localhost:3000/playground/project-intelligence.html`

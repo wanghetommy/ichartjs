@@ -7,14 +7,33 @@ export const chartTypes = ['line', 'area', 'bar', 'column', 'pie', 'scatter', 'f
 export const renderers = ['canvas', 'svg'];
 export const exportTypes = ['png', 'jpeg', 'svg', 'json'];
 export const interactionDefaults = { zoom: false, pan: false, brush: false, drag: false, edgeDrag: false, portConnect: false, editing: false };
-export const commandTypes = ['updateField', 'updateRecord', 'updateTask', 'shiftTask', 'updateProgress', 'addDependency', 'removeDependency', 'updateMilestone', 'moveNode', 'moveNodes', 'moveNodeToLane', 'resizeNode', 'alignNodes', 'snapNodes', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'updateEdge', 'removeEdge', 'addEdge', 'toggleGroupCollapse', 'duplicateSelection', 'pasteSelection'];
-export const diagramOperations = ['moveNode', 'moveNodes', 'resizeNode', 'alignNodes', 'snapNodes', 'moveNodeToLane', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'updateEdge', 'removeEdge', 'addEdge', 'toggleGroupCollapse', 'duplicateSelection', 'pasteSelection'];
+export const commandTypes = ['updateField', 'updateRecord', 'updateTask', 'shiftTask', 'updateProgress', 'addDependency', 'removeDependency', 'updateMilestone', 'addNode', 'removeNode', 'moveNode', 'moveNodes', 'moveNodeToLane', 'resizeNode', 'alignNodes', 'snapNodes', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'updateEdge', 'removeEdge', 'addEdge', 'toggleGroupCollapse', 'duplicateSelection', 'pasteSelection'];
+export const diagramOperations = ['addNode', 'removeNode', 'moveNode', 'moveNodes', 'resizeNode', 'alignNodes', 'snapNodes', 'moveNodeToLane', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'updateEdge', 'removeEdge', 'addEdge', 'toggleGroupCollapse', 'duplicateSelection', 'pasteSelection'];
 export const businessModels = ['project-task', 'timeline-event', 'milestone', 'burndown-sample', 'flow-node', 'flow-edge', 'swimlane', 'architecture-node', 'architecture-edge', 'mindmap-edge', 'mindmap-node'];
 export const diagramEdgeModels = ['flow-edge', 'architecture-edge', 'mindmap-edge'];
 export const flowNodeKinds = ['start', 'end', 'process', 'decision', 'io', 'connector'];
+export const incrementalFlowContract = {
+  commands: ['addNode', 'removeNode', 'updateField', 'updateRecord', 'addEdge', 'updateEdge', 'removeEdge'],
+  activation: ['editing.enabled', 'editing.allowStructuralChanges'],
+  confirmation: 'host-confirmed-preview',
+  nodeCreation: { field: 'node', required: ['id', 'label'], position: 'optional; explicit positions remain authoritative' },
+  nodeRemoval: { field: 'nodeId', policy: ['reject', 'cascade'], defaultPolicy: 'reject', cascade: 'incident explicit edges only; other references must remain valid' },
+  automaticLayout: { layout: 'layered', trigger: 'each committed edit', strategy: 'deterministic full recomputation; loop back-edges do not increase rank', pinnedNodes: 'nodes with position', viewportChanges: false },
+  previewLayout: 'preview.layout',
+  committedLayout: 'getState().layout.diagram',
+  atomic: true,
+  undoable: true,
+  persistence: 'getSpec(); edit history is not serialized',
+  diagnostics: ['FLOW_LAYOUT_OVERFLOW', 'FLOW_NODE_OVERLAP', 'EDGE_ROUTE_BLOCKED', 'EDGE_MANUAL_ROUTE_INVALID'],
+  recipe: '@taylorwong/ichartjs/recipes/diagrams/incremental-flow',
+  limitations: ['no runtime natural-language parser', 'no animated layout transition', 'no minimum-displacement layout']
+};
 
 const status = (supported, notApplicable = []) => Object.fromEntries(supported.map(name => [name, 'supported']).concat(notApplicable.map(name => [name, 'not-applicable'])));
 const commonPresentation = ['title', 'subtitle', 'theme', 'responsive', 'empty-state', 'invalid-data-state', 'export', 'branding'];
+
+export const textContract = { content: 'plain-text', hardBreaks: ['title', 'subtitle', 'diagram-label', 'board-text', 'annotation'], title: { maxLines: 2, overflow: 'scale then truncate with TITLE_TRUNCATED' }, labels: { font: 'CSS pixel font, 8–160px; used for measurement and drawing', positions: { bar: ['inside', 'outside'], column: ['inside', 'outside'] }, overflow: 'suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors', background: 'none; diagram inline edges and explicit annotations only' }, measurement: 'Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.', unicode: 'grapheme-safe truncation' };
+export const annotationContract = { types: ['reference-line', 'callout'], chartTypes: ['line', 'area', 'bar', 'column', 'scatter'], fields: { 'reference-line': ['id', 'type', 'axis', 'value', 'text?', 'color?'], callout: ['id', 'type', 'recordId', 'text', 'field?', 'offset?', 'color?'] }, numericAxesOnly: true, recordId: 'data.values[].id string; field selects a measure series', persistence: 'ChartSpec.annotations', updates: 'chart.update({ annotations }); host owns natural-language interpretation and confirmation', exports: ['json', 'svg', 'png'], limits: { maxAnnotations: 100, maxTextLines: 3 }, diagnostics: ['INVALID_ANNOTATION', 'UNKNOWN_ANNOTATION_OPTION', 'ANNOTATION_TARGET_MISSING', 'ANNOTATION_OUT_OF_VIEW', 'ANNOTATION_TEXT_TRUNCATED', 'ANNOTATION_LABEL_OVERLAP'], limitations: ['no range bands', 'no rich text', 'no annotation drag editor', 'domains are not expanded'] };
 
 export const chartDefinitions = {
   line: { family: 'cartesian', intents: ['trend', 'time-series'], required: ['dimension', 'measure'], optional: ['series'], interactions: ['hover', 'tooltip', 'selection', 'crosshair', 'zoom', 'pan', 'keyboard'], features: status([...commonPresentation, 'axes', 'grid', 'legend', 'labels', 'formatting', 'multi-series', 'dual-axis']) },

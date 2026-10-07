@@ -8,6 +8,8 @@ import { createChart } from '@taylorwong/ichartjs';
 
 根入口包含 Agent 规划、校验、全部图表、项目和 Diagram、Freeform Board、SVG/Canvas、编辑、偏好、导出和能力发现。
 
+Iteration 26 增量 Flow 的预览、提交及历史使用根入口，轻量 `/diagram` Profile 仅侧重渲染和 Spec 更新。新增命令、布局算法、发现元数据进入 Runtime；Recipe、Skill、文档仍是 Agent 资源，不会自动进入浏览器。新增 Iteration 25–26 指南和配方后更新包资源基线，浏览器模块 raw/gzip 基线及 15% 增长门槛不变，实际体积见 `playground/footprint.json`。
+
 虽然 npm 包是 ESM 并声明了 `sideEffects: false`，根入口仍然是完整 Runtime；同时提供按能力拆分的公开入口。不要直接引用未公开的 `src/` 深层路径来做移动端优化。
 
 运行以下命令查看体积基线：

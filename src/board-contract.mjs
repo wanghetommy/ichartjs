@@ -1,13 +1,40 @@
+/** JSON-safe Board validation and discovery, sharing runtime text fitting. */
 import { validateSpec } from './spec.mjs';
-import { fitTextBlock, truncateText } from './layout.mjs';
+import { boardTextLayout, fontPixels } from './layout.mjs';
+
+export const boardEditableFields = {
+  common: ['zIndex', 'opacity', 'visible', 'style'],
+  itemTypes: {
+    image: ['position', 'size', 'assetId', 'fit'],
+    text: ['position', 'size', 'text', 'fontSize', 'fontFamily', 'fontWeight', 'lineHeight', 'padding', 'textAlign', 'verticalAlign', 'wrap', 'maxLines', 'minFontSize', 'background'],
+    shape: ['position', 'size', 'shape', 'startAngle', 'endAngle', 'innerRadius', 'points'],
+    path: ['position', 'size', 'curve', 'closed', 'points'],
+    connector: ['from', 'to', 'routing'],
+    chart: ['position', 'size', 'spec']
+  },
+  asset: ['src', 'mime', 'alt', 'width', 'height', 'bytes']
+};
 
 export const boardCapabilities = {
   version: '1.0',
-  api: ['createBoard', 'validateBoardSpec', 'planCanvas'],
+  api: ['createBoard', 'validateBoardSpec', 'planCanvas', 'validateBoardCommand'],
+  incrementalBuilding: {
+    commands: ['addItem', 'updateItem', 'removeItem', 'addAsset', 'updateAsset', 'removeAsset'],
+    commandFields: { addItem: ['item'], updateItem: ['itemId', 'changes'], removeItem: ['itemId', 'policy?'], addAsset: ['asset'], updateAsset: ['assetId', 'changes'], removeAsset: ['assetId', 'policy?'] },
+    editableFields: boardEditableFields,
+    type: 'board-edit', activation: ['editing.enabled', 'editing.allowStructuralChanges (add/remove)', 'issued preview', 'host confirmation'],
+    methods: ['previewEdit', 'applyEdit', 'subscribe', 'undo', 'redo'],
+    atomic: true, automaticReflow: false, layout: 'preserve-explicit-positions',
+    changes: 'Shallow field replacement; updateItem.changes.position/size for explicit layout, changes.spec for a complete embedded ChartSpec.',
+    lockedItems: 'Agent commands cannot modify/remove locked items or their assets.',
+    removal: { default: 'reject', cascade: 'Explicitly remove referenced images/connectors; never delete unrelated items.' },
+    readiness: 'await ready(); inspect assets, assetsReady and health; previews never load images',
+    recipe: '@taylorwong/ichartjs/recipes/boards/incremental-board'
+  },
   items: ['image', 'text', 'shape', 'path', 'connector', 'chart'],
   shapes: ['rectangle', 'ellipse', 'diamond', 'hexagon', 'polygon', 'arc', 'sector'],
   geometry: { primitives: ['rectangle', 'ellipse', 'diamond', 'hexagon', 'polygon', 'arc', 'sector'], paths: ['linear', 'cubic'], coordinateSpace: 'normalized-item-local', angles: 'degrees', maxPoints: 64 },
-  text: { wrapping: true, alignment: ['start', 'center', 'end'], verticalAlignment: ['top', 'middle', 'bottom'], overflow: ['scale', 'wrap', 'truncate'], defaultMaxLines: 3, minFontSize: 8 },
+  text: { wrapping: true, hardBreaks: true, fontPrecedence: 'style.font then fontSize/fontWeight/fontFamily; fitting resizes the effective font', alignment: ['start', 'center', 'end'], verticalAlignment: ['top', 'middle', 'bottom'], overflow: ['scale', 'wrap', 'truncate'], defaultMaxLines: 3, minFontSize: 8 },
   renderers: ['svg', 'canvas', 'auto'],
   exports: ['json', 'svg', 'png', 'jpeg'],
   imageMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
@@ -22,7 +49,7 @@ export const boardCapabilities = {
 };
 
 export function cloneBoard(value) { return JSON.parse(JSON.stringify(value)); }
-function diagnostic(code, path, message) { return { code, path, message }; }
+function diagnostic(code, path, message, suggestion) { return { code, path, message, ...(suggestion ? { suggestion } : {}) }; }
 export function safeImageSource(source) {
   if (typeof source !== 'string' || !source.trim() || /[\u0000-\u0020]/.test(source)) return false;
   if (/^data:/i.test(source)) return /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(source);
@@ -40,14 +67,14 @@ export function validateBoardSpec(input = {}) {
   spec.grid = { visible: false, size: 16, variant: 'dots', color: '#dbe2ea', ...spec.grid };
   spec.snap = { enabled: false, grid: true, objects: true, guides: true, threshold: 8, ...spec.snap };
   spec.interaction = { zoom: false, pan: false, drag: false, ...spec.interaction };
-  spec.editing = { enabled: false, ...spec.editing };
+  spec.editing = { enabled: false, allowStructuralChanges: false, ...spec.editing };
   if (spec.version !== '1.0') fail('version', 'Use BoardSpec version 1.0.');
   if (!['svg', 'canvas', 'auto'].includes(spec.renderer)) fail('renderer', 'Use svg, canvas, or auto.');
   ['width', 'height'].forEach(key => { if (!Number.isFinite(spec[key]) || spec[key] < 32 || spec[key] > boardCapabilities.limits.maxBoardDimension) fail(key, 'Board dimensions must be between 32 and 16384.'); });
   if (!Number.isFinite(spec.grid.size) || spec.grid.size < 8 || spec.grid.size > 256) fail('grid.size', 'Grid size must be between 8 and 256.');
   if (!boardCapabilities.grid.includes(spec.grid.variant)) fail('grid.variant', 'Use dots, lines, or cross.');
   if (!Number.isFinite(spec.snap.threshold) || spec.snap.threshold < 0 || spec.snap.threshold > 32) fail('snap.threshold', 'Snap threshold must be between 0 and 32 screen pixels.');
-  for (const section of ['grid', 'snap', 'interaction', 'editing']) for (const key of { grid: ['visible'], snap: ['enabled', 'grid', 'objects', 'guides'], interaction: ['zoom', 'pan', 'drag'], editing: ['enabled'] }[section]) if (typeof spec[section][key] !== 'boolean') fail(`${section}.${key}`, 'Expected a boolean.');
+  for (const section of ['grid', 'snap', 'interaction', 'editing']) for (const key of { grid: ['visible'], snap: ['enabled', 'grid', 'objects', 'guides'], interaction: ['zoom', 'pan', 'drag'], editing: ['enabled', 'allowStructuralChanges'] }[section]) if (typeof spec[section][key] !== 'boolean') fail(`${section}.${key}`, 'Expected a boolean.');
   if (!Array.isArray(spec.assets)) { fail('assets', 'Assets must be an array.'); spec.assets = []; }
   if (!Array.isArray(spec.items)) { fail('items', 'Items must be an array.'); spec.items = []; }
   if (spec.items.length > boardCapabilities.limits.maxItems) fail('items', 'A board supports at most 2000 items.');
@@ -71,7 +98,7 @@ export function validateBoardSpec(input = {}) {
     if (typeof item.id !== 'string' || !item.id || itemIds.has(item.id)) fail(`${path}.id`, 'Item IDs must be unique nonempty strings.');
     itemIds.add(item.id);
     if (!boardCapabilities.items.includes(item.kind)) fail(`${path}.kind`, 'Use image, text, shape, path, connector, or chart.');
-    item.visible ??= true; item.locked ??= false; item.opacity ??= 1; item.zIndex ??= index;
+    item.visible ??= true; item.locked ??= false; item.opacity ??= 1; item.zIndex ??= item.kind === 'connector' ? -1 : index;
     if (typeof item.visible !== 'boolean' || typeof item.locked !== 'boolean') fail(path, 'visible and locked must be boolean.');
     if (!Number.isFinite(item.zIndex)) fail(`${path}.zIndex`, 'zIndex must be finite.');
     if (!Number.isFinite(item.opacity) || item.opacity < 0 || item.opacity > 1) fail(`${path}.opacity`, 'Opacity must be between 0 and 1.');
@@ -88,6 +115,7 @@ export function validateBoardSpec(input = {}) {
     }
     if (item.kind === 'text') {
       if (typeof item.text !== 'string') fail(`${path}.text`, 'Text must be a string.');
+      if (item.style?.font !== undefined && (typeof item.style.font !== 'string' || !/\d+(?:\.\d+)?px\s+\S/.test(item.style.font) || fontPixels(item.style.font, 0) < 8 || fontPixels(item.style.font, 0) > 160)) fail(`${path}.style.font`, 'Use a CSS font with a pixel size between 8 and 160.');
       if (item.fontSize !== undefined && (!Number.isFinite(item.fontSize) || item.fontSize < 8 || item.fontSize > 160)) fail(`${path}.fontSize`, 'Font size must be between 8 and 160.');
       if (item.fontWeight !== undefined && !['normal', 'bold', 'lighter', 'bolder', 100, 200, 300, 400, 500, 600, 700, 800, 900].includes(item.fontWeight)) fail(`${path}.fontWeight`, 'Use a CSS font weight.');
       if (item.lineHeight !== undefined && (!Number.isFinite(item.lineHeight) || item.lineHeight < 1 || item.lineHeight > 3)) fail(`${path}.lineHeight`, 'Line height must be between 1 and 3.');
@@ -96,13 +124,11 @@ export function validateBoardSpec(input = {}) {
       if (item.verticalAlign !== undefined && !['top', 'middle', 'bottom'].includes(item.verticalAlign)) fail(`${path}.verticalAlign`, 'Use top, middle, or bottom.');
       if (item.wrap !== undefined && typeof item.wrap !== 'boolean') fail(`${path}.wrap`, 'wrap must be a boolean.');
       if (item.maxLines !== undefined && (!Number.isInteger(item.maxLines) || item.maxLines < 1 || item.maxLines > 12)) fail(`${path}.maxLines`, 'maxLines must be an integer between 1 and 12.');
-      if (item.minFontSize !== undefined && (!Number.isFinite(item.minFontSize) || item.minFontSize < 8 || item.minFontSize > (item.fontSize || 160))) fail(`${path}.minFontSize`, 'minFontSize must be between 8 and fontSize.');
+      if (item.minFontSize !== undefined && (!Number.isFinite(item.minFontSize) || item.minFontSize < 8 || item.minFontSize > fontPixels(item.style?.font, item.fontSize || 16))) fail(`${path}.minFontSize`, 'minFontSize must be between 8 and the effective font size.');
       if (typeof item.text === 'string' && item.text.length && Number.isFinite(item.size?.width) && Number.isFinite(item.size?.height)) {
-        const padding = Number(item.padding) || 0, fontSize = Number(item.fontSize) || 16, maxWidth = Math.max(1, item.size.width - padding * 2), maxHeight = Math.max(1, item.size.height - padding * 2);
-        const layout = item.wrap === false
-          ? { truncated: truncateText(item.text, maxWidth, fontSize) !== item.text }
-          : fitTextBlock(item.text, { maxWidth, maxHeight, size: fontSize, minSize: item.minFontSize || 8, maxLines: item.maxLines || 3, lineHeight: item.lineHeight || 1.2 });
+        const layout = boardTextLayout(item);
         if (layout.truncated) warnings.push(diagnostic('TEXT_TRUNCATED', `${path}.text`, 'Text does not fit its item box and will be truncated after wrapping and font scaling.', 'Increase the item size, allow more lines, or shorten the text.'));
+        if (layout.overflowed) warnings.push(diagnostic('TEXT_OVERFLOW', `${path}.text`, 'Text exceeds the item height even at the minimum font size.', 'Increase item height or reduce padding/minFontSize.'));
       }
     }
     if (item.kind === 'shape' && !boardCapabilities.shapes.includes(item.shape || 'rectangle')) fail(`${path}.shape`, 'Use rectangle, ellipse, diamond, hexagon, polygon, arc, or sector.');

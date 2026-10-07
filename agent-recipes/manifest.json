@@ -4,6 +4,25 @@
   "description": "Declarative starting templates for chart Specs, diagram workflows, and Freeform Board compositions. Recipes are inputs to the public runtime; they are not executable tasks.",
   "entries": [
     {
+      "id": "text-annotations",
+      "kind": "chart-spec",
+      "path": "@taylorwong/ichartjs/recipes/text-annotations",
+      "source": "agent-recipes/text-annotations.json",
+      "validator": "validateSpec",
+      "usage": "Copy as a starting ChartSpec, replace host data and stable record IDs, validate, render and inspect layout.annotations plus warnings; never execute the template as a task.",
+      "output": ["chart-spec", "svg", "png", "json"]
+    },
+    {
+      "id": "boards/incremental-board",
+      "kind": "board-building-template",
+      "path": "@taylorwong/ichartjs/recipes/boards/incremental-board",
+      "source": "agent-recipes/boards/incremental-board.json",
+      "validator": "validateBoardSpec",
+      "commandValidator": "validateBoardCommand",
+      "usage": "Use spec as the starting BoardSpec. Adapt commands to the host request, preview and confirm each semantic transaction, apply on the same Board, await ready() for assets, then inspect state and export. Positions are explicit; templates are not automatically executed tasks.",
+      "output": ["board-spec", "board-edit-command", "svg", "png", "json"]
+    },
+    {
       "id": "minimal-specs",
       "kind": "chart-catalog",
       "path": "@taylorwong/ichartjs/recipes/minimal-specs",
@@ -65,6 +84,16 @@
       "validator": "validateSpec",
       "usage": "Map host responsibilities to lanes and nodes, then validate and render.",
       "output": ["diagram-spec", "svg", "json"]
+    },
+    {
+      "id": "diagrams/incremental-flow",
+      "kind": "diagram-building-template",
+      "path": "@taylorwong/ichartjs/recipes/diagrams/incremental-flow",
+      "source": "agent-recipes/diagrams/incremental-flow.json",
+      "validator": "validateSpec",
+      "commandValidator": "validateCommand",
+      "usage": "Use spec as the starting chart. Adapt the ordered commands to the host request, preview each transaction, inspect preview.layout and warnings, obtain host confirmation, then apply. Commands are templates, not automatically executed tasks.",
+      "output": ["diagram-spec", "edit-command", "svg", "json"]
     },
     {
       "id": "diagrams/workflow",

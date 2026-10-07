@@ -1,0 +1,20 @@
+{
+  "type": "line",
+  "renderer": "svg",
+  "width": 640,
+  "height": 360,
+  "title": { "text": "Revenue trend\nTarget and observed peak", "subtitle": "Annotations follow stable record IDs" },
+  "legend": { "visible": false },
+  "data": { "values": [
+    { "id": "jan", "month": "Jan", "revenue": 24 },
+    { "id": "feb", "month": "Feb", "revenue": 42 },
+    { "id": "mar", "month": "Mar", "revenue": 33 },
+    { "id": "apr", "month": "Apr", "revenue": 52 }
+  ] },
+  "encoding": { "x": { "field": "month" }, "y": { "field": "revenue" } },
+  "labels": { "enabled": true, "font": "500 13px system-ui" },
+  "annotations": [
+    { "id": "target", "type": "reference-line", "axis": "y", "value": 40, "text": "Target 40" },
+    { "id": "peak", "type": "callout", "recordId": "apr", "text": "April peak\n52 units", "offset": { "x": -130, "y": 30 } }
+  ]
+}

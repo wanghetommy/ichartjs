@@ -43,11 +43,14 @@ getCapabilities
 | Visual style and themes | [`docs/agent/theme-guide.md`](docs/agent/theme-guide.md) |
 | Chart and page preferences | [`docs/agent/theme-guide.md`](docs/agent/theme-guide.md#chart-and-page-preferences) |
 | Natural-language chart changes | [`docs/agent/conversational-workflow.md`](docs/agent/conversational-workflow.md) |
+| Visible, multi-turn construction | [Agent-driven Incremental Construction](docs/agent/conversational-workflow.md#agent-driven-incremental-construction) |
 | Agent task validation and output contract | [`docs/agent/task-validation.md`](docs/agent/task-validation.md) |
 | Runtime footprint and mobile loading | [`docs/agent/runtime-footprint.md`](docs/agent/runtime-footprint.md) |
 | Official Agent Skill for Codex and WorkBuddy | [`skills/ichartjs/SKILL.md`](skills/ichartjs/SKILL.md) |
 
 The public runtime entries are independent. A focused application can import `@taylorwong/ichartjs/standard`, `/project`, `/diagram`, or `/board` directly; a Profile entry does not require importing the root entry first. Import the root package when the Agent needs cross-family discovery or the complete API. The runnable consumer fixtures are [`examples/consumer-quickstart.mjs`](examples/consumer-quickstart.mjs) and [`examples/consumer-browser.html`](examples/consumer-browser.html).
+
+For **Agent-driven Incremental Construction**, keep a live JavaScript host and build Flow or Freeform Board in complete, previewed, host-approved steps. The Skill guides this process but does not create a live Agent connection by itself. Flow can reflow unpositioned nodes; Board preserves composition. Prefer one validated render for simple one-off outputs; see [usage scenarios](docs/agent/usage-scenarios.md#scenario-7-agent-driven-incremental-construction) for prerequisites and final delivery.
 
 ### Install
 
@@ -55,9 +58,9 @@ The public runtime entries are independent. A focused application can import `@t
 npm install @taylorwong/ichartjs@^2
 ```
 
-If the npm registry is unavailable, install directly from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.26`.
+If the npm registry is unavailable, install directly from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.27`.
 
-For a reproducible release-pinned install, use `npm install @taylorwong/ichartjs@2.0.26` instead of the moving `@^2` range.
+For a reproducible release-pinned install, use `npm install @taylorwong/ichartjs@2.0.27` instead of the moving `@^2` range.
 
 ### Optional Agent Skill
 
@@ -79,7 +82,7 @@ For a non-interactive global Codex installation:
 npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --yes
 ```
 
-For a release-pinned installation, use `npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.26/skills/ichartjs --agent codex --global --yes`. WorkBuddy users can import the same tagged `skills/ichartjs` URL through the host's Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it. Package consumers can still copy `node_modules/@taylorwong/ichartjs/skills/ichartjs` as a manual fallback. After installation, invoke `$ichartjs` when named Skill invocation is supported, or select `ichartjs` in the host UI.
+For a release-pinned installation, use `npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.27/skills/ichartjs --agent codex --global --yes`. WorkBuddy users can import the same tagged `skills/ichartjs` URL through the host's Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it. Package consumers can still copy `node_modules/@taylorwong/ichartjs/skills/ichartjs` as a manual fallback. After installation, invoke `$ichartjs` when named Skill invocation is supported, or select `ichartjs` in the host UI.
 
 ### Agent workflow
 
@@ -176,10 +179,10 @@ npm run playground
 - Foundational Gallery: `http://localhost:3000/playground/foundational-gallery.html`
 - Theme Gallery: `http://localhost:3000/playground/theme-gallery.html`
 - Page Preferences: `http://localhost:3000/playground/preferences-lab.html`
-- Freeform Board: `http://localhost:3000/playground/canvas-board.html`
+- Freeform Board: `http://localhost:3000/playground/canvas-board.html` (four steps with Next, Previous step and Restart; developer tools contain preview/confirm and save/reload; use `?scenario=composition` for the full composition or `?renderer=canvas` for Canvas).
 - Business Editing: `http://localhost:3000/playground/editing.html`
 - Project Intelligence: `http://localhost:3000/playground/project-intelligence.html`
-- Diagram Editor: `http://localhost:3000/playground/diagram-editor.html`
+- Diagram Editor / Incremental Flow: `http://localhost:3000/playground/diagram-editor.html`; four steps with Next, Previous step and Restart. Use `?scenario=editor` for manual editing or `?scenario=advanced` for explicit command preview/confirmation.
 - Interaction Lab: `http://localhost:3000/playground/interaction-lab.html`
 - Accessibility Lab: `http://localhost:3000/playground/accessibility-lab.html`
 - Performance Lab: `http://localhost:3000/playground/performance-lab.html`

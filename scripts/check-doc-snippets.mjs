@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url';
 
 const documents = {
   'README.md': ['agent-workflow', 'browser-chart'],
-  'docs/agent/quickstart.md': ['imports', 'recipe-line', 'build', 'recipe-radar', 'validate', 'render-browser', 'render-headless', 'export']
+  'docs/agent/quickstart.md': ['imports', 'recipe-line', 'build', 'recipe-radar', 'validate', 'render-browser', 'render-headless', 'export'],
+  'docs/agent/text-annotations.md': ['annotations']
 };
 const root = new URL('../', import.meta.url);
 
@@ -51,6 +52,15 @@ export function runDocumentSnippets() {
   const snippets = readDocumentSnippets();
   const get = (file, id) => snippets[`${file}:${id}`].code;
   const scenarios = [
+    {
+      name: 'text-annotations',
+      code: get('docs/agent/text-annotations.md', 'annotations') + `
+assert.equal(result.valid, true);
+assert.equal(warnings.length, 0);
+assert.equal(annotations.length, 2);
+assert.ok(annotations.every(item => item.visible));
+assert.ok(svg.includes('annotation-target'));`
+    },
     {
       name: 'readme-agent-workflow',
       code: get('README.md', 'agent-workflow') + `

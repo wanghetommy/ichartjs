@@ -283,8 +283,8 @@
       "Short form `branding: false` and object form `branding: { enabled: false }` are both supported. Custom text, link, position, or font are intentionally NOT exposed in the current iteration."
     ]
   },
-  "packageVersion": "2.0.26",
-  "runtimeVersion": "2.0.26",
+  "packageVersion": "2.0.27",
+  "runtimeVersion": "2.0.27",
   "chartTypes": [
     "line",
     "area",
@@ -1355,6 +1355,8 @@
     "addDependency",
     "removeDependency",
     "updateMilestone",
+    "addNode",
+    "removeNode",
     "moveNode",
     "moveNodes",
     "moveNodeToLane",
@@ -1392,6 +1394,8 @@
     "mindmap-edge"
   ],
   "diagramOperations": [
+    "addNode",
+    "removeNode",
     "moveNode",
     "moveNodes",
     "resizeNode",
@@ -1489,8 +1493,134 @@
     "api": [
       "createBoard",
       "validateBoardSpec",
-      "planCanvas"
+      "planCanvas",
+      "validateBoardCommand"
     ],
+    "incrementalBuilding": {
+      "commands": [
+        "addItem",
+        "updateItem",
+        "removeItem",
+        "addAsset",
+        "updateAsset",
+        "removeAsset"
+      ],
+      "commandFields": {
+        "addItem": [
+          "item"
+        ],
+        "updateItem": [
+          "itemId",
+          "changes"
+        ],
+        "removeItem": [
+          "itemId",
+          "policy?"
+        ],
+        "addAsset": [
+          "asset"
+        ],
+        "updateAsset": [
+          "assetId",
+          "changes"
+        ],
+        "removeAsset": [
+          "assetId",
+          "policy?"
+        ]
+      },
+      "editableFields": {
+        "common": [
+          "zIndex",
+          "opacity",
+          "visible",
+          "style"
+        ],
+        "itemTypes": {
+          "image": [
+            "position",
+            "size",
+            "assetId",
+            "fit"
+          ],
+          "text": [
+            "position",
+            "size",
+            "text",
+            "fontSize",
+            "fontFamily",
+            "fontWeight",
+            "lineHeight",
+            "padding",
+            "textAlign",
+            "verticalAlign",
+            "wrap",
+            "maxLines",
+            "minFontSize",
+            "background"
+          ],
+          "shape": [
+            "position",
+            "size",
+            "shape",
+            "startAngle",
+            "endAngle",
+            "innerRadius",
+            "points"
+          ],
+          "path": [
+            "position",
+            "size",
+            "curve",
+            "closed",
+            "points"
+          ],
+          "connector": [
+            "from",
+            "to",
+            "routing"
+          ],
+          "chart": [
+            "position",
+            "size",
+            "spec"
+          ]
+        },
+        "asset": [
+          "src",
+          "mime",
+          "alt",
+          "width",
+          "height",
+          "bytes"
+        ]
+      },
+      "type": "board-edit",
+      "activation": [
+        "editing.enabled",
+        "editing.allowStructuralChanges (add/remove)",
+        "issued preview",
+        "host confirmation"
+      ],
+      "methods": [
+        "previewEdit",
+        "applyEdit",
+        "subscribe",
+        "undo",
+        "redo"
+      ],
+      "atomic": true,
+      "automaticReflow": false,
+      "layout": "preserve-explicit-positions",
+      "changes": "Shallow field replacement; updateItem.changes.position/size for explicit layout, changes.spec for a complete embedded ChartSpec.",
+      "lockedItems": "Agent commands cannot modify/remove locked items or their assets.",
+      "removal": {
+        "default": "reject",
+        "cascade": "Explicitly remove referenced images/connectors; never delete unrelated items."
+      },
+      "readiness": "await ready(); inspect assets, assetsReady and health; previews never load images",
+      "recipe": "@taylorwong/ichartjs/recipes/boards/incremental-board"
+    },
     "items": [
       "image",
       "text",
@@ -1528,6 +1658,8 @@
     },
     "text": {
       "wrapping": true,
+      "hardBreaks": true,
+      "fontPrecedence": "style.font then fontSize/fontWeight/fontFamily; fitting resizes the effective font",
       "alignment": [
         "start",
         "center",
@@ -1650,6 +1782,97 @@
         "multi-series": "supported",
         "dual-axis": "supported"
       },
+      "text": {
+        "content": "plain-text",
+        "hardBreaks": [
+          "title",
+          "subtitle",
+          "diagram-label",
+          "board-text",
+          "annotation"
+        ],
+        "title": {
+          "maxLines": 2,
+          "overflow": "scale then truncate with TITLE_TRUNCATED"
+        },
+        "labels": {
+          "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+          "positions": {
+            "bar": [
+              "inside",
+              "outside"
+            ],
+            "column": [
+              "inside",
+              "outside"
+            ]
+          },
+          "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+          "background": "none; diagram inline edges and explicit annotations only"
+        },
+        "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+        "unicode": "grapheme-safe truncation"
+      },
+      "annotations": {
+        "types": [
+          "reference-line",
+          "callout"
+        ],
+        "chartTypes": [
+          "line",
+          "area",
+          "bar",
+          "column",
+          "scatter"
+        ],
+        "fields": {
+          "reference-line": [
+            "id",
+            "type",
+            "axis",
+            "value",
+            "text?",
+            "color?"
+          ],
+          "callout": [
+            "id",
+            "type",
+            "recordId",
+            "text",
+            "field?",
+            "offset?",
+            "color?"
+          ]
+        },
+        "numericAxesOnly": true,
+        "recordId": "data.values[].id string; field selects a measure series",
+        "persistence": "ChartSpec.annotations",
+        "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+        "exports": [
+          "json",
+          "svg",
+          "png"
+        ],
+        "limits": {
+          "maxAnnotations": 100,
+          "maxTextLines": 3
+        },
+        "diagnostics": [
+          "INVALID_ANNOTATION",
+          "UNKNOWN_ANNOTATION_OPTION",
+          "ANNOTATION_TARGET_MISSING",
+          "ANNOTATION_OUT_OF_VIEW",
+          "ANNOTATION_TEXT_TRUNCATED",
+          "ANNOTATION_LABEL_OVERLAP"
+        ],
+        "limitations": [
+          "no range bands",
+          "no rich text",
+          "no annotation drag editor",
+          "domains are not expanded"
+        ],
+        "supported": true
+      },
       "interactions": [
         "hover",
         "tooltip",
@@ -1725,6 +1948,97 @@
         "stacked": "supported",
         "percent-stacked": "supported"
       },
+      "text": {
+        "content": "plain-text",
+        "hardBreaks": [
+          "title",
+          "subtitle",
+          "diagram-label",
+          "board-text",
+          "annotation"
+        ],
+        "title": {
+          "maxLines": 2,
+          "overflow": "scale then truncate with TITLE_TRUNCATED"
+        },
+        "labels": {
+          "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+          "positions": {
+            "bar": [
+              "inside",
+              "outside"
+            ],
+            "column": [
+              "inside",
+              "outside"
+            ]
+          },
+          "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+          "background": "none; diagram inline edges and explicit annotations only"
+        },
+        "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+        "unicode": "grapheme-safe truncation"
+      },
+      "annotations": {
+        "types": [
+          "reference-line",
+          "callout"
+        ],
+        "chartTypes": [
+          "line",
+          "area",
+          "bar",
+          "column",
+          "scatter"
+        ],
+        "fields": {
+          "reference-line": [
+            "id",
+            "type",
+            "axis",
+            "value",
+            "text?",
+            "color?"
+          ],
+          "callout": [
+            "id",
+            "type",
+            "recordId",
+            "text",
+            "field?",
+            "offset?",
+            "color?"
+          ]
+        },
+        "numericAxesOnly": true,
+        "recordId": "data.values[].id string; field selects a measure series",
+        "persistence": "ChartSpec.annotations",
+        "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+        "exports": [
+          "json",
+          "svg",
+          "png"
+        ],
+        "limits": {
+          "maxAnnotations": 100,
+          "maxTextLines": 3
+        },
+        "diagnostics": [
+          "INVALID_ANNOTATION",
+          "UNKNOWN_ANNOTATION_OPTION",
+          "ANNOTATION_TARGET_MISSING",
+          "ANNOTATION_OUT_OF_VIEW",
+          "ANNOTATION_TEXT_TRUNCATED",
+          "ANNOTATION_LABEL_OVERLAP"
+        ],
+        "limitations": [
+          "no range bands",
+          "no rich text",
+          "no annotation drag editor",
+          "domains are not expanded"
+        ],
+        "supported": true
+      },
       "interactions": [
         "hover",
         "tooltip",
@@ -1799,6 +2113,97 @@
         "multi-series": "supported",
         "stacked": "supported",
         "percent-stacked": "supported"
+      },
+      "text": {
+        "content": "plain-text",
+        "hardBreaks": [
+          "title",
+          "subtitle",
+          "diagram-label",
+          "board-text",
+          "annotation"
+        ],
+        "title": {
+          "maxLines": 2,
+          "overflow": "scale then truncate with TITLE_TRUNCATED"
+        },
+        "labels": {
+          "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+          "positions": {
+            "bar": [
+              "inside",
+              "outside"
+            ],
+            "column": [
+              "inside",
+              "outside"
+            ]
+          },
+          "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+          "background": "none; diagram inline edges and explicit annotations only"
+        },
+        "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+        "unicode": "grapheme-safe truncation"
+      },
+      "annotations": {
+        "types": [
+          "reference-line",
+          "callout"
+        ],
+        "chartTypes": [
+          "line",
+          "area",
+          "bar",
+          "column",
+          "scatter"
+        ],
+        "fields": {
+          "reference-line": [
+            "id",
+            "type",
+            "axis",
+            "value",
+            "text?",
+            "color?"
+          ],
+          "callout": [
+            "id",
+            "type",
+            "recordId",
+            "text",
+            "field?",
+            "offset?",
+            "color?"
+          ]
+        },
+        "numericAxesOnly": true,
+        "recordId": "data.values[].id string; field selects a measure series",
+        "persistence": "ChartSpec.annotations",
+        "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+        "exports": [
+          "json",
+          "svg",
+          "png"
+        ],
+        "limits": {
+          "maxAnnotations": 100,
+          "maxTextLines": 3
+        },
+        "diagnostics": [
+          "INVALID_ANNOTATION",
+          "UNKNOWN_ANNOTATION_OPTION",
+          "ANNOTATION_TARGET_MISSING",
+          "ANNOTATION_OUT_OF_VIEW",
+          "ANNOTATION_TEXT_TRUNCATED",
+          "ANNOTATION_LABEL_OVERLAP"
+        ],
+        "limitations": [
+          "no range bands",
+          "no rich text",
+          "no annotation drag editor",
+          "domains are not expanded"
+        ],
+        "supported": true
       },
       "interactions": [
         "hover",
@@ -1877,6 +2282,97 @@
         "dual-axis": "supported",
         "bin": "supported"
       },
+      "text": {
+        "content": "plain-text",
+        "hardBreaks": [
+          "title",
+          "subtitle",
+          "diagram-label",
+          "board-text",
+          "annotation"
+        ],
+        "title": {
+          "maxLines": 2,
+          "overflow": "scale then truncate with TITLE_TRUNCATED"
+        },
+        "labels": {
+          "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+          "positions": {
+            "bar": [
+              "inside",
+              "outside"
+            ],
+            "column": [
+              "inside",
+              "outside"
+            ]
+          },
+          "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+          "background": "none; diagram inline edges and explicit annotations only"
+        },
+        "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+        "unicode": "grapheme-safe truncation"
+      },
+      "annotations": {
+        "types": [
+          "reference-line",
+          "callout"
+        ],
+        "chartTypes": [
+          "line",
+          "area",
+          "bar",
+          "column",
+          "scatter"
+        ],
+        "fields": {
+          "reference-line": [
+            "id",
+            "type",
+            "axis",
+            "value",
+            "text?",
+            "color?"
+          ],
+          "callout": [
+            "id",
+            "type",
+            "recordId",
+            "text",
+            "field?",
+            "offset?",
+            "color?"
+          ]
+        },
+        "numericAxesOnly": true,
+        "recordId": "data.values[].id string; field selects a measure series",
+        "persistence": "ChartSpec.annotations",
+        "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+        "exports": [
+          "json",
+          "svg",
+          "png"
+        ],
+        "limits": {
+          "maxAnnotations": 100,
+          "maxTextLines": 3
+        },
+        "diagnostics": [
+          "INVALID_ANNOTATION",
+          "UNKNOWN_ANNOTATION_OPTION",
+          "ANNOTATION_TARGET_MISSING",
+          "ANNOTATION_OUT_OF_VIEW",
+          "ANNOTATION_TEXT_TRUNCATED",
+          "ANNOTATION_LABEL_OVERLAP"
+        ],
+        "limitations": [
+          "no range bands",
+          "no rich text",
+          "no annotation drag editor",
+          "domains are not expanded"
+        ],
+        "supported": true
+      },
       "interactions": [
         "hover",
         "tooltip",
@@ -1949,6 +2445,97 @@
         "zoom": "not-applicable",
         "pan": "not-applicable"
       },
+      "text": {
+        "content": "plain-text",
+        "hardBreaks": [
+          "title",
+          "subtitle",
+          "diagram-label",
+          "board-text",
+          "annotation"
+        ],
+        "title": {
+          "maxLines": 2,
+          "overflow": "scale then truncate with TITLE_TRUNCATED"
+        },
+        "labels": {
+          "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+          "positions": {
+            "bar": [
+              "inside",
+              "outside"
+            ],
+            "column": [
+              "inside",
+              "outside"
+            ]
+          },
+          "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+          "background": "none; diagram inline edges and explicit annotations only"
+        },
+        "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+        "unicode": "grapheme-safe truncation"
+      },
+      "annotations": {
+        "types": [
+          "reference-line",
+          "callout"
+        ],
+        "chartTypes": [
+          "line",
+          "area",
+          "bar",
+          "column",
+          "scatter"
+        ],
+        "fields": {
+          "reference-line": [
+            "id",
+            "type",
+            "axis",
+            "value",
+            "text?",
+            "color?"
+          ],
+          "callout": [
+            "id",
+            "type",
+            "recordId",
+            "text",
+            "field?",
+            "offset?",
+            "color?"
+          ]
+        },
+        "numericAxesOnly": true,
+        "recordId": "data.values[].id string; field selects a measure series",
+        "persistence": "ChartSpec.annotations",
+        "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+        "exports": [
+          "json",
+          "svg",
+          "png"
+        ],
+        "limits": {
+          "maxAnnotations": 100,
+          "maxTextLines": 3
+        },
+        "diagnostics": [
+          "INVALID_ANNOTATION",
+          "UNKNOWN_ANNOTATION_OPTION",
+          "ANNOTATION_TARGET_MISSING",
+          "ANNOTATION_OUT_OF_VIEW",
+          "ANNOTATION_TEXT_TRUNCATED",
+          "ANNOTATION_LABEL_OVERLAP"
+        ],
+        "limitations": [
+          "no range bands",
+          "no rich text",
+          "no annotation drag editor",
+          "domains are not expanded"
+        ],
+        "supported": false
+      },
       "interactions": [
         "hover",
         "tooltip",
@@ -2018,6 +2605,97 @@
         "labels": "supported",
         "formatting": "supported",
         "stacked": "not-applicable"
+      },
+      "text": {
+        "content": "plain-text",
+        "hardBreaks": [
+          "title",
+          "subtitle",
+          "diagram-label",
+          "board-text",
+          "annotation"
+        ],
+        "title": {
+          "maxLines": 2,
+          "overflow": "scale then truncate with TITLE_TRUNCATED"
+        },
+        "labels": {
+          "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+          "positions": {
+            "bar": [
+              "inside",
+              "outside"
+            ],
+            "column": [
+              "inside",
+              "outside"
+            ]
+          },
+          "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+          "background": "none; diagram inline edges and explicit annotations only"
+        },
+        "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+        "unicode": "grapheme-safe truncation"
+      },
+      "annotations": {
+        "types": [
+          "reference-line",
+          "callout"
+        ],
+        "chartTypes": [
+          "line",
+          "area",
+          "bar",
+          "column",
+          "scatter"
+        ],
+        "fields": {
+          "reference-line": [
+            "id",
+            "type",
+            "axis",
+            "value",
+            "text?",
+            "color?"
+          ],
+          "callout": [
+            "id",
+            "type",
+            "recordId",
+            "text",
+            "field?",
+            "offset?",
+            "color?"
+          ]
+        },
+        "numericAxesOnly": true,
+        "recordId": "data.values[].id string; field selects a measure series",
+        "persistence": "ChartSpec.annotations",
+        "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+        "exports": [
+          "json",
+          "svg",
+          "png"
+        ],
+        "limits": {
+          "maxAnnotations": 100,
+          "maxTextLines": 3
+        },
+        "diagnostics": [
+          "INVALID_ANNOTATION",
+          "UNKNOWN_ANNOTATION_OPTION",
+          "ANNOTATION_TARGET_MISSING",
+          "ANNOTATION_OUT_OF_VIEW",
+          "ANNOTATION_TEXT_TRUNCATED",
+          "ANNOTATION_LABEL_OVERLAP"
+        ],
+        "limitations": [
+          "no range bands",
+          "no rich text",
+          "no annotation drag editor",
+          "domains are not expanded"
+        ],
+        "supported": true
       },
       "interactions": [
         "hover",
@@ -2089,6 +2767,97 @@
         "zoom": "not-applicable",
         "pan": "not-applicable"
       },
+      "text": {
+        "content": "plain-text",
+        "hardBreaks": [
+          "title",
+          "subtitle",
+          "diagram-label",
+          "board-text",
+          "annotation"
+        ],
+        "title": {
+          "maxLines": 2,
+          "overflow": "scale then truncate with TITLE_TRUNCATED"
+        },
+        "labels": {
+          "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+          "positions": {
+            "bar": [
+              "inside",
+              "outside"
+            ],
+            "column": [
+              "inside",
+              "outside"
+            ]
+          },
+          "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+          "background": "none; diagram inline edges and explicit annotations only"
+        },
+        "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+        "unicode": "grapheme-safe truncation"
+      },
+      "annotations": {
+        "types": [
+          "reference-line",
+          "callout"
+        ],
+        "chartTypes": [
+          "line",
+          "area",
+          "bar",
+          "column",
+          "scatter"
+        ],
+        "fields": {
+          "reference-line": [
+            "id",
+            "type",
+            "axis",
+            "value",
+            "text?",
+            "color?"
+          ],
+          "callout": [
+            "id",
+            "type",
+            "recordId",
+            "text",
+            "field?",
+            "offset?",
+            "color?"
+          ]
+        },
+        "numericAxesOnly": true,
+        "recordId": "data.values[].id string; field selects a measure series",
+        "persistence": "ChartSpec.annotations",
+        "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+        "exports": [
+          "json",
+          "svg",
+          "png"
+        ],
+        "limits": {
+          "maxAnnotations": 100,
+          "maxTextLines": 3
+        },
+        "diagnostics": [
+          "INVALID_ANNOTATION",
+          "UNKNOWN_ANNOTATION_OPTION",
+          "ANNOTATION_TARGET_MISSING",
+          "ANNOTATION_OUT_OF_VIEW",
+          "ANNOTATION_TEXT_TRUNCATED",
+          "ANNOTATION_LABEL_OVERLAP"
+        ],
+        "limitations": [
+          "no range bands",
+          "no rich text",
+          "no annotation drag editor",
+          "domains are not expanded"
+        ],
+        "supported": false
+      },
       "interactions": [
         "hover",
         "tooltip",
@@ -2155,6 +2924,97 @@
         "legend": "not-applicable",
         "zoom": "not-applicable",
         "pan": "not-applicable"
+      },
+      "text": {
+        "content": "plain-text",
+        "hardBreaks": [
+          "title",
+          "subtitle",
+          "diagram-label",
+          "board-text",
+          "annotation"
+        ],
+        "title": {
+          "maxLines": 2,
+          "overflow": "scale then truncate with TITLE_TRUNCATED"
+        },
+        "labels": {
+          "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+          "positions": {
+            "bar": [
+              "inside",
+              "outside"
+            ],
+            "column": [
+              "inside",
+              "outside"
+            ]
+          },
+          "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+          "background": "none; diagram inline edges and explicit annotations only"
+        },
+        "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+        "unicode": "grapheme-safe truncation"
+      },
+      "annotations": {
+        "types": [
+          "reference-line",
+          "callout"
+        ],
+        "chartTypes": [
+          "line",
+          "area",
+          "bar",
+          "column",
+          "scatter"
+        ],
+        "fields": {
+          "reference-line": [
+            "id",
+            "type",
+            "axis",
+            "value",
+            "text?",
+            "color?"
+          ],
+          "callout": [
+            "id",
+            "type",
+            "recordId",
+            "text",
+            "field?",
+            "offset?",
+            "color?"
+          ]
+        },
+        "numericAxesOnly": true,
+        "recordId": "data.values[].id string; field selects a measure series",
+        "persistence": "ChartSpec.annotations",
+        "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+        "exports": [
+          "json",
+          "svg",
+          "png"
+        ],
+        "limits": {
+          "maxAnnotations": 100,
+          "maxTextLines": 3
+        },
+        "diagnostics": [
+          "INVALID_ANNOTATION",
+          "UNKNOWN_ANNOTATION_OPTION",
+          "ANNOTATION_TARGET_MISSING",
+          "ANNOTATION_OUT_OF_VIEW",
+          "ANNOTATION_TEXT_TRUNCATED",
+          "ANNOTATION_LABEL_OVERLAP"
+        ],
+        "limitations": [
+          "no range bands",
+          "no rich text",
+          "no annotation drag editor",
+          "domains are not expanded"
+        ],
+        "supported": false
       },
       "interactions": [
         "hover",
@@ -2226,6 +3086,97 @@
         "axes": "not-applicable",
         "zoom": "not-applicable",
         "pan": "not-applicable"
+      },
+      "text": {
+        "content": "plain-text",
+        "hardBreaks": [
+          "title",
+          "subtitle",
+          "diagram-label",
+          "board-text",
+          "annotation"
+        ],
+        "title": {
+          "maxLines": 2,
+          "overflow": "scale then truncate with TITLE_TRUNCATED"
+        },
+        "labels": {
+          "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+          "positions": {
+            "bar": [
+              "inside",
+              "outside"
+            ],
+            "column": [
+              "inside",
+              "outside"
+            ]
+          },
+          "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+          "background": "none; diagram inline edges and explicit annotations only"
+        },
+        "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+        "unicode": "grapheme-safe truncation"
+      },
+      "annotations": {
+        "types": [
+          "reference-line",
+          "callout"
+        ],
+        "chartTypes": [
+          "line",
+          "area",
+          "bar",
+          "column",
+          "scatter"
+        ],
+        "fields": {
+          "reference-line": [
+            "id",
+            "type",
+            "axis",
+            "value",
+            "text?",
+            "color?"
+          ],
+          "callout": [
+            "id",
+            "type",
+            "recordId",
+            "text",
+            "field?",
+            "offset?",
+            "color?"
+          ]
+        },
+        "numericAxesOnly": true,
+        "recordId": "data.values[].id string; field selects a measure series",
+        "persistence": "ChartSpec.annotations",
+        "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+        "exports": [
+          "json",
+          "svg",
+          "png"
+        ],
+        "limits": {
+          "maxAnnotations": 100,
+          "maxTextLines": 3
+        },
+        "diagnostics": [
+          "INVALID_ANNOTATION",
+          "UNKNOWN_ANNOTATION_OPTION",
+          "ANNOTATION_TARGET_MISSING",
+          "ANNOTATION_OUT_OF_VIEW",
+          "ANNOTATION_TEXT_TRUNCATED",
+          "ANNOTATION_LABEL_OVERLAP"
+        ],
+        "limitations": [
+          "no range bands",
+          "no rich text",
+          "no annotation drag editor",
+          "domains are not expanded"
+        ],
+        "supported": false
       },
       "interactions": [
         "hover",
@@ -2299,6 +3250,97 @@
         "grid": "not-applicable",
         "zoom": "not-applicable",
         "pan": "not-applicable"
+      },
+      "text": {
+        "content": "plain-text",
+        "hardBreaks": [
+          "title",
+          "subtitle",
+          "diagram-label",
+          "board-text",
+          "annotation"
+        ],
+        "title": {
+          "maxLines": 2,
+          "overflow": "scale then truncate with TITLE_TRUNCATED"
+        },
+        "labels": {
+          "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+          "positions": {
+            "bar": [
+              "inside",
+              "outside"
+            ],
+            "column": [
+              "inside",
+              "outside"
+            ]
+          },
+          "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+          "background": "none; diagram inline edges and explicit annotations only"
+        },
+        "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+        "unicode": "grapheme-safe truncation"
+      },
+      "annotations": {
+        "types": [
+          "reference-line",
+          "callout"
+        ],
+        "chartTypes": [
+          "line",
+          "area",
+          "bar",
+          "column",
+          "scatter"
+        ],
+        "fields": {
+          "reference-line": [
+            "id",
+            "type",
+            "axis",
+            "value",
+            "text?",
+            "color?"
+          ],
+          "callout": [
+            "id",
+            "type",
+            "recordId",
+            "text",
+            "field?",
+            "offset?",
+            "color?"
+          ]
+        },
+        "numericAxesOnly": true,
+        "recordId": "data.values[].id string; field selects a measure series",
+        "persistence": "ChartSpec.annotations",
+        "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+        "exports": [
+          "json",
+          "svg",
+          "png"
+        ],
+        "limits": {
+          "maxAnnotations": 100,
+          "maxTextLines": 3
+        },
+        "diagnostics": [
+          "INVALID_ANNOTATION",
+          "UNKNOWN_ANNOTATION_OPTION",
+          "ANNOTATION_TARGET_MISSING",
+          "ANNOTATION_OUT_OF_VIEW",
+          "ANNOTATION_TEXT_TRUNCATED",
+          "ANNOTATION_LABEL_OVERLAP"
+        ],
+        "limitations": [
+          "no range bands",
+          "no rich text",
+          "no annotation drag editor",
+          "domains are not expanded"
+        ],
+        "supported": false
       },
       "interactions": [
         "hover",
@@ -2375,6 +3417,97 @@
         "working-calendar": "supported",
         "dependencies": "supported"
       },
+      "text": {
+        "content": "plain-text",
+        "hardBreaks": [
+          "title",
+          "subtitle",
+          "diagram-label",
+          "board-text",
+          "annotation"
+        ],
+        "title": {
+          "maxLines": 2,
+          "overflow": "scale then truncate with TITLE_TRUNCATED"
+        },
+        "labels": {
+          "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+          "positions": {
+            "bar": [
+              "inside",
+              "outside"
+            ],
+            "column": [
+              "inside",
+              "outside"
+            ]
+          },
+          "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+          "background": "none; diagram inline edges and explicit annotations only"
+        },
+        "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+        "unicode": "grapheme-safe truncation"
+      },
+      "annotations": {
+        "types": [
+          "reference-line",
+          "callout"
+        ],
+        "chartTypes": [
+          "line",
+          "area",
+          "bar",
+          "column",
+          "scatter"
+        ],
+        "fields": {
+          "reference-line": [
+            "id",
+            "type",
+            "axis",
+            "value",
+            "text?",
+            "color?"
+          ],
+          "callout": [
+            "id",
+            "type",
+            "recordId",
+            "text",
+            "field?",
+            "offset?",
+            "color?"
+          ]
+        },
+        "numericAxesOnly": true,
+        "recordId": "data.values[].id string; field selects a measure series",
+        "persistence": "ChartSpec.annotations",
+        "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+        "exports": [
+          "json",
+          "svg",
+          "png"
+        ],
+        "limits": {
+          "maxAnnotations": 100,
+          "maxTextLines": 3
+        },
+        "diagnostics": [
+          "INVALID_ANNOTATION",
+          "UNKNOWN_ANNOTATION_OPTION",
+          "ANNOTATION_TARGET_MISSING",
+          "ANNOTATION_OUT_OF_VIEW",
+          "ANNOTATION_TEXT_TRUNCATED",
+          "ANNOTATION_LABEL_OVERLAP"
+        ],
+        "limitations": [
+          "no range bands",
+          "no rich text",
+          "no annotation drag editor",
+          "domains are not expanded"
+        ],
+        "supported": false
+      },
       "interactions": [
         "hover",
         "tooltip",
@@ -2442,6 +3575,97 @@
         "labels": "supported",
         "formatting": "supported"
       },
+      "text": {
+        "content": "plain-text",
+        "hardBreaks": [
+          "title",
+          "subtitle",
+          "diagram-label",
+          "board-text",
+          "annotation"
+        ],
+        "title": {
+          "maxLines": 2,
+          "overflow": "scale then truncate with TITLE_TRUNCATED"
+        },
+        "labels": {
+          "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+          "positions": {
+            "bar": [
+              "inside",
+              "outside"
+            ],
+            "column": [
+              "inside",
+              "outside"
+            ]
+          },
+          "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+          "background": "none; diagram inline edges and explicit annotations only"
+        },
+        "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+        "unicode": "grapheme-safe truncation"
+      },
+      "annotations": {
+        "types": [
+          "reference-line",
+          "callout"
+        ],
+        "chartTypes": [
+          "line",
+          "area",
+          "bar",
+          "column",
+          "scatter"
+        ],
+        "fields": {
+          "reference-line": [
+            "id",
+            "type",
+            "axis",
+            "value",
+            "text?",
+            "color?"
+          ],
+          "callout": [
+            "id",
+            "type",
+            "recordId",
+            "text",
+            "field?",
+            "offset?",
+            "color?"
+          ]
+        },
+        "numericAxesOnly": true,
+        "recordId": "data.values[].id string; field selects a measure series",
+        "persistence": "ChartSpec.annotations",
+        "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+        "exports": [
+          "json",
+          "svg",
+          "png"
+        ],
+        "limits": {
+          "maxAnnotations": 100,
+          "maxTextLines": 3
+        },
+        "diagnostics": [
+          "INVALID_ANNOTATION",
+          "UNKNOWN_ANNOTATION_OPTION",
+          "ANNOTATION_TARGET_MISSING",
+          "ANNOTATION_OUT_OF_VIEW",
+          "ANNOTATION_TEXT_TRUNCATED",
+          "ANNOTATION_LABEL_OVERLAP"
+        ],
+        "limitations": [
+          "no range bands",
+          "no rich text",
+          "no annotation drag editor",
+          "domains are not expanded"
+        ],
+        "supported": false
+      },
       "interactions": [
         "hover",
         "tooltip",
@@ -2508,6 +3732,97 @@
         "labels": "supported",
         "formatting": "supported",
         "baseline-actual-variance": "supported"
+      },
+      "text": {
+        "content": "plain-text",
+        "hardBreaks": [
+          "title",
+          "subtitle",
+          "diagram-label",
+          "board-text",
+          "annotation"
+        ],
+        "title": {
+          "maxLines": 2,
+          "overflow": "scale then truncate with TITLE_TRUNCATED"
+        },
+        "labels": {
+          "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+          "positions": {
+            "bar": [
+              "inside",
+              "outside"
+            ],
+            "column": [
+              "inside",
+              "outside"
+            ]
+          },
+          "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+          "background": "none; diagram inline edges and explicit annotations only"
+        },
+        "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+        "unicode": "grapheme-safe truncation"
+      },
+      "annotations": {
+        "types": [
+          "reference-line",
+          "callout"
+        ],
+        "chartTypes": [
+          "line",
+          "area",
+          "bar",
+          "column",
+          "scatter"
+        ],
+        "fields": {
+          "reference-line": [
+            "id",
+            "type",
+            "axis",
+            "value",
+            "text?",
+            "color?"
+          ],
+          "callout": [
+            "id",
+            "type",
+            "recordId",
+            "text",
+            "field?",
+            "offset?",
+            "color?"
+          ]
+        },
+        "numericAxesOnly": true,
+        "recordId": "data.values[].id string; field selects a measure series",
+        "persistence": "ChartSpec.annotations",
+        "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+        "exports": [
+          "json",
+          "svg",
+          "png"
+        ],
+        "limits": {
+          "maxAnnotations": 100,
+          "maxTextLines": 3
+        },
+        "diagnostics": [
+          "INVALID_ANNOTATION",
+          "UNKNOWN_ANNOTATION_OPTION",
+          "ANNOTATION_TARGET_MISSING",
+          "ANNOTATION_OUT_OF_VIEW",
+          "ANNOTATION_TEXT_TRUNCATED",
+          "ANNOTATION_LABEL_OVERLAP"
+        ],
+        "limitations": [
+          "no range bands",
+          "no rich text",
+          "no annotation drag editor",
+          "domains are not expanded"
+        ],
+        "supported": false
       },
       "interactions": [
         "hover",
@@ -2577,6 +3892,97 @@
         "formatting": "supported",
         "scope-change": "supported",
         "release-forecast": "supported"
+      },
+      "text": {
+        "content": "plain-text",
+        "hardBreaks": [
+          "title",
+          "subtitle",
+          "diagram-label",
+          "board-text",
+          "annotation"
+        ],
+        "title": {
+          "maxLines": 2,
+          "overflow": "scale then truncate with TITLE_TRUNCATED"
+        },
+        "labels": {
+          "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+          "positions": {
+            "bar": [
+              "inside",
+              "outside"
+            ],
+            "column": [
+              "inside",
+              "outside"
+            ]
+          },
+          "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+          "background": "none; diagram inline edges and explicit annotations only"
+        },
+        "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+        "unicode": "grapheme-safe truncation"
+      },
+      "annotations": {
+        "types": [
+          "reference-line",
+          "callout"
+        ],
+        "chartTypes": [
+          "line",
+          "area",
+          "bar",
+          "column",
+          "scatter"
+        ],
+        "fields": {
+          "reference-line": [
+            "id",
+            "type",
+            "axis",
+            "value",
+            "text?",
+            "color?"
+          ],
+          "callout": [
+            "id",
+            "type",
+            "recordId",
+            "text",
+            "field?",
+            "offset?",
+            "color?"
+          ]
+        },
+        "numericAxesOnly": true,
+        "recordId": "data.values[].id string; field selects a measure series",
+        "persistence": "ChartSpec.annotations",
+        "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+        "exports": [
+          "json",
+          "svg",
+          "png"
+        ],
+        "limits": {
+          "maxAnnotations": 100,
+          "maxTextLines": 3
+        },
+        "diagnostics": [
+          "INVALID_ANNOTATION",
+          "UNKNOWN_ANNOTATION_OPTION",
+          "ANNOTATION_TARGET_MISSING",
+          "ANNOTATION_OUT_OF_VIEW",
+          "ANNOTATION_TEXT_TRUNCATED",
+          "ANNOTATION_LABEL_OVERLAP"
+        ],
+        "limitations": [
+          "no range bands",
+          "no rich text",
+          "no annotation drag editor",
+          "domains are not expanded"
+        ],
+        "supported": false
       },
       "interactions": [
         "hover",
@@ -2659,6 +4065,97 @@
         "grid": "not-applicable",
         "legend": "not-applicable"
       },
+      "text": {
+        "content": "plain-text",
+        "hardBreaks": [
+          "title",
+          "subtitle",
+          "diagram-label",
+          "board-text",
+          "annotation"
+        ],
+        "title": {
+          "maxLines": 2,
+          "overflow": "scale then truncate with TITLE_TRUNCATED"
+        },
+        "labels": {
+          "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+          "positions": {
+            "bar": [
+              "inside",
+              "outside"
+            ],
+            "column": [
+              "inside",
+              "outside"
+            ]
+          },
+          "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+          "background": "none; diagram inline edges and explicit annotations only"
+        },
+        "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+        "unicode": "grapheme-safe truncation"
+      },
+      "annotations": {
+        "types": [
+          "reference-line",
+          "callout"
+        ],
+        "chartTypes": [
+          "line",
+          "area",
+          "bar",
+          "column",
+          "scatter"
+        ],
+        "fields": {
+          "reference-line": [
+            "id",
+            "type",
+            "axis",
+            "value",
+            "text?",
+            "color?"
+          ],
+          "callout": [
+            "id",
+            "type",
+            "recordId",
+            "text",
+            "field?",
+            "offset?",
+            "color?"
+          ]
+        },
+        "numericAxesOnly": true,
+        "recordId": "data.values[].id string; field selects a measure series",
+        "persistence": "ChartSpec.annotations",
+        "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+        "exports": [
+          "json",
+          "svg",
+          "png"
+        ],
+        "limits": {
+          "maxAnnotations": 100,
+          "maxTextLines": 3
+        },
+        "diagnostics": [
+          "INVALID_ANNOTATION",
+          "UNKNOWN_ANNOTATION_OPTION",
+          "ANNOTATION_TARGET_MISSING",
+          "ANNOTATION_OUT_OF_VIEW",
+          "ANNOTATION_TEXT_TRUNCATED",
+          "ANNOTATION_LABEL_OVERLAP"
+        ],
+        "limitations": [
+          "no range bands",
+          "no rich text",
+          "no annotation drag editor",
+          "domains are not expanded"
+        ],
+        "supported": false
+      },
       "interactions": [
         "hover",
         "tooltip",
@@ -2685,6 +4182,63 @@
         "json"
       ],
       "limits": {},
+      "incrementalBuilding": {
+        "commands": [
+          "addNode",
+          "removeNode",
+          "updateField",
+          "updateRecord",
+          "addEdge",
+          "updateEdge",
+          "removeEdge"
+        ],
+        "activation": [
+          "editing.enabled",
+          "editing.allowStructuralChanges"
+        ],
+        "confirmation": "host-confirmed-preview",
+        "nodeCreation": {
+          "field": "node",
+          "required": [
+            "id",
+            "label"
+          ],
+          "position": "optional; explicit positions remain authoritative"
+        },
+        "nodeRemoval": {
+          "field": "nodeId",
+          "policy": [
+            "reject",
+            "cascade"
+          ],
+          "defaultPolicy": "reject",
+          "cascade": "incident explicit edges only; other references must remain valid"
+        },
+        "automaticLayout": {
+          "layout": "layered",
+          "trigger": "each committed edit",
+          "strategy": "deterministic full recomputation; loop back-edges do not increase rank",
+          "pinnedNodes": "nodes with position",
+          "viewportChanges": false
+        },
+        "previewLayout": "preview.layout",
+        "committedLayout": "getState().layout.diagram",
+        "atomic": true,
+        "undoable": true,
+        "persistence": "getSpec(); edit history is not serialized",
+        "diagnostics": [
+          "FLOW_LAYOUT_OVERFLOW",
+          "FLOW_NODE_OVERLAP",
+          "EDGE_ROUTE_BLOCKED",
+          "EDGE_MANUAL_ROUTE_INVALID"
+        ],
+        "recipe": "@taylorwong/ichartjs/recipes/diagrams/incremental-flow",
+        "limitations": [
+          "no runtime natural-language parser",
+          "no animated layout transition",
+          "no minimum-displacement layout"
+        ]
+      },
       "defaults": {
         "renderer": "auto",
         "navigation": false,
@@ -2742,6 +4296,97 @@
         "axes": "not-applicable",
         "grid": "not-applicable",
         "legend": "not-applicable"
+      },
+      "text": {
+        "content": "plain-text",
+        "hardBreaks": [
+          "title",
+          "subtitle",
+          "diagram-label",
+          "board-text",
+          "annotation"
+        ],
+        "title": {
+          "maxLines": 2,
+          "overflow": "scale then truncate with TITLE_TRUNCATED"
+        },
+        "labels": {
+          "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+          "positions": {
+            "bar": [
+              "inside",
+              "outside"
+            ],
+            "column": [
+              "inside",
+              "outside"
+            ]
+          },
+          "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+          "background": "none; diagram inline edges and explicit annotations only"
+        },
+        "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+        "unicode": "grapheme-safe truncation"
+      },
+      "annotations": {
+        "types": [
+          "reference-line",
+          "callout"
+        ],
+        "chartTypes": [
+          "line",
+          "area",
+          "bar",
+          "column",
+          "scatter"
+        ],
+        "fields": {
+          "reference-line": [
+            "id",
+            "type",
+            "axis",
+            "value",
+            "text?",
+            "color?"
+          ],
+          "callout": [
+            "id",
+            "type",
+            "recordId",
+            "text",
+            "field?",
+            "offset?",
+            "color?"
+          ]
+        },
+        "numericAxesOnly": true,
+        "recordId": "data.values[].id string; field selects a measure series",
+        "persistence": "ChartSpec.annotations",
+        "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+        "exports": [
+          "json",
+          "svg",
+          "png"
+        ],
+        "limits": {
+          "maxAnnotations": 100,
+          "maxTextLines": 3
+        },
+        "diagnostics": [
+          "INVALID_ANNOTATION",
+          "UNKNOWN_ANNOTATION_OPTION",
+          "ANNOTATION_TARGET_MISSING",
+          "ANNOTATION_OUT_OF_VIEW",
+          "ANNOTATION_TEXT_TRUNCATED",
+          "ANNOTATION_LABEL_OVERLAP"
+        ],
+        "limitations": [
+          "no range bands",
+          "no rich text",
+          "no annotation drag editor",
+          "domains are not expanded"
+        ],
+        "supported": false
       },
       "interactions": [
         "hover",
@@ -2829,6 +4474,97 @@
         "grid": "not-applicable",
         "legend": "not-applicable"
       },
+      "text": {
+        "content": "plain-text",
+        "hardBreaks": [
+          "title",
+          "subtitle",
+          "diagram-label",
+          "board-text",
+          "annotation"
+        ],
+        "title": {
+          "maxLines": 2,
+          "overflow": "scale then truncate with TITLE_TRUNCATED"
+        },
+        "labels": {
+          "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+          "positions": {
+            "bar": [
+              "inside",
+              "outside"
+            ],
+            "column": [
+              "inside",
+              "outside"
+            ]
+          },
+          "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+          "background": "none; diagram inline edges and explicit annotations only"
+        },
+        "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+        "unicode": "grapheme-safe truncation"
+      },
+      "annotations": {
+        "types": [
+          "reference-line",
+          "callout"
+        ],
+        "chartTypes": [
+          "line",
+          "area",
+          "bar",
+          "column",
+          "scatter"
+        ],
+        "fields": {
+          "reference-line": [
+            "id",
+            "type",
+            "axis",
+            "value",
+            "text?",
+            "color?"
+          ],
+          "callout": [
+            "id",
+            "type",
+            "recordId",
+            "text",
+            "field?",
+            "offset?",
+            "color?"
+          ]
+        },
+        "numericAxesOnly": true,
+        "recordId": "data.values[].id string; field selects a measure series",
+        "persistence": "ChartSpec.annotations",
+        "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+        "exports": [
+          "json",
+          "svg",
+          "png"
+        ],
+        "limits": {
+          "maxAnnotations": 100,
+          "maxTextLines": 3
+        },
+        "diagnostics": [
+          "INVALID_ANNOTATION",
+          "UNKNOWN_ANNOTATION_OPTION",
+          "ANNOTATION_TARGET_MISSING",
+          "ANNOTATION_OUT_OF_VIEW",
+          "ANNOTATION_TEXT_TRUNCATED",
+          "ANNOTATION_LABEL_OVERLAP"
+        ],
+        "limitations": [
+          "no range bands",
+          "no rich text",
+          "no annotation drag editor",
+          "domains are not expanded"
+        ],
+        "supported": false
+      },
       "interactions": [
         "hover",
         "tooltip",
@@ -2914,6 +4650,97 @@
         "grid": "not-applicable",
         "legend": "not-applicable"
       },
+      "text": {
+        "content": "plain-text",
+        "hardBreaks": [
+          "title",
+          "subtitle",
+          "diagram-label",
+          "board-text",
+          "annotation"
+        ],
+        "title": {
+          "maxLines": 2,
+          "overflow": "scale then truncate with TITLE_TRUNCATED"
+        },
+        "labels": {
+          "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+          "positions": {
+            "bar": [
+              "inside",
+              "outside"
+            ],
+            "column": [
+              "inside",
+              "outside"
+            ]
+          },
+          "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+          "background": "none; diagram inline edges and explicit annotations only"
+        },
+        "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+        "unicode": "grapheme-safe truncation"
+      },
+      "annotations": {
+        "types": [
+          "reference-line",
+          "callout"
+        ],
+        "chartTypes": [
+          "line",
+          "area",
+          "bar",
+          "column",
+          "scatter"
+        ],
+        "fields": {
+          "reference-line": [
+            "id",
+            "type",
+            "axis",
+            "value",
+            "text?",
+            "color?"
+          ],
+          "callout": [
+            "id",
+            "type",
+            "recordId",
+            "text",
+            "field?",
+            "offset?",
+            "color?"
+          ]
+        },
+        "numericAxesOnly": true,
+        "recordId": "data.values[].id string; field selects a measure series",
+        "persistence": "ChartSpec.annotations",
+        "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+        "exports": [
+          "json",
+          "svg",
+          "png"
+        ],
+        "limits": {
+          "maxAnnotations": 100,
+          "maxTextLines": 3
+        },
+        "diagnostics": [
+          "INVALID_ANNOTATION",
+          "UNKNOWN_ANNOTATION_OPTION",
+          "ANNOTATION_TARGET_MISSING",
+          "ANNOTATION_OUT_OF_VIEW",
+          "ANNOTATION_TEXT_TRUNCATED",
+          "ANNOTATION_LABEL_OVERLAP"
+        ],
+        "limitations": [
+          "no range bands",
+          "no rich text",
+          "no annotation drag editor",
+          "domains are not expanded"
+        ],
+        "supported": false
+      },
       "interactions": [
         "hover",
         "tooltip",
@@ -2952,5 +4779,279 @@
         "recipe": "@taylorwong/ichartjs/recipes/minimal-specs"
       }
     }
+  },
+  "diagram": {
+    "incrementalBuilding": {
+      "commands": [
+        "addNode",
+        "removeNode",
+        "updateField",
+        "updateRecord",
+        "addEdge",
+        "updateEdge",
+        "removeEdge"
+      ],
+      "activation": [
+        "editing.enabled",
+        "editing.allowStructuralChanges"
+      ],
+      "confirmation": "host-confirmed-preview",
+      "nodeCreation": {
+        "field": "node",
+        "required": [
+          "id",
+          "label"
+        ],
+        "position": "optional; explicit positions remain authoritative"
+      },
+      "nodeRemoval": {
+        "field": "nodeId",
+        "policy": [
+          "reject",
+          "cascade"
+        ],
+        "defaultPolicy": "reject",
+        "cascade": "incident explicit edges only; other references must remain valid"
+      },
+      "automaticLayout": {
+        "layout": "layered",
+        "trigger": "each committed edit",
+        "strategy": "deterministic full recomputation; loop back-edges do not increase rank",
+        "pinnedNodes": "nodes with position",
+        "viewportChanges": false
+      },
+      "previewLayout": "preview.layout",
+      "committedLayout": "getState().layout.diagram",
+      "atomic": true,
+      "undoable": true,
+      "persistence": "getSpec(); edit history is not serialized",
+      "diagnostics": [
+        "FLOW_LAYOUT_OVERFLOW",
+        "FLOW_NODE_OVERLAP",
+        "EDGE_ROUTE_BLOCKED",
+        "EDGE_MANUAL_ROUTE_INVALID"
+      ],
+      "recipe": "@taylorwong/ichartjs/recipes/diagrams/incremental-flow",
+      "limitations": [
+        "no runtime natural-language parser",
+        "no animated layout transition",
+        "no minimum-displacement layout"
+      ]
+    },
+    "layoutModes": [
+      "manual",
+      "layered",
+      "tree",
+      "radial"
+    ],
+    "routingModes": [
+      "auto",
+      "straight",
+      "orthogonal",
+      "curved"
+    ],
+    "entities": [
+      "node",
+      "edge",
+      "lane",
+      "group",
+      "port",
+      "waypoint"
+    ],
+    "operations": [
+      "addNode",
+      "removeNode",
+      "moveNode",
+      "moveNodes",
+      "resizeNode",
+      "alignNodes",
+      "snapNodes",
+      "moveNodeToLane",
+      "moveGroup",
+      "resizeGroup",
+      "assignNodesToGroup",
+      "duplicateGroup",
+      "deleteGroup",
+      "updateEdge",
+      "removeEdge",
+      "addEdge",
+      "toggleGroupCollapse",
+      "duplicateSelection",
+      "pasteSelection"
+    ],
+    "flowNodeKinds": [
+      "start",
+      "end",
+      "process",
+      "decision",
+      "io",
+      "connector"
+    ],
+    "flowBranchEdges": {
+      "label": "edge.label",
+      "minimumOutgoing": 2
+    },
+    "flowLoops": "supported",
+    "flowConnectors": {
+      "kind": "connector",
+      "linking": "explicit from/to edges"
+    },
+    "curvedEdges": {
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "type": "cubic-bezier",
+      "tension": {
+        "minimum": 0.2,
+        "maximum": 0.8,
+        "default": 0.4
+      },
+      "mindmapDefault": true,
+      "obstacleFallback": "orthogonal",
+      "controlPointEditing": false
+    },
+    "obstacles": {
+      "default": "all-visible-node-shapes",
+      "shapes": [
+        "rect",
+        "ellipse",
+        "circle",
+        "diamond",
+        "parallelogram",
+        "polygon",
+        "closed-path"
+      ],
+      "backgroundBoundaries": "opt-in",
+      "collisionFallback": "bounds-with-warning"
+    },
+    "edgeEditing": {
+      "renderers": [
+        "canvas",
+        "svg"
+      ],
+      "selection": true,
+      "waypointDrag": true,
+      "segmentDrag": true,
+      "orthogonalWaypointDrag": true,
+      "persistentWaypoints": true,
+      "manualRouteValidation": "preview-and-commit",
+      "rejectionDiagnostic": "EDGE_MANUAL_ROUTE_INVALID",
+      "routeState": "getState().edgeRoutes",
+      "restoreAutoOperation": "updateEdge",
+      "enabledByDefault": false,
+      "activation": [
+        "editing.enabled",
+        "interaction.edgeDrag"
+      ],
+      "routingModes": [
+        "auto",
+        "manual"
+      ],
+      "lineStyles": [
+        "solid",
+        "dashed",
+        "dotted"
+      ]
+    },
+    "validation": [
+      "duplicate-ids",
+      "missing-endpoints",
+      "missing-ports",
+      "missing-lanes",
+      "invalid-waypoints",
+      "invalid-curve-tension",
+      "invalid-edge-routing"
+    ]
+  },
+  "text": {
+    "content": "plain-text",
+    "hardBreaks": [
+      "title",
+      "subtitle",
+      "diagram-label",
+      "board-text",
+      "annotation"
+    ],
+    "title": {
+      "maxLines": 2,
+      "overflow": "scale then truncate with TITLE_TRUNCATED"
+    },
+    "labels": {
+      "font": "CSS pixel font, 8–160px; used for measurement and drawing",
+      "positions": {
+        "bar": [
+          "inside",
+          "outside"
+        ],
+        "column": [
+          "inside",
+          "outside"
+        ]
+      },
+      "overflow": "suppress with LABELS_SUPPRESSED; polar labels may overflow narrow sectors",
+      "background": "none; diagram inline edges and explicit annotations only"
+    },
+    "measurement": "Browser Canvas metrics when a font is supplied; conservative estimates in headless mode. Await web fonts before rendering.",
+    "unicode": "grapheme-safe truncation"
+  },
+  "annotations": {
+    "types": [
+      "reference-line",
+      "callout"
+    ],
+    "chartTypes": [
+      "line",
+      "area",
+      "bar",
+      "column",
+      "scatter"
+    ],
+    "fields": {
+      "reference-line": [
+        "id",
+        "type",
+        "axis",
+        "value",
+        "text?",
+        "color?"
+      ],
+      "callout": [
+        "id",
+        "type",
+        "recordId",
+        "text",
+        "field?",
+        "offset?",
+        "color?"
+      ]
+    },
+    "numericAxesOnly": true,
+    "recordId": "data.values[].id string; field selects a measure series",
+    "persistence": "ChartSpec.annotations",
+    "updates": "chart.update({ annotations }); host owns natural-language interpretation and confirmation",
+    "exports": [
+      "json",
+      "svg",
+      "png"
+    ],
+    "limits": {
+      "maxAnnotations": 100,
+      "maxTextLines": 3
+    },
+    "diagnostics": [
+      "INVALID_ANNOTATION",
+      "UNKNOWN_ANNOTATION_OPTION",
+      "ANNOTATION_TARGET_MISSING",
+      "ANNOTATION_OUT_OF_VIEW",
+      "ANNOTATION_TEXT_TRUNCATED",
+      "ANNOTATION_LABEL_OVERLAP"
+    ],
+    "limitations": [
+      "no range bands",
+      "no rich text",
+      "no annotation drag editor",
+      "domains are not expanded"
+    ]
   }
 }

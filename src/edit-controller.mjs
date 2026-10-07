@@ -5,6 +5,9 @@
 import { copyJSON, issue } from './schema.mjs';
 import { normalizeCommand } from './command.mjs';
 import { previewEdit, commitPreview } from './edit.mjs';
+import { validateSpec } from './spec.mjs';
+import { buildScene } from './charts.mjs';
+import { diagramConnectionPoints, reconnectOrthogonalWaypoints } from './diagram.mjs';
 
 let chartSequence = 0;
 
@@ -31,8 +34,8 @@ export class EditController {
     if (!diagram) return [{ field: 'values', root: false }];
     const operations = command.operations || [];
     const wantsGroups = operations.some(operation => ['toggleGroupCollapse', 'duplicateGroup', 'deleteGroup'].includes(operation?.op));
-    const wantsEdges = operations.some(operation => ['updateEdge', 'removeEdge', 'addEdge', 'duplicateSelection', 'pasteSelection', 'duplicateGroup'].includes(operation?.op) || operation?.op === 'deleteGroup' && operation.policy === 'delete-members');
-    const wantsNodes = operations.some(operation => ['moveNode', 'moveNodes', 'moveNodeToLane', 'resizeNode', 'alignNodes', 'snapNodes', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'duplicateSelection', 'pasteSelection'].includes(operation?.op));
+    const wantsEdges = operations.some(operation => ['removeNode', 'updateEdge', 'removeEdge', 'addEdge', 'duplicateSelection', 'pasteSelection', 'duplicateGroup'].includes(operation?.op) || ['updateField', 'updateRecord'].includes(operation?.op) && operation.edgeId || operation?.op === 'deleteGroup' && operation.policy === 'delete-members');
+    const wantsNodes = operations.some(operation => ['addNode', 'removeNode', 'moveNode', 'moveNodes', 'moveNodeToLane', 'resizeNode', 'alignNodes', 'snapNodes', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'duplicateSelection', 'pasteSelection'].includes(operation?.op) || ['updateField', 'updateRecord'].includes(operation?.op) && !operation.edgeId);
     const entries = [];
     if (wantsNodes || !wantsEdges && !wantsGroups) entries.push({ field: 'nodes', root: spec.nodes !== undefined });
     if (wantsEdges) entries.push({ field: 'edges', root: spec.edges !== undefined });
@@ -55,6 +58,8 @@ export class EditController {
       edges,
       groups,
       lanes,
+      layers: spec.layers ?? [],
+      boundaries: spec.boundaries ?? [],
       nodeSchema: spec.data.schema ?? spec.schema,
       schema: primary?.field === 'edges' ? spec.data.edgeSchema : spec.data.schema ?? spec.schema,
       edgeSchema: spec.data.edgeSchema,
@@ -73,15 +78,87 @@ export class EditController {
   preview(input) {
     let command;
     try { command = normalizeCommand(input); } catch { return previewEdit(input); }
-    const context = this.context(command);
-    const preview = previewEdit(command, context.options);
+    const { context, preview } = this.prepare(command);
     preview.revision = this.chart._revision;
     if (preview.valid) {
       preview.id = `chart-${this.id}-preview-${++this.sequence}`;
-      this.pending.set(preview.id, { command: copyJSON(command), revision: preview.revision, signature: context.signature });
+      this.pending.set(preview.id, { command: copyJSON(preview.command), revision: preview.revision, signature: context.signature });
       if (this.pending.size > 50) this.pending.delete(this.pending.keys().next().value);
     }
     return preview;
+  }
+
+  prepare(command, beforeModel = null) {
+    let context = this.context(command), preview = previewEdit(command, context.options);
+    if (preview.valid && preview.targets?.nodes) {
+      const explicit = new Set(command.operations.filter(operation => operation.op === 'updateEdge' && ['waypoints', 'routingMode', 'routing', 'from', 'to', 'fromPort', 'toPort'].some(field => Object.hasOwn(operation.changes || {}, field))).map(operation => operation.edgeId));
+      const manual = new Map(context.options.edges.map((edge, index) => [edge.id || `edge-${index}`, edge]).filter(([edgeId, edge]) => !explicit.has(edgeId) && (edge.routingMode === 'manual' || edge.routingMode !== 'auto' && edge.waypoints?.length) && ['auto', 'orthogonal'].includes(edge.routing || this.chart.spec.diagram?.routing)));
+      if (manual.size) {
+        const withTargets = targets => {
+          let spec = this.chart.spec;
+          Object.entries(targets).forEach(([field, rows]) => { spec = spec[field] !== undefined ? { ...spec, [field]: rows } : { ...spec, data: { ...spec.data, [field]: rows } }; });
+          return spec;
+        };
+        const before = beforeModel || buildScene(this.chart.spec), next = buildScene(withTargets(preview.targets)), nextNodes = new Map(preview.targets.nodes.map(node => [node.id, node]));
+        const nodeBox = nodeId => {
+          const node = nextNodes.get(nodeId), bounds = next.scene.find(`node-${nodeId}`)?.bounds, view = next.state.view;
+          return bounds && node ? { x: node.position?.x ?? (bounds.x - view.offsetX) / view.scale, y: node.position?.y ?? (bounds.y - view.offsetY) / view.scale, width: node.size?.width ?? bounds.width / view.scale, height: node.size?.height ?? bounds.height / view.scale } : null;
+        };
+        const updates = [];
+        before.scene.walk(node => {
+          const reference = node.dataRef;
+          if (!reference?.edgeId || reference.edgeHandle || reference.routingMode !== 'manual') return;
+          const edge = manual.get(reference.edgeId);
+          if (!edge || !(preview.targets.edges || context.options.edges).some(candidate => candidate.id === edge.id)) return;
+          const from = nodeBox(edge.from), to = nodeBox(edge.to);
+          if (!from || !to) return;
+          const { start, end } = diagramConnectionPoints(from, to, reference.fromPortDefinition, reference.toPortDefinition);
+          const waypoints = reconnectOrthogonalWaypoints(reference.diagramPoints, start, end, edge.waypoints);
+          if (JSON.stringify(waypoints) !== JSON.stringify(edge.waypoints)) updates.push({ op: 'updateEdge', edgeId: reference.edgeId, changes: { waypoints } });
+        });
+        if (updates.length) {
+          const proposedEdges = (preview.targets.edges || context.options.edges).map((edge, index) => {
+            const update = updates.find(operation => operation.edgeId === (edge.id || `edge-${index}`));
+            return update ? { ...edge, ...update.changes } : edge;
+          });
+          const candidate = buildScene(withTargets({ ...preview.targets, edges: proposedEdges }));
+          const valid = new Set(candidate.state.edgeRoutes.filter(route => route.effectiveRoutingMode === 'manual' && route.visible).map(route => route.edgeId));
+          const accepted = updates.filter(operation => valid.has(operation.edgeId));
+          if (accepted.length) {
+            command = { ...command, operations: [...command.operations, ...accepted] };
+            context = this.context(command);
+            preview = previewEdit(command, context.options);
+          }
+        }
+      }
+    }
+    let model;
+    if (preview.valid && ['flow', 'swimlane', 'architecture', 'mindmap'].includes(this.chart.spec.type)) {
+      let spec = this.chart.spec;
+      Object.entries(preview.targets || {}).forEach(([field, rows]) => { spec = spec[field] !== undefined ? { ...spec, [field]: rows } : { ...spec, data: { ...spec.data, [field]: rows } }; });
+      model = buildScene(spec);
+      preview.layout = copyJSON(model.state.diagramLayout);
+      preview.warnings.push(...model.data.warnings.filter(warning => !preview.warnings.some(existing => JSON.stringify(existing) === JSON.stringify(warning))));
+    }
+    return { command, context, preview: this.validateRoutes(preview, model) };
+  }
+
+  validateRoutes(preview, preparedModel = null) {
+    if (!preview.valid || !preview.targets?.edges) return preview;
+    const edited = new Set(preview.command.operations.filter(operation => operation.op === 'updateEdge' && ['waypoints', 'routingMode', 'routing', 'from', 'to', 'fromPort', 'toPort'].some(field => Object.hasOwn(operation.changes || {}, field))).map(operation => operation.edgeId));
+    const manual = preview.targets.edges.filter((edge, index) => edited.has(edge.id || `edge-${index}`) && (edge.routingMode === 'manual' || edge.routingMode !== 'auto' && edge.waypoints?.length));
+    if (!manual.length) return preview;
+    let spec = this.chart.spec;
+    Object.entries(preview.targets).forEach(([field, rows]) => { spec = spec[field] !== undefined ? { ...spec, [field]: rows } : { ...spec, data: { ...spec.data, [field]: rows } }; });
+    const model = preparedModel || buildScene(spec);
+    const errors = manual.flatMap(edge => {
+      const edgeId = edge.id || `edge-${preview.targets.edges.indexOf(edge)}`;
+      const warning = model.state.routingWarnings?.find(item => item.edgeId === edgeId && item.code === 'EDGE_MANUAL_ROUTE_INVALID');
+      if (warning) return [{ ...warning, message: `Manual connector edit rejected (${warning.reason}); the previously committed route is unchanged.` }];
+      if (!model.state.edgeRoutes?.some(item => item.edgeId === edgeId && item.visible && item.effectiveRoutingMode === 'manual')) return [issue('EDGE_MANUAL_ROUTE_UNAVAILABLE', 'edges', 'The manual connector is not visible; expand its group before editing its route.')];
+      return [];
+    });
+    return errors.length ? { ...preview, valid: false, errors: [...preview.errors, ...errors], targets: {}, changes: [], patches: [], after: preview.before } : preview;
   }
 
   failure(code, message) {
@@ -101,8 +178,9 @@ export class EditController {
     if (chart.spec.editing?.enabled !== true) return this.failure('EDITING_DISABLED', 'Business editing is disabled for this chart.');
     let command;
     try { command = normalizeCommand(input); } catch (error) { return this.failure('INVALID_COMMAND', error.message); }
-    const context = this.context(command);
-    const preview = previewEdit(command, context.options);
+    const prepared = this.prepare(command);
+    command = prepared.command;
+    const { context, preview } = prepared;
     preview.revision = chart._revision;
     if (!preview.valid) { this.notify('editerror', { chart, result: preview }); return preview; }
     if (preview.requiresConfirmation && options.confirmed !== true) return this.failure('CONFIRMATION_REQUIRED', 'Host confirmation is required; an Agent flag is not authorization.');
@@ -150,17 +228,24 @@ export class EditController {
   }
 
   publish(targets, entries) {
-    const chart = this.chart, previousSpec = chart.spec, previousModel = chart.model;
+    const chart = this.chart, previousSpec = chart.spec, previousModel = chart.model, previousDiagnostics = chart._specDiagnostics;
     let nextSpec = chart.spec;
     entries.forEach(entry => {
       const rows = targets[entry.field];
       if (!rows) return;
       nextSpec = entry.root ? { ...nextSpec, [entry.field]: copyJSON(rows) } : { ...nextSpec, data: { ...nextSpec.data, [entry.field]: copyJSON(rows) } };
     });
-    chart.spec = nextSpec;
-    try { chart.render(); return null; } catch (error) {
+    try {
+      const validation = validateSpec(nextSpec);
+      if (!validation.valid) throw new Error(validation.errors.map(error => `${error.code}: ${error.message}`).join(' '));
+      chart.spec = nextSpec;
+      chart._specDiagnostics = { warnings: validation.warnings, normalizations: validation.normalizations };
+      chart.render();
+      return null;
+    } catch (error) {
       chart.spec = previousSpec;
       chart.model = previousModel;
+      chart._specDiagnostics = previousDiagnostics;
       try { if (chart.renderer.container) chart.renderer.render(previousModel.scene); } catch {}
       return error;
     }

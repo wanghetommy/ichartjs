@@ -35,6 +35,15 @@ function geometryHit(node, x, y) {
   if (node.type === 'line') return pointToSegmentDistance({ x, y }, { x: geometry.x1, y: geometry.y1 }, { x: geometry.x2, y: geometry.y2 }) <= tolerance;
   if (node.type === 'path' && Array.isArray(geometry.points)) {
     const points = geometry.curve === 'cubic' ? sampleCubicBezier(geometry.points) : geometry.points;
+    if (geometry.closed && node.style?.fill && node.style.fill !== 'none') {
+      let inside = false;
+      for (let index = 0, previousIndex = points.length - 1; index < points.length; previousIndex = index, index += 1) {
+        const current = points[index], previous = points[previousIndex];
+        if ((current.y > y) !== (previous.y > y) && x < (previous.x - current.x) * (y - current.y) / (previous.y - current.y) + current.x) inside = !inside;
+      }
+      if (inside) return true;
+    }
+    if (geometry.closed && points.length > 1 && pointToSegmentDistance({ x, y }, points[points.length - 1], points[0]) <= tolerance) return true;
     return points.some((point, index) => index > 0 && pointToSegmentDistance({ x, y }, points[index - 1], point) <= tolerance);
   }
   if (node.type === 'ellipse') {

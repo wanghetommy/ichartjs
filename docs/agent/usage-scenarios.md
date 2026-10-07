@@ -23,6 +23,7 @@ For natural-language changes to an existing chart, use the [Conversational Workf
 | Build project or delivery views | Project scenario + Runtime | Project dashboard | Gantt, Burndown, Timeline, analytics |
 | Build a process or architecture view | Diagram scenario + Runtime | Web app or document workflow | Flow/Swimlane/Architecture/Mindmap UI, SVG, JSON |
 | Compose images, text, shapes, connectors, and charts | Canvas scenario + Runtime | Browser or Agent-generated document | Board SVG, JSON, PNG/JPEG, or interactive page |
+| Watch and review construction step by step | Agent-driven Incremental Construction | Persistent browser host with an Agent update channel | Confirmed semantic steps, revision/diagnostics, final JSON and SVG/PNG |
 | Generate scheduled reports | Node script + Runtime | CI or report job | SVG/PNG files and JSON checkpoints |
 
 ## Output Contract
@@ -64,7 +65,7 @@ Install the runtime in the host application:
 npm install @taylorwong/ichartjs@^2
 ```
 
-For reproducible builds, pin the installed release instead: `npm install @taylorwong/ichartjs@2.0.26`.
+For reproducible builds, pin the installed release instead: `npm install @taylorwong/ichartjs@2.0.27`.
 
 Use the normal component lifecycle:
 
@@ -130,7 +131,7 @@ npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --ye
 For reproducible installation, pin the released Skill directory:
 
 ```bash
-npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.26/skills/ichartjs \
+npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.27/skills/ichartjs \
   --agent codex --global --yes
 ```
 
@@ -186,6 +187,18 @@ const png = await chart.exportAsync({ type: 'png' });
 ```
 
 Store JSON as the reproducible checkpoint and SVG/PNG as presentation artifacts. Report export errors as structured results instead of silently substituting another format.
+
+## Scenario 7: Agent-driven Incremental Construction
+
+Choose this when a user wants to see a Flow grow through conversation, review a Board assembled in stages, or approve changes to an existing composition. Do not impose it on a simple one-off chart or unattended report.
+
+The host must keep one JavaScript instance mounted, expose a preview URL, and connect Agent commands to that instance. Skill installation alone is insufficient; a final HTML/PNG cannot show live progress. Without that host, offer a final artifact or integration code and disclose the limitation.
+
+Use complete semantic steps: read → plan → validate/preview → host approval → atomic commit → self-check. The host owns language understanding, step UI, transport and persistence; Runtime owns validation, layout, revision and history. Flow can explicitly use `layered` layout; Board preserves positions and locks. Neither requires default zoom, pan or animation.
+
+Follow the [shared construction workflow and prompt](conversational-workflow.md#agent-driven-incremental-construction). Review final business requirements separately from renderability, then deliver the preview URL, warnings, JSON and SVG/PNG. Recipes are starting templates, not autonomous tasks.
+
+Preview the four-step examples at `http://localhost:3000/playground/diagram-editor.html` and `http://localhost:3000/playground/canvas-board.html`: Next authorizes one preset turn, Previous step undoes it, and Restart clears the example. Developer tools retain commands, preview/confirmation and delivery checks; use `?scenario=advanced` to open them directly and append `&renderer=canvas` for Canvas. These are preset host examples, not natural-language parsers.
 
 ## Boundaries
 

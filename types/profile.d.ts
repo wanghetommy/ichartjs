@@ -1,10 +1,10 @@
-import type { ChartSpec, ChartType, DataInspection, Diagnostic, ExportAs, ExportKind, Renderer, RuntimeCapabilities } from './index.d.ts';
+import type { ChartSpec, ChartType, AnnotationState, DataInspection, Diagnostic, ExportAs, ExportKind, Renderer, RuntimeCapabilities } from './index.d.ts';
 
 export declare const profile: string;
 export declare const chartTypes: readonly ChartType[];
 export interface ProfileLineage { recordIds: string[]; sourcePreserved: boolean; }
-export interface ProfileState { version: string; profile: string; type: ChartType; renderer: Renderer; warnings: Diagnostic[]; normalizations: unknown[]; health: { status: string; renderable: boolean; issues: string[] }; lineage: ProfileLineage; [key: string]: unknown; }
-export interface ProfileExplanation { version: string; profile: string; type: ChartType; renderer: Renderer; requiredFields: string[]; assumptions: string[]; warnings: Diagnostic[]; health: ProfileState['health']; lineage: ProfileLineage; [key: string]: unknown; }
+export interface ProfileState { version: string; profile: string; type: ChartType; renderer: Renderer; warnings: Diagnostic[]; normalizations: unknown[]; health: { status: string; renderable: boolean; issues: string[] }; lineage: ProfileLineage; layout: { annotations?: AnnotationState[]; [key: string]: unknown }; [key: string]: unknown; }
+export interface ProfileExplanation { version: string; profile: string; type: ChartType; renderer: Renderer; requiredFields: string[]; assumptions: string[]; warnings: Diagnostic[]; health: ProfileState['health']; lineage: ProfileLineage; layout: { annotations?: AnnotationState[]; [key: string]: unknown }; [key: string]: unknown; }
 export declare class ProfileChart {
   readonly profile: string;
   readonly spec: ChartSpec;

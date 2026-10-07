@@ -18,7 +18,7 @@ This is the user-facing Agent entry point for iChart.js 2.0. Read this file firs
 - [Data Charting](charting-scenario.md): generic data analysis charts.
 - [Project Management](project-scenario.md): Gantt, Timeline, Milestone, and Burndown.
 - [Interactive Diagrams](diagram-scenario.md): Flow, Swimlane, Architecture, Mindmap, Groups, Ports, and editing.
-- [Freeform Board](canvas-scenario.md): compose images, text, shapes, connectors, and embedded charts with SVG/Canvas.
+- [Freeform Board](canvas-scenario.md): compose images, text, shapes, connectors, and embedded charts; build visible Agent turns with confirmed previews and history in SVG/Canvas.
 - [Runtime Contract](runtime-contract.md): shared Spec, renderer, interaction, and export rules.
 - [Runtime Footprint](runtime-footprint.md): current loading model, measured package size, and mobile guidance.
 - Profile entries: use `@taylorwong/ichartjs/standard`, `/project`, `/diagram`, or `/board` when the host knows the capability family.
@@ -29,6 +29,8 @@ This is the user-facing Agent entry point for iChart.js 2.0. Read this file firs
 The 2.0 API is Spec-first. Import from `@taylorwong/ichartjs`, inspect data, plan a chart, create a JSON-friendly Spec, validate it, render it, and self-check the explanation and runtime state.
 
 ## Recommended flow
+
+For titles, labels, Board text or data-linked explanations, read [Chart Text and Annotations](text-annotations.md): discoverable options, fitting diagnostics, reference lines, stable-ID callouts and export/reload boundaries.
 
 ```js
 const report = ichart.inspectData(data);
@@ -49,7 +51,7 @@ chart.explain();
 Use `getCapabilities()` to discover supported chart types, project-management views, diagrams, renderers, interactions, exports, and data operations. Use `chart.getSpec()`, `chart.getState()`, `chart.getSelectedData()`, and `chart.toDataTable()` to inspect a live chart.
 
 For a visual overview of all supported chart types, open `playground/project-gallery.html`. For style-system acceptance, open `playground/theme-gallery.html`.
-For Freeform Board acceptance, open `playground/canvas-board.html`.
+For visible incremental construction, open `playground/canvas-board.html` or `playground/diagram-editor.html`; each defaults to four steps with Next, Previous step and Restart. Developer tools are folded; `?scenario=advanced` opens editable commands, preview/confirmation, history and save/reload. Use `?scenario=composition` for the full Board or `?scenario=editor` for the manual Flow editor.
 
 ## Selection rules
 

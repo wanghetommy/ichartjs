@@ -11,8 +11,8 @@ const day = 86400000;
 const plusDays = (value, days) => { const date = new Date(`${value}T00:00:00.000Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10); };
 const equality = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 const recordId = operation => operation.recordId ?? operation.taskId ?? operation.nodeId ?? operation.edgeId;
-const diagramOperationTypes = new Set(['moveNode', 'moveNodes', 'moveNodeToLane', 'resizeNode', 'alignNodes', 'snapNodes', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'updateEdge', 'removeEdge', 'toggleGroupCollapse', 'addEdge', 'duplicateSelection', 'pasteSelection']);
-const structureOperationTypes = new Set(['assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'removeEdge', 'toggleGroupCollapse', 'addEdge', 'duplicateSelection', 'pasteSelection']);
+const diagramOperationTypes = new Set(['addNode', 'removeNode', 'moveNode', 'moveNodes', 'moveNodeToLane', 'resizeNode', 'alignNodes', 'snapNodes', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'updateEdge', 'removeEdge', 'toggleGroupCollapse', 'addEdge', 'duplicateSelection', 'pasteSelection']);
+const structureOperationTypes = new Set(['addNode', 'removeNode', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'removeEdge', 'toggleGroupCollapse', 'addEdge', 'duplicateSelection', 'pasteSelection']);
 
 export function businessModelForType(type) {
   return { gantt: 'project-task', timeline: 'timeline-event', milestone: 'milestone', burndown: 'burndown-sample', flow: 'flow-node', swimlane: 'flow-node', architecture: 'architecture-node', mindmap: 'mindmap-node' }[type] || type;
@@ -37,6 +37,8 @@ function previewDiagramEdit(command, options = {}) {
   const editable = (schema, field) => schema?.fields?.[field]?.editable !== false && schema?.fields?.[field]?.agentEditable !== false;
   const setField = (collection, hit, field, value, operation, opIndex, schemaName) => {
     const schema = schemaName === 'edges' ? edgeSchemaResult.schema : nodeSchemaResult.schema;
+    if (!Object.hasOwn(schema.fields, field)) { errors.push(issue('UNKNOWN_FIELD', `command.operations.${opIndex}.changes.${field}`, 'Field is not declared in the schema.')); return; }
+    if (value === undefined) { errors.push(issue('FIELD_VALUE_REQUIRED', `command.operations.${opIndex}.changes.${field}`, 'A diagram field update requires an explicit JSON value.')); return; }
     if (!editable(schema, field)) { errors.push(issue('READ_ONLY_FIELD', `command.operations.${opIndex}.changes.${field}`, `Field ${field} is not editable by an Agent.`)); return; }
     const before = hit.row[field];
     hit.row[field] = copyJSON(value);
@@ -52,8 +54,42 @@ function previewDiagramEdit(command, options = {}) {
   };
 
   command.operations.forEach((operation, opIndex) => {
-    if (!diagramOperationTypes.has(operation.op)) return;
+    if (['updateField', 'updateRecord'].includes(operation.op)) {
+      const collection = operation.edgeId ? edges : nodes, schemaName = operation.edgeId ? 'edges' : 'nodes';
+      const hit = (operation.edgeId ? edgeIndex() : nodeIndex()).get(recordId(operation));
+      if (!hit) { errors.push(issue('RECORD_NOT_FOUND', `command.operations.${opIndex}`, 'The diagram record was not found.')); return; }
+      const changes = operation.op === 'updateField' ? { [operation.field]: operation.value } : operation.changes;
+      Object.entries(changes || {}).forEach(([field, value]) => setField(collection, hit, field, value, operation, opIndex, schemaName));
+      return;
+    }
+    if (!diagramOperationTypes.has(operation.op)) { errors.push(issue('COMMAND_MODEL', `command.operations.${opIndex}`, 'This operation does not apply to diagram records.')); return; }
     if (!ensureStructureAllowed(operation, opIndex)) return;
+    if (operation.op === 'addNode') {
+      if (nodes.some(node => node.id === operation.node.id)) { errors.push(issue('DUPLICATE_NODE_ID', `command.operations.${opIndex}.node.id`, `Node ${operation.node.id} already exists.`)); return; }
+      const node = copyJSON(operation.node);
+      nodes.push(node);
+      affected.add(node.id);
+      changes.push(change(undefined, node, `nodes.${nodes.length - 1}`, operation));
+      patches.push({ op: 'add', path: `/nodes/${nodes.length - 1}`, value: copyJSON(node) });
+      return;
+    }
+    if (operation.op === 'removeNode') {
+      const hit = nodeIndex().get(operation.nodeId);
+      if (!hit) { errors.push(issue('RECORD_NOT_FOUND', `command.operations.${opIndex}.nodeId`, `Node ${operation.nodeId} was not found.`)); return; }
+      const connected = edge => edge.from === operation.nodeId || edge.to === operation.nodeId;
+      if (edges.some(connected) && operation.policy !== 'cascade') { errors.push(issue('NODE_CONNECTED', `command.operations.${opIndex}.policy`, 'Remove incident edges first or explicitly use policy: cascade.')); return; }
+      for (let index = edges.length - 1; index >= 0; index -= 1) if (connected(edges[index])) {
+        const removed = edges.splice(index, 1)[0];
+        affected.add(removed.id || `edge-${index}`);
+        changes.push(change(removed, undefined, `edges.${index}`, operation));
+        patches.push({ op: 'remove', path: `/edges/${index}` });
+      }
+      const removed = nodes.splice(hit.rowIndex, 1)[0];
+      affected.add(removed.id);
+      changes.push(change(removed, undefined, `nodes.${hit.rowIndex}`, operation));
+      patches.push({ op: 'remove', path: `/nodes/${hit.rowIndex}` });
+      return;
+    }
     if (['moveNodes', 'alignNodes', 'snapNodes'].includes(operation.op)) {
       const index = nodeIndex(), hits = operation.nodeIds.map(id => index.get(id));
       if (hits.some(hit => !hit)) { errors.push(issue('RECORD_NOT_FOUND', `command.operations.${opIndex}.nodeIds`, 'One or more diagram nodes were not found.')); return; }
@@ -275,9 +311,10 @@ function previewDiagramEdit(command, options = {}) {
   const edgeValidation = validateData(edges, edgeSchemaResult.schema, { ...options.validationOptions, references: { ...options.validationOptions?.references, 'flow-node': nodeValidation.rows.map(node => node.id) } });
   errors.push(...nodeValidation.errors, ...edgeValidation.errors);
   warnings.push(...nodeValidation.warnings, ...edgeValidation.warnings);
-  const diagramSpec = { type: options.type || 'flow', nodes: nodeValidation.rows, edges: edgeValidation.rows, groups, lanes, ...(options.diagram ? { diagram: options.diagram } : {}) };
+  const diagramSpec = { type: options.type || 'flow', nodes: nodeValidation.rows, edges: edgeValidation.rows, groups, lanes, layers: options.layers || [], boundaries: options.boundaries || [], ...(options.diagram ? { diagram: options.diagram } : {}) };
   const diagramValidation = validateDiagram(diagramSpec);
   errors.push(...diagramValidation.errors.map(error => issue(error.code, error.path, error.message, error.suggestion)));
+  warnings.push(...diagramValidation.warnings);
 
   const targets = {};
   if (!equality(beforeNodes, nodeValidation.rows)) targets.nodes = nodeValidation.rows;
@@ -360,7 +397,8 @@ export function previewEdit(input, options = {}) {
   try { command = normalizeCommand(input); } catch (error) { return { valid: false, errors: [issue('INVALID_COMMAND', 'command', error.message)], changes: [], patches: [], affectedRecords: [], warnings: [], requiresConfirmation: false }; }
   const commandResult = validateCommand(command);
   if (!commandResult.valid) return result({ valid: false, errors: commandResult.errors, command, changes: [], patches: [], affectedRecords: [], warnings: [], requiresConfirmation: false });
-  if (command.operations.some(operation => diagramOperationTypes.has(operation.op))) return previewDiagramEdit(command, options);
+  if (command.operations.some(operation => diagramOperationTypes.has(operation.op)) && options.type && !['flow', 'swimlane', 'architecture', 'mindmap'].includes(options.type)) return result({ valid: false, errors: [issue('COMMAND_MODEL', 'command.operations', 'Diagram operations require a diagram chart.')], command, changes: [], patches: [], affectedRecords: [], warnings: [], requiresConfirmation: false });
+  if (['flow', 'swimlane', 'architecture', 'mindmap'].includes(options.type) || command.operations.some(operation => diagramOperationTypes.has(operation.op))) return previewDiagramEdit(command, options);
   return previewBusinessEdit(command, options);
 }
 

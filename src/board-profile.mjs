@@ -7,11 +7,12 @@ import { FreeformBoard as FreeformBoardRuntime, validateBoardSpec, planCanvas } 
 import { boardCapabilities } from './board-contract.mjs';
 import { normalizeSpec } from './spec.mjs';
 import { resolveTheme } from './theme.mjs';
-import { buildStandardScene } from './profile-standard.mjs';
+import { buildStandardScene, standardChartTypes } from './profile-standard.mjs';
 
 export const profile = 'board';
 function prepareEmbeddedChart(input) {
   const spec = normalizeSpec(input);
+  if (!standardChartTypes.includes(spec.type)) throw new Error(`Board profile embeds standard charts only; use the root entry for ${spec.type}.`);
   const theme = resolveTheme(spec.theme, spec);
   return { ...spec, theme, colors: spec.colors || [...theme.colors], background: spec.background || theme.background, padding: spec.padding || theme.layout.padding };
 }
@@ -21,4 +22,5 @@ export class FreeformBoard extends FreeformBoardRuntime {
 }
 export function createBoard(spec = {}) { return new FreeformBoard(spec); }
 export { validateBoardSpec, planCanvas, boardCapabilities };
+export { validateBoardCommand } from './board-edit.mjs';
 export function getCapabilities() { return { version: '2.0', profile, boardCapabilities, renderers: ['svg', 'canvas'], exports: ['svg', 'png', 'json'], defaults: { navigation: false, editing: false } }; }

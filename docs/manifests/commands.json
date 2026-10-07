@@ -10,6 +10,8 @@
     "addDependency": { "models": ["project-task"], "required": ["taskId", "dependencyId"], "previewRequired": true, "undoable": true },
     "removeDependency": { "models": ["project-task"], "required": ["taskId", "dependencyId"], "previewRequired": true, "undoable": true },
     "updateMilestone": { "models": ["milestone"], "required": ["recordId"], "previewRequired": true, "undoable": true },
+    "addNode": { "models": ["flow-node", "architecture-node", "mindmap-node"], "required": ["node"], "previewRequired": true, "confirmationRequired": true, "undoable": true },
+    "removeNode": { "models": ["flow-node", "architecture-node", "mindmap-node"], "required": ["nodeId"], "policy": ["reject", "cascade"], "defaultPolicy": "reject", "previewRequired": true, "confirmationRequired": true, "undoable": true },
     "moveNode": { "models": ["flow-node", "architecture-node", "mindmap-node"], "required": ["nodeId", "position"], "previewRequired": true, "undoable": true },
     "moveNodes": { "models": ["flow-node", "architecture-node", "mindmap-node"], "required": ["nodeIds", "delta"], "previewRequired": true, "undoable": true },
     "moveNodeToLane": { "models": ["flow-node"], "required": ["nodeId", "laneId"], "previewRequired": true, "undoable": true },

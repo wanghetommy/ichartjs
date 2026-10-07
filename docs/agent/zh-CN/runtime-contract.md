@@ -2,6 +2,8 @@
 
 三个开发场景共用的 Runtime 规则。
 
+[图表文本与标注](text-annotations.md) 定义文字拟合、换行、参考线和稳定 ID 标注。从 root 的 `getCapabilities().text` / `.annotations` 发现契约，数据标注保存在 `ChartSpec.annotations`，不要当作临时像素线插件。
+
 ## 标准流程
 
 ```text
@@ -23,6 +25,8 @@ Iteration 8 通过 `getChartCapability(type)` 提供逐图表能力档案，包�
 `validateSpec()` 分开返回 `errors`、`warnings` 和 `normalizations`；诊断包含稳定代码、JSON 路径、期望值和修复建议。未知顶层选项会返回 `UNKNOWN_SPEC_OPTION`，不会静默当作有效配置。`chart.explain()` 返回编码、转换、交互、实际生效选项、规范化结果、假设、警告、稳定记录血缘和无障碍摘要。
 
 ## 关键规则
+
+增量 Flow 复用 `previewEdit()` / `applyEdit()`，新增 `addNode` / `removeNode` 并组合既有节点和连线命令。通过 `getChartContract('flow').incrementalBuilding` 发现完整契约；布局预览为 `preview.layout`，实际布局为 `getState().layout.diagram` / `explain().layout.diagram`，坐标不包含 view 变换。结构编辑始终需要宿主确认，删除策略及保存重载边界见 [Diagram 指南](diagram-scenario.md)。
 
 - Spec 必须是 JSON-serializable。
 - 渲染前调用 `validateSpec()`。
@@ -73,6 +77,12 @@ iChart.js 导出采用**双底层单源架构**，所有产物共享 `buildScene
 | JSON       | ✅                          | ✅              | ✅                        |
 | SVG        | ✅                          | ✅              | ✅                        |
 | PNG / JPEG | ✅ 同步真光栅               | ❌ 返回结构化 `HEADLESS_EXPORT_UNSUPPORTED` | ✅ 通过 `exportAsync()` |
+
+### Freeform Board 事务
+
+根入口与 `/board` 提供 `validateBoardCommand()`，Board 实例提供 `previewEdit(command)` / `applyEdit(command, {preview, confirmed:true, expectedRevision?})`；命令使用 `type: board-edit`。成功批次增加一次 revision 与一条历史记录；无效、过期或未经确认的命令不提交。预览返回 `spec`、画布坐标 `layout`、受影响元素/资源 ID 和诊断。Agent 操作受显式编辑/结构权限及锁定项约束，旧的直接 Board API 仍是可信宿主接口。
+
+状态提供 `revision`、`lastChange`、`layout.items/text`、`assetsReady` 和资源状态。`subscribe(listener)` 返回取消订阅函数，通知 `edit`、`history`、`assets`；资源事件不增加 revision。图片修改后调用 `ready()`，JSON 保存 BoardSpec 而非历史/已解码图片。Board 不自动重排已有坐标；位图输出仍需已挂载 Canvas。详见 [Freeform Board 场景](canvas-scenario.md)。
 
 ### 公共导出 API
 

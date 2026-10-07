@@ -2,6 +2,8 @@
 
 Shared iChart.js 2.0 Runtime rules used by all three scenarios.
 
+[Chart Text and Annotations](text-annotations.md) defines fitting, line breaks, reference lines and record-ID callouts. Discover root `getCapabilities().text` / `.annotations`; persist data-linked annotations in `ChartSpec.annotations`, not installed pixel-line plugins.
+
 ## Standard Flow
 
 ```text
@@ -21,6 +23,8 @@ Iteration 8 adds per-chart profiles through `getChartCapability(type)`. Iteratio
 Unknown intent results also include `intentKnown`, `intentSuggestions`, and `fallbackUsed`. A chart Spec is chart-specific: Cartesian channels are `x`/`y`, Pie/Funnel channels are `category`/`value`, Gauge uses `value`, Heatmap channels are `x`/`y`/`color`, and Radar fields live in `indicators`. `validateSpec()` rejects unsupported channels and missing fields. Gauge requires an explicit `domain` and reports `VALUE_CLAMPED` when the rendered value exceeds it. Pie reports `NEGATIVE_VALUE_DROPPED` for negative input values; `ZERO_TOTAL` is a validation error because no positive share can render.
 
 ## Spec Rules
+
+Incremental Flow edits reuse `previewEdit()` / `applyEdit()` with `addNode`, `removeNode`, and existing node/edge commands. Discover `getChartContract('flow').incrementalBuilding`; preview layout is `preview.layout`, committed layout is `getState().layout.diagram` / `explain().layout.diagram`. Layout coordinates exclude view transforms. Structural confirmation remains mandatory; see the [Diagram Scenario](diagram-scenario.md#incremental-flow-building) for removal policy, automatic reflow, and save/reload boundaries.
 
 - Specs must be JSON-serializable.
 - Call `validateSpec()` before rendering.
@@ -58,6 +62,12 @@ The on/off decision is resolved once inside `buildScene()` via a single gate, so
 4. `chart.export({ type:'json' })` persisted `spec.branding` + `state`.
 
 When `branding:false`, no signature text appears on the chart or any exported artifact, and the extra bottom padding is not reserved.
+
+## Freeform Board transactions
+
+Both root and `/board` expose `validateBoardCommand()` and Board `previewEdit(command)` / `applyEdit(command, {preview, confirmed:true, expectedRevision?})` for `type: board-edit`. Successful semantic batches produce one revision/history entry; stale, invalid or unconfirmed commands do not publish. Preview results include `spec`, board-space `layout`, affected item/asset IDs, errors and warnings. Agent commands honor opt-in editing/structural permissions and locked items; existing direct Board APIs are trusted host operations.
+
+Board `getState()` exposes `revision`, `lastChange`, `layout.items/text`, `assetsReady` and per-asset status. `subscribe(listener)` returns an unsubscribe function and emits `edit`, `history` and `assets`; asset readiness does not advance revision. `ready()` loads current images, and JSON stores the BoardSpec, not history or decoded images. Unlike Flow, existing Board positions are not automatically rearranged. Board raster export still requires a mounted Canvas renderer. See [Freeform Board Scenario](canvas-scenario.md) for the complete contract and renderer-profile limits.
 
 ## Exports and Downloads
 

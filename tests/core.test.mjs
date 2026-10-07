@@ -797,8 +797,8 @@ test('validates and lays out advanced diagram models deterministically', async (
   const first = layoutDiagram(spec, { x: 40, y: 20, width: 500, height: 280 });
   assert.deepEqual(first, layoutDiagram(spec, { x: 40, y: 20, width: 500, height: 280 }));
   assert.deepEqual(routeEdge(spec.edges[0], { x: 40, y: 20, width: 112, height: 36 }, { x: 240, y: 92, width: 112, height: 36 }, 'straight').length, 2);
-  const manual = routeEdge({ waypoints: [{ x: 180, y: 40 }, { x: 180, y: 120 }] }, { x: 40, y: 20, width: 112, height: 36 }, { x: 240, y: 92, width: 112, height: 36 }, 'orthogonal');
-  assert.deepEqual(manual.slice(1, -1), [{ x: 180, y: 40 }, { x: 180, y: 120 }]);
+  const manual = routeEdge({ waypoints: [{ x: 180, y: 38 }, { x: 180, y: 110 }] }, { x: 40, y: 20, width: 112, height: 36 }, { x: 240, y: 92, width: 112, height: 36 }, 'orthogonal');
+  assert.deepEqual(manual.slice(1, -1), [{ x: 180, y: 38 }, { x: 180, y: 110 }]);
   assert.ok(validateDiagram({ ...spec, edges: [{ from: 'start', to: 'missing' }] }).errors.some(error => error.code === 'EDGE_ENDPOINT'));
   assert.ok(validateDiagram({ ...spec, edges: [{ id: 'bad', from: 'start', to: 'review', waypoints: [{ x: 'bad', y: 1 }] }] }).errors.some(error => error.code === 'EDGE_WAYPOINTS'));
 });
@@ -905,8 +905,11 @@ test('connects diagram edges to facing sides and avoids vertically aligned nodes
   const { routeEdge } = await import('../src/index.mjs');
   const from = { x: 100, y: 80, width: 80, height: 40 }, obstacle = { x: 100, y: 180, width: 80, height: 40 }, to = { x: 100, y: 280, width: 80, height: 40 };
   const path = routeEdge({ grid: 8, obstacles: [obstacle] }, from, to, 'orthogonal');
-  assert.deepEqual(path[0], { x: 180, y: 100 });
-  assert.deepEqual(path.at(-1), { x: 180, y: 300 });
+  assert.deepEqual(path[0], { x: 140, y: 120 });
+  assert.deepEqual(path.at(-1), { x: 140, y: 280 });
+  const explicit = routeEdge({ grid: 8, obstacles: [obstacle], fromPortDefinition: { side: 'right' }, toPortDefinition: { side: 'right' } }, from, to, 'orthogonal');
+  assert.deepEqual(explicit[0], { x: 180, y: 100 });
+  assert.deepEqual(explicit.at(-1), { x: 180, y: 300 });
   const intersects = (first, second, box) => {
     if (first.x === second.x) return first.x >= box.x && first.x <= box.x + box.width && Math.max(first.y, second.y) >= box.y && Math.min(first.y, second.y) <= box.y + box.height;
     if (first.y === second.y) return first.y >= box.y && first.y <= box.y + box.height && Math.max(first.x, second.x) >= box.x && Math.min(first.x, second.x) <= box.x + box.width;

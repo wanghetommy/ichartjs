@@ -9,6 +9,7 @@ Use the public Agent contract as the source of truth. Do not infer capabilities 
 
 Read the [usage scenarios](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/usage-scenarios.md) when the request is ambiguous about whether the output should be a live project component, a Coding Agent change, a Skill-generated artifact, or a scheduled report.
 Read the [conversational workflow](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/conversational-workflow.md) when the user asks to change an existing chart in natural language.
+For **Agent-driven Incremental Construction** (visible step-by-step Flow or Board building), read its shared turn contract in that guide. First verify a persistent mounted JavaScript host, preview URL and command update channel exist. A Skill or final file alone cannot show live progress; disclose the limitation and offer artifacts or integration code instead. Submit complete semantic batches, show changes/diagnostics, obtain host approval for each exact preview, then commit and self-check. Do not equate Agent-generated `confirmed: true`, a template counter, or `health.renderable` with user approval or task completion.
 
 ## Source and Runtime Setup
 
@@ -22,7 +23,7 @@ Recommended installation:
 npx skills add wanghetommy/ichartjs --skill ichartjs
 ```
 
-Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.26/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
+Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.27/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
 
 The Skill is a workflow adapter, not the chart runtime. If the current JavaScript or TypeScript project does not already depend on iChart.js, install the matching runtime from npm:
 
@@ -55,6 +56,8 @@ Do not install the unscoped npm registry package named `ichartjs`; it is current
 
 Common type-specific placements:
 
+For titles, labels or annotations, read [Chart Text and Annotations](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/text-annotations.md). Discover `getCapabilities().text` / `.annotations`; use JSON `annotations` for numeric reference lines or stable-ID callouts on Cartesian charts, not ephemeral pixel plugins. Bar/Column support explicit inside/outside labels. Inspect fitting/target diagnostics and preserve existing annotation IDs when replacing the array. Host approval and natural-language interpretation remain outside the runtime.
+
 | Type | Required data contract |
 | --- | --- |
 | Scatter | `encoding.x` and `encoding.y` must reference quantitative fields. |
@@ -68,6 +71,8 @@ Use top-level `width` and `height` for chart dimensions. `size: { width, height 
 Theme values are discoverable from `getCapabilities().styleSystem` or `getPreferenceCapabilities()`. The current values are `mode: auto | light | dark | contrast`, `preset: auto | analysis | dashboard | report | presentation | project | diagram`, and `palette: auto | categorical | sequential | diverging | status`.
 
 ## Freeform Board
+
+For visible multi-turn Board construction, discover `boardCapabilities.incrementalBuilding` and use `validateBoardCommand()` with `type: 'board-edit'`, not chart edit commands. Reuse one Board, explicitly enable editing/structural changes, preview each complete batch, obtain host confirmation, then `applyEdit(preview.command, { preview, confirmed: true })`. Await `ready()` for changed images and inspect asset status/health. Preserve existing positions and locked items; only explicitly requested layout changes move content. Root and `/board` both support transactions; `/board` embeds standard charts only. See the Board scenario below and `@taylorwong/ichartjs/recipes/boards/incremental-board` for ordered starting templates.
 
 Use Freeform Board when the output is a bounded whiteboard composition rather than one chart: images, text, simple drawings, connectors, and embedded charts can share one SVG or Canvas surface. Simple drawing is a whiteboard capability, not a separate chart type. Discover the contract first:
 
@@ -93,10 +98,12 @@ Route by requested output:
 - **One-off artifact**: generate SVG/JSON directly; use browser PNG export or `exportAsync()` with optional `canvas` for Node PNG/JPEG.
 - **Project or Diagram workflow**: load the matching scenario guide and preserve all stable IDs.
 - **CI/report output**: keep JSON as the reproducible checkpoint and SVG/PNG as presentation artifacts.
+- **Visible incremental construction**: use the shared workflow and matching Flow/Board contract; preserve manual content, support cancellation/history, and review final requirements before delivery. Report committed steps, unresolved warnings, revision and the live preview URL; do not force this mode for simple one-off work.
 
 - For standard data analysis, read `references/chart-selection.md` and use foundational recipes.
 - For Gantt, Timeline, Milestone, Burndown, capacity, release, risk, or aging, use project capabilities and `agent-recipes/project-management.json`.
 - For Flow or Swimlane, preserve node, edge, lane, group, and port IDs; use diagram recipes and validated edit commands. `agent-recipes/drawings/cat.json` is a BoardSpec starting template for Freeform Board, not a separate chart type.
+- For multi-turn Flow building, discover `getChartContract('flow').incrementalBuilding` and read the [Diagram Scenario](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/diagram-scenario.md). Use `addNode` / `removeNode` and existing node/edge commands in one preview/commit transaction per turn, not repeated `update()` replacements that clear history. `layered` layout reflows nodes without explicit positions; never erase manual positions or waypoints silently. Inspect `preview.layout` and warnings, obtain host confirmation for structural changes, and inspect `getState().layout.diagram` after commit. Default node removal rejects incident edges; `policy: 'cascade'` explicitly removes only incident edges. The incremental-flow recipe is an ordered starting template, not a task executor or natural-language parser.
 - For diagram readability, keep node labels inside their shapes; edge labels stay inline when space permits and move aside only after a collision. Use `getState().layout.labels.diagram` to detect wrapping, scaling, truncation, suppression, and edge-label offsets instead of shortening source labels in the Agent.
 - For business edits, preview first, preserve the preview ID and revision, require confirmation when declared, then commit or reject atomically.
 - For browser deliverables, start `npm run playground` and return the exact maintained Playground URL.

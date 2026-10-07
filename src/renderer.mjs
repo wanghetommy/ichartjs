@@ -23,12 +23,13 @@ function hasFill(style) { return hasPaint(style, 'fill'); }
 function hasStroke(style) { return hasPaint(style, 'stroke'); }
 
 function drawPath(context, geometry, style) {
-  if (!Array.isArray(geometry.points) || geometry.points.length < 2) return;
+  const points = geometry.renderPoints || geometry.points;
+  if (!Array.isArray(points) || points.length < 2) return;
   context.beginPath();
-  if (geometry.curve === 'cubic' && geometry.points.length === 4) {
-    context.moveTo(geometry.points[0].x, geometry.points[0].y);
-    context.bezierCurveTo(geometry.points[1].x, geometry.points[1].y, geometry.points[2].x, geometry.points[2].y, geometry.points[3].x, geometry.points[3].y);
-  } else geometry.points.forEach((point, index) => index ? context.lineTo(point.x, point.y) : context.moveTo(point.x, point.y));
+  if (geometry.curve === 'cubic' && points.length === 4) {
+    context.moveTo(points[0].x, points[0].y);
+    context.bezierCurveTo(points[1].x, points[1].y, points[2].x, points[2].y, points[3].x, points[3].y);
+  } else points.forEach((point, index) => index ? context.lineTo(point.x, point.y) : context.moveTo(point.x, point.y));
   if (geometry.closed) context.closePath();
   if (hasFill(style)) context.fill(); if (hasStroke(style)) context.stroke();
 }
@@ -115,7 +116,7 @@ export class SVGRenderer extends BaseRenderer {
       else if (node.type === 'circle') { ['cx', 'cy', 'r'].forEach(key => element.setAttribute(key, geometry[key])); }
       else if (node.type === 'ellipse') { ['cx', 'cy', 'rx', 'ry'].forEach(key => element.setAttribute(key, geometry[key])); }
       else if (node.type === 'arc') element.setAttribute('d', svgPathForArc(geometry));
-      else if (node.type === 'path') { const d = geometry.curve === 'cubic' && geometry.points?.length === 4 ? `M ${geometry.points[0].x} ${geometry.points[0].y} C ${geometry.points[1].x} ${geometry.points[1].y} ${geometry.points[2].x} ${geometry.points[2].y} ${geometry.points[3].x} ${geometry.points[3].y}` : `${(geometry.points || []).map((point, index) => `${index ? 'L' : 'M'} ${point.x} ${point.y}`).join(' ')}${geometry.closed ? ' Z' : ''}`; element.setAttribute('d', d); }
+      else if (node.type === 'path') { const points = geometry.renderPoints || geometry.points; const d = geometry.curve === 'cubic' && points?.length === 4 ? `M ${points[0].x} ${points[0].y} C ${points[1].x} ${points[1].y} ${points[2].x} ${points[2].y} ${points[3].x} ${points[3].y}` : `${(points || []).map((point, index) => `${index ? 'L' : 'M'} ${point.x} ${point.y}`).join(' ')}${geometry.closed ? ' Z' : ''}`; element.setAttribute('d', d); }
       else if (node.type === 'text') { element.setAttribute('x', geometry.x); element.setAttribute('y', geometry.y); if (Number(style.rotation)) element.setAttribute('transform', `rotate(${Number(style.rotation)} ${geometry.x} ${geometry.y})`); element.textContent = geometry.text; element.setAttribute('text-anchor', style.textAnchor || (style.textAlign === 'end' ? 'end' : style.textAlign === 'center' ? 'middle' : style.textAlign === 'right' ? 'end' : 'start')); const baseline = style.textBaseline || style.baseline || 'alphabetic'; element.setAttribute('dominant-baseline', baseline === 'middle' || baseline === 'central' ? 'middle' : baseline === 'top' ? 'text-before-edge' : baseline === 'bottom' ? 'text-after-edge' : 'alphabetic'); svgFont(style, element); }
       if (['path', 'circle', 'ellipse', 'rect'].includes(node.type)) element.setAttribute('fill', hasFill(style) ? style.fill : 'none'); else if (node.type === 'arc') element.setAttribute('fill', geometry.sector === false ? 'none' : hasFill(style) ? style.fill : 'none'); else if (node.type === 'text') element.setAttribute('fill', hasFill(style) ? style.fill : '#0f172a');
       if (hasStroke(style)) element.setAttribute('stroke', style.stroke); else if (style.stroke != null) element.setAttribute('stroke', 'none'); if (style.strokeWidth != null) element.setAttribute('stroke-width', style.strokeWidth); if (Array.isArray(style.lineDash) && style.lineDash.length) element.setAttribute('stroke-dasharray', style.lineDash.join(' ')); if (style.opacity != null) element.setAttribute('opacity', node.highlighted || node.selected ? 1 : style.opacity); if (node.highlighted || node.selected) element.setAttribute('filter', 'brightness(1.2)');
