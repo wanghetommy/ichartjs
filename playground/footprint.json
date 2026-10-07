@@ -1,81 +1,81 @@
 {
   "version": "1.0",
-  "packageVersion": "2.0.26",
+  "packageVersion": "2.0.27",
   "generatedFrom": "npm pack --dry-run --json",
   "policy": "source-module-graph-baseline",
   "entry": "src/index.mjs",
-  "files": 33,
-  "moduleRawBytes": 545357,
-  "moduleGzipBytes": 132334,
-  "packageBytes": 320603,
-  "unpackedBytes": 1153396,
-  "entryCount": 136,
+  "files": 36,
+  "moduleRawBytes": 603363,
+  "moduleGzipBytes": 147856,
+  "packageBytes": 379740,
+  "unpackedBytes": 1377721,
+  "entryCount": 146,
   "treeShaking": "profile entries are available; root entry remains the complete runtime",
   "profiles": {
     "standard": {
-      "files": 19,
-      "rawBytes": 223292,
-      "gzipBytes": 56472
+      "files": 21,
+      "rawBytes": 253093,
+      "gzipBytes": 64970
     },
     "project": {
-      "files": 20,
-      "rawBytes": 282229,
-      "gzipBytes": 71307
+      "files": 22,
+      "rawBytes": 314133,
+      "gzipBytes": 80540
     },
     "diagram": {
-      "files": 20,
-      "rawBytes": 282217,
-      "gzipBytes": 71293
+      "files": 22,
+      "rawBytes": 314121,
+      "gzipBytes": 80511
     },
     "board": {
-      "files": 21,
-      "rawBytes": 252415,
-      "gzipBytes": 63977
+      "files": 24,
+      "rawBytes": 298394,
+      "gzipBytes": 76478
     }
   },
   "resources": {
     "groups": {
       "README + changelog": {
         "files": 2,
-        "bytes": 29242
+        "bytes": 33571
       },
       "other": {
         "files": 5,
         "bytes": 25775
       },
       "Recipes": {
-        "files": 11,
-        "bytes": 21319
+        "files": 14,
+        "bytes": 29868
       },
       "English guides": {
-        "files": 16,
-        "bytes": 104401
+        "files": 17,
+        "bytes": 138724
       },
       "development docs": {
-        "files": 30,
-        "bytes": 180287
+        "files": 32,
+        "bytes": 195427
       },
       "Chinese guides": {
-        "files": 18,
-        "bytes": 81698
+        "files": 19,
+        "bytes": 112022
       },
       "capability manifests": {
         "files": 3,
-        "bytes": 74981
+        "bytes": 132596
       },
       "Skill": {
         "files": 4,
-        "bytes": 17833
+        "bytes": 20913
       },
       "runtime source": {
-        "files": 40,
-        "bytes": 576179
+        "files": 43,
+        "bytes": 637917
       },
       "TypeScript declarations": {
         "files": 7,
-        "bytes": 41681
+        "bytes": 50908
       }
     },
-    "totalBytes": 1153396
+    "totalBytes": 1377721
   }
 }

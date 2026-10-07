@@ -4,7 +4,7 @@
 import { inspectData } from './data.mjs';
 import { planStyle, styleCapabilities } from './theme.mjs';
 import { defaultPreferences, preferenceDensities, preferenceMotions, preferencePrecedence, preferenceTriStates } from './preferences.mjs';
-import { businessModels, chartProfiles, chartTypes, commandTypes, contractVersion, diagramEdgeModels, diagramOperations, exportTypes, flowNodeKinds, interactionDefaults, renderers } from './contract-registry.mjs';
+import { annotationContract, businessModels, chartProfiles, chartTypes, commandTypes, contractVersion, diagramEdgeModels, diagramOperations, exportTypes, flowNodeKinds, incrementalFlowContract, interactionDefaults, renderers, textContract } from './contract-registry.mjs';
 import { rendererPolicy } from './renderer-policy.mjs';
 
 export { chartProfiles, chartTypes };
@@ -76,10 +76,13 @@ export function getChartContract(type) {
     dataShapes: [...profile.dataShapes],
     encoding: JSON.parse(JSON.stringify(encoding)),
     features: JSON.parse(JSON.stringify(profile.features)),
+    text: JSON.parse(JSON.stringify(textContract)),
+    annotations: { ...JSON.parse(JSON.stringify(annotationContract)), supported: annotationContract.chartTypes.includes(type) },
     interactions: [...profile.interactions],
     renderers: [...profile.renderers],
     exports: [...profile.exports],
     limits: JSON.parse(JSON.stringify(profile.limits || {})),
+    ...(type === 'flow' ? { incrementalBuilding: JSON.parse(JSON.stringify(incrementalFlowContract)) } : {}),
     defaults: { renderer: 'auto', navigation: false, editing: false, motion: 'auto' },
     discovery: { capability: 'getChartCapability(type)', contract: 'getChartContract(type)', recipe: '@taylorwong/ichartjs/recipes/minimal-specs' }
   };
@@ -253,6 +256,8 @@ export function getCapabilities() {
     chartTypes,
     charts: JSON.parse(JSON.stringify(chartProfiles)),
     chartContracts: Object.fromEntries(chartTypes.map(type => [type, getChartContract(type)])),
+    text: JSON.parse(JSON.stringify(textContract)),
+    annotations: JSON.parse(JSON.stringify(annotationContract)),
     intents,
     locale: { default: 'en-US', recommended: ['en-US', 'zh-CN'], appliesTo: ['axis', 'labels', 'tooltip', 'export'], inputDates: 'ISO-8601 strings; natural-language date parsing is not supported.' },
     chartModes: { stack: ['stacked', 'percent'], pie: ['standard', 'donut'], composition: ['multi-series', 'mixed-line-column', 'dual-axis'], transforms: ['bin'], diagrams: ['process', 'architecture', 'mindmap'], mindmapLayouts: ['tree', 'radial'], mindmapEdges: ['curved', 'straight', 'orthogonal'], flowNodeKinds: [...flowNodeKinds], flowBranchEdges: { label: 'edge.label', minimumOutgoing: 2 }, flowLoops: 'supported', flowConnectors: { kind: 'connector', linking: 'explicit from/to edges' } },

@@ -67,9 +67,10 @@ export function sceneToSvgString(scene, spec = {}) {
       }
       attrs.push(`d="${_svgEscape(d, 'attr')}"`);
     } else if (node.type === 'path') {
-      const d = g.curve === 'cubic' && g.points?.length === 4
-        ? `M ${g.points[0].x} ${g.points[0].y} C ${g.points[1].x} ${g.points[1].y} ${g.points[2].x} ${g.points[2].y} ${g.points[3].x} ${g.points[3].y}`
-        : `${(g.points || []).map((p, i) => `${i ? 'L' : 'M'} ${p.x} ${p.y}`).join(' ')}${g.closed ? ' Z' : ''}`;
+      const points = g.renderPoints || g.points;
+      const d = g.curve === 'cubic' && points?.length === 4
+        ? `M ${points[0].x} ${points[0].y} C ${points[1].x} ${points[1].y} ${points[2].x} ${points[2].y} ${points[3].x} ${points[3].y}`
+        : `${(points || []).map((p, i) => `${i ? 'L' : 'M'} ${p.x} ${p.y}`).join(' ')}${g.closed ? ' Z' : ''}`;
       attrs.push(`d="${_svgEscape(d, 'attr')}"`);
     } else if (node.type === 'text') {
       attrs.push(`x="${g.x}" y="${g.y}"`);

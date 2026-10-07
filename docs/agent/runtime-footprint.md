@@ -45,3 +45,5 @@ Documentation, Skill files, Recipes, and capability manifests are package resour
 - Do not add a second custom copy of chart rendering code to obtain a smaller bundle.
 
 Profile entries are additive and should be selected when the host knows its capability family. Use the root entry when the complete runtime API, embedded cross-family charts, or full discovery surface is required.
+
+Iteration 26 incremental Flow preview/commit/history uses the root entry, not the render-focused `/diagram` Profile. Its node commands, layout algorithm, and discovery metadata enter the runtime graph; its recipe, Skill, and guides remain Agent resources. The package-resource baseline is refreshed for the added Iteration 25–26 documentation and recipe. The browser module raw/gzip baselines and the 15% growth allowance remain unchanged; `playground/footprint.json` reports the actual current sizes rather than treating the npm package as the browser download size.

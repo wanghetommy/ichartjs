@@ -10,7 +10,7 @@ For a new JavaScript or TypeScript project, install the runtime before importing
 npm install @taylorwong/ichartjs@^2
 ```
 
-Pin `@taylorwong/ichartjs@2.0.26` for a reproducible release. Use the package root when the Agent needs discovery and cross-family APIs; use `/standard`, `/project`, `/diagram`, or `/board` when the chart family is already known and the host wants a smaller entry.
+Pin `@taylorwong/ichartjs@2.0.27` for a reproducible release. Use the package root when the Agent needs discovery and cross-family APIs; use `/standard`, `/project`, `/diagram`, or `/board` when the chart family is already known and the host wants a smaller entry.
 
 Profile entries are independent public entry points and do not require importing the root entry first. The root entry is the complete cross-family runtime; it is not a prerequisite or a plugin registry for the focused entries. Run `node examples/consumer-quickstart.mjs` to verify the root, all Profiles, SVG output, and Board output from one consumer fixture.
 

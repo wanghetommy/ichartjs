@@ -110,6 +110,7 @@ for (const renderer of ['svg', 'canvas']) {
         diagramPointer(chart, 'end', { type: 'pointerup', ...pointer(end) }, target);
         assert.equal(chart.getDiagramEdges()[0].routingMode, 'manual');
         assert.equal(chart.getDiagramEdges()[0].waypoints[0].x, (end.x - 32) / 1.5);
+        assert.ok(chart.model.scene.find('edge-0').geometry.points.every((point, index, points) => !index || point.x === points[index - 1].x || point.y === points[index - 1].y));
         assert.deepEqual(chart.model.scene.find('edge-0').geometry.points, preview);
       }
       const command = { type: 'layout-edit', operations: [{ op: 'updateEdge', edgeId: 'link', changes: { routingMode: 'auto' } }] };

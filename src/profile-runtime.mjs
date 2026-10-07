@@ -119,6 +119,7 @@ export class ProfileChart {
       assumptions: ['Profile entries keep the root Spec contract but load only the selected capability family.', 'Navigation and editing remain disabled unless explicitly enabled by the host.'],
       warnings: state.warnings,
       health: state.health,
+      layout: state.layout,
       lineage: state.lineage
     };
   }

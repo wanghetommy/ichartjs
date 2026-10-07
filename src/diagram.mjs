@@ -154,8 +154,57 @@ export function layoutArchitectureNodes(spec, bounds = { x: 0, y: 0, width: 640,
   return boxes;
 }
 
+function layoutFlowNodes(graph, bounds) {
+  const visited = new Map(), backEdges = new Set();
+  const roots = graph.nodes.filter(node => !graph.incoming.get(node.id).length);
+  for (const node of [...roots, ...graph.nodes]) {
+    if (visited.has(node.id)) continue;
+    const stack = [{ id: node.id, index: 0 }];
+    visited.set(node.id, 'active');
+    while (stack.length) {
+      const frame = stack.at(-1), edges = graph.outgoing.get(frame.id);
+      if (frame.index === edges.length) { visited.set(frame.id, 'done'); stack.pop(); continue; }
+      const edge = edges[frame.index++];
+      if (visited.get(edge.to) === 'active') backEdges.add(edge);
+      else if (!visited.has(edge.to)) { visited.set(edge.to, 'active'); stack.push({ id: edge.to, index: 0 }); }
+    }
+  }
+  const rank = new Map(graph.nodes.map(node => [node.id, 0]));
+  const pending = new Map(graph.nodes.map(node => [node.id, graph.incoming.get(node.id).filter(edge => !backEdges.has(edge)).length]));
+  const queue = graph.nodes.filter(node => !pending.get(node.id)).map(node => node.id);
+  for (let index = 0; index < queue.length; index += 1) {
+    graph.outgoing.get(queue[index]).filter(edge => !backEdges.has(edge)).forEach(edge => {
+      rank.set(edge.to, Math.max(rank.get(edge.to), rank.get(edge.from) + 1));
+      pending.set(edge.to, pending.get(edge.to) - 1);
+      if (!pending.get(edge.to)) queue.push(edge.to);
+    });
+  }
+  const columns = new Map();
+  graph.nodes.forEach(node => {
+    const depth = rank.get(node.id);
+    if (!columns.has(depth)) columns.set(depth, []);
+    const small = node.kind === 'connector';
+    columns.get(depth).push({ node, width: node.size?.width ?? (small ? 28 : 112), height: node.size?.height ?? (small ? 28 : 36) });
+  });
+  const ordered = [...columns.entries()].sort(([left], [right]) => left - right).map(([, nodes]) => nodes);
+  const widths = ordered.map(nodes => Math.max(...nodes.map(node => node.width)));
+  const gap = ordered.length > 1 ? Math.max(16, Math.min(48, (bounds.width - widths.reduce((sum, width) => sum + width, 0)) / (ordered.length - 1))) : 0;
+  const totalWidth = widths.reduce((sum, width) => sum + width, 0) + gap * Math.max(0, ordered.length - 1);
+  const positions = {};
+  let columnX = bounds.x + Math.max(0, (bounds.width - totalWidth) / 2);
+  ordered.forEach((nodes, index) => {
+    const height = nodes.reduce((sum, node) => sum + node.height, 0), rowGap = nodes.length > 1 ? Math.max(12, Math.min(24, (bounds.height - height) / (nodes.length - 1))) : 0;
+    const totalHeight = height + rowGap * Math.max(0, nodes.length - 1);
+    let rowY = bounds.y + Math.max(0, (bounds.height - totalHeight) / 2);
+    nodes.forEach(item => { positions[item.node.id] = { x: columnX + (widths[index] - item.width) / 2, y: rowY, width: item.width, height: item.height }; rowY += item.height + rowGap; });
+    columnX += widths[index] + gap;
+  });
+  return positions;
+}
+
 export function layoutDiagram(spec, bounds = { x: 0, y: 0, width: 640, height: 360 }) {
   const graph = diagramGraph(spec), mode = graph.spec.diagram.layout, positions = new Map(), gapX = Math.max(150, bounds.width / Math.max(1, graph.nodes.length)), gapY = 72;
+  if (graph.spec.type === 'flow' && mode === 'layered' && !graph.spec.lanes.length) return layoutFlowNodes(graph, bounds);
   if (mode === 'manual') graph.nodes.forEach(node => positions.set(node.id, { x: node.position?.x ?? bounds.x, y: node.position?.y ?? bounds.y }));
   else if (graph.spec.diagram.mode === 'architecture' && graph.spec.layers.length) Object.entries(layoutArchitectureNodes(graph.spec, bounds)).forEach(([id, box]) => positions.set(id, { x: box.x, y: box.y }));
   else if (graph.spec.diagram.mode === 'mindmap') {
@@ -233,6 +282,44 @@ export function diagramConnectionPoints(from, to, fromPort, toPort) {
   };
 }
 
+export function reconnectOrthogonalWaypoints(points, start, end, storedWaypoints) {
+  const source = points[0], target = points.at(-1);
+  const sourceDelta = { x: start.x - source.x, y: start.y - source.y }, targetDelta = { x: end.x - target.x, y: end.y - target.y };
+  if (!sourceDelta.x && !sourceDelta.y && !targetDelta.x && !targetDelta.y) return storedWaypoints;
+  if (Math.abs(sourceDelta.x - targetDelta.x) < 1e-9 && Math.abs(sourceDelta.y - targetDelta.y) < 1e-9) return storedWaypoints.map(point => ({
+    x: point.x === source.x ? start.x : point.x === target.x ? end.x : point.x + sourceDelta.x,
+    y: point.y === source.y ? start.y : point.y === target.y ? end.y : point.y + sourceDelta.y
+  }));
+  const unique = points.filter((point, index) => !index || point.x !== points[index - 1].x || point.y !== points[index - 1].y);
+  const compact = unique.filter((point, index) => {
+    const previous = unique[index - 1], next = unique[index + 1];
+    if (!previous || !next) return true;
+    return !((previous.x === point.x && point.x === next.x || previous.y === point.y && point.y === next.y) && (point.x - previous.x) * (next.x - point.x) + (point.y - previous.y) * (next.y - point.y) > 0);
+  });
+  const waypoints = compact.slice(1, -1).map(point => ({ ...point }));
+  const sourceHorizontal = compact[0].y === compact[1].y, targetHorizontal = compact.at(-1).y === compact.at(-2).y;
+  if (waypoints.length < 2) {
+    const anchor = waypoints[0] || storedWaypoints[Math.floor(storedWaypoints.length / 2)];
+    if (sourceHorizontal && targetHorizontal) return [{ x: anchor.x, y: start.y }, { x: anchor.x, y: end.y }];
+    if (!sourceHorizontal && !targetHorizontal) return [{ x: start.x, y: anchor.y }, { x: end.x, y: anchor.y }];
+    return [sourceHorizontal ? { x: end.x, y: start.y } : { x: start.x, y: end.y }];
+  }
+  if (waypoints.length === 2) {
+    waypoints[0][sourceHorizontal ? 'y' : 'x'] = start[sourceHorizontal ? 'y' : 'x'];
+    waypoints[1][targetHorizontal ? 'y' : 'x'] = end[targetHorizontal ? 'y' : 'x'];
+    return waypoints;
+  }
+  const first = waypoints[0], second = waypoints[1], last = waypoints.at(-1), previous = waypoints.at(-2);
+  const sourceJoin = first.x === second.x ? 'x' : 'y', targetJoin = last.x === previous.x ? 'x' : 'y';
+  first.x += sourceDelta.x;
+  first.y += sourceDelta.y;
+  second[sourceJoin] = first[sourceJoin];
+  last.x += targetDelta.x;
+  last.y += targetDelta.y;
+  previous[targetJoin] = last[targetJoin];
+  return waypoints;
+}
+
 function obstacleBounds(obstacle) {
   if (obstacle?.bounds && Number.isFinite(obstacle.bounds.x) && Number.isFinite(obstacle.bounds.y) && Number.isFinite(obstacle.bounds.width) && Number.isFinite(obstacle.bounds.height)) return obstacle.bounds;
   return obstacle;
@@ -284,6 +371,15 @@ function pathHitsObstacles(points, obstacles, padding = 0) {
   return points.some((point, index) => index > 0 && obstacles.some(obstacle => segmentIntersectsObstacle(points[index - 1], point, obstacle, padding)));
 }
 
+function pathIntersectsItself(points) {
+  return points.some((point, index) => {
+    if (!index) return false;
+    const previous = points[index - 1], next = points[index + 1];
+    if (next && (point.x - previous.x) * (next.y - point.y) === (point.y - previous.y) * (next.x - point.x) && (point.x - previous.x) * (next.x - point.x) + (point.y - previous.y) * (next.y - point.y) < 0) return true;
+    return points.slice(0, index - 1).some((earlier, segment) => segment > 0 && segmentsIntersect(earlier, points[segment - 1], previous, point));
+  });
+}
+
 export function routeEdgePath(edge, from, to, mode = 'orthogonal') {
   const initial = diagramConnectionPoints(from, to, edge.fromPortDefinition, edge.toPortDefinition), startSide = edge.fromPortDefinition?.side || preferredSide(from, to, true), endSide = edge.toPortDefinition?.side || preferredSide(from, to, false);
   const obstacles = (edge.obstacles || []).filter(obstacle => {
@@ -303,9 +399,19 @@ export function routeEdgePath(edge, from, to, mode = 'orthogonal') {
   const entersSide = (previous, end, side) => side === 'left' ? previous.x < end.x : side === 'right' ? previous.x > end.x : side === 'top' ? previous.y < end.y : previous.y > end.y;
   const waypoints = Array.isArray(edge.waypoints) ? edge.waypoints.filter(point => Number.isFinite(point?.x) && Number.isFinite(point?.y)).map(point => ({ x: point.x, y: point.y })) : [];
   const manualRouting = edge.routingMode === 'manual' || (edge.routingMode !== 'auto' && waypoints.length > 0);
-  if (manualRouting && waypoints.length) {
+  if (manualRouting) {
     const manual = compact([initial.start, ...waypoints, initial.end]), padding = Math.max(4, Number(edge.grid) || 8) / 2;
-    if (leavesSide(manual[0], manual[1], startSide) && entersSide(manual.at(-2), manual.at(-1), endSide) && !pathHitsObstacles(manual, obstacles, padding)) return { points: manual, curve: null, routingMode: 'manual' };
+    const orthogonal = mode === 'auto' || mode === 'orthogonal';
+    const endpointInteriors = [from, to].map(box => ({ x: box.x + 0.001, y: box.y + 0.001, width: Math.max(0, box.width - 0.002), height: Math.max(0, box.height - 0.002) }));
+    const reason = !waypoints.length ? 'EMPTY_WAYPOINTS'
+      : orthogonal && manual.some((point, index) => index && point.x !== manual[index - 1].x && point.y !== manual[index - 1].y) ? 'ORTHOGONAL_REQUIRED'
+        : pathIntersectsItself(manual) ? 'SELF_INTERSECTION'
+          : manual.length < 2 || !leavesSide(manual[0], manual[1], startSide) || !entersSide(manual.at(-2), manual.at(-1), endSide) ? 'PORT_DIRECTION'
+          : pathHitsObstacles(manual, obstacles, padding) || pathHitsObstacles(manual, endpointInteriors) ? 'NODE_INTERSECTION' : null;
+    if (!reason) return { points: manual, curve: null, routingMode: 'manual' };
+    const fallback = routeEdgePath({ ...edge, routingMode: 'auto', waypoints: [] }, from, to, 'auto');
+    const warning = { code: 'EDGE_MANUAL_ROUTE_INVALID', reason, message: `Manual connector route is invalid (${reason}); a safe automatic route is displayed instead.`, suggestion: 'Keep orthogonal segments, respect connection sides, avoid node interiors and self-intersections, or set routingMode to auto.' };
+    return { ...fallback, routingMode: 'auto', warning, warnings: [warning, ...(fallback.warning ? [fallback.warning] : [])] };
   }
   const direct = [initial.start, initial.end], directPadding = Math.max(4, Number(edge.grid) || 8) / 2;
   const axisAligned = initial.start.x === initial.end.x || initial.start.y === initial.end.y;
@@ -325,6 +431,7 @@ export function routeEdgePath(edge, from, to, mode = 'orthogonal') {
   const endpointInteriors = [from, to].map(box => ({ x: box.x + 0.001, y: box.y + 0.001, width: Math.max(0, box.width - 0.002), height: Math.max(0, box.height - 0.002) }));
   const routeForSides = (fromSide, toSide) => {
     const fromPort = edge.fromPortDefinition || { side: fromSide }, toPort = edge.toPortDefinition || { side: toSide }, { start, end } = diagramConnectionPoints(from, to, fromPort, toPort), padding = Math.max(12, Number(edge.grid) || 8);
+    const localRouting = mode === 'auto' || mode === 'orthogonal';
     const leavesFromSide = points => {
       if (points.length < 2) return false;
       const next = points[1];
@@ -342,39 +449,47 @@ export function routeEdgePath(edge, from, to, mode = 'orthogonal') {
       return previous.x > end.x && previous.y === end.y;
     };
     const connectionAccess = points => leavesFromSide(points) && entersToSide(points);
-    const validPath = points => connectionAccess(points) && !pathHitsObstacles(points, obstacles, padding) && (mode !== 'auto' || !pathHitsObstacles(points, endpointInteriors));
+    const terminalLength = points => Math.min(Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y), Math.hypot(points.at(-1).x - points.at(-2).x, points.at(-1).y - points.at(-2).y));
+    const validPath = points => connectionAccess(points) && !pathIntersectsItself(points) && (mode !== 'auto' || terminalLength(points) >= padding) && !pathHitsObstacles(points, obstacles, padding) && (mode !== 'auto' || !pathHitsObstacles(points, endpointInteriors));
     const snap = value => { const grid = Number(edge.grid) || 8; return Math.round(value / grid) * grid; };
     const middle = snap((start.x + end.x) / 2), middleY = snap((start.y + end.y) / 2);
-    const candidates = [
-      [start, { x: middle, y: start.y }, { x: middle, y: end.y }, end],
-      [start, { x: start.x, y: middleY }, { x: end.x, y: middleY }, end]
-    ];
     const xChannels = new Set([start.x, end.x, middle]), yChannels = new Set([start.y, end.y, middleY]);
     const channelGap = padding + (Number(edge.grid) || 8);
+    if (localRouting) [from, to].forEach(box => {
+      [box.x - channelGap, box.x + box.width + channelGap].forEach(x => xChannels.add(snap(x)));
+      [box.y - channelGap, box.y + box.height + channelGap].forEach(y => yChannels.add(snap(y)));
+    });
+    const length = points => points.slice(1).reduce((sum, point, index) => sum + Math.abs(point.x - points[index].x) + Math.abs(point.y - points[index].y), 0);
+    const score = points => length(points) + (mode === 'auto' ? Math.max(0, points.length - 2) * padding * 2 : 0);
+    const bestRoute = () => {
+      const candidates = [
+        [start, { x: middle, y: start.y }, { x: middle, y: end.y }, end],
+        [start, { x: start.x, y: middleY }, { x: end.x, y: middleY }, end]
+      ];
+      xChannels.forEach(x => candidates.push([start, { x, y: start.y }, { x, y: end.y }, end]));
+      yChannels.forEach(y => candidates.push([start, { x: start.x, y }, { x: end.x, y }, end]));
+      xChannels.forEach(x => yChannels.forEach(y => {
+        candidates.push([start, { x, y: start.y }, { x, y }, { x, y: end.y }, end]);
+        candidates.push([start, { x: start.x, y }, { x, y }, { x: end.x, y }, end]);
+      }));
+      if (localRouting) {
+        const stub = (point, side) => ({ x: point.x + (side === 'left' ? -channelGap : side === 'right' ? channelGap : 0), y: point.y + (side === 'top' ? -channelGap : side === 'bottom' ? channelGap : 0) });
+        const sourceStub = stub(start, fromSide), targetStub = stub(end, toSide);
+        yChannels.forEach(y => candidates.push([start, sourceStub, { x: sourceStub.x, y }, { x: targetStub.x, y }, targetStub, end]));
+        xChannels.forEach(x => candidates.push([start, sourceStub, { x, y: sourceStub.y }, { x, y: targetStub.y }, targetStub, end]));
+      }
+      return candidates.map(compact).filter(validPath).sort((left, right) => score(left) - score(right) || left.length - right.length || JSON.stringify(left).localeCompare(JSON.stringify(right)))[0] || null;
+    };
+    if (localRouting) {
+      const localRoute = bestRoute();
+      if (localRoute) return localRoute;
+    }
     obstacles.forEach(obstacle => {
       const box = obstacleBounds(obstacle);
       [box.x - channelGap, box.x + box.width + channelGap].forEach(x => xChannels.add(snap(x)));
       [box.y - channelGap, box.y + box.height + channelGap].forEach(y => yChannels.add(snap(y)));
     });
-    if (mode === 'auto') [from, to].forEach(box => {
-      [box.x - channelGap, box.x + box.width + channelGap].forEach(x => xChannels.add(snap(x)));
-      [box.y - channelGap, box.y + box.height + channelGap].forEach(y => yChannels.add(snap(y)));
-    });
-    xChannels.forEach(x => candidates.push([start, { x, y: start.y }, { x, y: end.y }, end]));
-    yChannels.forEach(y => candidates.push([start, { x: start.x, y }, { x: end.x, y }, end]));
-    xChannels.forEach(x => yChannels.forEach(y => {
-      candidates.push([start, { x, y: start.y }, { x, y }, { x, y: end.y }, end]);
-      candidates.push([start, { x: start.x, y }, { x, y }, { x: end.x, y }, end]);
-    }));
-    if (mode === 'auto') {
-      const stub = (point, side) => ({ x: point.x + (side === 'left' ? -channelGap : side === 'right' ? channelGap : 0), y: point.y + (side === 'top' ? -channelGap : side === 'bottom' ? channelGap : 0) });
-      const sourceStub = stub(start, fromSide), targetStub = stub(end, toSide);
-      yChannels.forEach(y => candidates.push([start, sourceStub, { x: sourceStub.x, y }, { x: targetStub.x, y }, targetStub, end]));
-      xChannels.forEach(x => candidates.push([start, sourceStub, { x, y: sourceStub.y }, { x, y: targetStub.y }, targetStub, end]));
-    }
-    const length = points => points.slice(1).reduce((sum, point, index) => sum + Math.abs(point.x - points[index].x) + Math.abs(point.y - points[index].y), 0);
-    const score = points => length(points) + (mode === 'auto' ? Math.max(0, points.length - 2) * padding * 2 : 0);
-    return candidates.map(compact).filter(validPath).sort((left, right) => score(left) - score(right) || left.length - right.length || JSON.stringify(left).localeCompare(JSON.stringify(right)))[0] || null;
+    return bestRoute();
   };
   for (const [fromSide, toSide] of sidePairs) {
     const route = routeForSides(fromSide, toSide);

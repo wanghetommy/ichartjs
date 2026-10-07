@@ -13,10 +13,19 @@ const capabilities = getCapabilities();
 const manifest = readJSON('docs/manifests/capabilities.json');
 const commands = readJSON('docs/manifests/commands.json');
 const schemas = readJSON('docs/manifests/schemas.json');
-const expectedDocs = ['README.md', 'usage-scenarios.md', 'quickstart.md', 'coding-agent-integration.md', 'frontend-integration.md', 'theme-guide.md', 'charting-scenario.md', 'project-scenario.md', 'diagram-scenario.md', 'canvas-scenario.md', 'runtime-contract.md', 'editing-contract.md', 'development-guide.md', 'conversational-workflow.md'];
+const expectedDocs = ['README.md', 'usage-scenarios.md', 'quickstart.md', 'coding-agent-integration.md', 'frontend-integration.md', 'theme-guide.md', 'text-annotations.md', 'charting-scenario.md', 'project-scenario.md', 'diagram-scenario.md', 'canvas-scenario.md', 'runtime-contract.md', 'editing-contract.md', 'development-guide.md', 'conversational-workflow.md'];
 expectedDocs.forEach(file => { if (!fs.existsSync(`docs/agent/${file}`)) failures.push(`Missing Agent document: docs/agent/${file}`); });
 expectedDocs.forEach(file => { if (!fs.existsSync(`docs/agent/zh-CN/${file}`)) failures.push(`Missing Chinese Agent document: docs/agent/zh-CN/${file}`); });
-if (!fs.existsSync('docs/agent/development/README.md')) failures.push('Missing development documentation index: docs/agent/development/README.md');
+const developmentPolicies = ['README.md', 'development-principles.md', 'playground-plan.md'];
+for (const file of developmentPolicies) {
+  const policyPath = `docs/agent/development/${file}`;
+  if (!fs.existsSync(policyPath)) { failures.push(`Missing development policy: ${policyPath}`); continue; }
+  fs.readFileSync(policyPath, 'utf8').split(/\r?\n/).forEach((line, index) => {
+    if (/\p{Script=Han}/u.test(line)) failures.push(`${policyPath}:${index + 1}: current development policies must use English.`);
+  });
+}
+const principlesPath = 'docs/agent/development/development-principles.md';
+if (fs.existsSync(principlesPath) && (fs.readFileSync(principlesPath, 'utf8').match(/^## [1-7]\. /gm) || []).length !== 7) failures.push('Development principles must retain the seven canonical rules.');
 fs.readdirSync('docs/agent', { withFileTypes: true })
   .filter(entry => entry.isFile() && entry.name.endsWith('.md'))
   .forEach(entry => {
@@ -51,8 +60,12 @@ const currentDocs = [
   'docs/agent/README.md',
   ...expectedDocs.slice(1).map(file => `docs/agent/${file}`),
   ...expectedDocs.map(file => `docs/agent/zh-CN/${file}`),
+  ...developmentPolicies.map(file => `docs/agent/development/${file}`),
   'skills/ichartjs/SKILL.md'
 ];
+for (const file of ['README.md', 'skills/ichartjs/SKILL.md', 'docs/agent/usage-scenarios.md', 'docs/agent/zh-CN/usage-scenarios.md', 'docs/agent/conversational-workflow.md', 'docs/agent/zh-CN/conversational-workflow.md']) {
+  if (!fs.readFileSync(file, 'utf8').includes('Agent-driven Incremental Construction')) failures.push(`${file}: missing the shared incremental construction workflow name.`);
+}
 const staleCurrentDocTokens = [
   'github:wanghetommy/ichartjs#v2.0.1`',
   'node_modules/ichartjs/',

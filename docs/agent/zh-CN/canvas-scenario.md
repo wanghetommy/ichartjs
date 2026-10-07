@@ -25,6 +25,52 @@ await board.ready();
 console.log(board.explain(), board.getState());
 ```
 
+## Agent 分步构建
+
+这是 [Agent-driven Incremental Construction](conversational-workflow.md#agent-driven-incremental-construction) 的 Board 实现；宿主前提、完整语义步骤、确认界面和最终任务验收见统一指南。
+
+在同一个 Board 实例上提交完整的语义步骤，用户即可看到逐步构建过程。自然语言由宿主 Agent 理解，iChart.js 只接收结构化命令。通过 `boardCapabilities.incrementalBuilding` 或 `getCapabilities().canvasComposition.incrementalBuilding` 发现能力；根入口与 `/board` 都支持，后者仅嵌入基础分析类图表，根入口支持全部图表族。
+
+```js
+import { createBoard, validateBoardCommand } from '@taylorwong/ichartjs/board';
+const board = createBoard({ width: 1280, height: 720,
+  editing: { enabled: true, allowStructuralChanges: true } });
+const command = { type: 'board-edit', operations: [
+  { op: 'addItem', item: { id: 'note', kind: 'text', text: '第一条洞察',
+    position: { x: 48, y: 48 }, size: { width: 320, height: 64 } } }
+] };
+if (!validateBoardCommand(command).valid) throw new Error('命令无效');
+const preview = board.previewEdit(command);
+if (!preview.valid) throw new Error(JSON.stringify(preview.errors));
+const result = board.applyEdit(preview.command, { preview, confirmed: true });
+if (!result.valid) throw new Error(JSON.stringify(result.errors));
+await board.ready();
+console.log(board.getState());
+```
+
+| 操作 | 字段 | 含义 |
+| --- | --- | --- |
+| `addItem` | `item` | 新增包含稳定 ID 的完整元素。 |
+| `updateItem` | `itemId`, `changes` | 浅层替换指定字段；用 `position`/`size` 显式移动或缩放，用 `spec` 替换完整内嵌 ChartSpec。 |
+| `removeItem` | `itemId`, `policy?` | 默认拒绝删除有连接引用的元素；显式 `cascade` 同时删除相关连接。 |
+| `addAsset` | `asset` | 新增完整图片资源，可以和图片元素放在同一个事务。 |
+| `updateAsset` | `assetId`, `changes` | 更新来源、描述或元数据；来源变化会清除旧图片缓存。 |
+| `removeAsset` | `assetId`, `policy?` | 默认拒绝有图片引用的资源；显式级联删除相关图片及其连接。 |
+
+示例中的 `confirmed: true` 以前置的宿主检查、静态预览和确认流程为前提；不要自动批准不可信 Agent 命令。
+
+- 命令使用 `type: 'board-edit'`，每批 1–200 个操作；`validateBoardCommand()` 检查语法，Board 的 `previewEdit()` 检查权限、锁定项、最终引用、Spec 和可渲染性。不要用图表的 `validateCommand()` 校验 Board 命令。
+- 通过 `incrementalBuilding.editableFields.common/itemTypes/asset` 查询可编辑字段；不适用于当前类型的字段会被拒绝，不会静默忽略。连接线的位置和尺寸来自端点，移动引用的元素或更新 `from`/`to`，不要直接修改连接线位置。
+- `editing.enabled` 必须开启；增删还要求 `allowStructuralChanges`。每次提交必须使用当前 Board 签发的预览且由宿主确认。过期、跨实例或更改命令的预览不能提交。
+- 一个成功事务只增加一次 revision 和一条撤销记录；预览不修改主画布、不加载图片。更新命令不能改 ID、kind、资源 type 或 locked；锁定项及其资源受到保护，级联删除也不能绕过。
+- **默认保留已有坐标，不照搬 Flow 自动分层重排**。图表框、图片和简笔画位置都有意义。仅在宿主明确要求排版时计算目标坐标，预览指定的 `updateItem`；`planCanvas()` 可辅助规划，但不是自动重排开关。
+- 挂载一次即可观察每轮构建；`subscribe()` 报告提交、历史与资源状态，不显示半条命令或逐 token 动画。资源状态事件不增加布局 revision。图片修改后等待 `ready()`，检查 `assets`、`assetsReady` 和 `health`；`assetsReady` 表示加载已结束，不代表全部成功。无 DOM 的 `linked` 仅表示外链，不代表图片已解码。
+- 原有 `update()`、`addItem()`、移动和历史方法是可信宿主接口，不是 Agent 权限闸门，不要直接暴露给不可信生成命令。宿主保存 `export({type:'json'})`；重新加载 Spec 创建新实例，不恢复历史。
+
+使用[增量 Board 配方](../../../agent-recipes/boards/incremental-board.json)作为起始 Spec 和分步模板，不是自动执行任务。默认预览 `http://localhost:3000/playground/canvas-board.html` 从空画布开始；点击四次**下一步**依次添加原来的三图表组合、iChart.js Logo、小猫简笔画和弧线/扇形/贝塞尔曲线示例。保留左侧图表、右上 Logo、右侧简笔画的位置、尺寸、配色和图层顺序，与完整组合共用一份示例数据。**上一步**撤销一轮，**重新开始**清空示例；已有内容不自动重排。下一步授权当前显示的预设步骤，内部仍执行校验、预览和确认提交。页面不解析自然语言，示例完成不等于业务任务验收通过。
+
+默认折叠的**开发者工具**保留命令编辑、预览确认、取消、历史、保存重载和导出。`?scenario=advanced` 直接打开这些工具，`?scenario=composition` 打开完整图表/自由图形组合。默认及 `?scenario=incremental` 均为简单示例。可添加 `renderer=canvas`、`lang=zh-CN` 或 `lang=en` 查询参数；否则跟随浏览器语言，未识别语言回退英文。开发者工具更改画布后，需要重新开始才能继续简单示例。
+
 ## 渲染器和交互原则
 
 - `renderer: 'svg'` 适合小型、文字较多、需要无障碍的组合内容。
@@ -37,6 +83,8 @@ console.log(board.explain(), board.getState());
 图片放在 `assets` 中，再通过 `assetId` 被画布元素引用，这样 BoardSpec 保持可持久化，资源加载、存储和权限由宿主负责。使用 PNG/JPEG/WebP URL 或 data URL，并提供 `alt` 文本。首批约束包括网格、吸附、边界、锁定元素和连接点；`planCanvas()` 可以为初始元素安排位置，同时保留元素语义。
 
 ## 支持的元素
+
+英文文字优先按单词换行，不拆开字母；过长单词先缩小，达到最小字号后才截断。连接线默认 `zIndex: -1`，位于内容后方，有背景的文本卡片可保护文字；需要其他层级时显式设置。
 
 | 元素 | 必需字段 | 说明 |
 | --- | --- | --- |

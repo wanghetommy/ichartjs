@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased
+
+## 2.0.27 - 2026-10-08
+
+- Completed Diagram editing usability closure: reject invalid manual routes atomically, preserve dragged channels through endpoint changes, align connected ports, keep unrelated routes stable, and support routing recovery, Spec reload and clean SVG delivery.
+- Fixed retracing connector stubs and arrowhead joins, included internal routes/labels in group bounds, and preferred single-line edge labels with whole-word English wrapping.
+
+- Reused the original Freeform Board composition for its four-step construction demo: three charts, the logo, the cat drawing and arc/sector/Bezier examples. The full and incremental modes share one fixture and preserve identical geometry, colors and layering.
+
+- Simplified the Flow and Freeform Board workbenches to empty four-step examples with Next, Previous step and Restart, localized instructions and folded developer tools. Explicit preview/confirmation, manual editing, composition and delivery checks remain available in advanced modes; runtime APIs and static defaults are unchanged.
+
+- Hardened shared text fitting: effective-font measurement, explicit line breaks, grapheme-safe truncation, bounded titles and Board height fitting; Bar/Column inside/outside labels now take effect.
+- Added JSON-persistent Cartesian reference lines and record-ID callouts, discovery, validation, TypeScript, bilingual guidance and text acceptance examples; pixel annotation plugins remain ephemeral.
+
+- Unified Agent-driven Incremental Construction guidance across scenarios, bilingual workflows, README and Skill; clarified live-host prerequisites and final task acceptance.
+- Added shared Flow/Board host-demo step summaries, cancellation, stale-preview invalidation and delivery review without adding a runtime service or default navigation.
+- Refreshed Spec diagnostics on typed edits and Undo/Redo, with rollback on publication failure, so final construction checks do not report outdated Flow warnings.
+
+- Added Agent incremental Board transactions with confirmed, revision-bound previews, locked-item protection, explicit cascade policies, one-step history, and observable construction without automatic reflow.
+- Added incremental image readiness/cache synchronization, source-race protection, visibility and renderer-update consistency, a Board building recipe, bilingual guidance, typed contracts, and a mode in the existing Freeform Board demo.
+- Kept Board connectors behind content by default and wrapped Latin text at word boundaries for readable incremental compositions.
+
+- Added atomic incremental Flow node creation/removal, node field editing, confirmed layout previews, and one-step Undo/Redo for multi-turn Agent construction.
+- Added deterministic size-aware Flow layering for branches, merges, and loop back-edges, preserving explicit positions, manual waypoints, and the viewport while diagnosing overlap and overflow.
+- Added the incremental Diagram Editor mode, a validated building recipe, typed layout snapshots, capability discovery, and bilingual Agent/Skill guidance.
+- Added seven maintainer development principles, consolidated development documentation, removed obsolete prompt/RC records, and synchronized release-pinned installation guidance, runtime versions and measured footprint reports.
+
 ## 2.0.26 - 2026-10-07
 
 - Hardened diagram routing with shape-aware obstacles, orthogonal-first automatic paths, explicit routing modes, and consistent SVG/Canvas line styles.

@@ -4,6 +4,8 @@
 
 ## 选择场景
 
+- [图表文本与标注](text-annotations.md)：标题、标签、Board 文本、参考线和稳定 ID 标注的配置与诊断。
+
 - [使用场景与输出](usage-scenarios.md)
 - [Agent 快速上手](quickstart.md)
 - [编码 Agent 集成](coding-agent-integration.md)
@@ -12,7 +14,7 @@
 - [数据分析图表](charting-scenario.md)
 - [项目管理图表](project-scenario.md)
 - [交互式 Diagram](diagram-scenario.md)：Flow、Swimlane、Architecture、Mindmap 与编辑。
-- [Freeform Board](canvas-scenario.md)：图片、文字、基础图形、连接线和嵌入式图表组合。
+- [Freeform Board](canvas-scenario.md)：图片、文字、图形和图表组合；支持 Agent 分步构建、预览确认及撤销/重做，SVG/Canvas 能力一致。
 - [Runtime 契约](runtime-contract.md)
 - [任务验收](task-validation.md)
 - [Runtime 体积与加载](runtime-footprint.md)
@@ -29,3 +31,5 @@ getCapabilities → inspectData → planChart → 生成 Spec → validateSpec �
 API 名称、字段名、命令名、错误码和 JSON Manifest 统一使用英文标识符；其语义以英文技术契约为标准，本文提供中文辅助说明。
 
 全部已支持图表的浏览入口：`playground/project-gallery.html`；主题样式验收入口：`playground/theme-gallery.html`。
+
+分步构建入口：`playground/canvas-board.html` 和 `playground/diagram-editor.html`，默认均为四步示例，使用下一步、上一步、重新开始。开发者工具默认折叠；`?scenario=advanced` 打开命令编辑、预览确认、历史和保存重载，`?scenario=composition` 打开完整 Board，`?scenario=editor` 打开手工 Flow 编辑器。

@@ -37,6 +37,8 @@ Agent usage and development guide for generic data analysis and metric visualiza
 
 ## Configuration Placement
 
+For font fitting, hard breaks, inside/outside labels and persistent data-linked annotations, use [Chart Text and Annotations](text-annotations.md).
+
 `encoding` describes field roles and series semantics. Keep these options at the Spec level:
 
 | Concern | Correct location | Applies to |

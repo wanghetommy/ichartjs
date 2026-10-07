@@ -26,7 +26,9 @@ export function validateCommand(command) {
   value.operations.forEach((operation, index) => {
     const path = `command.operations.${index}`;
     if (!operation || typeof operation.op !== 'string' || !operationTypes.includes(operation.op)) errors.push(issue('OPERATION_TYPE', `${path}.op`, 'Unsupported edit operation.'));
-    if (operationTypes.includes(operation.op) && !['moveNodes', 'alignNodes', 'snapNodes', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'toggleGroupCollapse', 'duplicateSelection', 'pasteSelection', 'addEdge'].includes(operation.op) && (typeof operation.recordId !== 'string' && typeof operation.taskId !== 'string' && typeof operation.nodeId !== 'string' && typeof operation.edgeId !== 'string')) errors.push(issue('OPERATION_TARGET', path, 'Operation requires a stable recordId, taskId, nodeId, or edgeId.'));
+    if (operationTypes.includes(operation.op) && !['addNode', 'moveNodes', 'alignNodes', 'snapNodes', 'moveGroup', 'resizeGroup', 'assignNodesToGroup', 'duplicateGroup', 'deleteGroup', 'toggleGroupCollapse', 'duplicateSelection', 'pasteSelection', 'addEdge'].includes(operation.op) && (typeof operation.recordId !== 'string' && typeof operation.taskId !== 'string' && typeof operation.nodeId !== 'string' && typeof operation.edgeId !== 'string')) errors.push(issue('OPERATION_TARGET', path, 'Operation requires a stable recordId, taskId, nodeId, or edgeId.'));
+    if (operation.op === 'addNode' && (!operation.node || Array.isArray(operation.node) || typeof operation.node.id !== 'string' || !operation.node.id.trim() || typeof operation.node.label !== 'string' || !operation.node.label.trim())) errors.push(issue('OPERATION_NODE', `${path}.node`, 'addNode requires a node with a stable id and a non-empty label.'));
+    if (operation.op === 'removeNode' && (typeof operation.nodeId !== 'string' || !operation.nodeId || operation.policy !== undefined && !['reject', 'cascade'].includes(operation.policy))) errors.push(issue('OPERATION_REMOVE_NODE', path, 'removeNode requires nodeId and an optional policy: reject or cascade.'));
     if (['updateField', 'updateRecord', 'updateTask'].includes(operation.op) && !operation.changes && operation.op !== 'updateField') errors.push(issue('OPERATION_CHANGES', `${path}.changes`, 'Operation requires changes.'));
     if (operation.op === 'updateField' && typeof operation.field !== 'string') errors.push(issue('OPERATION_FIELD', `${path}.field`, 'updateField requires a field name.'));
     if (operation.op === 'shiftTask' && (typeof operation.days !== 'number' || !Number.isFinite(operation.days))) errors.push(issue('OPERATION_DAYS', `${path}.days`, 'shiftTask requires finite numeric days.'));
@@ -74,6 +76,8 @@ export function commandCapabilities(schema) {
     addDependency: schema?.name === 'project-task' && can('dependencies'),
     removeDependency: schema?.name === 'project-task' && can('dependencies'),
     updateMilestone: schema?.name === 'milestone',
+    addNode: flowNode,
+    removeNode: flowNode,
     moveNode: flowNode && can('position'),
     moveNodes: flowNode && can('position'),
     alignNodes: flowNode && can('position'),

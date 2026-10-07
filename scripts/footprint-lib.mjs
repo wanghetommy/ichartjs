@@ -9,8 +9,8 @@ export const root = process.cwd();
 export const baseline = {
   moduleRawBytes: 535216,
   moduleGzipBytes: 129561,
-  packageBytes: 294592,
-  unpackedBytes: 1065489
+  packageBytes: 344082,
+  unpackedBytes: 1231449
 };
 export const allowedGrowth = 1.15;
 

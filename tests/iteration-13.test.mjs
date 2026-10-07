@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ChartValidationError, createChart, getCapabilities, validateSpec } from '../src/index.mjs';
+import { operationTypes } from '../src/command.mjs';
 
 test('mutation validation rejects atomically with a structured error', () => {
   const chart = createChart({ type: 'line', data: [{ id: 'a', name: 'A', value: 1 }] });
@@ -38,7 +39,7 @@ test('contract registry exposes diagram edge and export policy', () => {
   assert.equal(capabilities.contractVersion, '1.1');
   assert.deepEqual(capabilities.exports, ['png', 'jpeg', 'svg', 'json']);
   assert.deepEqual(capabilities.diagramEdgeModels, ['flow-edge', 'architecture-edge', 'mindmap-edge']);
-  assert.equal(capabilities.commands.length, 25);
+  assert.deepEqual(capabilities.commands, operationTypes);
 });
 
 test('burndown date policy is deterministic and visible', () => {

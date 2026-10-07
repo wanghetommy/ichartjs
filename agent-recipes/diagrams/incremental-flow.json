@@ -1,0 +1,48 @@
+{
+  "name": "incremental-flow",
+  "version": "1.0",
+  "kind": "diagram-building-template",
+  "description": "Starting Spec and ordered command templates for a host Agent. Adapt labels and IDs to the real request; preview and confirm each transaction before applying it. This is not an executable natural-language task.",
+  "spec": {
+    "type": "flow", "renderer": "svg", "width": 1000, "height": 540,
+    "nodes": [{ "id": "start", "kind": "start", "label": "Start" }], "edges": [],
+    "diagram": { "layout": "layered", "routing": "auto" },
+    "editing": { "enabled": true, "allowStructuralChanges": true, "requireConfirmation": true }
+  },
+  "commands": [
+    {
+      "type": "layout-edit", "reason": "Add a review step",
+      "operations": [
+        { "op": "addNode", "node": { "id": "review", "kind": "process", "label": "Review request", "size": { "width": 140, "height": 44 } } },
+        { "op": "addEdge", "id": "start-review", "from": "start", "to": "review" }
+      ]
+    },
+    {
+      "type": "layout-edit", "reason": "Add a decision",
+      "operations": [
+        { "op": "addNode", "node": { "id": "valid", "kind": "decision", "label": "Approved?", "size": { "width": 128, "height": 64 } } },
+        { "op": "addEdge", "id": "review-valid", "from": "review", "to": "valid" }
+      ]
+    },
+    {
+      "type": "layout-edit", "reason": "Add yes/no branches, a retry loop, and an end",
+      "operations": [
+        { "op": "addNode", "node": { "id": "qa", "kind": "process", "label": "Quality check" } },
+        { "op": "addNode", "node": { "id": "retry", "kind": "connector", "label": "R" } },
+        { "op": "addNode", "node": { "id": "end", "kind": "end", "label": "End" } },
+        { "op": "addEdge", "id": "valid-qa", "from": "valid", "to": "qa", "label": "yes" },
+        { "op": "addEdge", "id": "valid-retry", "from": "valid", "to": "retry", "label": "no" },
+        { "op": "addEdge", "id": "retry-review", "from": "retry", "to": "review", "label": "retry" },
+        { "op": "addEdge", "id": "qa-end", "from": "qa", "to": "end" }
+      ]
+    },
+    {
+      "type": "layout-edit", "reason": "Rename the review step",
+      "operations": [{ "op": "updateRecord", "nodeId": "review", "changes": { "label": "Security review" } }]
+    },
+    {
+      "type": "layout-edit", "reason": "Remove the retry branch and its incident edges",
+      "operations": [{ "op": "removeNode", "nodeId": "retry", "policy": "cascade" }]
+    }
+  ]
+}

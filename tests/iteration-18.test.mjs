@@ -1,17 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { runInNewContext } from 'node:vm';
 import { createBoard, getCapabilities, planCanvas, validateBoardSpec } from '../src/index.mjs';
 import logoSpec from '../agent-recipes/logo-spec.json' with { type: 'json' };
+import { createBoardComposition } from '../playground/board-composition.mjs';
 
 const image = { id: 'hero', type: 'image', src: 'data:image/png;base64,iVBORw0KGgo=', alt: 'Example image', mime: 'image/png' };
 
 test('validates and renders the complete Freeform Board Playground example', () => {
-  const html = readFileSync(new URL('../playground/canvas-board.html', import.meta.url), 'utf8');
-  const declarations = html.slice(html.indexOf('const logoItems='), html.indexOf('let board;'));
-  const spec = runInNewContext(`${declarations}\nJSON.stringify(spec);`, { logoSpec });
-  const validation = validateBoardSpec(JSON.parse(spec));
+  const validation = validateBoardSpec(createBoardComposition(logoSpec));
   assert.equal(validation.valid, true, JSON.stringify(validation.errors));
   const board = createBoard(validation.spec);
   const svg = board.export({ type: 'svg' });

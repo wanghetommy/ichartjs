@@ -14,7 +14,7 @@ iChart.js 是 JavaScript UI 图表组件库。编码 Agent 负责修改宿主前
 npm install @taylorwong/ichartjs@^2
 ```
 
-需要固定依赖版本时使用：`npm install @taylorwong/ichartjs@2.0.26`。
+需要固定依赖版本时使用：`npm install @taylorwong/ichartjs@2.0.27`。
 
 npm Registry 中无作用域的 `ichartjs` 是安全占位包，并非本项目。正式包名是 `@taylorwong/ichartjs`，优先从 npm 安装。
 
@@ -24,7 +24,7 @@ npm Registry 中无作用域的 `ichartjs` 是安全占位包，并非本项目�
 npx skills add wanghetommy/ichartjs --skill ichartjs
 ```
 
-Codex 全局无交互安装可追加 `--agent codex --global --yes`。需要固定发布版本时，安装 `https://github.com/wanghetommy/ichartjs/tree/v2.0.26/skills/ichartjs`。WorkBuddy 可通过自身 Skill 界面导入该带 Tag 的目录；只有当前 CLI 明确声明对应适配器时才使用宿主专用 `--agent` 参数。
+Codex 全局无交互安装可追加 `--agent codex --global --yes`。需要固定发布版本时，安装 `https://github.com/wanghetommy/ichartjs/tree/v2.0.27/skills/ichartjs`。WorkBuddy 可通过自身 Skill 界面导入该带 Tag 的目录；只有当前 CLI 明确声明对应适配器时才使用宿主专用 `--agent` 参数。
 
 使用 `npx skills add wanghetommy/ichartjs --list` 验证发现结果，其中应包含 `ichartjs`。
 

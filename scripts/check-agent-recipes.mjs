@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { validateCommand } from '../src/command.mjs';
-import { validateBoardSpec, validateSpec } from '../src/index.mjs';
+import { createBoard, createChart, validateBoardCommand, validateBoardSpec, validateSpec } from '../src/index.mjs';
 
 const root = 'agent-recipes';
 const manifestPath = path.join(root, 'manifest.json');
@@ -43,14 +43,25 @@ files.forEach(source => {
   }
   const value = JSON.parse(fs.readFileSync(source, 'utf8'));
   if (entry.validator === 'validateSpec') checkSpec(value, source, entry.id);
-  else if (entry.validator === 'validateBoardSpec') checkBoard(value, source);
+  else if (entry.validator === 'validateBoardSpec') checkBoard(value.spec || value, source);
   else failures.push(`${source}: unsupported manifest validator ${entry.validator}.`);
-  if (entry.commandValidator === 'validateCommand') {
+  if (entry.commandValidator === 'validateCommand' || entry.commandValidator === 'validateBoardCommand') {
     if (!Array.isArray(value.commands) || !value.commands.length) failures.push(`${source}: command template must declare commands[].`);
     else value.commands.forEach((command, index) => {
-      const result = validateCommand(command);
+      const result = entry.commandValidator === 'validateBoardCommand' ? validateBoardCommand(command) : validateCommand(command);
       if (!result.valid) failures.push(`${source}: commands[${index}]: ${result.errors.map(error => error.message).join('; ')}`);
     });
+  }
+  if (entry.kind === 'diagram-building-template' || entry.kind === 'board-building-template') {
+    const chart = entry.kind === 'board-building-template' ? createBoard(value.spec) : createChart(value.spec);
+    try {
+      for (const command of value.commands) {
+        const preview = chart.previewEdit(command);
+        if (!preview.valid) { failures.push(`${source}: building preview: ${preview.errors.map(error => error.message).join('; ')}`); break; }
+        const result = chart.applyEdit(preview.command, { preview, confirmed: true, source: 'recipe-check' });
+        if (!result.valid) { failures.push(`${source}: building commit: ${result.errors.map(error => error.message).join('; ')}`); break; }
+      }
+    } finally { chart.destroy(); }
   }
   if (!Array.isArray(entry.output) || !entry.output.length) failures.push(`${source}: manifest output must be a non-empty array.`);
   if (entry.kind === 'diagram-edit-template' && entry.renderable !== false) failures.push(`${source}: edit templates must set renderable=false.`);

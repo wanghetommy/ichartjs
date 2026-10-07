@@ -23,6 +23,7 @@ Runtime 的根入口和四个 Profile 入口是并列的公共入口。Profile �
 | 项目进度和交付分析 | 项目场景 + Runtime | 项目看板 | Gantt、Burndown、Timeline、分析结果 |
 | 流程或架构图 | Diagram 场景 + Runtime | Web 应用或文档流程 | Flow/Swimlane/Architecture/Mindmap 页面、SVG、JSON |
 | 组合图片、文字、图形、连接线和图表 | Canvas 场景 + Runtime | 浏览器或 Agent 生成文档 | Board SVG、JSON、PNG/JPEG 或交互页面 |
+| 观看并逐步验收构建过程 | Agent-driven Incremental Construction | 有 Agent 更新通道的持续浏览器宿主 | 已确认语义步骤、revision/诊断、最终 JSON 和 SVG/PNG |
 | 定时生成报告 | Node 脚本 + Runtime | CI 或报表任务 | SVG/PNG 文件和 JSON 快照 |
 
 ## 输出契约
@@ -64,7 +65,7 @@ chart.setPreferences({
 npm install @taylorwong/ichartjs@^2
 ```
 
-需要可复现构建时，请固定已发布版本：`npm install @taylorwong/ichartjs@2.0.26`。
+需要可复现构建时，请固定已发布版本：`npm install @taylorwong/ichartjs@2.0.27`。
 
 ```js
 import { createChart } from '@taylorwong/ichartjs';
@@ -125,7 +126,7 @@ npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --ye
 需要固定发布版本时，直接安装已发布的 Skill 目录：
 
 ```bash
-npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.26/skills/ichartjs \
+npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.27/skills/ichartjs \
   --agent codex --global --yes
 ```
 
@@ -175,6 +176,18 @@ const png = await chart.exportAsync({ type: 'png' });
 ```
 
 建议把 JSON 作为可复现快照，把 SVG/PNG 作为视觉交付物。导出失败时返回结构化错误，不要静默替换格式。
+
+## 场景七：Agent 驱动的增量构建
+
+适用于用户希望边对话边看 Flow 构建、分阶段验收 Board 组合，或审批已有构图的修改。简单一次性图表和无人值守报表不必引入这个流程。
+
+宿主需保持同一个 JavaScript 实例挂载，提供预览地址，并把 Agent 命令送到这个实例。只有 Skill 不够；最终 HTML/PNG 不能展示实时进度。没有这样的宿主时，说明限制，改为提供最终文件或集成代码。
+
+按完整语义步骤执行：读取 → 规划 → 校验/预览 → 宿主批准 → 原子提交 → 自检。宿主负责自然语言、步骤界面、传输和持久化；Runtime 负责校验、布局、revision 和历史。Flow 可显式选择 `layered`，Board 保留位置和锁定项；不需要默认启用缩放、平移或动画。
+
+具体流程和提示词见[统一构建工作流](conversational-workflow.md#agent-driven-incremental-construction)。最终业务要求应独立于 renderable 验收，再交付预览地址、警告、JSON 和 SVG/PNG；Recipe 是起始模板，不是自动任务。
+
+四步示例：`http://localhost:3000/playground/diagram-editor.html` 和 `http://localhost:3000/playground/canvas-board.html`；下一步授权一轮预设操作，上一步撤销，重新开始清空示例。开发者工具保留命令、预览确认和交付检查，`?scenario=advanced` 可直接打开，Canvas 追加 `&renderer=canvas`。这是预设宿主演示，不内置自然语言解析。
 
 ## 边界
 

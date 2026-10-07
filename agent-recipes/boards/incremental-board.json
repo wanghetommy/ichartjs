@@ -1,0 +1,32 @@
+{
+  "name": "Agent Incremental Board Building",
+  "description": "A starting composition and ordered edit templates, not an executable task. Preserve existing positions; confirm each semantic turn before applying.",
+  "spec": {
+    "version": "1.0", "width": 1280, "height": 720, "renderer": "svg", "background": "#f8fbff",
+    "grid": { "visible": true, "size": 24, "variant": "dots" },
+    "editing": { "enabled": true, "allowStructuralChanges": true },
+    "items": [
+      { "id": "heading", "kind": "text", "text": "A board built one turn at a time", "locked": true, "position": { "x": 48, "y": 28 }, "size": { "width": 740, "height": 48 }, "fontSize": 28, "style": { "fill": "#102a43" } }
+    ]
+  },
+  "commands": [
+    { "type": "board-edit", "operations": [
+      { "op": "addItem", "item": { "id": "trend", "kind": "chart", "position": { "x": 48, "y": 116 }, "size": { "width": 520, "height": 292 }, "spec": { "type": "line", "width": 520, "height": 292, "title": { "text": "Delivery trend" }, "legend": { "visible": false }, "branding": { "enabled": false }, "data": { "values": [{ "id": "jan", "name": "Jan", "value": 32 }, { "id": "feb", "name": "Feb", "value": 48 }, { "id": "mar", "name": "Mar", "value": 44 }, { "id": "apr", "name": "Apr", "value": 76 }] }, "encoding": { "x": { "field": "name" }, "y": { "field": "value" } } } } }
+    ] },
+    { "type": "board-edit", "operations": [
+      { "op": "addItem", "item": { "id": "insight", "kind": "text", "text": "Deliveries are rising. Existing charts stay exactly where the host placed them.", "position": { "x": 48, "y": 448 }, "size": { "width": 520, "height": 100 }, "fontSize": 21, "padding": 12, "background": "#e0f2fe", "style": { "fill": "#075985" } } }
+    ] },
+    { "type": "board-edit", "operations": [
+      { "op": "addItem", "item": { "id": "regions", "kind": "chart", "position": { "x": 680, "y": 116 }, "size": { "width": 520, "height": 292 }, "spec": { "type": "bar", "width": 520, "height": 292, "title": { "text": "Regional delivery" }, "legend": { "visible": false }, "branding": { "enabled": false }, "data": { "values": [{ "id": "north", "name": "North", "value": 64 }, { "id": "south", "name": "South", "value": 46 }, { "id": "west", "name": "West", "value": 80 }] }, "encoding": { "x": { "field": "name" }, "y": { "field": "value" } } } } }
+    ] },
+    { "type": "board-edit", "operations": [
+      { "op": "addItem", "item": { "id": "target", "kind": "shape", "shape": "ellipse", "position": { "x": 888, "y": 456 }, "size": { "width": 88, "height": 88 }, "style": { "fill": "#fbbf24", "stroke": "#b45309", "strokeWidth": 2 } } },
+      { "op": "addItem", "item": { "id": "target-caption", "kind": "text", "text": "Shared delivery goal", "position": { "x": 744, "y": 562 }, "size": { "width": 376, "height": 48 }, "fontSize": 22, "textAlign": "center", "style": { "fill": "#92400e" } } },
+      { "op": "addItem", "item": { "id": "insight-target", "kind": "connector", "from": "insight", "to": "target", "routing": "straight", "style": { "stroke": "#64748b", "strokeWidth": 2 } } }
+    ] },
+    { "type": "board-edit", "operations": [
+      { "op": "updateItem", "itemId": "insight", "changes": { "text": "April deliveries reached 76. The host explicitly moves only this note.", "position": { "x": 48, "y": 468 } } },
+      { "op": "updateItem", "itemId": "target", "changes": { "style": { "fill": "#34d399", "stroke": "#047857", "strokeWidth": 2 } } }
+    ] }
+  ]
+}

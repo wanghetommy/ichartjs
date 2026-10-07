@@ -7,6 +7,8 @@ import { normalizeData } from './data.mjs';
 import { themeModes, themePalettes, themePresets } from './theme.mjs';
 import { validateDiagram } from './diagram.mjs';
 import { applyTransforms } from './transforms.mjs';
+import { validateAnnotations } from './annotation.mjs';
+import { fontPixels } from './layout.mjs';
 
 const chartTypes = new Set(Object.keys(chartProfiles));
 
@@ -119,7 +121,7 @@ const encodingChannels = {
 const presentationEncodingKeys = new Set(['title', 'format', 'labels', 'legend']);
 const diagramTypes = new Set(['flow', 'swimlane', 'architecture', 'mindmap']);
 const diagramFields = ['nodes', 'edges', 'lanes', 'groups', 'layers', 'boundaries'];
-const knownSpecKeys = new Set(['version', 'type', 'renderer', 'container', 'chartId', 'width', 'height', 'size', 'padding', 'colors', 'background', 'locale', 'data', 'encoding', 'title', 'legend', 'grid', 'labels', 'xAxis', 'yAxis', 'domain', 'colorScale', 'indicators', 'innerRadius', 'stack', 'transform', 'criticalPath', 'dependencies', 'nodes', 'edges', 'lanes', 'layers', 'boundaries', 'groups', 'diagram', 'project', 'interaction', 'editing', 'accessibility', 'branding', 'theme', 'preferences', 'preferencesStore', 'plugins', 'schema', 'validationOptions', 'emptyText', 'responsive', 'view', 'context', 'intent', 'tasks', 'events']);
+const knownSpecKeys = new Set(['version', 'type', 'renderer', 'container', 'chartId', 'width', 'height', 'size', 'padding', 'colors', 'background', 'locale', 'data', 'encoding', 'title', 'legend', 'grid', 'labels', 'xAxis', 'yAxis', 'domain', 'colorScale', 'indicators', 'innerRadius', 'stack', 'transform', 'criticalPath', 'dependencies', 'nodes', 'edges', 'lanes', 'layers', 'boundaries', 'groups', 'diagram', 'project', 'interaction', 'editing', 'accessibility', 'branding', 'theme', 'preferences', 'preferencesStore', 'plugins', 'schema', 'validationOptions', 'annotations', 'emptyText', 'responsive', 'view', 'context', 'intent', 'tasks', 'events']);
 
 function finiteDomain(domain) {
   return Array.isArray(domain) && domain.length === 2 && domain.every(value => Number.isFinite(Number(value))) && Number(domain[1]) > Number(domain[0]);
@@ -214,6 +216,10 @@ export function validateSpec(input = {}) {
   if (typeof spec.locale !== 'string' || !spec.locale.trim()) errors.push({ code: 'INVALID_LOCALE', path: 'locale', message: 'locale must be a non-empty BCP 47 locale string.', suggestion: 'Use for example locale: "en-US" or locale: "zh-CN".' });
   if (spec.legend?.align !== undefined && !['left', 'center', 'right'].includes(spec.legend.align)) errors.push({ code: 'INVALID_LEGEND_ALIGN', path: 'legend.align', message: `Unsupported legend alignment: ${spec.legend.align}`, expected: ['left', 'center', 'right'], suggestion: 'Use legend.align: "left", "center", or "right".' });
   validateEncodingContract(input, spec, errors);
+  validateAnnotations(spec, errors, warnings);
+  for (const key of ['text', 'subtitle']) if (spec.title?.[key] !== undefined && typeof spec.title[key] !== 'string') errors.push({ code: 'INVALID_TITLE_TEXT', path: `title.${key}`, message: 'Title text and subtitle must be plain strings.' });
+  if (spec.labels?.font !== undefined && (typeof spec.labels.font !== 'string' || !/\d+(?:\.\d+)?px\s+\S/.test(spec.labels.font) || fontPixels(spec.labels.font, 0) < 8 || fontPixels(spec.labels.font, 0) > 160)) errors.push({ code: 'INVALID_LABEL_FONT', path: 'labels.font', message: 'Use a CSS font with a pixel size between 8 and 160 and a family, for example 14px system-ui.' });
+  if (spec.labels?.position !== undefined && (!['bar', 'column'].includes(spec.type) || !['inside', 'outside'].includes(spec.labels.position))) warnings.push({ code: 'UNSUPPORTED_LABEL_POSITION', path: 'labels.position', message: 'Explicit inside/outside label positioning is supported only for bar and column.', suggestion: 'Remove labels.position for other chart types.' });
   const axisEncodings = [['x', 'xAxis'], ['y', 'yAxis']];
   axisEncodings.forEach(([encodingName, axisName]) => {
     const encoding = spec.encoding?.[encodingName];

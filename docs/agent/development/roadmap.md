@@ -1,6 +1,6 @@
 # iChart.js 2.0 Roadmap
 
-> Roadmap baseline: 2026-09-14. Current release status: `v2.0.26` includes the completed Iteration 12 structured-diagram work, Iteration 13 contract hardening, Iteration 14 lightweight Flow semantics, Iteration 15 text-readability hardening, Iteration 16 Agent presentation and acceptance hardening, Iteration 17 production trust and Agent reliability hardening, Freeform Board foundation, Recipe manifest validation, Iteration 20 Agent contracts and data-quality hardening, Iteration 21 profile entries and documentation execution checks, legend layout consistency, Iteration 22 Agent adoption benchmarks, Iteration 23 consumer confidence, Iteration 24 adaptive edge routing and persistent connector editing, and the preceding layout and diagnostic improvements. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
+> Roadmap baseline: 2026-09-14. Current release status: `v2.0.27` includes the completed Iteration 12 structured-diagram work, Iteration 13 contract hardening, Iteration 14 lightweight Flow semantics, Iteration 15 text-readability hardening, Iteration 16 Agent presentation and acceptance hardening, Iteration 17 production trust and Agent reliability hardening, Freeform Board foundation, Recipe manifest validation, Iteration 20 Agent contracts and data-quality hardening, Iteration 21 profile entries and documentation execution checks, legend layout consistency, Iteration 22 Agent adoption benchmarks, Iteration 23 consumer confidence, Iteration 24 adaptive edge routing, Iteration 25 editing usability, Iterations 26–27 Agent incremental Flow/Board construction, shared text fitting and Cartesian annotations, and the preceding layout and diagnostic improvements. Geographic charts and 3D rendering remain out of scope until explicitly reintroduced.
 
 ## Current Status
 
@@ -28,11 +28,15 @@
 - Iteration 24A–24F is included in `v2.0.26`: shape-aware obstacle collision, orthogonal-first `auto` routing with aligned-only direct segments, dynamic rerouting, safe manual waypoints, dashed/dotted edge styles, capability discovery, and bilingual Diagram guidance. No new chart type or service runtime was introduced. See `docs/agent/development/iteration-24.md`.
 - The original `2.0.0` readiness record is historical and superseded by the published `2.0.x` releases. Current release checks are defined by `docs/agent/development/release-sop.md`.
 
+Iteration 25A–25C is included in `v2.0.27`: orthogonal corner constraints, geometry-validated manual route commands, requested/effective routing state, automatic-route recovery, connected-port alignment, persistent manual channels, group bounds, and the editor save/reload/SVG-delivery workflow. See [Iteration 25](iteration-25.md). Navigation and editing remain host-enabled only.
+
+Iterations 26–27 are included in `v2.0.27`: confirmed, revision-bound incremental Flow/Board transactions, deterministic Flow layering, preserved Board composition, one-step history, asset synchronization, shared Agent-driven construction guidance and simple four-step demos. Text hardening and declarative Cartesian reference lines/record-ID callouts are also included. No chart type, prompt parser or service was added. See [Iteration 26](iteration-26.md), [Iteration 27](iteration-27.md) and [Text & Annotations](../text-annotations.md).
+
 ## Iteration 4 — Agent Data Contract and Business Editing
 
 ### Current status
 
-4A–4E local runtime implementation is complete and included in `2.0.0`. See `docs/agent/development/rc-1-acceptance.md` for the historical RC evidence and `docs/agent/development/2.0-release-readiness.md` for final acceptance.
+4A–4E local runtime implementation is complete and included in `2.0.0`. See [2.0.0 release readiness](2.0-release-readiness.md) for the historical final acceptance.
 
 ### Goal
 
@@ -299,6 +303,10 @@ Make page-level configuration, Agent changes, browser rendering, lifecycle behav
 - Updated Skill, README, runtime contract, usage scenarios, TypeScript declarations, and generated manifests.
 
 ## Recommended Execution Order
+
+Iteration 27 extends Freeform Board with confirmed incremental Agent transactions, preserved composition, inspectable image readiness and the existing Board demo's multi-turn workflow. See [Iteration 27](iteration-27.md). No automatic Flow-style reflow or release is implied.
+
+Iteration 26 implements the existing Flow's incremental Agent construction workflow: `addNode` / `removeNode`, atomic node/edge changes, host-confirmed previews, deterministic size-aware layering including loop back-edges, explicit-position/manual-route preservation, layout diagnostics, and a dedicated mode in the existing Diagram Editor. See [Iteration 26](iteration-26.md). This is source development work; no new chart type, service, or release is implied.
 
 1. Finish Iteration 3 browser acceptance.
 2. Execute Iteration 4 before adding more chart types.

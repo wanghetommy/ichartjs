@@ -14,7 +14,8 @@ test('completes the Iteration 22 Agent adoption and production benchmark matrix'
   assert.equal(report.profiles.every(profile => profile.renderable && profile.svg), true);
   assert.equal(report.diagnostics.invalid[0].code, 'MISSING_ENCODING_FIELD');
   assert.equal(Object.keys(report.accessibilityLocale).length, 6);
-  assert.equal(report.documentationRecipes.recipeCount, 10);
+  const manifest = JSON.parse(await readFile(new URL('../agent-recipes/manifest.json', import.meta.url), 'utf8'));
+  assert.equal(report.documentationRecipes.recipeCount, manifest.entries.length);
 });
 
 test('publishes generated footprint data for the Playground', async () => {
