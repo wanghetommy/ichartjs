@@ -20,7 +20,7 @@ import { resolveRenderer } from './renderer-policy.mjs';
 import { contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast } from './theme.mjs';
 import { PluginHost, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin } from './plugin.mjs';
 import { projectTooltip, rerouteDiagramScene } from './project.mjs';
-import { getBusinessSchema, inspectDataSchema } from './schema.mjs';
+import { copyJSON, getBusinessSchema, inspectDataSchema } from './schema.mjs';
 import { validateData } from './validation.mjs';
 import { commitPreview, getEditCapabilities, previewEdit, validateEdit } from './edit.mjs';
 import { EditHistory } from './history.mjs';
@@ -360,7 +360,7 @@ getState() { const brandingSignature = discoverCapabilities().branding.signature
   getAccessibleDescription() { const description = this.spec.accessibility?.description || this.spec.title?.text || `${this.spec.type} chart`; return `${description}; ${this.model.data.rows.length} data items.`; }
   inspectDataSchema() { return inspectDataSchema(this.spec.data.schema || this.spec.schema); }
   validateData() { return validateData(this.toDataTable(), this.spec.data.schema || this.spec.schema, this.spec.validationOptions); }
-  validateEdit(command) { return validateEdit(command, { values: this.toDataTable(), schema: this.spec.data.schema || this.spec.schema, validationOptions: this.spec.validationOptions, requireConfirmation: this.spec.editing?.requireConfirmation }); }
+  validateEdit(command) { return this._editor.validate(command); }
   previewEdit(command) { return this._editor.preview(command); }
   applyEdit(command, options = {}) { return this._editor.apply(command, options); }
   getChangeSet() { return this._lastChangeSet ? JSON.parse(JSON.stringify(this._lastChangeSet)) : null; }
@@ -446,21 +446,45 @@ getState() { const brandingSignature = discoverCapabilities().branding.signature
   toDataTable() { return this.model.data.rows.map(row => ({ ...row })); }
   applyPatch(patches = []) {
     const candidate = clone(this.spec);
+    let checked;
     try {
-      patches.forEach((patch, index) => {
+      if (!Array.isArray(patches)) throw new ChartValidationError('applyPatch', [{ code: 'INVALID_PATCH', path: 'patches', message: 'Patches must be a JSON array.', suggestion: 'Use an array of add, replace or remove operations.' }]);
+      checked = copyJSON(patches);
+      if (checked.length !== patches.length) throw new ChartValidationError('applyPatch', [{ code: 'INVALID_PATCH', path: 'patches', message: 'Patches must be a dense JSON array.', suggestion: 'Provide one complete operation at every array index.' }]);
+      if (!checked.length) return this;
+      for (const [index, patch] of checked.entries()) {
         if (!patch || !['add', 'replace', 'remove'].includes(patch.op) || typeof patch.path !== 'string' || !patch.path.startsWith('/')) throw new ChartValidationError('applyPatch', [{ code: 'INVALID_PATCH', path: `patches[${index}]`, message: 'Patch requires add, replace, or remove and an absolute JSON pointer path.', suggestion: 'Use for example { op: "replace", path: "/title/text", value: "Revenue" }.' }]);
+        if (patch.op !== 'remove' && !Object.hasOwn(patch, 'value')) throw new ChartValidationError('applyPatch', [{ code: 'INVALID_PATCH', path: `patches[${index}].value`, message: 'Add and replace require an explicit JSON value.', suggestion: 'Provide value; use remove to delete an existing property or array entry.' }]);
+        const invalidPath = () => { throw new ChartValidationError('applyPatch', [{ code: 'INVALID_PATCH_PATH', path: `patches[${index}].path`, message: `Invalid or missing patch path: ${patch.path}`, suggestion: 'Use an existing own-property path. Array indices must be canonical non-negative integers; only add may use the array length or - to append.' }]); };
+        if (/~(?![01])/.test(patch.path)) invalidPath();
         const path = patch.path.replace(/^\//, '').split('/').map(key => key.replace(/~1/g, '/').replace(/~0/g, '~'));
+        if (path.some(key => ['__proto__', 'constructor', 'prototype'].includes(key))) invalidPath();
         let target = candidate;
-        path.slice(0, -1).forEach(key => { if (target == null || typeof target !== 'object' || !(key in target)) throw new ChartValidationError('applyPatch', [{ code: 'INVALID_PATCH_PATH', path: `patches[${index}].path`, message: `Patch path does not exist: ${patch.path}`, suggestion: 'Patch an existing Spec path or add a direct child of an existing object.' }]); target = target[key]; });
+        path.slice(0, -1).forEach(key => {
+          if (target == null || typeof target !== 'object' || !Object.hasOwn(target, key) || Array.isArray(target) && !/^(0|[1-9]\d*)$/.test(key)) invalidPath();
+          target = target[key];
+        });
         const key = path.at(-1);
-        if (patch.op === 'remove') delete target[key];
-        else target[key] = clone(patch.value);
-      });
+        if (target == null || typeof target !== 'object') invalidPath();
+        if (Array.isArray(target)) {
+          const append = key === '-' && patch.op === 'add';
+          if (!append && !/^(0|[1-9]\d*)$/.test(key)) invalidPath();
+          const position = append ? target.length : Number(key);
+          if (!Number.isSafeInteger(position) || position > target.length || patch.op !== 'add' && position === target.length) invalidPath();
+          if (patch.op === 'add') target.splice(position, 0, patch.value);
+          else if (patch.op === 'remove') target.splice(position, 1);
+          else target[position] = patch.value;
+        } else {
+          if (patch.op !== 'add' && !Object.hasOwn(target, key)) invalidPath();
+          if (patch.op === 'remove') delete target[key];
+          else target[key] = patch.value;
+        }
+      }
     } catch (error) {
       if (error instanceof ChartValidationError) throw error;
       throw new ChartValidationError('applyPatch', [{ code: 'INVALID_PATCH', path: 'patches', message: error.message, suggestion: 'Use JSON-safe patch values and valid Spec paths.' }]);
     }
-    const themePatched = patches.some(patch => typeof patch?.path === 'string' && (patch.path === '/theme' || patch.path.startsWith('/theme/')));
+    const themePatched = checked.some(patch => patch.path === '/theme' || patch.path.startsWith('/theme/'));
     const result = this._validateMutation('applyPatch', { ...candidate, theme: themePatched ? candidate.theme : this._themeInput });
     const snapshot = this._snapshotMutation();
     try {
@@ -672,4 +696,4 @@ export { normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, cr
 
 export { contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin };
 export { applyPreferencesToSpec, createPreferencesStore, defaultPreferences, mergePreferences, mergeThemePreference, mountChartSettings, normalizePreferences, validatePreferences };
-export const iChart = { version: '2.0.27', createChart, createBoard, validateBoardSpec, validateBoardCommand, planCanvas, boardCapabilities, ChartValidationError, inspectData, normalizeData, binData, applyTransforms, data, getCapabilities, getChartCapability, getChartContract, getPreferenceCapabilities, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, createPreferencesStore, defaultPreferences, normalizePreferences, mergePreferences, validatePreferences, applyPreferencesToSpec, mountChartSettings, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };
+export const iChart = { version: '2.0.28', createChart, createBoard, validateBoardSpec, validateBoardCommand, planCanvas, boardCapabilities, ChartValidationError, inspectData, normalizeData, binData, applyTransforms, data, getCapabilities, getChartCapability, getChartContract, getPreferenceCapabilities, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, createPreferencesStore, defaultPreferences, normalizePreferences, mergePreferences, validatePreferences, applyPreferencesToSpec, mountChartSettings, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };

@@ -23,7 +23,7 @@ Recommended installation:
 npx skills add wanghetommy/ichartjs --skill ichartjs
 ```
 
-Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.27/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
+Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.28/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
 
 The Skill is a workflow adapter, not the chart runtime. If the current JavaScript or TypeScript project does not already depend on iChart.js, install the matching runtime from npm:
 
@@ -71,6 +71,8 @@ Use top-level `width` and `height` for chart dimensions. `size: { width, height 
 Theme values are discoverable from `getCapabilities().styleSystem` or `getPreferenceCapabilities()`. The current values are `mode: auto | light | dark | contrast`, `preset: auto | analysis | dashboard | report | presentation | project | diagram`, and `palette: auto | categorical | sequential | diverging | status`.
 
 ## Freeform Board
+
+Editing signatures are not interchangeable: prefer Chart instance `chart.validateEdit(command)` / `chart.previewEdit(command)`; exported `validateEdit(command, options)` takes an explicit editing context, not a Spec. Board uses single-argument `validateBoardCommand(command)` with `operations: [{ op, ... }]`; `boardCapabilities` is an object. Host permissions belong in the instance Spec, never generated commands. See the scenario examples for complete initialization and operation fields.
 
 For visible multi-turn Board construction, discover `boardCapabilities.incrementalBuilding` and use `validateBoardCommand()` with `type: 'board-edit'`, not chart edit commands. Reuse one Board, explicitly enable editing/structural changes, preview each complete batch, obtain host confirmation, then `applyEdit(preview.command, { preview, confirmed: true })`. Await `ready()` for changed images and inspect asset status/health. Preserve existing positions and locked items; only explicitly requested layout changes move content. Root and `/board` both support transactions; `/board` embeds standard charts only. See the Board scenario below and `@taylorwong/ichartjs/recipes/boards/incremental-board` for ordered starting templates.
 

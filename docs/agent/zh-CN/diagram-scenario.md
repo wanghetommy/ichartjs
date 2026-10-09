@@ -129,11 +129,21 @@ Mindmap 默认使用曲线父子连线。`diagram.curveTension` 支持 `0.2` 到
 
 自动构建设置 `diagram: { layout: 'layered', routing: 'auto' }`，不要提供节点 `position`。每次提交按图结构和实际节点尺寸确定性重排；循环回边不增加前向层级。显式人工位置、保存的人工折点不被清除。`FLOW_NODE_OVERLAP`、`FLOW_LAYOUT_OVERFLOW` 暴露空间限制，不通过缩小节点、自动缩放或平移掩盖问题。大图可能仍需扩大容器或人工定位；不提供布局动画或最小位移布局。
 
+<!-- docs-check: incremental-flow -->
 ```js
+import { createChart } from '@taylorwong/ichartjs';
+const chart = createChart({
+  type: 'flow', renderer: 'svg',
+  nodes: [{ id: 'start', kind: 'start', label: '开始' }], edges: [],
+  diagram: { layout: 'layered', routing: 'auto' },
+  editing: { enabled: true, allowStructuralChanges: true }
+});
 const command = { type: 'layout-edit', operations: [
   { op: 'addNode', node: { id: 'review', kind: 'process', label: '审核请求' } },
   { op: 'addEdge', id: 'start-review', from: 'start', to: 'review' }
 ] };
+const validation = chart.validateEdit(command);
+if (!validation.valid) throw new Error(JSON.stringify(validation.errors));
 const preview = chart.previewEdit(command);
 if (!preview.valid) throw new Error(JSON.stringify(preview.errors));
 console.log(preview.layout, preview.warnings);
@@ -143,7 +153,7 @@ if (approvedByHost) {
 }
 ```
 
-`approvedByHost` 必须来自宿主授权，而不是 Agent 自设标记。`preview.layout` 和 `getState().layout.diagram` 提供图表逻辑坐标中的节点矩形、实际连线模式和布局告警，可用 `preview.after` 挂载独立的非编辑预览图。revision 或容器尺寸变化后重新预览。一轮提交对应一次撤销，`getSpec()` 可保存并继续构建；重载重新计算自动位置，不恢复历史。不要每轮使用 `update({ nodes, edges })`，因为它会清空历史。
+宿主检查预览后提供 `approvedByHost`，不是 Agent 自设标记。实时 UI 将 `chart` 挂载一次以显示提交；无 DOM 时也可按此例检查/导出每轮结果。`chart.validateEdit(command)` 自动使用实例上下文；底层 `validateEdit(command, options)` 要求显式编辑上下文，不是 Spec。权限开关属于宿主 Spec，不可放在生成命令中。`preview.layout` 和 `getState().layout.diagram` 提供图表逻辑坐标中的节点矩形、实际连线模式和布局告警，可用 `preview.after` 挂载独立的非编辑预览图。revision 或容器尺寸变化后重新预览。一轮提交对应一次撤销，`getSpec()` 可保存并继续构建；重载重新计算自动位置，不恢复历史。不要每轮使用 `update({ nodes, edges })`，因为它会清空历史。
 
 [增量 Flow 配方](../../../agent-recipes/diagrams/incremental-flow.json) 是起始 Spec 和有序命令模板，不是自动执行任务。逐步涵盖处理、判断、分支、循环、改名、级联删除。未构建完时 `FLOW_MISSING_END` / `FLOW_DECISION_BRANCHES` 是预期的语义提示，须向用户说明并在完成流程时解决；不能隐藏布局和路由告警。
 

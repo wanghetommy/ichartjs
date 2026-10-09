@@ -10,7 +10,7 @@ For a new JavaScript or TypeScript project, install the runtime before importing
 npm install @taylorwong/ichartjs@^2
 ```
 
-Pin `@taylorwong/ichartjs@2.0.27` for a reproducible release. Use the package root when the Agent needs discovery and cross-family APIs; use `/standard`, `/project`, `/diagram`, or `/board` when the chart family is already known and the host wants a smaller entry.
+Pin `@taylorwong/ichartjs@2.0.28` for a reproducible release. Use the package root when the Agent needs discovery and cross-family APIs; use `/standard`, `/project`, `/diagram`, or `/board` when the chart family is already known and the host wants a smaller entry.
 
 Profile entries are independent public entry points and do not require importing the root entry first. The root entry is the complete cross-family runtime; it is not a prerequisite or a plugin registry for the focused entries. Run `node examples/consumer-quickstart.mjs` to verify the root, all Profiles, SVG output, and Board output from one consumer fixture.
 
@@ -92,6 +92,12 @@ Call `inspectData(rows)` and review:
 - warnings that must remain visible to the user.
 
 Inferred roles and units are suggestions. Do not convert them into business facts without user-provided semantics.
+
+Field `type` describes value representation; `role` describes the inferred use. Identifier fields are excluded from automatic measure and temporal-dimension candidates even when their values are numeric or date-like. Normalization preserves values in `id`, `key`, `uuid` and separated/camel-case variants such as `user_id` and `userId`, including leading zeros and large string IDs. Unique values alone do not imply identity; ambiguous `no`/`code` names are not treated as identifiers. Inspect the suggestions and explicitly select encodings when business semantics differ. A table containing only IDs and measures still needs a business dimension for comparison charts.
+
+For record identity and lineage, provide canonical `id` (or `key` if there is no `id` column). Duplicate-record diagnostics use this identity, not foreign identifiers such as `userId`, which may repeat across records. Supply large IDs as strings; precision already lost in JavaScript numbers cannot be recovered.
+
+Annual fields named `year` or ending in a separated/camel-case `year` token, such as `fiscalYear`, are suggested as dimensions only when all non-missing values are integer years from 1000 to 9999. Their `type` remains quantitative; no dates are fabricated. Ordinary numeric strings in amounts/counts still become measures. These are bounded naming hints, not business truth; explicit `encoding.x: { field: 'year', type: 'category' }` can express the intended axis even when automatic planning is unsuitable.
 
 ### 3. Plan
 

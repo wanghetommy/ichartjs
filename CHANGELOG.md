@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 2.0.28 - 2026-10-09
+
+- Hardened array Patch insertion, append, removal and replacement, rejecting invalid paths/indices/JSON values atomically and preserving state on failure; empty batches are no-ops.
+- Added bounded annual-dimension role hints for year/fiscalYear-style fields without turning ordinary numeric strings into categories or fabricating dates.
+- Excluded identifier roles from automatic measure/time candidates and preserved numeric-string IDs, including leading zeros and values beyond JavaScript's safe integer range; limited duplicate-record checks to canonical id/key rather than foreign identifiers.
+- Aligned Chart edit validation with its preview context and layout checks without issuing previews; added actionable host-owned structural-permission diagnostics.
+- Clarified instance versus standalone editing signatures and Board command fields; added executable bilingual incremental construction examples and regression coverage.
+- Synchronized runtime/Playground version displays, release-pinned installation and Skill links, capability manifests and measured footprint reports.
+
 ## 2.0.27 - 2026-10-08
 
 - Completed Diagram editing usability closure: reject invalid manual routes atomically, preserve dragged channels through endpoint changes, align connected ports, keep unrelated routes stable, and support routing recovery, Spec reload and clean SVG delivery.

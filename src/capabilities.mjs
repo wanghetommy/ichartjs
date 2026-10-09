@@ -139,7 +139,7 @@ export function planChart(input, options = {}) {
   const intentSuggestions = intentKnown ? [] : suggestIntents(requestedIntent);
   let primary = intentMap[requestedIntent];
   if (!primary) {
-    primary = report.fields.some(field => field.type === 'temporal') ? 'line' : report.measures.length >= 2 && report.dimensions.length === 0 ? 'scatter' : 'bar';
+    primary = report.temporalFields.length ? 'line' : report.measures.length >= 2 && report.dimensions.length === 0 ? 'scatter' : 'bar';
     warnings.push(warning('UNKNOWN_INTENT', 'intent', `Intent ${requestedIntent} is not registered.`, intentSuggestions.length ? `Use one of: ${intentSuggestions.join(', ')}.` : 'Use an intent returned by getCapabilities().intents.'));
   }
   const profile = chartProfiles[primary];
@@ -187,7 +187,7 @@ export function planChart(input, options = {}) {
     reasons: [`${primary} supports the ${requestedIntent} intent.`, `Detected ${report.dimensions.length} dimensions and ${report.measures.length} measures across ${report.rows} rows.`],
     requiredFields,
     suggestedEncodings: { dimension: report.dimensions[0] || null, measure: report.measures[0] || null, secondaryMeasure: report.measures[1] || null },
-    assumptions: ['Field roles are inferred from provided values; business meaning and units are not inferred.'],
+    assumptions: ['Field roles and units are hints inferred from names and values; confirm business semantics before rendering.'],
     warnings,
     unsupportedRequests,
     nextActions,

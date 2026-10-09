@@ -102,6 +102,10 @@ iChart.js 导出采用**双底层单源架构**，所有产物共享 `buildScene
 
 所有状态变更都经过同一校验边界。成功的 `update()` 和 `setData()` 返回当前 Chart；无效输入抛出 `ChartValidationError`，包含稳定的 `code`、`details`、`path`、`expected`、`received` 和 `suggestion`。拒绝变更后，原 Spec、Scene、选择状态、revision 和历史记录保持不变。`applyPatch()` 是高级 JSON Pointer 接口，也会在提交前校验。
 
+`chart.applyPatch(patches)` 只支持 `add`、`replace`、`remove`，不是完整 JSON Patch 引擎。路径父项必须是已有自有属性；`~1`、`~0` 分别转义 `/`、`~`。值须为有限、无环的 JSON，add/replace 必须提供 `value`。对象 add 设置属性，replace/remove 要求目标已存在。数组 add 在 0 至 length 的索引处插入，`-` 仅用于追加；replace/remove 必须命中已有索引，删除后后续项前移。非法索引、转义、继承/不安全路径或不存在的目标会明确拒绝，不静默忽略。每步读取前一步的候选结果，最终统一校验 Spec，整批提交或回滚。空批次不改变状态。
+
+Patch 与 `update()` 一样是可信宿主变更，成功后清空编辑历史并使待提交预览失效，不提供 Agent 授权或 Undo 事务。Agent 增量构建优先使用稳定 ID 的 `previewEdit()` / `applyEdit()`；不要通过 Patch 或直接写入 `chart.spec` 绕过权限与确认。
+
 公共 API：`inspectData`、`normalizeData`、`planChart`、`recommend`、`validateSpec`、`createChart`、`getCapabilities`、`getChartCapability`、`getPreferenceCapabilities`、`validatePreferences`、`chart.describe`、`chart.explain`、`chart.getState`、`chart.getState().health`、`chart.explain().health`、`chart.getPreferences`、`chart.setPreferences`、`chart.resetPreferences`、`chart.selectEdges`、`chart.getSelectedEdgeIds`、`chart.deleteSelectedEdges`、`chart.export`、`chart.exportAsync`、`chart.toDataURL`、`chart.toBlob`、`chart.download`、`chart.downloadPNG`、`chart.downloadSVG`、`chart.downloadJSON`。
 
 实现位置：`src/index.mjs`、`src/spec.mjs`、`src/scene.mjs`、`src/renderer.mjs`、`src/plugin.mjs`、`src/scale.mjs`、`src/charts.mjs`、`src/capabilities.mjs`。

@@ -27,11 +27,21 @@ Core APIs:
 
 - `getBusinessSchema(name)`
 - `inspectDataSchema(schema)`
-- `validateEdit(command)`
-- `previewEdit(command)`
-- `applyEdit(command, options)`
-- `getChangeSet()`
-- `undo()` / `redo()`
+- `chart.validateEdit(command)`
+- `chart.previewEdit(command)`
+- `chart.applyEdit(command, options)`
+- `chart.getChangeSet()`
+- `chart.undo()` / `chart.redo()`
+
+### Instance APIs versus standalone validators
+
+Prefer the Chart instance workflow for Agent edits: it supplies the current diagram, schemas, host permissions and layout context. `chart.validateEdit(command)` checks the same context as preview without issuing a committable preview or mutating state/history. Commit still needs an instance-issued preview and host confirmation.
+
+The exported `validateEdit(command, options)` and `previewEdit(command, options)` are lower-level helpers; their second argument is an explicit editing context, **not a ChartSpec**. Diagram contexts supply `type`, `nodes`, `edges`, relevant schemas/lanes/groups, and host-controlled `allowStructuralChanges`. They do not read `options.editing.allowStructuralChanges`. Standalone `commitPreview(preview, options)` consumes a helper preview; it does not commit to a Chart or manage its revision/history. Do not substitute these helpers for the instance transaction boundary.
+
+For Board commands, use `validateBoardCommand(command)` with one argument, then `board.previewEdit(command)` / `board.applyEdit(command, options)`. Operations use `op`, not `type`; `boardCapabilities` is an object, not a function. See the executable [Flow example](diagram-scenario.md#incremental-flow-building) and [Board example](canvas-scenario.md#incremental-agent-construction).
+
+Structural permission belongs to the host: explicitly set `editing.enabled` and `editing.allowStructuralChanges` in the instance Spec, re-preview and confirm. Never place authorization flags in generated commands or automatically enable permissions in response to a diagnostic.
 
 ## Command Rules
 

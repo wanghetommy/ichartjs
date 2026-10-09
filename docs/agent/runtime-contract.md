@@ -110,6 +110,10 @@ All export/download methods return a stable `{ valid:false, code, message?, sugg
 
 State-changing calls use one validation boundary. `update()` and `setData()` return the chart when committed; invalid input throws `ChartValidationError` with stable `code`, `details`, `path`, `expected`, `received`, and `suggestion` fields. The previous Spec, Scene, selection, revision, and history remain unchanged after a rejected mutation. `applyPatch()` is an advanced JSON-pointer API and is validated before commit.
 
+`chart.applyPatch(patches)` supports only `add`, `replace` and `remove`, not a complete JSON Patch engine. Paths address existing own-property parents; `~1` and `~0` escape `/` and `~`. Values must be finite, acyclic JSON; add/replace require `value`. Object add sets a property; replace/remove require an existing property. For arrays, add inserts at an index from 0 through length, or appends with `-`; replace/remove require an existing index. Removal shifts subsequent entries. Non-canonical indices, invalid escapes, inherited/unsafe paths and missing targets are rejected, never silently ignored. Each operation sees the preceding operation's candidate result; the final Spec is validated once and the entire batch commits or rolls back. Empty batches are no-ops.
+
+Like `update()`, Patch is a trusted-host mutation and successful changes invalidate edit history/pending previews; it does not provide Agent authorization or an Undo transaction. Prefer stable-ID `previewEdit()` / `applyEdit()` for Agent incremental construction. Do not use Patch or direct `chart.spec` writes to bypass edit permissions or confirmation.
+
 ```text
 inspectData(data)
 normalizeData(data)

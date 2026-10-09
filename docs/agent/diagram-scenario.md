@@ -142,7 +142,16 @@ Import this editing workflow from the complete `@taylorwong/ichartjs` root entry
 
 Set `diagram: { layout: 'layered', routing: 'auto' }` and omit positions for automatic building. Each transaction deterministically recomputes the graph; loop back-edges do not increase forward ranks. Sizes determine spacing; explicit positions and saved manual waypoints are not erased. `FLOW_NODE_OVERLAP` / `FLOW_LAYOUT_OVERFLOW` expose space limits instead of shrinking nodes or changing zoom/pan. Larger graphs may need a larger container or explicit positions. This is not an animated or minimum-displacement layout engine.
 
+<!-- docs-check: incremental-flow -->
 ```js
+import { createChart } from '@taylorwong/ichartjs';
+
+const chart = createChart({
+  type: 'flow', renderer: 'svg',
+  nodes: [{ id: 'start', kind: 'start', label: 'Start' }], edges: [],
+  diagram: { layout: 'layered', routing: 'auto' },
+  editing: { enabled: true, allowStructuralChanges: true }
+});
 const command = {
   type: 'layout-edit',
   reason: 'Add a review step after Start',
@@ -151,6 +160,8 @@ const command = {
     { op: 'addEdge', id: 'start-review', from: 'start', to: 'review' }
   ]
 };
+const validation = chart.validateEdit(command);
+if (!validation.valid) throw new Error(JSON.stringify(validation.errors));
 const preview = chart.previewEdit(command);
 if (!preview.valid) throw new Error(JSON.stringify(preview.errors));
 console.log(preview.layout, preview.warnings);
@@ -160,7 +171,7 @@ if (approvedByHost) {
 }
 ```
 
-`approvedByHost` is a host decision, not an Agent-created flag. `preview.layout` and `getState().layout.diagram` expose diagram-space node boxes, effective edge routes, and layout warnings. Mount `preview.after` as a separate non-editable chart for visual review; re-preview after a revision or container-size change. Each turn occupies one Undo/Redo entry. Save `getSpec()` for continuation; reload recomputes positions but does not restore history. Avoid `update({ nodes, edges })` for each turn because replacement clears history.
+The host supplies `approvedByHost` after reviewing the preview; it is not an Agent-created flag. Mount `chart` once to show commits in a live UI, or use this example headlessly to inspect/export each turn. `chart.validateEdit(command)` uses the instance context; standalone `validateEdit(command, options)` requires an explicit editing context, not a Spec. Permission flags belong in the host's Spec, never the command. `preview.layout` and `getState().layout.diagram` expose diagram-space node boxes, effective edge routes, and layout warnings. Mount `preview.after` as a separate non-editable chart for visual review; re-preview after a revision or container-size change. Each turn occupies one Undo/Redo entry. Save `getSpec()` for continuation; reload recomputes positions but does not restore history. Avoid `update({ nodes, edges })` for each turn because replacement clears history.
 
 The [incremental recipe](../../agent-recipes/diagrams/incremental-flow.json) is a starting Spec and ordered command templates, not a task executor. It covers processing, decisions, branches, a connector loop, rename, and cascade removal. Intermediate `FLOW_MISSING_END` / `FLOW_DECISION_BRANCHES` warnings are expected while building; report them and resolve them when the intended graph is completed. Do not hide layout or routing warnings.
 

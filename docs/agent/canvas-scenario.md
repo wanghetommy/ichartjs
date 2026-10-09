@@ -29,8 +29,9 @@ console.log(board.explain(), board.getState());
 
 This is the Board specialization of [Agent-driven Incremental Construction](conversational-workflow.md#agent-driven-incremental-construction). Read that guide for host prerequisites, complete semantic turns, confirmation UI and final task acceptance.
 
-Reuse the same Board instance for visible, complete construction turns. Natural language belongs to the host Agent; the runtime accepts structured commands, not prompts. Discover `boardCapabilities.incrementalBuilding` (also `getCapabilities().canvasComposition.incrementalBuilding`). Both the root and standalone `/board` entry support this workflow; `/board` embeds standard-family charts, while the root supports all chart families.
+Reuse the same Board instance for visible, complete construction turns. Natural language belongs to the host Agent; the runtime accepts structured commands, not prompts. Discover `boardCapabilities.incrementalBuilding` (also `getCapabilities().canvasComposition.incrementalBuilding`). `boardCapabilities` is an object, not a function. Both the root and standalone `/board` entry support this workflow; `/board` embeds standard-family charts, while the root supports all chart families.
 
+<!-- docs-check: incremental-board -->
 ```js
 import { createBoard, validateBoardCommand } from '@taylorwong/ichartjs/board';
 
@@ -64,7 +65,7 @@ unsubscribe();
 
 The `confirmed: true` example assumes the host has inspected `preview.spec/layout/warnings`, presented a non-editable preview and obtained approval. Do not automatically confirm untrusted Agent turns.
 
-- `validateBoardCommand()` checks command syntax, while `previewEdit()` checks permissions, references, locked items, the final BoardSpec and renderability. This is separate from chart `validateCommand()`.
+- `validateBoardCommand(command)` takes only the command, not `(boardSpec, command)`. It checks syntax; `board.previewEdit(command)` checks permissions, references, locked items, the final BoardSpec and renderability. Operation discriminators are `op`, not `type`. This is separate from chart `validateCommand()`.
 - Commands must have `type: 'board-edit'` and 1–200 operations. Changes are shallow field replacements, not recursive patches. IDs, item kinds, asset types and locks cannot be changed through update commands; trusted hosts manage locks.
 - Discover allowed changes in `incrementalBuilding.editableFields.common/itemTypes/asset`. Type-inapplicable fields are rejected, not ignored. Connector positions/sizes come from endpoints; update `from`/`to` or move the referenced items instead.
 - Agent edits require `editing.enabled`; add/remove operations additionally require `allowStructuralChanges`. Every commit requires a current preview issued by this Board and explicit host confirmation. Changed commands, cross-instance previews and intervening changes are rejected without partial state.

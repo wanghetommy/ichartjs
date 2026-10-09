@@ -998,6 +998,29 @@ test('mounts and exports the installed browser consumer through SVG and Canvas',
   });
 });
 
+test('renders annual dimensions and atomic array patches in mounted SVG and Canvas charts', async () => {
+  await page.goto('http://127.0.0.1:3000/playground/index.html');
+  const result = await page.evaluate(async () => {
+    const { createChart, inspectData, planChart } = await import('/src/index.mjs');
+    document.body.innerHTML = '<div id="patch-chart"></div>';
+    const results = [];
+    for (const renderer of ['svg', 'canvas']) {
+      const rows = [{ id: '2016', year: '2016', value: 12 }, { id: '2018', year: '2018', value: 24 }];
+      const plan = planChart(rows, { intent: 'trend' });
+      const chart = createChart({ type: plan.primary, renderer, container: '#patch-chart', width: 800, height: 480, data: { values: rows }, encoding: { x: { field: plan.suggestedEncodings.dimension }, y: { field: plan.suggestedEncodings.measure } } });
+      try {
+        chart.applyPatch([{ op: 'add', path: '/data/values/1', value: { id: '2017', year: '2017', value: 18 } }, { op: 'remove', path: '/data/values/0' }, { op: 'add', path: '/data/values/-', value: { id: '2019', year: '2019', value: 30 } }]);
+        const before = JSON.stringify(chart.getSpec()), revision = chart.getState().revision;
+        let rejected = false;
+        try { chart.applyPatch([{ op: 'add', path: '/data/values/hello', value: {} }]); } catch (error) { rejected = error.name === 'ChartValidationError'; }
+        results.push({ renderer, dimension: plan.suggestedEncodings.dimension, measure: plan.suggestedEncodings.measure, requiredFields: plan.requiredFields, roles: inspectData(rows).fields.map(field => field.role), ids: chart.explain().lineage.recordIds, renderable: chart.getState().health.renderable, mounted: Boolean(document.querySelector(`#patch-chart ${renderer === 'svg' ? 'svg' : 'canvas'}`)), svg: chart.export({ type: 'svg' }).includes('2017'), rejected, unchanged: before === JSON.stringify(chart.getSpec()), revisionUnchanged: revision === chart.getState().revision });
+      } finally { chart.destroy(); }
+    }
+    return results;
+  });
+  for (const renderer of ['svg', 'canvas']) assert.deepEqual(result.find(item => item.renderer === renderer), { renderer, dimension: 'year', measure: 'value', requiredFields: [], roles: ['identifier', 'dimension', 'measure'], ids: ['2017', '2018', '2019'], renderable: true, mounted: true, svg: true, rejected: true, unchanged: true, revisionUnchanged: true });
+});
+
 test('loads each public capability profile in the Profile Loading Playground', async () => {
   await page.goto('http://127.0.0.1:3000/playground/profile-loading.html');
   await page.locator('#chart-board svg').waitFor({ state: 'visible', timeoutMs: 5000 });

@@ -39,7 +39,7 @@ Recipe 是声明式的起始模板，不是可直接执行的任务。Agent 应�
 ```
 
 1. 调用 `getCapabilities()`，不要自行创造图表类型或配置项。
-2. 调用 `inspectData()`，检查字段角色、标识符、维度、度量、时间范围、缺失值和警告；同时读取 `inspection.quality` 中的重复 ID、混合单位和缺失值摘要。
+2. 调用 `inspectData()`，检查字段角色、标识符、维度、度量、时间范围、缺失值和警告；同时读取 `inspection.quality` 中的重复 ID、混合单位和缺失值摘要。`type` 描述值的表示，`role` 描述推断用途；数字或日期形式的标识字段也不会进入自动度量/时间维度候选。归一化保留 `id`、`key`、`uuid` 及 `user_id`、`userId` 等分隔/驼峰命名的原值，包括前导零和超大字符串 ID。唯一值不等于主键，含义不明确的 `no`/`code` 不自动判为标识；业务语义不同时显式选择 encoding。只有 ID 和度量的表仍需要业务维度才能规划比较图。
 3. 调用 `planChart()`，同时读取主推荐、备选方案、置信度、缺失字段、假设、警告、不支持请求和 `styleRecommendation`；对主推荐调用 `getChartContract(plan.primary)`，获取该图表的通道、限制、渲染器、导出和默认行为。
 4. 当 `requiredFields` 非空时停止渲染，向用户请求数据或选择有依据的备选方案。
 5. 构建 JSON 可序列化的 Spec，并调用 `validateSpec()`。Spec 可通过 `branding: false` 显式关闭品牌署名；默认保留署名以提升项目可见性。
@@ -121,7 +121,11 @@ const headlessPng = await chart.exportAsync({ type: 'png' });
 
 不要虚构字段、单位、日期、依赖关系、日历规则或预测置信度。Radar 使用混合单位时必须提供显式 domain；Heatmap 必须区分缺失值和零；高基数占比数据优先使用 Bar 而不是 Pie。
 
-为了让 lineage 自检和联动更新稳定，建议每条输入记录提供稳定字符串 `id`。没有 `id` 时 Runtime 会使用 `record-0` 这类位置后备值，只适合本地展示，不应当视为持久业务身份。
+为了让 lineage 自检和联动更新稳定，建议每条输入记录提供稳定字符串 `id`。没有 `id` 或 `key` 时 Runtime 会使用 `record-0` 这类位置后备值，只适合本地展示，不应当视为持久业务身份。
+
+记录身份和 lineage 使用标准 `id`，没有 `id` 列时可用 `key`。重复记录诊断也检查这一身份，不要求 `userId` 等关联标识在不同记录中唯一。超大 ID 请传字符串，已经作为 JavaScript 数字丢失的精度无法恢复。
+
+`year` 或以分隔/驼峰 `year` 词段结尾的字段（如 `fiscalYear`），仅在全部非缺失值均为 1000–9999 的整数年份时建议为维度；`type` 仍为数值，不伪造日期。金额、数量等普通数字字符串仍作为度量。这是有边界的命名提示，不是业务事实；自动规划不适合时可显式声明 `encoding.x: { field: 'year', type: 'category' }`。
 
 ## 完整示例
 

@@ -220,7 +220,7 @@ export interface Chart {
   highlight(target: DiagramElement): this;
   use(plugin: ChartPlugin): this;
   /** Advanced JSON-pointer mutation. Prefer update() so the full public contract is explicit. */
-  applyPatch(patches: Array<{ op: 'add' | 'replace' | 'remove'; path: string; value?: unknown }>): this;
+  applyPatch(patches: Array<{ op: 'add' | 'replace'; path: string; value: unknown } | { op: 'remove'; path: string }>): this;
   getProjectAnalytics(): ProjectAnalyticsState | null;
   getLinkedState(): LinkedState | null;
   setLinkedFilters(filters: LinkedFilters): this;

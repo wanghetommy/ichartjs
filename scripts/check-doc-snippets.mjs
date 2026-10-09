@@ -9,17 +9,24 @@ const documents = {
   'docs/agent/quickstart.md': ['imports', 'recipe-line', 'build', 'recipe-radar', 'validate', 'render-browser', 'render-headless', 'export'],
   'docs/agent/text-annotations.md': ['annotations']
 };
+const constructionDocuments = {
+  'docs/agent/diagram-scenario.md': ['incremental-flow'],
+  'docs/agent/zh-CN/diagram-scenario.md': ['incremental-flow'],
+  'docs/agent/canvas-scenario.md': ['incremental-board'],
+  'docs/agent/zh-CN/canvas-scenario.md': ['incremental-board']
+};
 const root = new URL('../', import.meta.url);
 
 export function readDocumentSnippets() {
   const snippets = {};
-  for (const [file, expected] of Object.entries(documents)) {
+  for (const [file, expected] of Object.entries({ ...documents, ...constructionDocuments })) {
     const markdown = readFileSync(new URL(file, root), 'utf8');
     const blocks = [...markdown.matchAll(/^```(?:js|javascript)\s*\r?\n([\s\S]*?)^```\s*$/gm)];
     const ids = [];
     for (const block of blocks) {
       const line = markdown.slice(0, block.index).split('\n').length;
       const marker = markdown.slice(0, block.index).match(/<!-- docs-check: ([\w-]+) -->\s*$/);
+      if (!marker && Object.hasOwn(constructionDocuments, file)) continue;
       assert.ok(marker, `${file}:${line}: JavaScript snippet needs a docs-check marker and an execution scenario.`);
       const id = marker[1];
       ids.push(id);
@@ -100,6 +107,26 @@ if (typeof outcome.headlessPng === 'string') assert.ok(outcome.headlessPng.start
 else assert.equal(outcome.headlessPng.code, 'HEADLESS_EXPORT_UNSUPPORTED');`
     }
   ];
+  for (const [file, [id]] of Object.entries(constructionDocuments)) {
+    const flow = id === 'incremental-flow';
+    scenarios.push({
+      name: `${file.includes('zh-CN') ? 'chinese' : 'english'}-${id}`,
+      code: (flow ? 'const approvedByHost = true;\n' : '') + get(file, id) + (flow ? `
+assert.equal(validation.valid, true);
+assert.equal(chart.getSpec().nodes.length, 2);
+assert.equal(chart.getSpec().edges.length, 1);
+assert.equal(chart.getState().history.undo, 1);
+chart.undo();
+assert.equal(chart.getSpec().nodes.length, 1);
+chart.destroy();` : `
+assert.equal(result.valid, true);
+assert.equal(board.getSpec().items[0].id, 'note');
+assert.equal(board.getState().history.undo, 1);
+board.undo();
+assert.equal(board.getSpec().items.length, 0);
+board.destroy();`)
+    });
+  }
   const directory = mkdtempSync(new URL('.doc-snippets-', import.meta.url));
   try {
     for (const scenario of scenarios) {
