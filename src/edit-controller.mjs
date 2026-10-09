@@ -4,7 +4,7 @@
  */
 import { copyJSON, issue } from './schema.mjs';
 import { normalizeCommand } from './command.mjs';
-import { previewEdit, commitPreview } from './edit.mjs';
+import { validateEdit, previewEdit, commitPreview } from './edit.mjs';
 import { validateSpec } from './spec.mjs';
 import { buildScene } from './charts.mjs';
 import { diagramConnectionPoints, reconnectOrthogonalWaypoints } from './diagram.mjs';
@@ -75,6 +75,13 @@ export class EditController {
     return { options, entries, signature: JSON.stringify([options, spec.editing, spec.type]) };
   }
 
+  validate(input) {
+    let command;
+    try { command = normalizeCommand(input); } catch { return validateEdit(input); }
+    const { preview } = this.prepare(command);
+    return { valid: preview.valid, errors: preview.errors, warnings: preview.warnings, affectedRecords: preview.affectedRecords, requiresConfirmation: preview.requiresConfirmation };
+  }
+
   preview(input) {
     let command;
     try { command = normalizeCommand(input); } catch { return previewEdit(input); }
@@ -140,6 +147,7 @@ export class EditController {
       preview.layout = copyJSON(model.state.diagramLayout);
       preview.warnings.push(...model.data.warnings.filter(warning => !preview.warnings.some(existing => JSON.stringify(existing) === JSON.stringify(warning))));
     }
+    preview.errors = preview.errors.map(error => error.code === 'STRUCTURAL_EDIT_DISABLED' ? { ...error, suggestion: 'The host must explicitly enable editing.enabled and editing.allowStructuralChanges in the ChartSpec, then request a fresh preview and confirm before committing. Generated commands cannot grant permission.' } : error);
     return { command, context, preview: this.validateRoutes(preview, model) };
   }
 

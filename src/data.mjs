@@ -4,6 +4,14 @@
  */
 import { binData } from './transforms.mjs';
 export { binData, applyTransforms } from './transforms.mjs';
+function isIdentifierField(name) {
+  return /(^|[_-])(id|key|uuid)$/i.test(name.replace(/([a-z0-9])([A-Z])/g, '$1_$2'));
+}
+
+function isYearDimension(name, values) {
+  return /(^|[_-])year$/i.test(name.replace(/([a-z0-9])([A-Z])/g, '$1_$2')) && values.length > 0 && values.every(value => Number.isInteger(value) && value >= 1000 && value <= 9999);
+}
+
 function typeOf(values) {
   const usable = values.filter(value => value !== null && value !== undefined && value !== '');
   if (!usable.length) return 'unknown';
@@ -33,11 +41,12 @@ export function normalizeData(input) {
   }
   const fields = [];
   values.forEach(row => Object.keys(row).forEach(field => { if (!fields.includes(field)) fields.push(field); }));
+  const identifiers = new Set(fields.filter(isIdentifierField));
   const warnings = [];
   const normalized = values.map((row, rowIndex) => {
     const copy = { ...row };
     fields.forEach(field => {
-      if (copy[field] !== null && copy[field] !== undefined && copy[field] !== '' && typeof copy[field] === 'string' && Number.isFinite(Number(copy[field]))) copy[field] = Number(copy[field]);
+      if (!identifiers.has(field) && copy[field] !== null && copy[field] !== undefined && copy[field] !== '' && typeof copy[field] === 'string' && Number.isFinite(Number(copy[field]))) copy[field] = Number(copy[field]);
     });
     if (Object.values(copy).some(value => value === null || value === undefined || value === '')) warnings.push({ code: 'MISSING_VALUE', row: rowIndex, message: 'Row contains a missing value.' });
     return copy;
@@ -46,8 +55,8 @@ export function normalizeData(input) {
     const valuesForField = normalized.map(row => row[name]);
     const numbers = valuesForField.filter(value => typeof value === 'number' && Number.isFinite(value));
     const usable = valuesForField.filter(value => value !== null && value !== undefined && value !== '');
-    const type = typeOf(valuesForField), dates = type === 'temporal' ? usable.map(value => Date.parse(value)).filter(Number.isFinite) : [], cardinality = new Set(usable.map(value => String(value))).size, identifier = /(^id$|[_-]id$|^key$|[_-]key$)/i.test(name);
-    return { name, type, role: identifier ? 'identifier' : type === 'quantitative' ? 'measure' : type === 'temporal' ? 'temporal-dimension' : 'dimension', unit: inferUnit(name, usable), cardinality, validCount: usable.length, nullCount: valuesForField.length - usable.length, min: numbers.length ? Math.min(...numbers) : undefined, max: numbers.length ? Math.max(...numbers) : undefined, temporalMin: dates.length ? new Date(Math.min(...dates)).toISOString() : undefined, temporalMax: dates.length ? new Date(Math.max(...dates)).toISOString() : undefined };
+    const type = typeOf(valuesForField), dates = type === 'temporal' ? usable.map(value => Date.parse(value)).filter(Number.isFinite) : [], cardinality = new Set(usable.map(value => String(value))).size, identifier = identifiers.has(name);
+    return { name, type, role: identifier ? 'identifier' : isYearDimension(name, usable) ? 'dimension' : type === 'quantitative' ? 'measure' : type === 'temporal' ? 'temporal-dimension' : 'dimension', unit: inferUnit(name, usable), cardinality, validCount: usable.length, nullCount: valuesForField.length - usable.length, min: numbers.length ? Math.min(...numbers) : undefined, max: numbers.length ? Math.max(...numbers) : undefined, temporalMin: dates.length ? new Date(Math.min(...dates)).toISOString() : undefined, temporalMax: dates.length ? new Date(Math.max(...dates)).toISOString() : undefined };
   });
   return { rows: normalized, fields: fieldInfo, warnings };
 }
@@ -55,9 +64,9 @@ export function normalizeData(input) {
 export function inspectData(input) {
   const data = normalizeData(input);
   const dimensions = data.fields.filter(field => field.role === 'dimension' || field.role === 'temporal-dimension').map(field => field.name);
-  const measures = data.fields.filter(field => field.type === 'quantitative').map(field => field.name);
+  const measures = data.fields.filter(field => field.role === 'measure').map(field => field.name);
   const qualityWarnings = [...data.warnings];
-  const identifier = data.fields.find(field => field.role === 'identifier');
+  const identifier = data.fields.find(field => field.name === 'id') || data.fields.find(field => field.name === 'key');
   if (identifier) {
     const seen = new Map();
     data.rows.forEach((row, index) => {
@@ -71,7 +80,7 @@ export function inspectData(input) {
   const units = [...new Set(data.fields.filter(field => field.role === 'measure' && field.unit).map(field => field.unit))];
   if (units.length > 1) qualityWarnings.push({ code: 'MIXED_MEASURE_UNITS', path: 'data.values', units, message: `Measures use multiple inferred units: ${units.join(', ')}.`, suggestion: 'Confirm units before combining measures or use separate axes.', severity: 'warning' });
   const missingValueCount = data.fields.reduce((sum, field) => sum + field.nullCount, 0);
-  return { version: '1.0', rows: data.rows.length, fields: data.fields, dimensions, measures, temporalFields: data.fields.filter(field => field.type === 'temporal').map(field => field.name), missingValueCount, warnings: qualityWarnings, quality: { version: '1.0', status: qualityWarnings.length ? 'degraded' : 'ready', issues: [...new Set(qualityWarnings.map(item => item.code))], metrics: { rows: data.rows.length, fields: data.fields.length, missingValues: missingValueCount, warnings: qualityWarnings.length } } };
+  return { version: '1.0', rows: data.rows.length, fields: data.fields, dimensions, measures, temporalFields: data.fields.filter(field => field.role === 'temporal-dimension').map(field => field.name), missingValueCount, warnings: qualityWarnings, quality: { version: '1.0', status: qualityWarnings.length ? 'degraded' : 'ready', issues: [...new Set(qualityWarnings.map(item => item.code))], metrics: { rows: data.rows.length, fields: data.fields.length, missingValues: missingValueCount, warnings: qualityWarnings.length } } };
 }
 
 export class DataPipeline {

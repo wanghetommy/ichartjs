@@ -65,7 +65,7 @@ Install the runtime in the host application:
 npm install @taylorwong/ichartjs@^2
 ```
 
-For reproducible builds, pin the installed release instead: `npm install @taylorwong/ichartjs@2.0.27`.
+For reproducible builds, pin the installed release instead: `npm install @taylorwong/ichartjs@2.0.28`.
 
 Use the normal component lifecycle:
 
@@ -131,7 +131,7 @@ npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --ye
 For reproducible installation, pin the released Skill directory:
 
 ```bash
-npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.27/skills/ichartjs \
+npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.28/skills/ichartjs \
   --agent codex --global --yes
 ```
 

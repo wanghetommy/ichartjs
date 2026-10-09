@@ -49,7 +49,7 @@ function previewDiagramEdit(command, options = {}) {
   const ensureStructureAllowed = (operation, opIndex) => {
     if (!structureOperationTypes.has(operation.op)) return true;
     if (options.allowStructuralChanges === true) return true;
-    errors.push(issue('STRUCTURAL_EDIT_DISABLED', `command.operations.${opIndex}`, 'Structural diagram edits require editing.allowStructuralChanges.'));
+    errors.push(issue('STRUCTURAL_EDIT_DISABLED', `command.operations.${opIndex}`, 'Structural diagram edits require host permission.', 'The host must supply options.allowStructuralChanges: true in the standalone editing context. For a Chart instance, enable editing.enabled and editing.allowStructuralChanges in the ChartSpec, then preview and confirm. Generated commands cannot grant permission.'));
     return false;
   };
 

@@ -29,8 +29,9 @@ console.log(board.explain(), board.getState());
 
 这是 [Agent-driven Incremental Construction](conversational-workflow.md#agent-driven-incremental-construction) 的 Board 实现；宿主前提、完整语义步骤、确认界面和最终任务验收见统一指南。
 
-在同一个 Board 实例上提交完整的语义步骤，用户即可看到逐步构建过程。自然语言由宿主 Agent 理解，iChart.js 只接收结构化命令。通过 `boardCapabilities.incrementalBuilding` 或 `getCapabilities().canvasComposition.incrementalBuilding` 发现能力；根入口与 `/board` 都支持，后者仅嵌入基础分析类图表，根入口支持全部图表族。
+在同一个 Board 实例上提交完整的语义步骤，用户即可看到逐步构建过程。自然语言由宿主 Agent 理解，iChart.js 只接收结构化命令。通过 `boardCapabilities.incrementalBuilding` 或 `getCapabilities().canvasComposition.incrementalBuilding` 发现能力；`boardCapabilities` 是对象，不是函数。根入口与 `/board` 都支持，后者仅嵌入基础分析类图表，根入口支持全部图表族。
 
+<!-- docs-check: incremental-board -->
 ```js
 import { createBoard, validateBoardCommand } from '@taylorwong/ichartjs/board';
 const board = createBoard({ width: 1280, height: 720,
@@ -47,6 +48,8 @@ if (!result.valid) throw new Error(JSON.stringify(result.errors));
 await board.ready();
 console.log(board.getState());
 ```
+
+`validateBoardCommand(command)` 只接收命令，不是 `(boardSpec, command)`；校验语法，实例 `board.previewEdit(command)` 再校验权限、引用、锁定项和最终布局。操作判别字段为 `op`，不是 `type`；不要混用 Chart 编辑函数。示例中的 `confirmed: true` 以宿主已检查预览并取得授权为前提，不可自动确认不可信 Agent 命令。
 
 | 操作 | 字段 | 含义 |
 | --- | --- | --- |

@@ -6,9 +6,9 @@ iChart.js 应作为普通 JavaScript UI 组件运行在浏览器应用中。数�
 npm install @taylorwong/ichartjs@^2
 ```
 
-需要可复现构建时，请显式固定版本：`npm install @taylorwong/ichartjs@2.0.27`。
+需要可复现构建时，请显式固定版本：`npm install @taylorwong/ichartjs@2.0.28`。
 
-无法访问 npm Registry 的环境请用 GitHub 源作为后备：`npm install github:wanghetommy/ichartjs#v2.0.27`。
+无法访问 npm Registry 的环境请用 GitHub 源作为后备：`npm install github:wanghetommy/ichartjs#v2.0.28`。
 
 ```js
 import { createChart } from '@taylorwong/ichartjs';
