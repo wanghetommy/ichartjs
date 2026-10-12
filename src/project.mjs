@@ -7,7 +7,8 @@ import { normalizeData } from './data.mjs';
 import { layoutArchitectureNodes, layoutDiagram, normalizeDiagramData, routeEdgePath } from './diagram.mjs';
 import { analyzeBurndownSeries, analyzeSchedule } from './project-analytics.mjs';
 import { createLinkedProjectState, filterProjectRows, linkedRecordId } from './project-linking.mjs';
-import { contrastRatio, resolveTheme } from './theme.mjs';
+import { contrastRatio } from './theme.mjs';
+import { prepareChartChrome, addBranding, addEmptyState, markRadius, markStyle, markWidth } from './chart-chrome.mjs';
 import { axisLabelLayout, boxesOverlap, estimateTextWidth, fitTextBlock, fontAtSize, fontSize, titleLayout, truncateText } from './layout.mjs';
 import { addTitleText } from './text-scene.mjs';
 
@@ -413,17 +414,18 @@ function burndownScene(scene, spec, rows, state) {
   const mapY = value => plot.y + plot.height - value / maxValue * plot.height;
   const selected = projectSelection(spec, state);
   const series = [['remaining', 'actual', spec.colors[0]], ['ideal', 'ideal', spec.theme.axis], ['scope', 'scope-total', spec.theme.status.warning]];
-  series.forEach(([field, id, color]) => scene.add({ id: `burndown-${id}`, type: 'path', geometry: { points: samples.map(sample => ({ x: map(sample.time), y: mapY(sample[field]) })) }, style: { fill: 'none', stroke: color, strokeWidth: 2 } }));
+  series.forEach(([field, id, color]) => scene.add({ id: `burndown-${id}`, type: 'path', geometry: { points: samples.map(sample => ({ x: map(sample.time), y: mapY(sample[field]) })) }, style: markStyle(spec, { fill: 'none', stroke: color, strokeWidth: markWidth(spec) }) }));
   for (let index = 0; index <= 2; index += 1) text(scene, `burndown-y-${index}`, Number((maxValue * index / 2).toFixed(1)), plot.x - 12, mapY(maxValue * index / 2) + 4, { textAnchor: 'end' });
   samples.forEach(sample => {
     const x = map(sample.time), y = mapY(sample.remaining), index = sample.dataIndex;
     const recordId = linkedRecordId(sample, index);
     if (sample.scopeChange) scene.add({ id: `burndown-scope-${index}`, type: 'line', geometry: { x1: x, y1: plot.y, x2: x, y2: plot.y + plot.height }, style: { stroke: spec.theme.status.warning } });
-    scene.add({ id: `burndown-item-${index}`, type: 'circle', geometry: { cx: x, cy: y, r: 5 }, bounds: { x: x - 8, y: y - 8, width: 16, height: 16 }, style: { fill: spec.colors[0], stroke: selected.has(recordId) ? spec.theme.selection : spec.theme.background, strokeWidth: selected.has(recordId) ? 2 : 1 }, dataRef: { dataIndex: index, recordId, datum: { ...sample, forecast: forecast.date, forecastReason: forecast.reason } }, interactive: true, zIndex: 2 });
+    const radius = markRadius(spec);
+    scene.add({ id: `burndown-item-${index}`, type: 'circle', geometry: { cx: x, cy: y, r: radius }, bounds: { x: x - radius - 3, y: y - radius - 3, width: radius * 2 + 6, height: radius * 2 + 6 }, style: markStyle(spec, { fill: spec.colors[0], stroke: selected.has(recordId) ? spec.theme.selection : spec.theme.background, strokeWidth: selected.has(recordId) ? spec.theme.marks.selectedLineWidth : 1 }), dataRef: { dataIndex: index, recordId, datum: { ...sample, forecast: forecast.date, forecastReason: forecast.reason } }, interactive: true, zIndex: 2 });
   });
   if (forecast.reason === 'estimated') {
     const last = samples.at(-1);
-    scene.add({ id: 'burndown-forecast', type: 'path', geometry: { points: [{ x: map(last.time), y: mapY(last.remaining) }, { x: map(forecast.time), y: mapY(0) }] }, style: { fill: 'none', stroke: spec.theme.status.danger, strokeWidth: 2 } });
+    scene.add({ id: 'burndown-forecast', type: 'path', geometry: { points: [{ x: map(last.time), y: mapY(last.remaining) }, { x: map(forecast.time), y: mapY(0) }] }, style: markStyle(spec, { fill: 'none', stroke: spec.theme.status.danger, strokeWidth: markWidth(spec) }) });
   }
   const messages = projectMessages(spec.locale);
   text(scene, 'burndown-projected', forecast.date ? `${messages.estimatedFinish}: ${forecast.date}` : `${messages.forecastUnavailable}: ${forecast.reason}`, plot.x, plot.y - 16, { font: spec.theme.typography.axis.font });
@@ -595,8 +597,7 @@ export function projectView(spec) {
 }
 
 export function buildProjectScene(spec) {
-  const theme = spec.theme && typeof spec.theme === 'object' && spec.theme.typography ? spec.theme : resolveTheme(spec.theme, spec);
-  spec = { ...spec, theme, colors: spec.colors || theme.colors, background: spec.background || theme.background, padding: spec.padding || theme.layout.padding };
+  spec = prepareChartChrome(spec).spec;
   const diagram = ['flow', 'swimlane', 'architecture', 'mindmap'].includes(spec.type);
   const rawRows = diagram ? spec.nodes ?? spec.data.nodes ?? [] : spec.data.values;
   const sourceRows = rawRows.map(row => ({ ...row }));
@@ -629,7 +630,7 @@ export function buildProjectScene(spec) {
   }
   if (!data.rows.length) {
     if (['flow', 'swimlane', 'architecture', 'mindmap'].includes(spec.type)) state.diagramLayout = { mode: normalizeDiagramData(spec).diagram.layout, coordinate: 'diagram', nodes: {}, edgeRoutes: [], warnings: [] };
-    text(scene, 'empty', sourceRows.length && linked.visibleCount === 0 ? 'No matching data' : spec.emptyText || 'No data', spec.width / 2, spec.height / 2, { textAnchor: 'middle' });
+    addEmptyState(scene, spec, state.plot, sourceRows.length && linked.visibleCount === 0 ? 'filtered' : 'empty');
   }
   else if (diagram) {
     diagramScene(scene, spec, data.rows, state);
@@ -656,6 +657,7 @@ export function buildProjectScene(spec) {
   });
   addTitleText(scene, spec, title, data.warnings);
   state.view = view;
+  addBranding(scene, spec);
   return { scene, data, state };
 }
 

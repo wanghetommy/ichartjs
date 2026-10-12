@@ -13,15 +13,15 @@ import { ChartValidationError } from './errors.mjs';
 
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
 
-function prepareSpec(input) {
+function prepareSpec(input, source = input) {
   const spec = normalizeSpec(input);
   const theme = resolveTheme(spec.theme, spec);
   return {
     ...spec,
     theme,
-    colors: spec.colors || [...theme.colors],
-    background: spec.background || theme.background,
-    padding: spec.padding || theme.layout.padding
+    colors: source.colors !== undefined ? spec.colors : [...theme.colors],
+    background: source.background !== undefined ? spec.background : theme.background,
+    padding: source.padding !== undefined ? spec.padding : theme.layout.padding
   };
 }
 
@@ -37,23 +37,27 @@ function lineageFor(model) {
   };
 }
 
+function assertProfileType(type, options, operation = 'create') {
+  if (options.types?.includes(type)) return;
+  throw new ChartValidationError(operation, [{
+    code: 'PROFILE_TYPE_UNSUPPORTED',
+    path: 'type',
+    message: `${type} is not included in the ${options.profile || 'selected'} profile.`,
+    suggestion: `Use one of ${options.types.join(', ')} or import the matching profile entry.`
+  }]);
+}
+
 export class ProfileChart {
   constructor(input, options = {}) {
     const result = validateSpec(input);
     if (!result.valid) throw new ChartValidationError('create', result.errors);
-    if (options.types && !options.types.includes(result.spec.type)) {
-      throw new ChartValidationError('create', [{
-        code: 'PROFILE_TYPE_UNSUPPORTED',
-        path: 'type',
-        message: `${result.spec.type} is not included in the ${options.profile || 'selected'} profile.`,
-        suggestion: `Use one of ${options.types.join(', ')} or import the matching profile entry.`
-      }]);
-    }
+    assertProfileType(result.spec.type, options);
     this.profile = options.profile || 'custom';
     this._buildScene = options.buildScene;
     this._types = options.types || [];
+    this._styleOverrides = { colors: input.colors !== undefined, background: input.background !== undefined, padding: input.padding !== undefined };
     this._diagnostics = { warnings: result.warnings, normalizations: result.normalizations };
-    this.spec = prepareSpec(result.spec);
+    this.spec = prepareSpec(result.spec, input);
     this.container = typeof document === 'undefined' ? null : (typeof this.spec.container === 'string' ? document.querySelector(this.spec.container) : this.spec.container);
     this._rendererSelection = resolveRenderer(this.spec);
     this.renderer = this._rendererSelection.effective === 'svg' ? new SVGRenderer(this.spec) : new CanvasRenderer(this.spec);
@@ -81,10 +85,19 @@ export class ProfileChart {
 
   update(patch = {}) {
     const next = { ...this.spec, ...patch };
+    const source = { ...next };
+    for (const key of ['colors', 'background', 'padding']) if (patch[key] !== undefined) this._styleOverrides[key] = true;
+    if (patch.theme !== undefined) {
+      for (const key of ['colors', 'background', 'padding']) if (patch[key] === undefined && !this._styleOverrides[key]) {
+        delete next[key];
+        delete source[key];
+      }
+    }
     const result = validateSpec(next);
     if (!result.valid) throw new ChartValidationError('update', result.errors);
+    assertProfileType(result.spec.type, { types: this._types, profile: this.profile }, 'update');
     this._diagnostics = { warnings: result.warnings, normalizations: result.normalizations };
-    this.spec = prepareSpec(result.spec);
+    this.spec = prepareSpec(result.spec, source);
     return this.render();
   }
 

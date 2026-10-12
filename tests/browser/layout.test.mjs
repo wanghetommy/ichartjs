@@ -7,6 +7,8 @@ import { chromium } from 'playwright-core';
 import { readDocumentSnippets, quickstartWorkflowSource } from '../../scripts/check-doc-snippets.mjs';
 
 const root = new URL('../../', import.meta.url);
+const browserPort = Number(process.env.BROWSER_PORT || 34567);
+const baseUrl = `http://127.0.0.1:${browserPort}`;
 const chromeCandidates = [
   process.env.CHROME_BIN,
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -22,7 +24,7 @@ let server;
 async function waitForServer() {
   for (let attempt = 0; attempt < 30; attempt += 1) {
     try {
-      const response = await fetch('http://127.0.0.1:3000/playground/project-gallery.html');
+      const response = await fetch(`${baseUrl}/playground/project-gallery.html`);
       if (response.ok) return;
     } catch {}
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -33,12 +35,32 @@ async function waitForServer() {
 before(async () => {
   const executablePath = chromeCandidates.find(existsSync);
   if (!executablePath) throw new Error('Chrome executable not found; set CHROME_BIN');
-  server = spawn(process.execPath, ['scripts/serve-playground.mjs'], { cwd: root, stdio: 'ignore' });
+  server = spawn(process.execPath, ['scripts/serve-playground.mjs'], {
+    cwd: root,
+    env: { ...process.env, PORT: String(browserPort), HOST: '127.0.0.1' },
+    stdio: 'ignore'
+  });
   await waitForServer();
   browser = await chromium.launch({ executablePath, headless: true });
   page = await browser.newPage({ viewport: { width: 900, height: 600 } });
-  await page.goto('http://127.0.0.1:3000/playground/project-gallery.html');
+  page.setDefaultTimeout(30_000);
+  page.setDefaultNavigationTimeout(15_000);
 });
+
+async function goto(path, options = {}) {
+  await page.goto(`${baseUrl}${path}`, { waitUntil: 'domcontentloaded', timeout: 60_000, ...options });
+  if (path.includes('project-gallery')) {
+    await page.waitForFunction(() => document.querySelector('#count')?.textContent.includes(' / '));
+  } else if (path.includes('diagram-editor')) {
+    await page.locator('#chart svg, #chart canvas').first().waitFor({ state: 'attached' });
+  } else if (path.includes('canvas-board')) {
+    await page.locator('#board svg, #board canvas').first().waitFor({ state: 'attached' });
+  } else if (path.includes('accessibility-lab')) {
+    await page.waitForFunction(() => Boolean(document.querySelector('#output')?.textContent?.trim()));
+  } else if (path.includes('consumer-browser')) {
+    await page.locator('#chart svg, #chart canvas').first().waitFor({ state: 'attached' });
+  }
+}
 
 after(async () => {
   await browser?.close();
@@ -53,7 +75,7 @@ for (const renderer of ['svg', 'canvas']) for (const scenario of [
     const errors = [], onError = error => errors.push(error.message);
     page.on('pageerror', onError);
     try {
-      await page.goto(`http://127.0.0.1:3000/playground/${scenario.page}.html?renderer=${renderer}&lang=en`);
+      await goto(`/playground/${scenario.page}.html?renderer=${renderer}&lang=en`);
       const panel = page.locator('#simple-construction'), next = page.locator('#simple-next');
       await page.locator('#simple-status[data-phase=ready]').waitFor();
       const state = async () => { const value = JSON.parse(await page.locator(scenario.state).textContent()); return value.state || value; };
@@ -116,7 +138,7 @@ test('Simple construction: localized instructions, narrow layouts and intermedia
   try {
     for (const width of [390, 768]) for (const name of ['diagram-editor', 'canvas-board']) {
       await page.setViewportSize({ width, height: 860 });
-      await page.goto(`http://127.0.0.1:3000/playground/${name}.html?lang=zh-CN`);
+      await goto(`/playground/${name}.html?lang=zh-CN`);
       await page.locator('#simple-status[data-phase=ready]').waitFor();
       assert.match(await page.locator('#simple-next').textContent(), /下一步/);
       await page.locator('#simple-next').click();
@@ -125,7 +147,7 @@ test('Simple construction: localized instructions, narrow layouts and intermedia
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
       await page.screenshot({ path: `/tmp/ichart-simple-${name}-${width}.png`, fullPage: true });
     }
-    await page.goto('http://127.0.0.1:3000/playground/diagram-editor.html?scenario=incremental&lang=fr');
+    await goto('/playground/diagram-editor.html?scenario=incremental&lang=fr');
     await page.locator('#simple-status[data-phase=ready]').waitFor();
     assert.match(await page.locator('#simple-next').textContent(), /Next:/);
     assert.equal(await page.locator('#developer-tools').getAttribute('open'), null);
@@ -137,7 +159,7 @@ for (const renderer of ['svg', 'canvas']) {
     const errors = [], onError = error => errors.push(error.message);
     page.on('pageerror', onError);
     try {
-      await page.goto('http://127.0.0.1:3000/playground/accessibility-lab.html');
+      await goto('/playground/accessibility-lab.html');
       await page.locator('#renderer').selectOption(renderer);
       await page.locator('#text-output').waitFor({ state: 'attached' });
       const initial = JSON.parse(await page.locator('#text-output').textContent());
@@ -205,7 +227,7 @@ for (const renderer of ['svg', 'canvas']) {
       const errors = [], onError = error => errors.push(error.message);
       page.on('pageerror', onError);
       try {
-        await page.goto(`http://127.0.0.1:3000/playground/${scenario.page}.html?scenario=advanced&renderer=${renderer}`);
+        await goto(`/playground/${scenario.page}.html?scenario=advanced&renderer=${renderer}`);
         const control = suffix => page.locator(`#${scenario.prefix}-${suffix}`);
         await control('template').locator('option').nth(4).waitFor({ state: 'attached' });
         const readState = async () => { const payload = JSON.parse(await page.locator(scenario.state).textContent()); return payload.state || payload; };
@@ -257,7 +279,7 @@ for (const renderer of ['svg', 'canvas']) {
     const errors = [], onError = error => errors.push(error.message);
     page.on('pageerror', onError);
     try {
-      await page.goto(`http://127.0.0.1:3000/playground/canvas-board.html?scenario=advanced&renderer=${renderer}`);
+      await goto(`/playground/canvas-board.html?scenario=advanced&renderer=${renderer}`);
       await page.locator('#board-template option').nth(4).waitFor({ state: 'attached' });
       await page.locator('#board-start').click();
       const state = async () => JSON.parse(await page.locator('#state').textContent());
@@ -301,7 +323,7 @@ for (const renderer of ['svg', 'canvas']) {
 
 for (const renderer of ['svg', 'canvas']) {
   test(`Iteration 27 ${renderer}: incremental image source, raster pixels and history`, async () => {
-    await page.goto('http://127.0.0.1:3000/playground/canvas-board.html?scenario=composition');
+    await goto('/playground/canvas-board.html?scenario=composition');
     const report = await page.evaluate(async renderer => {
       const { createBoard } = await import('/src/board-profile.mjs');
       const container = document.createElement('div'); document.body.append(container);
@@ -357,7 +379,7 @@ test('Iteration 27 mounted auto Board changes renderer and restores SVG through 
 
 for (const renderer of ['svg', 'canvas']) {
   test(`Iteration 26 ${renderer}: multi-turn Flow visual preview, atomic commit, and delivery`, async () => {
-    await page.goto(`http://127.0.0.1:3000/playground/diagram-editor.html?scenario=advanced&renderer=${renderer}`);
+    await goto(`/playground/diagram-editor.html?scenario=advanced&renderer=${renderer}`);
     await page.locator('#builder-template option').nth(4).waitFor({ state: 'attached' });
     await page.locator('#builder-start').click();
     const state = async () => JSON.parse(await page.locator('#output').textContent()).state;
@@ -418,7 +440,7 @@ for (const renderer of ['svg', 'canvas']) {
 
 for (const renderer of ['svg', 'canvas']) {
   test(`Diagram Editor ${renderer}: port snapping survives real pointer release and reload`, async () => {
-    await page.goto(`http://127.0.0.1:3000/playground/diagram-editor.html?scenario=editor&renderer=${renderer}`);
+    await goto(`/playground/diagram-editor.html?scenario=editor&renderer=${renderer}`);
     await page.locator('#middle').waitFor();
     assert.equal(await page.locator('#center').textContent(), 'Align X Centers');
     await page.locator('#select').click();
@@ -499,7 +521,7 @@ for (const renderer of ['svg', 'canvas']) {
 
 for (const renderer of ['svg', 'canvas']) {
   test(`Diagram Editor ${renderer}: manual verify channel survives QA dragging, undo, and reload`, async () => {
-    await page.goto(`http://127.0.0.1:3000/playground/diagram-editor.html?scenario=editor&renderer=${renderer}`);
+    await goto(`/playground/diagram-editor.html?scenario=editor&renderer=${renderer}`);
     await page.locator('#select-edge').click();
     const save = async () => {
       const downloading = page.waitForEvent('download');
@@ -585,7 +607,7 @@ for (const renderer of ['svg', 'canvas']) {
 
 for (const renderer of ['svg', 'canvas']) {
   test(`Diagram Editor ${renderer}: moving Done leaves verify routing and label unchanged`, async () => {
-    await page.goto(`http://127.0.0.1:3000/playground/diagram-editor.html?scenario=editor&renderer=${renderer}`);
+    await goto(`/playground/diagram-editor.html?scenario=editor&renderer=${renderer}`);
     await page.locator('#middle').waitFor();
     const readDownload = async (selector, type) => {
       const downloading = page.waitForEvent('download');
@@ -638,7 +660,7 @@ for (const renderer of ['svg', 'canvas']) {
 }
 
 test('Diagram Editor keeps auto routes orthogonal after dragging Done left of QA', async () => {
-  await page.goto('http://127.0.0.1:3000/playground/diagram-editor.html?scenario=editor');
+  await goto('/playground/diagram-editor.html?scenario=editor');
   const done = page.locator('#node-done');
   await done.scrollIntoViewIfNeeded();
   const position = await done.evaluate(element => {
@@ -666,7 +688,8 @@ test('Diagram Editor keeps auto routes orthogonal after dragging Done left of QA
 });
 
 test('Diagram Editor encloses internal connector geometry and labels in the group frame', async () => {
-  await page.goto('http://127.0.0.1:3000/playground/diagram-editor.html?scenario=editor');
+  await goto('/playground/diagram-editor.html?scenario=editor');
+  await page.locator('#group-delivery').waitFor({ state: 'attached' });
   const result = await page.evaluate(() => {
     const frame = document.querySelector('#group-delivery').getBBox();
     return ['edge-1', 'edge-1-arrow', 'edge-label-1', 'edge-label-1-background'].map(id => {
@@ -680,7 +703,7 @@ test('Diagram Editor encloses internal connector geometry and labels in the grou
 });
 
 test('Diagram Editor renders near-aligned ports without retracing and joins the arrow base', async () => {
-  await page.goto('http://127.0.0.1:3000/playground/diagram-editor.html?scenario=editor');
+  await goto('/playground/diagram-editor.html?scenario=editor');
   await page.locator('#save-spec').click();
   const original = JSON.parse(await page.locator('#spec-text').inputValue());
   for (const offset of [-1, 0, 1]) {
@@ -714,7 +737,7 @@ test('Diagram Editor renders near-aligned ports without retracing and joins the 
 });
 
 test('Diagram Editor preserves a connector after two successive segment drags', async () => {
-  await page.goto('http://127.0.0.1:3000/playground/diagram-editor.html?scenario=editor');
+  await goto('/playground/diagram-editor.html?scenario=editor');
   await page.locator('#select-edge').click();
   const edge = page.locator('path#edge-1');
   const original = await edge.getAttribute('d');
@@ -753,7 +776,7 @@ test('Diagram Editor preserves a connector after two successive segment drags', 
 
 test('Iteration 25 editor completes valid/rejected drags, routing recovery, Spec reload, and clean SVG delivery', async () => {
   for (const renderer of ['svg', 'canvas']) {
-    await page.goto(`http://127.0.0.1:3000/playground/diagram-editor.html?scenario=editor&renderer=${renderer}`, { waitUntil: 'domcontentloaded' });
+    await goto(`/playground/diagram-editor.html?scenario=editor&renderer=${renderer}`);
     assert.equal(await page.locator('#auto-route').isDisabled(), true);
     await page.locator('#select-edge').click();
     const save = async () => {
@@ -933,7 +956,8 @@ test('keeps Timeline and Milestone event coordinates aligned with the horizontal
 });
 
 test('re-renders Flow content at the enlarged Gallery preview size', async () => {
-  await page.goto('http://127.0.0.1:3000/playground/project-gallery.html');
+  await goto('/playground/project-gallery.html');
+  await page.locator('#chart-flow #node-load').waitFor({ state: 'attached' });
   const before = await page.locator('#chart-flow #node-load').evaluate(node => node.getBBox().width);
   await page.locator('[data-case="flow"] [data-preview]').click();
   await page.locator('#dialog.open').waitFor({ state: 'visible', timeoutMs: 2000 });
@@ -944,7 +968,7 @@ test('re-renders Flow content at the enlarged Gallery preview size', async () =>
 });
 
 test('enlarges automatically fitted Mindmap content without applying a second view scale', async () => {
-  await page.goto('http://127.0.0.1:3000/playground/project-gallery.html');
+  await goto('/playground/project-gallery.html');
   await page.selectOption('#renderer', 'svg');
   await page.locator('[data-case="mindmap"] [data-preview]').click();
   const result = await page.locator('#dialogChart svg').evaluate(svg => {
@@ -961,7 +985,7 @@ test('enlarges automatically fitted Mindmap content without applying a second vi
 });
 
 test('applies Gallery top-level theme controls over stored chart preferences', async () => {
-  await page.goto('http://127.0.0.1:3000/playground/project-gallery.html?theme-control-test=1');
+  await goto('/playground/project-gallery.html?theme-control-test=1');
   const readLineStyle = async () => JSON.parse(await page.locator('[data-case="line"] [data-output]').textContent()).state.style;
   await page.selectOption('#theme', 'dark');
   let style = await readLineStyle();
@@ -999,7 +1023,7 @@ test('mounts and exports the installed browser consumer through SVG and Canvas',
 });
 
 test('renders annual dimensions and atomic array patches in mounted SVG and Canvas charts', async () => {
-  await page.goto('http://127.0.0.1:3000/playground/index.html');
+  await goto('/playground/index.html');
   const result = await page.evaluate(async () => {
     const { createChart, inspectData, planChart } = await import('/src/index.mjs');
     document.body.innerHTML = '<div id="patch-chart"></div>';
@@ -1022,7 +1046,7 @@ test('renders annual dimensions and atomic array patches in mounted SVG and Canv
 });
 
 test('loads each public capability profile in the Profile Loading Playground', async () => {
-  await page.goto('http://127.0.0.1:3000/playground/profile-loading.html');
+  await goto('/playground/profile-loading.html');
   await page.locator('#chart-board svg').waitFor({ state: 'visible', timeoutMs: 5000 });
   const result = await page.locator('.profile-card').evaluateAll(cards => cards.map(card => ({ status: card.querySelector('[data-status]')?.textContent, type: card.querySelector('[data-type]')?.textContent, hasSvg: Boolean(card.querySelector('svg')) })));
   assert.equal(result.length, 4);
@@ -1031,7 +1055,7 @@ test('loads each public capability profile in the Profile Loading Playground', a
 });
 
 test('runs the published browser consumer fixture through the public root entry', async () => {
-  await page.goto('http://127.0.0.1:3000/examples/consumer-browser.html');
+  await goto('/examples/consumer-browser.html');
   await page.locator('#chart svg').waitFor({ state: 'visible', timeoutMs: 5000 });
   const result = await page.evaluate(() => ({
     status: document.querySelector('#status')?.textContent,
@@ -1049,7 +1073,7 @@ test('mounts the actual README and Quickstart browser snippets', async () => {
     { name: 'README', source: snippets['README.md:browser-chart'].code + '\nexport { chart as outcome };', ids: ['jan', 'feb'] },
     { name: 'Quickstart', source: quickstartWorkflowSource(snippets, 'render-browser') + '\nexport { outcome };', ids: ['jan', 'feb', 'mar'] }
   ];
-  await page.goto('http://127.0.0.1:3000/playground/index.html');
+  await goto('/playground/index.html');
   for (const scenario of scenarios) {
     const result = await page.evaluate(async source => {
       document.body.innerHTML = '<div id="chart"></div>';

@@ -94,6 +94,8 @@ Unknown intent plans expose `intentKnown: false`, `fallbackUsed: true`, and dete
 
 `locale` defaults to `en-US` and controls axis, label, tooltip, and export formatting. Set `locale: "zh-CN"` for Chinese output. Input dates should remain ISO-8601 strings; natural-language date parsing is not part of the runtime contract.
 
+Standard-chart tooltips use the fields declared by `encoding` and apply the corresponding axis, label, and locale formats. They do not expose arbitrary internal row fields; use an explicit encoding field when a value should be shown to the user.
+
 ## Minimal Spec
 
 ```js

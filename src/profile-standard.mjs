@@ -1,127 +1,388 @@
 /**
- * Standard chart profile scene builders.
- * This module intentionally contains no project, diagram, or board imports.
+ * Shared standard chart-to-scene builder for root and focused profile entries.
+ * Keeps chart specifications independent from Canvas and SVG renderers.
  */
 import { Scene, SceneNode } from './scene.mjs';
 import { normalizeData } from './data.mjs';
 import { applyTransforms } from './transforms.mjs';
 import { formatValue } from './format.mjs';
-import { boxesOverlap, estimateTextWidth, fontAtSize, fontPixels, fontSize, labelFont, polarLabelLayout, titleLayout, truncateText } from './layout.mjs';
+import { contrastRatio } from './theme.mjs';
+import { prepareChartChrome, addBranding, addEmptyState, markRadius, markStyle, markWidth } from './chart-chrome.mjs';
 import { addTitleText } from './text-scene.mjs';
 import { addAnnotations } from './annotation.mjs';
+import { axisLabelLayout, boxesOverlap, estimateTextWidth, fontAtSize, fontPixels, fontSize, labelFont, polarLabelLayout, titleLayout, truncateText } from './layout.mjs';
 
-export const standardChartTypes = ['line', 'area', 'bar', 'column', 'pie', 'scatter', 'funnel', 'gauge', 'heatmap', 'radar'];
-const axisFree = new Set(['pie', 'funnel', 'gauge', 'radar']);
 const pick = (row, encoding, fallback) => row?.[encoding?.field || fallback];
 const font = (spec, role, fallback = '12px system-ui') => spec.theme?.typography?.[role]?.font || fallback;
-const text = (scene, id, value, x, y, style = {}, dataRef = null) => scene.add(new SceneNode({ id, type: 'text', geometry: { text: String(value), x, y }, style, dataRef, zIndex: 4 }));
-const niceCeil = value => { const positive = Math.abs(Number(value)); if (!(positive > 0)) return 1; const power = 10 ** Math.floor(Math.log10(positive)); const normalized = positive / power; const mantissa = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 7.5, 8, 10].find(item => item >= normalized) || 10; return mantissa * power; };
-const colorForText = (spec, fill) => { const hex = String(fill || '').replace('#', ''); if (!/^[0-9a-f]{6}$/i.test(hex)) return spec.theme.text; const channels = [0, 2, 4].map(index => parseInt(hex.slice(index, index + 2), 16)); return (channels[0] * 299 + channels[1] * 587 + channels[2] * 114) / 1000 > 155 ? '#0f172a' : '#ffffff'; };
+const niceMantissas = [1, 1.2, 1.5, 1.8, 2, 2.5, 3, 4, 5, 6, 7.5, 8, 10];
 
-function addTitle(scene, spec, warnings) {
+function nearestNiceMantissa(value) {
+  return niceMantissas.reduce((best, candidate) => Math.abs(Math.log(value / candidate)) < Math.abs(Math.log(value / best)) ? candidate : best, niceMantissas[0]);
+}
+
+function niceCeil(value) {
+  const positive = Math.abs(Number(value));
+  if (!(positive > 0) || !Number.isFinite(positive)) return 1;
+  const power = 10 ** Math.floor(Math.log10(positive));
+  const normalized = positive / power;
+  const mantissa = niceMantissas.find(candidate => candidate >= normalized) || 10;
+  return mantissa * power;
+}
+
+function validDomain(domain) {
+  return Array.isArray(domain) && domain.length === 2 && domain.every(value => Number.isFinite(Number(value))) && Number(domain[1]) > Number(domain[0]);
+}
+
+function resolveAxisDomain(rawMin, rawMax, axis = {}, type = 'linear') {
+  if (validDomain(axis.domain)) return [Number(axis.domain[0]), Number(axis.domain[1])];
+  if (type === 'log') return [rawMin, rawMax];
+  let min = rawMin, max = rawMax;
+  if (axis.nice !== false) {
+    min = min < 0 ? -niceCeil(-min) : 0;
+    max = niceCeil(max);
+  }
+  if (!(max > min)) max = min + (niceCeil(Math.abs(min) || 1) || 1);
+  return [min, max];
+}
+
+function axisTicks(min, max, axis = {}, type = 'linear') {
+  if (!(max > min)) return [min, max];
+  if (type === 'log') {
+    const start = Math.ceil(Math.log10(Math.max(min, 0.000001)));
+    const end = Math.floor(Math.log10(Math.max(max, 0.000001)));
+    const powers = Array.from({ length: Math.max(0, end - start + 1) }, (_, index) => 10 ** (start + index));
+    return [...new Set([min, ...powers.filter(value => value > min && value < max), max])];
+  }
+  const explicitCount = Number.isInteger(axis.ticks) && axis.ticks >= 2 ? axis.ticks : null;
+  const targetIntervals = explicitCount ? explicitCount - 1 : 5;
+  let intervals = explicitCount ? targetIntervals : 4, bestScore = Infinity;
+  if (!explicitCount) {
+    for (let candidate = 4; candidate <= 7; candidate += 1) {
+      const step = (max - min) / candidate;
+      const power = 10 ** Math.floor(Math.log10(Math.abs(step)));
+      const score = Math.abs(Math.log((step / power) / nearestNiceMantissa(step / power))) + Math.abs(candidate - targetIntervals) * 0.08;
+      if (score < bestScore) { bestScore = score; intervals = candidate; }
+    }
+  }
+  return Array.from({ length: intervals + 1 }, (_, index) => min + (max - min) * index / intervals);
+}
+
+const axisFreeTypes = new Set(['pie', 'funnel', 'gauge', 'radar']);
+
+function chromeLayout(spec, entries = []) {
   const title = titleLayout(spec);
-  addTitleText(scene, spec, title, warnings);
-  return title;
-}
-
-function legendEntries(spec, data, series) {
-  if (spec.legend?.visible === false) return [];
-  if (spec.type === 'pie') { const field = spec.encoding.category?.field || 'name'; return data.rows.map((row, index) => ({ name: String(row[field] ?? `Item ${index + 1}`), color: spec.colors[index % spec.colors.length] })); }
-  return series.map((item, index) => ({ name: item.name || item.field || `Series ${index + 1}`, color: spec.colors[index % spec.colors.length] }));
-}
-
-function addLegend(scene, spec, entries, title) {
-  if (!entries.length) return { bottom: title.bottom, visible: false };
-  const size = fontSize(spec, 'legend', 12), lineHeight = Math.max(18, size * 1.4), available = spec.width - spec.padding.left - spec.padding.right;
-  const align = ['left', 'center', 'right'].includes(spec.legend?.align) ? spec.legend.align : 'center', y = title.bottom ? title.bottom + 12 : spec.padding.top, rows = [];
-  entries.forEach((entry, index) => {
-    const label = truncateText(entry.name, Math.max(size * 4, available - 20), size), width = 18 + estimateTextWidth(label, size) + 16;
+  const visible = spec.legend?.visible !== false && entries.length >= 1;
+  if (!visible) return { title, legend: { visible: false, items: [], position: 'top', align: 'center', top: title.bottom, bottom: title.bottom, left: spec.padding.left, right: spec.width - spec.padding.right, width: 0, height: 0 }, bottom: title.bottom };
+  const size = fontSize(spec, 'legend', 12), lineHeight = Math.max(18, size * Number(spec.theme?.typography?.legend?.lineHeight || 1.4));
+  const swatchSize = Math.max(8, Math.round(size * 0.75)), gap = Math.max(12, Math.round(size));
+  const availableWidth = Math.max(1, spec.width - spec.padding.left - spec.padding.right);
+  const requestedPosition = axisFreeTypes.has(spec.type) && ['top', 'right', 'bottom', 'left'].includes(spec.legend?.position) ? spec.legend.position : 'top';
+  const requestedAlign = ['left', 'center', 'right'].includes(spec.legend?.align) ? spec.legend.align : 'center';
+  const sideLegend = requestedPosition === 'left' || requestedPosition === 'right';
+  const labelBudget = sideLegend ? Math.max(size * 4, availableWidth * 0.34 - swatchSize - 6 - gap) : availableWidth - swatchSize - 6 - gap;
+  const maxLabelWidth = Math.max(size, labelBudget);
+  const measured = entries.map((entry, index) => {
+    const rawName = String(entry.name), name = truncateText(rawName, maxLabelWidth, size);
+    return { ...entry, name, rawName, truncated: name !== rawName, index, width: swatchSize + 6 + estimateTextWidth(name, size) + gap };
+  });
+  if (sideLegend) {
+    const width = Math.max(size * 4, ...measured.map(item => item.width));
+    const top = Math.max(spec.padding.top, title.bottom ? title.bottom + 8 : spec.padding.top);
+    const items = measured.map((item, index) => ({ ...item, x: requestedPosition === 'left' ? spec.padding.left : spec.width - spec.padding.right - width, y: top + index * lineHeight + lineHeight / 2, swatchSize }));
+    const bottom = top + measured.length * lineHeight;
+    return { title, legend: { visible: true, items, position: requestedPosition, align: requestedAlign, top, bottom, left: requestedPosition === 'left' ? spec.padding.left : spec.width - spec.padding.right - width, right: requestedPosition === 'left' ? spec.padding.left + width : spec.width - spec.padding.right, width, height: measured.length * lineHeight, truncatedCount: measured.filter(item => item.truncated).length }, bottom: title.bottom };
+  }
+  const rows = [];
+  measured.forEach(item => {
     let row = rows.at(-1);
-    if (!row || row.width + width > available) { row = { width: 0, items: [] }; rows.push(row); }
-    row.items.push({ entry, index, label, width });
-    row.width += width;
+    if (!row || row.width + item.width > availableWidth) { row = { width: 0, items: [] }; rows.push(row); }
+    row.items.push(item);
+    row.width += item.width;
   });
+  const legendHeight = rows.length * lineHeight;
+  const top = requestedPosition === 'bottom' ? spec.height - spec.padding.bottom - legendHeight : title.bottom ? title.bottom + 8 : Math.max(8, (spec.padding.top - legendHeight) / 2);
+  const items = [];
   rows.forEach((row, rowIndex) => {
-    const freeWidth = Math.max(0, available - row.width);
-    let x = spec.padding.left + (align === 'left' ? 0 : align === 'right' ? freeWidth : freeWidth / 2);
-    row.items.forEach(({ entry, index, label, width }) => {
-      scene.add(new SceneNode({ id: `legend-swatch-${index}`, type: 'rect', geometry: { x, y: y + rowIndex * lineHeight - 6, width: 10, height: 10 }, style: { fill: entry.color }, zIndex: 4 }));
-      text(scene, `legend-label-${index}`, label, x + 16, y + rowIndex * lineHeight, { fill: spec.theme.text, font: font(spec, 'legend'), textBaseline: 'middle', baseline: 'middle' });
-      x += width;
-    });
+    const freeWidth = Math.max(0, availableWidth - row.width);
+    let x = spec.padding.left + (requestedAlign === 'left' ? 0 : requestedAlign === 'right' ? freeWidth : freeWidth / 2);
+    const y = top + rowIndex * lineHeight + lineHeight / 2;
+    row.items.forEach(item => { items.push({ ...item, x, y, swatchSize }); x += item.width; });
   });
-  return { bottom: y + rows.length * lineHeight, visible: true, align };
+  const bottom = top + rows.length * lineHeight;
+  return { title, legend: { visible: true, items, position: requestedPosition, align: requestedAlign, top, bottom, left: spec.padding.left, right: spec.width - spec.padding.right, width: availableWidth, height: legendHeight, truncatedCount: measured.filter(item => item.truncated).length }, bottom: requestedPosition === 'bottom' ? title.bottom : Math.max(title.bottom, bottom) };
 }
 
-function layout(spec, data, series, title, legend) {
-  const xEncoding = spec.encoding.x || { field: 'name', type: 'category' }, xField = xEncoding.field || 'name';
+function layout(spec, data, legendEntries = [], layoutOptions = {}) {
+  const p = spec.padding, width = spec.width, height = spec.height;
+  const chrome = chromeLayout(spec, legendEntries);
+  const xEncoding = spec.encoding.x || { field: 'name', type: 'category' };
+  const xField = xEncoding.field || 'name';
   const categories = [...new Set(data.rows.map(row => String(row[xField] ?? '')))].filter(Boolean);
-  const values = data.rows.flatMap(row => series.map(item => Number(row[item.field]))).filter(Number.isFinite);
-  const rawMin = Math.min(0, ...(values.length ? values : [0])), rawMax = Math.max(1, ...(values.length ? values : [1]));
-  const domain = Array.isArray(spec.yAxis?.domain) ? spec.yAxis.domain.map(Number) : [rawMin, spec.yAxis?.nice === false ? rawMax : niceCeil(rawMax)];
-  const leftLabels = spec.type === 'bar' ? categories : domain.map(value => formatValue(value, spec.yAxis?.format, spec.locale));
-  const leftWidth = Math.max(28, ...leftLabels.map(value => estimateTextWidth(value, fontSize(spec, 'axis', 12))));
-  const top = axisFree.has(spec.type) ? Math.max(spec.padding.top, legend.bottom) : Math.max(spec.padding.top, legend.bottom) + 8;
-  const bottom = axisFree.has(spec.type) ? spec.height - spec.padding.bottom : spec.height - spec.padding.bottom - 30;
-  const plot = { x: spec.type === 'bar' ? spec.padding.left + leftWidth + 20 : spec.padding.left + (axisFree.has(spec.type) ? 0 : leftWidth + 20), y: top, width: spec.width - spec.padding.left - spec.padding.right - (spec.type === 'bar' ? leftWidth + 20 : axisFree.has(spec.type) ? 0 : leftWidth + 20), height: Math.max(1, bottom - top) };
-  const x = category => spec.type === 'scatter' || xEncoding.type === 'quantitative' ? plot.x + ((Number(category) - rawMin) / (rawMax - rawMin || 1)) * plot.width : plot.x + (categories.indexOf(String(category)) + 0.5) * plot.width / Math.max(1, categories.length);
-  const y = value => plot.y + plot.height - ((Number(value) - domain[0]) / (domain[1] - domain[0] || 1)) * plot.height;
-  return { x, y, plot, categories, domain, xField, series, top, bottom };
+  const temporal = xEncoding.type === 'temporal' || xEncoding.type === 'time';
+  const quantitativeX = xEncoding.type === 'quantitative' || xEncoding.type === 'linear';
+  const dates = temporal ? data.rows.map(row => new Date(row[xField]).getTime()).filter(Number.isFinite) : [];
+  const xNumbers = quantitativeX ? data.rows.map(row => Number(row[xField])).filter(Number.isFinite) : [];
+  const xMin = dates.length ? Math.min(...dates) : xNumbers.length ? Math.min(...xNumbers) : 0, xMax = dates.length ? Math.max(...dates) : xNumbers.length ? Math.max(...xNumbers) : 1;
+  const yEncodings = Array.isArray(spec.encoding.y) ? spec.encoding.y : [spec.encoding.y || { field: 'value', type: 'quantitative' }];
+  const yField = yEncodings[0]?.field || 'value';
+  const stackMode = typeof spec.stack === 'string' ? spec.stack : spec.stack?.mode;
+  const stackTotals = stackMode ? data.rows.flatMap(row => {
+    const values = yEncodings.map(encoding => Number(row[encoding.field])).filter(Number.isFinite);
+    if (stackMode === 'percent') return [0, 1];
+    return [values.filter(value => value >= 0).reduce((sum, value) => sum + value, 0), values.filter(value => value < 0).reduce((sum, value) => sum + value, 0)];
+  }) : [];
+  const numbers = (stackTotals.length ? stackTotals : data.rows.flatMap(row => yEncodings.map(encoding => Number(row[encoding.field])))).filter(Number.isFinite);
+  const rawMin = Math.min(0, ...(numbers.length ? numbers : [0]));
+  const rawMax = Math.max(1, ...(numbers.length ? numbers : [1]));
+  const axisType = spec.yAxis?.type || yEncodings[0]?.type || 'linear';
+  const [min, max] = resolveAxisDomain(rawMin, rawMax, spec.yAxis || {}, axisType);
+  const x = category => temporal ? plot.x + ((new Date(category).getTime() - xMin) / (xMax - xMin || 1)) * plot.width : quantitativeX ? plot.x + ((Number(category) - xMin) / (xMax - xMin || 1)) * plot.width : plot.x + (categories.indexOf(String(category)) + 0.5) * plot.width / Math.max(1, categories.length);
+  const transform = value => axisType === 'log' ? Math.log10(Math.max(0.000001, Number(value))) : Number(value);
+  const transformedMin = transform(min), transformedMax = transform(max);
+  const y = value => plot.y + plot.height - ((transform(value) - transformedMin) / (transformedMax - transformedMin || 1)) * plot.height;
+  const yRightNumbers = data.rows.map(row => Number(row[yEncodings[1]?.field])).filter(Number.isFinite);
+  const rawRightMin = Math.min(0, ...(yRightNumbers.length ? yRightNumbers : [0])), rawRightMax = Math.max(1, ...(yRightNumbers.length ? yRightNumbers : [1]));
+  const rightType = spec.yAxis?.right?.type || yEncodings[1]?.type || 'linear';
+  const [rightMin, rightMax] = resolveAxisDomain(rawRightMin, rawRightMax, spec.yAxis?.right || {}, rightType);
+  const yTicks = axisTicks(min, max, spec.yAxis || {}, axisType), rightTicks = axisTicks(rightMin, rightMax, spec.yAxis?.right || {}, rightType);
+  const axisSize = fontSize(spec, 'axis', 12);
+  const maxWidth = values => Math.max(0, ...values.map(value => estimateTextWidth(value, axisSize)));
+  const categoryField = spec.encoding.x?.field || 'name';
+  const categoryTexts = data.rows.map(row => String(row[categoryField] ?? ''));
+  const matrixYField = spec.encoding.y?.field || 'y', matrixTexts = spec.type === 'heatmap' ? data.rows.map(row => String(row[matrixYField] ?? '')) : [];
+  const leftTexts = spec.type === 'bar' ? categoryTexts : yTicks.map(value => formatValue(value, spec.yAxis?.format, spec.locale));
+  const leftLabelWidth = maxWidth(leftTexts), rightLabelWidth = yEncodings.length > 1 && !stackMode ? maxWidth(rightTicks.map(value => formatValue(value, spec.yAxis?.right?.format, spec.locale))) : 0;
+  const axisFree = axisFreeTypes.has(spec.type);
+  const sideLabelWidth = Math.max(spec.type === 'bar' ? leftLabelWidth : 0, spec.type === 'heatmap' ? maxWidth(matrixTexts) : 0);
+  const leftTitleBand = spec.yAxis?.title ? axisSize + 16 : 0;
+  const rightTitleBand = spec.yAxis?.right?.title && yEncodings.length > 1 && !stackMode ? axisSize + 16 : 0;
+  const cartesianLeft = 8 + leftTitleBand + leftLabelWidth + 10;
+  const plotLeft = axisFree
+    ? Math.max(p.left, chrome.legend.position === 'left' ? chrome.legend.right + 12 : p.left)
+    : spec.type === 'bar'
+      ? Math.max(p.left, spec.yAxis?.title ? cartesianLeft : sideLabelWidth + 24)
+      : spec.type === 'heatmap'
+        ? Math.min(width * 0.35, Math.max(p.left, sideLabelWidth + 24))
+        : Math.max(p.left, cartesianLeft);
+  const plotRight = axisFree
+    ? Math.max(p.right, chrome.legend.position === 'right' ? spec.width - chrome.legend.left + 12 : p.right)
+    : Math.max(p.right, rightLabelWidth ? rightLabelWidth + rightTitleBand + 18 : 0);
+  const labelTopReserve = spec.type === 'column' && spec.labels?.enabled ? Math.ceil(fontSize(spec, 'label', 12) * 1.5 + 4) : 0;
+  const plotWidth = Math.max(1, width - plotLeft - plotRight);
+  const axisLabelTexts = temporal ? timeTicks(xMin, xMax, 5).map(value => formatTime(value, xMax - xMin, spec.xAxis?.format, spec.locale)) : quantitativeX ? timeTicks(xMin, xMax, 5).map(value => formatValue(value, spec.xAxis?.format, spec.locale)) : categories;
+  const xLabels = axisLabelLayout(spec, spec.type === 'bar' ? [] : axisLabelTexts, plotWidth);
+  const topChrome = chrome.legend.position === 'top' && chrome.legend.visible ? chrome.legend.bottom + 12 : Math.max(p.top, chrome.title.bottom + (chrome.title.bottom ? 12 : 0));
+  const axisFreeBottomPadding = Number(layoutOptions.axisFreeBottomPadding ?? p.bottom);
+  const bottomChrome = chrome.legend.position === 'bottom' && chrome.legend.visible ? chrome.legend.top - 12 : height - axisFreeBottomPadding;
+  const plotTop = axisFree ? Math.max(p.top, topChrome) + labelTopReserve : Math.max(p.top, chrome.bottom + (chrome.bottom ? 12 : 0)) + labelTopReserve;
+  const bottomReserve = Math.max(p.bottom, Math.ceil(16 + xLabels.projectedHeight + (spec.xAxis?.title ? 20 : 0)));
+  const plotBottom = axisFree ? Math.min(height - axisFreeBottomPadding, bottomChrome) : height - bottomReserve;
+  const plot = { x: plotLeft, y: plotTop, width: plotWidth, height: Math.max(1, plotBottom - plotTop) };
+  const axisTitles = {
+    y: spec.yAxis?.title ? truncateText(spec.yAxis.title, plot.height, axisSize) : null,
+    right: spec.yAxis?.right?.title && yEncodings.length > 1 && !stackMode ? truncateText(spec.yAxis.right.title, plot.height, axisSize) : null
+  };
+  const axisTitleWarnings = [];
+  if (spec.yAxis?.title && axisTitles.y !== String(spec.yAxis.title)) axisTitleWarnings.push({ path: 'yAxis.title', title: String(spec.yAxis.title), availableWidth: plot.height });
+  if (spec.yAxis?.right?.title && axisTitles.right !== String(spec.yAxis.right.title) && yEncodings.length > 1 && !stackMode) axisTitleWarnings.push({ path: 'yAxis.right.title', title: String(spec.yAxis.right.title), availableWidth: plot.height });
+  const rightTransform = value => rightType === 'log' ? Math.log10(Math.max(0.000001, Number(value))) : Number(value);
+  const yRight = value => plot.y + plot.height - ((rightTransform(value) - rightTransform(rightMin)) / (rightTransform(rightMax) - rightTransform(rightMin) || 1)) * plot.height;
+  const axisInfo = (rawDomain, domain, ticks, axis) => ({ rawDomain, domain, ticks, step: ticks.length > 1 ? (ticks[1] - ticks[0]) : null, policy: validDomain(axis?.domain) ? 'explicit' : axis?.nice === false ? 'raw' : 'nice' });
+  return { plot, chrome, layoutFamily: axisFree ? spec.type : 'cartesian', xLabels, axisTitles, axisTitleWarnings, axisLayout: { size: axisSize, leftLabelWidth, rightLabelWidth }, compact: width < 360 || height < 240, recommendedSize: { minWidth: 280, minHeight: 220 }, xField, xEncoding, temporal, quantitativeX, xMin, xMax, yField, yEncodings, categories, rawMin, rawMax, min, max, rawRightMin, rawRightMax, rightMin, rightMax, yTicks, rightTicks, axes: { y: axisInfo([rawMin, rawMax], [min, max], yTicks, spec.yAxis || {}), right: axisInfo([rawRightMin, rawRightMax], [rightMin, rightMax], rightTicks, spec.yAxis?.right || {}) }, x, y, yRight, axisType, rightType };
 }
+
+function addText(scene, id, text, x, y, style = {}, dataRef = null) { scene.add(new SceneNode({ id, type: 'text', geometry: { text: String(text), x, y }, style, dataRef, zIndex: 4 })); }
 
 function addAxes(scene, spec, state) {
-  const { plot, categories, domain, x, y } = state, axisFont = font(spec, 'axis'), axisColor = spec.theme.axis;
-  scene.add(new SceneNode({ id: 'axis-x', type: 'line', geometry: { x1: plot.x, y1: plot.y + plot.height, x2: plot.x + plot.width, y2: plot.y + plot.height }, style: { stroke: axisColor } }));
-  scene.add(new SceneNode({ id: 'axis-y', type: 'line', geometry: { x1: plot.x, y1: plot.y, x2: plot.x, y2: plot.y + plot.height }, style: { stroke: axisColor } }));
-  if (spec.grid?.visible !== false) [0, .25, .5, .75, 1].forEach((ratio, index) => scene.add(new SceneNode({ id: `grid-${index}`, type: 'line', geometry: { x1: plot.x, y1: plot.y + plot.height * ratio, x2: plot.x + plot.width, y2: plot.y + plot.height * ratio }, style: { stroke: spec.grid?.color || spec.theme.grid, strokeWidth: spec.theme.marks.gridWidth }, zIndex: -2 })));
-  const ticks = [0, .25, .5, .75, 1];
-  ticks.forEach((ratio, index) => text(scene, `axis-y-label-${index}`, formatValue(domain[0] + (domain[1] - domain[0]) * (1 - ratio), spec.yAxis?.format, spec.locale), plot.x - 8, plot.y + plot.height * ratio, { fill: spec.theme.muted, font: axisFont, textAnchor: 'end', textBaseline: 'middle', baseline: 'middle' }));
-  if (spec.type !== 'bar') categories.forEach((category, index) => text(scene, `axis-x-label-${index}`, category, x(category), plot.y + plot.height + 20, { fill: spec.theme.muted, font: axisFont, textAnchor: 'middle' }));
-  if (spec.xAxis?.title) text(scene, 'axis-x-title', spec.xAxis.title, plot.x + plot.width / 2, spec.height - spec.padding.bottom + 4, { fill: spec.theme.text, font: axisFont, textAnchor: 'middle' });
-  if (spec.yAxis?.title) text(scene, 'axis-y-title', spec.yAxis.title, spec.padding.left / 2, plot.y + plot.height / 2, { fill: spec.theme.text, font: axisFont, textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle', rotation: -90 });
+  const { plot, categories, min, max, x, y, yRight } = state;
+  const axisSize = state.axisLayout.size;
+  scene.add(new SceneNode({ id: 'axis-x', type: 'line', geometry: { x1: plot.x, y1: plot.y + plot.height, x2: plot.x + plot.width, y2: plot.y + plot.height }, style: { stroke: spec.theme.axis } }));
+  scene.add(new SceneNode({ id: 'axis-y', type: 'line', geometry: { x1: plot.x, y1: plot.y, x2: plot.x, y2: plot.y + plot.height }, style: { stroke: spec.theme.axis } }));
+  if (spec.type === 'bar') {
+    const ticks = state.yTicks, numericX = value => plot.x + ((value - min) / (max - min || 1)) * plot.width;
+    if (spec.grid?.visible !== false) ticks.forEach((value, index) => scene.add(new SceneNode({ id: `grid-x-${index}`, type: 'line', geometry: { x1: numericX(value), y1: plot.y, x2: numericX(value), y2: plot.y + plot.height }, style: { stroke: spec.grid?.color || spec.theme.grid, strokeWidth: spec.theme.marks.gridWidth }, zIndex: -2 })));
+    ticks.forEach(value => addText(scene, `label-x-value-${value}`, formatValue(value, spec.xAxis?.format || spec.yAxis?.format, spec.locale), numericX(value), plot.y + plot.height + 22, { fill: spec.theme.muted, font: font(spec, 'axis'), textAnchor: 'middle' }));
+    categories.forEach((category, index) => addText(scene, `label-y-category-${index}`, category, plot.x - 10, plot.y + (index + .5) * plot.height / Math.max(1, categories.length) + 4, { fill: spec.theme.muted, font: font(spec, 'axis'), textAnchor: 'end' }));
+    if (spec.xAxis?.title) addText(scene, 'axis-x-title', spec.xAxis.title, plot.x + plot.width / 2, plot.y + plot.height + 42, { fill: spec.theme.text, font: font(spec, 'axis'), textAnchor: 'middle' });
+    if (state.axisTitles.y) addText(scene, 'axis-y-title', state.axisTitles.y, 8 + axisSize / 2, plot.y + plot.height / 2, { fill: spec.theme.text, font: font(spec, 'axis'), textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle', rotation: -90 });
+    return;
+  }
+  const labels = state.temporal || state.quantitativeX ? timeTicks(state.xMin, state.xMax, 5) : categories;
+  const yTicks = state.yTicks;
+  if (spec.grid?.visible !== false) yTicks.forEach((value, index) => scene.add(new SceneNode({ id: `grid-y-${index}`, type: 'line', geometry: { x1: plot.x, y1: y(value), x2: plot.x + plot.width, y2: y(value) }, style: { stroke: spec.grid?.color || spec.theme.grid, strokeWidth: spec.theme.marks.gridWidth }, zIndex: -2 })));
+  labels.forEach((category, index) => {
+    if (index % state.xLabels.step !== 0 && index !== labels.length - 1) return;
+    addText(scene, `label-x-${category}`, state.temporal ? formatTime(category, state.xMax - state.xMin, spec.xAxis?.format, spec.locale) : state.quantitativeX ? formatValue(category, spec.xAxis?.format, spec.locale) : category, x(category), plot.y + plot.height + (state.xLabels.rotation ? 10 : 22), { fill: spec.theme.muted, font: font(spec, 'axis'), textAnchor: state.xLabels.rotation ? 'end' : 'middle', textBaseline: state.xLabels.rotation ? 'middle' : 'alphabetic', rotation: state.xLabels.rotation });
+  });
+  yTicks.forEach(value => addText(scene, `label-y-${value}`, formatValue(value, spec.yAxis?.format, spec.locale), plot.x - 10, y(value) + 4, { fill: spec.theme.muted, font: font(spec, 'axis'), textAnchor: 'end' }));
+  if (state.yEncodings.length > 1 && !spec.stack) state.rightTicks.forEach(value => addText(scene, `label-y-right-${value}`, formatValue(value, spec.yAxis?.right?.format, spec.locale), plot.x + plot.width + 10, yRight(value) + 4, { fill: spec.theme.muted, font: font(spec, 'axis') }));
+  if (spec.xAxis?.title) addText(scene, 'axis-x-title', spec.xAxis.title, plot.x + plot.width / 2, plot.y + plot.height + (state.xLabels.rotation ? state.xLabels.projectedHeight + 20 : 42), { fill: spec.theme.text, font: font(spec, 'axis'), textAnchor: 'middle' });
+  if (state.axisTitles.y) addText(scene, 'axis-y-title', state.axisTitles.y, 8 + axisSize / 2, plot.y + plot.height / 2, { fill: spec.theme.text, font: font(spec, 'axis'), textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle', rotation: -90 });
+  if (state.axisTitles.right) addText(scene, 'axis-y-right-title', state.axisTitles.right, spec.width - 8 - axisSize / 2, plot.y + plot.height / 2, { fill: spec.theme.text, font: font(spec, 'axis'), textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle', rotation: 90 });
 }
 
-function addMarkLabel(scene, spec, id, value, x, y, dataRef, fill = spec.theme.text, bounds = null) {
+
+function addLegend(scene, spec, legend) {
+  if (!legend.visible) return;
+  legend.items.forEach(item => { scene.add(new SceneNode({ id: `legend-swatch-${item.index}`, type: 'rect', geometry: { x: item.x, y: item.y - item.swatchSize / 2, width: item.swatchSize, height: item.swatchSize }, style: { fill: item.color } })); addText(scene, `legend-label-${item.index}`, item.name, item.x + item.swatchSize + 6, item.y, { fill: spec.theme.muted, font: font(spec, 'legend'), textBaseline: 'middle', baseline: 'middle' }); });
+}
+
+function legendEntries(spec, data, series, colors) {
+  if (!data.rows.length || spec.legend?.visible === false) return [];
+  if (spec.type === 'radar') return data.rows.map((row, index) => ({ name: row.name || row.id || `Series ${index + 1}`, color: colors[index % colors.length] }));
+  if (['line', 'area', 'bar', 'column'].includes(spec.type)) return series.map((encoding, index) => ({ name: encoding.name || encoding.field, color: colors[index % colors.length] }));
+  if (spec.type === 'pie') { const categoryField = spec.encoding.category?.field || 'name'; return data.rows.map((row, index) => ({ name: String(row[categoryField]), color: colors[index % colors.length] })); }
+  return [];
+}
+
+function readableLabelColor(spec, background) {
+  const preferred = spec.labels?.color || spec.theme.text;
+  const candidates = [preferred, spec.theme.text, spec.theme.background, '#ffffff', '#172033'];
+  return candidates.find(color => (contrastRatio(color, background) || 0) >= 4.5) || preferred;
+}
+
+function addMarkLabel(scene, spec, id, value, x, y, dataRef, bounds = null, anchor = null, formatOverride = null, labelBackground = null) {
   if (!spec.labels?.enabled) return;
   const mark = ['bar', 'column'].includes(spec.type) ? scene.find(id) : null, inside = mark?.type === 'rect' && spec.labels.position === 'inside';
-  if (inside) { x = mark.geometry.x + mark.geometry.width / 2; y = mark.geometry.y + mark.geometry.height / 2; fill = colorForText(spec, mark.style.fill); }
-  else if (mark?.type === 'rect') fill = spec.theme.text;
-  const valueText = formatValue(value, spec.labels.format, spec.locale), size = fontSize(spec, 'label', 12), width = estimateTextWidth(valueText, size, labelFont(spec)), height = size * 1.25;
-  const boxes = scene._labelBoxes || (scene._labelBoxes = []), area = bounds || (inside ? mark.geometry : scene._labelArea) || { x: 0, y: 0, width: spec.width, height: spec.height };
+  if (inside) { bounds = mark.geometry; x = bounds.x + bounds.width / 2; y = bounds.y + bounds.height / 2; labelBackground = mark.style.fill; }
+  const labelState = scene._labelLayout || (scene._labelLayout = { visible: 0, wrapped: 0, scaled: 0, truncated: 0, suppressed: 0, collisions: 0, backgrounded: 0 });
+  const text = formatValue(value, formatOverride || spec.labels.format, spec.locale), size = fontSize(spec, 'label', 12), width = estimateTextWidth(text, size, labelFont(spec)), height = size * 1.25;
+  const baseArea = bounds || scene._labelArea || { x: 0, y: 0, width: spec.width, height: spec.height };
+  const area = spec.type === 'column' && !anchor && !inside ? { ...baseArea, y: baseArea.y - height - 4, height: baseArea.height + height + 4 } : baseArea;
+  const markBackground = spec.type === 'column' && !anchor && !inside && y - height / 2 < area.y ? spec.colors?.[dataRef?.seriesIndex || 0] : null;
+  const labelY = markBackground ? y + height + 8 : spec.type === 'column' && !anchor && !inside ? y - height / 2 - 4 : y;
   const safeX = Math.max(area.x + width / 2, Math.min(area.x + area.width - width / 2, x));
-  const box = (inside ? [y] : [y, y - height - 3, y + height + 3]).map(candidate => ({ x: safeX - width / 2, y: Math.max(area.y + height / 2, Math.min(area.y + area.height - height / 2, candidate)) - height / 2, width, height })).find(candidate => width <= area.width && height <= area.height && !boxes.some(occupied => boxesOverlap(candidate, occupied, 2)));
-  if (!box) { scene._suppressedLabels = (scene._suppressedLabels || 0) + 1; return; }
-  boxes.push(box);
-  text(scene, `${id}-label`, valueText, safeX, box.y + height / 2, { fill: spec.labels.color || fill, font: labelFont(spec), textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle' }, dataRef);
+  const safeY = Math.max(area.y + height / 2, Math.min(area.y + area.height - height / 2, labelY));
+  const anchorRadius = Number(anchor?.radius) || 0, anchorGap = Number(anchor?.gap) || 6;
+  const anchorBox = anchor ? { x: anchor.x - anchorRadius - anchorGap, y: anchor.y - anchorRadius - anchorGap, width: anchorRadius * 2 + anchorGap * 2, height: anchorRadius * 2 + anchorGap * 2 } : null;
+  const preferred = anchor ? anchor.y - anchorRadius - anchorGap - height / 2 : safeY;
+  const alternate = anchor ? anchor.y + anchorRadius + anchorGap + height / 2 : safeY;
+  const shifts = anchor ? [preferred, alternate, preferred - height - 3, alternate + height + 3] : [safeY, safeY - height - 3, safeY + height + 3, safeY - 2 * (height + 3), safeY + 2 * (height + 3)];
+  const occupied = scene._labelBoxes || (scene._labelBoxes = []);
+  const placement = (inside ? [safeY] : shifts).map(candidateY => Math.max(area.y + height / 2, Math.min(area.y + area.height - height / 2, candidateY))).map(candidateY => ({ x: safeX, y: candidateY, box: { x: safeX - width / 2, y: candidateY - height / 2, width, height } })).find(candidate => width <= area.width && height <= area.height && !occupied.some(box => boxesOverlap(candidate.box, box, 2)) && (!anchorBox || !boxesOverlap(candidate.box, anchorBox, 0)));
+  if (!placement) { labelState.suppressed += 1; labelState.collisions += 1; return; }
+  occupied.push(placement.box);
+  labelState.visible += 1;
+  addText(scene, `${id}-label`, text, placement.x, placement.y, { fill: labelBackground || markBackground ? readableLabelColor(spec, labelBackground || markBackground) : spec.labels.color || spec.theme.text, font: spec.labels.font || font(spec, 'label'), textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle' }, dataRef);
 }
 
-export function buildStandardScene(spec) {
+function hexRgb(value) { const hex = String(value || '').replace('#', ''); if (!/^[0-9a-f]{6}$/i.test(hex)) return [37, 99, 235]; return [0, 2, 4].map(index => parseInt(hex.slice(index, index + 2), 16)); }
+function colorMix(start, end, ratio) { const left = hexRgb(start), right = hexRgb(end), value = Math.max(0, Math.min(1, ratio)); return `rgb(${left.map((channel, index) => Math.round(channel + (right[index] - channel) * value)).join(',')})`; }
+
+function addHeatmapScene(scene, spec, data, state, colors) {
+  const xField = spec.encoding.x?.field || 'x', yField = spec.encoding.y?.field || 'y', valueField = spec.encoding.color?.field || 'value';
+  const xValues = [...new Set(data.rows.map(row => String(row[xField])))], yValues = [...new Set(data.rows.map(row => String(row[yField])))];
+  const numericValue = row => row[valueField] == null || row[valueField] === '' ? null : Number(row[valueField]);
+  const values = data.rows.map(numericValue).filter(Number.isFinite), min = spec.colorScale?.domain?.[0] ?? Math.min(...values, 0), max = spec.colorScale?.domain?.[1] ?? Math.max(...values, 1);
+  const palette = spec.theme.palette === 'diverging' ? spec.theme.palettes.diverging : spec.theme.palettes.sequential;
+  const low = spec.colorScale?.range?.[0] || palette[0], high = spec.colorScale?.range?.at(-1) || palette.at(-1) || colors[0], missing = spec.colorScale?.missing || spec.theme.palettes.missing;
+  const gap = Math.max(0, Number(spec.cellPadding ?? 2)), width = state.plot.width / Math.max(1, xValues.length), height = state.plot.height / Math.max(1, yValues.length);
+  xValues.forEach((value, index) => { if (index % state.xLabels.step !== 0 && index !== xValues.length - 1) return; addText(scene, `heatmap-x-${index}`, value, state.plot.x + (index + .5) * width, state.plot.y + state.plot.height + (state.xLabels.rotation ? 10 : 20), { fill: spec.theme.muted, font: font(spec, 'axis'), textAnchor: state.xLabels.rotation ? 'end' : 'middle', textBaseline: state.xLabels.rotation ? 'middle' : 'alphabetic', rotation: state.xLabels.rotation }); });
+  const yStep = Math.max(1, Math.ceil(fontSize(spec, 'axis', 12) * 1.35 / Math.max(1, height)));
+  yValues.forEach((value, index) => { if (index % yStep !== 0 && index !== yValues.length - 1) return; addText(scene, `heatmap-y-${index}`, value, state.plot.x - 10, state.plot.y + (index + .5) * height, { fill: spec.theme.muted, font: font(spec, 'axis'), textAnchor: 'end', textBaseline: 'middle', baseline: 'middle' }); });
+  let hiddenLabels = 0, visibleLabels = 0;
+  data.rows.forEach((row, index) => { const xIndex = xValues.indexOf(String(row[xField])), yIndex = yValues.indexOf(String(row[yField])), value = numericValue(row), ratio = Number.isFinite(value) ? (value - min) / (max - min || 1) : 0, cellFill = Number.isFinite(value) ? colorMix(low, high, ratio) : missing, geometry = { x: state.plot.x + xIndex * width + gap / 2, y: state.plot.y + yIndex * height + gap / 2, width: Math.max(1, width - gap), height: Math.max(1, height - gap) }; scene.add(new SceneNode({ id: `heatmap-cell-${index}`, type: 'rect', geometry, bounds: geometry, style: { fill: cellFill, stroke: spec.theme.background, strokeWidth: 1 }, dataRef: { dataIndex: index, x: row[xField], y: row[yField], value: Number.isFinite(value) ? value : null, recordId: row.id || `record-${index}` }, interactive: true })); if (spec.labels?.enabled && Number.isFinite(value)) { const label = formatValue(value, spec.labels.format, spec.locale), size = fontSize(spec, 'label', 12); if (geometry.width >= estimateTextWidth(label, size, labelFont(spec)) + 8 && geometry.height >= size * 1.35) { addText(scene, `heatmap-cell-label-${index}`, label, geometry.x + geometry.width / 2, geometry.y + geometry.height / 2, { fill: readableLabelColor(spec, cellFill), font: spec.labels.font || font(spec, 'label'), textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle' }); visibleLabels += 1; } else hiddenLabels += 1; } });
+  state.labelLayout = { ...(state.labelLayout || {}), heatmap: { hidden: hiddenLabels, visible: visibleLabels } };
+  if (hiddenLabels) data.warnings.push({ code: 'LABELS_SUPPRESSED', path: 'labels', count: hiddenLabels, message: `${hiddenLabels} heatmap labels were suppressed because cells are too small.`, suggestion: 'Increase chart width or height, reduce the matrix, or disable labels.' });
+  state.matrix = { xValues, yValues, min, max };
+}
+
+function addRadarScene(scene, spec, data, state, colors) {
+  const indicators = spec.indicators, cx = state.plot.x + state.plot.width / 2, cy = state.plot.y + state.plot.height / 2, radius = Math.min(state.plot.width, state.plot.height) * .44;
+  if (indicators.some(indicator => !Number.isFinite(Number(indicator.min)) || !Number.isFinite(Number(indicator.max)))) data.warnings.push({ code: 'AMBIGUOUS_RADAR_DOMAIN', message: 'Declare finite min and max for every radar indicator, especially for mixed units.' });
+  const point = (indicator, index, ratio = 1) => { const angle = -Math.PI / 2 + index * Math.PI * 2 / indicators.length; return { x: cx + Math.cos(angle) * radius * ratio, y: cy + Math.sin(angle) * radius * ratio }; };
+  [0.25, 0.5, 0.75, 1].forEach((ratio, level) => scene.add(new SceneNode({ id: `radar-grid-${level}`, type: 'path', geometry: { points: indicators.map((indicator, index) => point(indicator, index, ratio)), closed: true }, style: { fill: 'none', stroke: spec.theme.grid, strokeWidth: spec.theme.marks.gridWidth } })));
+  const labelSize = fontSize(spec, 'axis', 12), occupied = [], labelTop = Math.max(4, state.plot.y - labelSize * 2), labelArea = { x: 4, y: labelTop, width: spec.width - 8, height: Math.max(1, state.plot.y + state.plot.height - labelTop) };
+  let hiddenLabels = 0;
+  indicators.forEach((indicator, index) => {
+    const edge = point(indicator, index), angle = -Math.PI / 2 + index * Math.PI * 2 / indicators.length;
+    scene.add(new SceneNode({ id: `radar-axis-${index}`, type: 'line', geometry: { x1: cx, y1: cy, x2: edge.x, y2: edge.y }, style: { stroke: spec.theme.axis } }));
+    const rawText = String(indicator.name || indicator.field), labelText = truncateText(rawText, Math.max(48, state.plot.width * .28), labelSize);
+    const width = estimateTextWidth(labelText, labelSize), height = labelSize * 1.3, anchor = Math.cos(angle) > .2 ? 'start' : Math.cos(angle) < -.2 ? 'end' : 'middle';
+    const candidates = [];
+    [1.14, 1.26, 1.38, 1.5].forEach(ratio => {
+      const base = point(indicator, index, ratio);
+      [0, -height, height, -2 * height, 2 * height].forEach(offset => candidates.push({ x: base.x, y: base.y + offset }));
+    });
+    const placement = candidates.map(candidate => {
+      let x = candidate.x, y = candidate.y;
+      let box = { x: anchor === 'start' ? x : anchor === 'end' ? x - width : x - width / 2, y: y - height / 2, width, height };
+      const dx = box.x < labelArea.x ? labelArea.x - box.x : box.x + box.width > labelArea.x + labelArea.width ? labelArea.x + labelArea.width - box.x - box.width : 0;
+      const dy = box.y < labelArea.y ? labelArea.y - box.y : box.y + box.height > labelArea.y + labelArea.height ? labelArea.y + labelArea.height - box.y - box.height : 0;
+      x += dx; y += dy; box = { ...box, x: box.x + dx, y: box.y + dy };
+      return { x, y, box };
+    }).find(candidate => !occupied.some(box => boxesOverlap(candidate.box, box, 3)));
+    if (!placement) { hiddenLabels += 1; return; }
+    occupied.push(placement.box);
+    addText(scene, `radar-label-${index}`, labelText, placement.x, placement.y, { fill: spec.theme.muted, font: font(spec, 'axis'), textAnchor: anchor, textBaseline: 'middle', baseline: 'middle' });
+  });
+    data.rows.forEach((row, seriesIndex) => { const points = indicators.map((indicator, index) => { const min = Number(indicator.min ?? 0), max = Number(indicator.max ?? 1), raw = row[indicator.field], value = raw == null || raw === '' ? NaN : Number(raw); if (!Number.isFinite(value)) data.warnings.push({ code: 'INVALID_RADAR_VALUE', path: `rows.${seriesIndex}.${indicator.field}`, message: 'Radar indicator value must be numeric.' }); return point(indicator, index, Number.isFinite(value) ? Math.max(0, Math.min(1, (value - min) / (max - min || 1))) : 0); }); scene.add(new SceneNode({ id: `radar-series-${seriesIndex}`, type: 'path', geometry: { points, closed: true }, style: markStyle(spec, { fill: `${colors[seriesIndex % colors.length]}33`, stroke: colors[seriesIndex % colors.length], strokeWidth: markWidth(spec) }), dataRef: { dataIndex: seriesIndex, recordId: row.id || `record-${seriesIndex}` } })); points.forEach((position, indicatorIndex) => { const radius = markRadius(spec), dataRef = { dataIndex: seriesIndex, indicatorIndex, field: indicators[indicatorIndex].field, recordId: row.id || `record-${seriesIndex}` }; scene.add(new SceneNode({ id: `radar-item-${seriesIndex}-${indicatorIndex}`, type: 'circle', geometry: { cx: position.x, cy: position.y, r: radius }, bounds: { x: position.x - radius - 2, y: position.y - radius - 2, width: radius * 2 + 4, height: radius * 2 + 4 }, style: markStyle(spec, { fill: colors[seriesIndex % colors.length] }), dataRef, interactive: true })); addMarkLabel(scene, spec, `radar-item-${seriesIndex}-${indicatorIndex}`, row[indicators[indicatorIndex].field], position.x, position.y - radius - 2, dataRef, state.plot, { x: position.x, y: position.y, radius }); }); });
+  state.indicators = indicators.map(indicator => ({ ...indicator }));
+  state.labelLayout = { ...(state.labelLayout || {}), radar: { hidden: hiddenLabels, visible: indicators.length - hiddenLabels } };
+  if (hiddenLabels) data.warnings.push({ code: 'LABELS_SUPPRESSED', path: 'indicators', message: `${hiddenLabels} radar labels were suppressed because the available chart area cannot place them without overlap.`, suggestion: 'Increase chart width or height, shorten indicator names, or reduce the indicator count.' });
+}
+
+function timeTicks(min, max, count) { return Array.from({ length: count }, (_, index) => min + (max - min) * index / Math.max(1, count - 1)); }
+function formatTime(value, span, format, locale = 'en-US') { const date = new Date(value); if (format) { const options = typeof format === 'string' ? { style: format } : format; return formatValue(value, options?.style || options?.options ? { style: options.style || 'date', ...options } : { style: 'date', options }, locale); } const days = span / 86400000, nowYear = date.getUTCFullYear(), startYear = new Date(value - span).getUTCFullYear(); if (days > 365 || (nowYear !== startYear && days > 45)) return String(nowYear); if (days > 60) return `${nowYear}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`; return `${date.getUTCMonth() + 1}/${date.getUTCDate()}${nowYear !== startYear ? `/${nowYear}` : ''}`; }
+
+
+export const standardChartTypes = ['line', 'area', 'bar', 'column', 'pie', 'scatter', 'funnel', 'gauge', 'heatmap', 'radar'];
+
+export function buildStandardScene(input) {
+  const { spec, axisFreeBottomPadding } = prepareChartChrome(input);
   const data = spec.transform ? applyTransforms(spec.data, spec.transform) : normalizeData(spec.data);
-  const scene = new Scene(spec.width, spec.height), series = Array.isArray(spec.encoding.y) ? spec.encoding.y : [spec.encoding.y || { field: 'value', name: 'Value' }], title = addTitle(scene, spec, data.warnings), legend = addLegend(scene, spec, legendEntries(spec, data, series), title), state = layout(spec, data, series, title, legend);
-  scene._labelArea = state.plot;
-  if (!axisFree.has(spec.type)) addAxes(scene, spec, state);
-  if (!data.rows.length) { addAnnotations({ scene, data, state }, spec); text(scene, 'empty', spec.emptyText || 'No data', spec.width / 2, spec.height / 2, { fill: spec.theme.muted, font: font(spec, 'subtitle'), textAnchor: 'middle' }); return { scene, data, state }; }
-  if (spec.type === 'pie') {
-    const category = spec.encoding.category?.field || 'name', field = spec.encoding.value?.field || 'value', values = data.rows.map(row => Number(row[field])), total = values.reduce((sum, value) => sum + (value > 0 ? value : 0), 0), cx = spec.width / 2, cy = state.plot.y + state.plot.height / 2, radius = Math.min(state.plot.width, state.plot.height) * .44; let angle = -Math.PI / 2;
-    data.rows.forEach((row, index) => { const raw = values[index], value = Number.isFinite(raw) ? Math.max(0, raw) : 0, end = angle + (total ? value / total : 0) * Math.PI * 2, fill = spec.colors[index % spec.colors.length]; scene.add(new SceneNode({ id: `series-0-item-${index}`, type: 'arc', geometry: { cx, cy, r: radius, start: angle, end }, bounds: { x: cx - radius, y: cy - radius, width: radius * 2, height: radius * 2 }, style: { fill, stroke: spec.theme.background, strokeWidth: 1 }, dataRef: { dataIndex: index, category: row[category], value: raw }, interactive: true })); if (spec.labels?.enabled && total) { const label = formatValue(value / total, spec.labels.format || { style: 'percent' }, spec.locale), placement = polarLabelLayout(label, { cx, cy, outerRadius: radius, size: fontSize(spec, 'label', 12), font: labelFont(spec), minSize: 10, padding: 4, startAngle: angle, endAngle: end }); text(scene, `series-0-item-${index}-label`, label, placement.x, placement.y, { fill: spec.labels.color || colorForText(spec, fill), font: fontAtSize(labelFont(spec), placement.size), textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle' }, { dataIndex: index }); if (placement.overflowed) data.warnings.push({ code: 'POLAR_LABEL_OVERFLOW', path: 'labels', message: 'Pie label exceeds its sector.', suggestion: 'Increase chart size or reduce label density.' }); } angle = end; });
-    if (values.some(value => value < 0)) data.warnings.push({ code: 'NEGATIVE_VALUE_DROPPED', path: `data.values.${field}`, message: 'Negative pie values are ignored when calculating shares.', suggestion: 'Use non-negative part-to-whole values.' });
-  } else if (spec.type === 'funnel') {
-    const field = spec.encoding.value?.field || 'value', category = spec.encoding.category?.field || 'name', max = Math.max(...data.rows.map(row => Number(row[field]) || 0), 1), height = state.plot.height / data.rows.length;
-    data.rows.forEach((row, index) => { const value = Number(row[field]) || 0, width = state.plot.width * Math.max(.1, value / max), geometry = { x: state.plot.x + (state.plot.width - width) / 2, y: state.plot.y + index * height, width, height: Math.max(2, height - 3) }, fill = spec.colors[index % spec.colors.length]; scene.add(new SceneNode({ id: `series-0-item-${index}`, type: 'rect', geometry, bounds: geometry, style: { fill }, dataRef: { dataIndex: index, category: row[category], value }, interactive: true })); text(scene, `funnel-label-${index}`, truncateText(row[category] ?? `Stage ${index + 1}`, Math.max(20, width - 8), fontSize(spec, 'label', 12), labelFont(spec)), geometry.x + width / 2, geometry.y + geometry.height / 2 - (spec.labels?.enabled ? fontSize(spec, 'label', 12) * .6 : 0), { fill: spec.labels?.color || colorForText(spec, fill), font: labelFont(spec), textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle' }); if (spec.labels?.enabled) text(scene, `funnel-value-${index}`, formatValue(value, spec.labels.format, spec.locale), geometry.x + width / 2, geometry.y + geometry.height / 2 + fontSize(spec, 'label', 12) * .65, { fill: spec.labels.color || colorForText(spec, fill), font: labelFont(spec), textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle' }); });
-  } else if (spec.type === 'gauge') {
-    const field = spec.encoding.value?.field || 'value', value = Number(data.rows[0]?.[field]) || 0, domain = spec.domain || [0, 100], ratio = Math.max(0, Math.min(1, (value - domain[0]) / (domain[1] - domain[0] || 1))), cx = spec.width / 2, cy = state.plot.y + state.plot.height * .66, radius = Math.min(state.plot.width * .42, state.plot.height * .62); scene.add(new SceneNode({ id: 'gauge-background', type: 'arc', geometry: { cx, cy, r: radius, start: Math.PI, end: Math.PI * 2 }, style: { fill: spec.theme.grid } })); scene.add(new SceneNode({ id: 'gauge-value', type: 'arc', geometry: { cx, cy, r: radius, start: Math.PI, end: Math.PI + Math.PI * ratio }, style: { fill: spec.colors[0] }, interactive: true })); const label = formatValue(value, spec.labels?.format, spec.locale), effectiveFont = spec.labels?.font || font(spec, 'metric'), placement = polarLabelLayout(label, { position: 'center', cx, cy, outerRadius: radius, size: fontPixels(effectiveFont, 24), font: effectiveFont, minSize: 12 }); text(scene, 'gauge-label', label, placement.x, placement.y, { fill: spec.labels?.color || spec.theme.text, font: fontAtSize(effectiveFont, placement.size), textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle' }); if (placement.overflowed) data.warnings.push({ code: 'POLAR_LABEL_OVERFLOW', path: 'labels', message: 'Gauge label exceeds its body.', suggestion: 'Increase chart size or reduce font size.' });
-  } else if (spec.type === 'radar') {
-    const category = spec.encoding.category?.field || 'name', metrics = spec.indicators.map(indicator => indicator.field), cx = spec.width / 2, cy = state.plot.y + state.plot.height / 2, radius = Math.min(state.plot.width, state.plot.height) * .36;
-    metrics.forEach((metric, index) => { const angle = -Math.PI / 2 + index * Math.PI * 2 / Math.max(1, metrics.length), x = cx + Math.cos(angle) * radius, y = cy + Math.sin(angle) * radius; scene.add(new SceneNode({ id: `radar-axis-${index}`, type: 'line', geometry: { x1: cx, y1: cy, x2: x, y2: y }, style: { stroke: spec.theme.grid } })); text(scene, `radar-label-${index}`, spec.indicators[index].name || metric, cx + Math.cos(angle) * (radius + 18), cy + Math.sin(angle) * (radius + 18), { fill: spec.theme.text, font: font(spec, 'axis'), textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle' }); });
-    data.rows.forEach((row, seriesIndex) => { const points = metrics.map((metric, index) => { const angle = -Math.PI / 2 + index * Math.PI * 2 / Math.max(1, metrics.length), indicator = spec.indicators[index], ratio = Math.max(0, Math.min(1, (Number(row[metric]) - (indicator.min || 0)) / ((indicator.max ?? 1) - (indicator.min || 0) || 1))); return { x: cx + Math.cos(angle) * radius * ratio, y: cy + Math.sin(angle) * radius * ratio }; }); scene.add(new SceneNode({ id: `radar-series-${seriesIndex}`, type: 'path', geometry: { points, closed: true }, style: { fill: `${spec.colors[seriesIndex % spec.colors.length]}55`, stroke: spec.colors[seriesIndex % spec.colors.length], strokeWidth: 2 }, interactive: true })); points.forEach((point, index) => addMarkLabel(scene, spec, `radar-${seriesIndex}-${index}`, row[metrics[index]], point.x, point.y - 12, { dataIndex: seriesIndex, field: metrics[index] })); });
-  } else if (spec.type === 'heatmap') {
-    const xField = spec.encoding.x?.field || 'x', yField = spec.encoding.y?.field || 'y', valueField = spec.encoding.color?.field || 'value', xs = [...new Set(data.rows.map(row => String(row[xField])))], ys = [...new Set(data.rows.map(row => String(row[yField])))], cellWidth = state.plot.width / Math.max(1, xs.length), cellHeight = state.plot.height / Math.max(1, ys.length), max = Math.max(1, ...data.rows.map(row => Number(row[valueField]) || 0));
-    data.rows.forEach((row, index) => { const xIndex = xs.indexOf(String(row[xField])), yIndex = ys.indexOf(String(row[yField])), value = Number(row[valueField]) || 0, geometry = { x: state.plot.x + xIndex * cellWidth, y: state.plot.y + yIndex * cellHeight, width: cellWidth - 1, height: cellHeight - 1 }, fill = spec.colors[Math.min(spec.colors.length - 1, Math.floor(Math.max(0, value / max) * spec.colors.length))]; scene.add(new SceneNode({ id: `heatmap-${index}`, type: 'rect', geometry, bounds: geometry, style: { fill }, dataRef: { dataIndex: index, value }, interactive: true })); addMarkLabel(scene, spec, `heatmap-${index}`, value, geometry.x + geometry.width / 2, geometry.y + geometry.height / 2, { dataIndex: index }, colorForText(spec, fill), geometry); });
-  } else {
-    const values = series, accumulators = data.rows.map(() => 0), band = state.plot.width / Math.max(1, state.categories.length);
-    values.forEach((encoding, seriesIndex) => data.rows.forEach((row, index) => { const value = Number(row[encoding.field]) || 0, x = state.x(row[state.xField]), y = state.y(value), base = state.y(0), dataRef = { seriesIndex, dataIndex: index, field: encoding.field }; if (spec.type === 'line' || spec.type === 'area') { if (index > 0) { const previous = data.rows[index - 1], previousValue = Number(previous[encoding.field]) || 0; scene.add(new SceneNode({ id: `series-${seriesIndex}-line-${index}`, type: 'line', geometry: { x1: state.x(previous[state.xField]), y1: state.y(previousValue), x2: x, y2: y }, style: { stroke: spec.colors[seriesIndex], strokeWidth: 2 } })); } scene.add(new SceneNode({ id: `series-${seriesIndex}-point-${index}`, type: 'circle', geometry: { cx: x, cy: y, r: 4 }, bounds: { x: x - 6, y: y - 6, width: 12, height: 12 }, style: { fill: spec.colors[seriesIndex] }, dataRef, interactive: true })); addMarkLabel(scene, spec, `series-${seriesIndex}-point-${index}`, value, x, y - 10, dataRef); } else if (spec.type === 'scatter') { scene.add(new SceneNode({ id: `scatter-${index}`, type: 'circle', geometry: { cx: state.x(row[state.xField]), cy: state.y(value), r: 5 }, bounds: { x: state.x(row[state.xField]) - 7, y: state.y(value) - 7, width: 14, height: 14 }, style: { fill: spec.colors[0] }, dataRef, interactive: true })); addMarkLabel(scene, spec, `scatter-${index}`, value, state.x(row[state.xField]), state.y(value) - 14, dataRef); } else { const vertical = spec.type === 'column', barWidth = band * .58 / Math.max(1, values.length), start = vertical ? state.x(row[state.xField]) - band * .29 + seriesIndex * barWidth : state.plot.x + ((accumulators[index] - state.domain[0]) / (state.domain[1] - state.domain[0] || 1)) * state.plot.width, geometry = vertical ? { x: start, y: Math.min(base, y), width: barWidth - 2, height: Math.abs(base - y) } : { x: Math.min(start, state.plot.x + ((value - state.domain[0]) / (state.domain[1] - state.domain[0] || 1)) * state.plot.width), y: state.plot.y + index * state.plot.height / data.rows.length + 3, width: Math.abs(((value - state.domain[0]) / (state.domain[1] - state.domain[0] || 1)) * state.plot.width - ((accumulators[index] - state.domain[0]) / (state.domain[1] - state.domain[0] || 1)) * state.plot.width), height: Math.max(8, state.plot.height / data.rows.length - 6) }; scene.add(new SceneNode({ id: `series-${seriesIndex}-item-${index}`, type: 'rect', geometry, bounds: geometry, style: { fill: spec.colors[seriesIndex] }, dataRef, interactive: true })); addMarkLabel(scene, spec, `series-${seriesIndex}-item-${index}`, value, vertical ? geometry.x + geometry.width / 2 : geometry.x + geometry.width + 10, vertical ? geometry.y - 6 : geometry.y + geometry.height / 2, dataRef, colorForText(spec, spec.colors[seriesIndex])); accumulators[index] += value; } }));
+  if (spec.view && (spec.view.start !== undefined || spec.view.end !== undefined)) {
+    const start = Math.max(0, Number(spec.view.start) || 0), end = Math.min(data.rows.length, spec.view.end === undefined ? data.rows.length : Number(spec.view.end));
+    data.rows = data.rows.slice(start, Math.max(start, end));
+    data.viewOffset = start;
   }
-  if (scene._suppressedLabels) data.warnings.push({ code: 'LABELS_SUPPRESSED', path: 'labels', count: scene._suppressedLabels, message: 'Data labels exceed the available collision-free space.', suggestion: 'Increase chart size or reduce label font/density.' });
+  const scene = new Scene(spec.width, spec.height);
+  scene._labelLayout = { visible: 0, wrapped: 0, scaled: 0, truncated: 0, suppressed: 0, collisions: 0, backgrounded: 0 };
+  const colors = spec.colors;
+  const series = Array.isArray(spec.encoding.y) ? spec.encoding.y : [{ ...spec.encoding.y, name: spec.encoding.y?.name || spec.encoding.y?.field }];
+  const entries = legendEntries(spec, data, series, colors);
+  const state = layout(spec, data, entries, { axisFreeBottomPadding });
+  if (state.chrome.legend.truncatedCount) data.warnings.push({ code: 'LEGEND_OVERFLOW', path: 'legend', count: state.chrome.legend.truncatedCount, message: `${state.chrome.legend.truncatedCount} legend label${state.chrome.legend.truncatedCount === 1 ? '' : 's'} exceeded the available width and was truncated.`, suggestion: 'Use shorter category names or a wider chart.' });
+  state.axisTitleWarnings.forEach(({ path, title, availableWidth }) => data.warnings.push({ code: 'TITLE_TRUNCATED', path, availableWidth, message: `Axis title "${title}" exceeded the available vertical plot space and was truncated.`, suggestion: 'Use a taller chart or a shorter axis title.' }));
+  scene._labelArea = state.plot;
+  addTitleText(scene, spec, state.chrome.title, data.warnings);
+  if (!['pie', 'funnel', 'gauge', 'heatmap', 'radar'].includes(spec.type)) addAxes(scene, spec, state);
+  if (!data.rows.length) { addAnnotations({ scene, data, state }, spec); addEmptyState(scene, spec, state.plot); addBranding(scene, spec); return { scene, data, state }; }
+  if (spec.type === 'heatmap') addHeatmapScene(scene, spec, data, state, colors);
+  else if (spec.type === 'radar') addRadarScene(scene, spec, data, state, colors);
+  else if (spec.type === 'line' || spec.type === 'area') {
+    const mode = typeof spec.stack === 'string' ? spec.stack : spec.stack?.mode, accumulators = data.rows.map(() => ({ positive: 0, negative: 0 }));
+    series.forEach((encoding, seriesIndex) => { const yMap = seriesIndex === 1 && !mode ? state.yRight : state.y, values = data.rows.map(row => Number(row[encoding.field])), totals = data.rows.map((row, index) => series.reduce((sum, item) => sum + Math.abs(Number(row[item.field]) || 0), 0) || Math.abs(values[index]) || 1); const points = [], bases = []; data.rows.forEach((row, index) => { let value = values[index]; if (!Number.isFinite(value)) return; if (mode === 'percent') value /= totals[index]; const accumulator = value >= 0 ? 'positive' : 'negative', start = mode ? accumulators[index][accumulator] : 0, end = mode ? start + value : value; if (mode) accumulators[index][accumulator] = end; points.push({ x: state.x(pick(row, spec.encoding.x, 'name')), y: yMap(end), labelY: mode ? (yMap(start) + yMap(end)) / 2 : yMap(end) - 8, row, index, value }); bases.push({ x: state.x(pick(row, spec.encoding.x, 'name')), y: yMap(start) }); }); if (spec.type === 'area' && points.length) scene.add(new SceneNode({ id: `area-fill-${seriesIndex}`, type: 'path', geometry: { points: [...bases.slice().reverse(), ...points.map(point => ({ x: point.x, y: point.y }))], closed: true }, style: markStyle(spec, { fill: `${colors[seriesIndex]}33`, stroke: 'transparent' }) })); if (points.length > 1) scene.add(new SceneNode({ id: `series-${seriesIndex}-line`, type: 'path', geometry: { points, closed: false }, style: markStyle(spec, { stroke: colors[seriesIndex], strokeWidth: markWidth(spec), fill: 'none' }) })); points.forEach(point => { const radius = markRadius(spec), dataRef = { seriesIndex, dataIndex: point.index, field: encoding.field }; scene.add(new SceneNode({ id: `series-${seriesIndex}-item-${point.index}`, type: 'circle', geometry: { cx: point.x, cy: point.y, r: radius }, bounds: { x: point.x - radius - 3, y: point.y - radius - 3, width: radius * 2 + 6, height: radius * 2 + 6 }, style: markStyle(spec, { fill: colors[seriesIndex] }), dataRef, interactive: true })); addMarkLabel(scene, spec, `series-${seriesIndex}-item-${point.index}`, point.value, point.x, point.labelY, dataRef, state.plot, mode ? null : { x: point.x, y: point.y, radius }); }); });
+  } else if (spec.type === 'bar' || spec.type === 'column') {
+    const band = state.plot.width / Math.max(1, state.categories.length), bar = band * 0.58;
+    const mode = typeof spec.stack === 'string' ? spec.stack : spec.stack?.mode, accumulators = data.rows.map(() => ({ positive: 0, negative: 0 }));
+    series.forEach((encoding, seriesIndex) => { if (encoding.mark === 'line') { const yMap = encoding.axis === 'right' ? state.yRight : state.y, points = data.rows.map((row, index) => ({ x: state.x(row[state.xField]), y: yMap(row[encoding.field]), index, value: Number(row[encoding.field]) })).filter(point => Number.isFinite(point.y)); if (points.length > 1) scene.add(new SceneNode({ id: `series-${seriesIndex}-line`, type: 'path', geometry: { points, closed: false }, style: markStyle(spec, { fill: 'none', stroke: colors[seriesIndex], strokeWidth: markWidth(spec) }) })); points.forEach(point => { const radius = markRadius(spec), dataRef = { seriesIndex, dataIndex: point.index, field: encoding.field }; scene.add(new SceneNode({ id: `series-${seriesIndex}-item-${point.index}`, type: 'circle', geometry: { cx: point.x, cy: point.y, r: radius }, bounds: { x: point.x - radius - 2, y: point.y - radius - 2, width: radius * 2 + 4, height: radius * 2 + 4 }, style: markStyle(spec, { fill: colors[seriesIndex] }), dataRef, interactive: true })); addMarkLabel(scene, spec, `series-${seriesIndex}-item-${point.index}`, point.value, point.x, point.y - radius - 2, dataRef, null, { x: point.x, y: point.y, radius }); }); return; } data.rows.forEach((row, index) => { let value = Number(row[encoding.field]) || 0; const barSeries = series.filter(item => item.mark !== 'line'), barSeriesIndex = barSeries.indexOf(encoding), total = barSeries.reduce((sum, item) => sum + Math.abs(Number(row[item.field]) || 0), 0) || 1; if (mode === 'percent') value /= total; const accumulator = value >= 0 ? 'positive' : 'negative', start = mode ? accumulators[index][accumulator] : 0, end = start + value; if (mode) accumulators[index][accumulator] = end; const yMap = encoding.axis === 'right' ? state.yRight : state.y, base = yMap(start), valueY = yMap(end); const vertical = spec.type === 'column'; const horizontalStart = state.plot.x + ((start - state.min) / (state.max - state.min || 1)) * state.plot.width, horizontalEnd = state.plot.x + ((end - state.min) / (state.max - state.min || 1)) * state.plot.width, rowBand = state.plot.height / Math.max(1, data.rows.length), totalHeight = rowBand * .62, itemHeight = mode ? totalHeight : totalHeight / Math.max(1, barSeries.length); const geometry = vertical ? { x: state.x(row[state.xField]) - bar / 2 + (mode ? 0 : seriesIndex * bar / Math.max(1, series.length)), y: Math.min(base, valueY), width: mode ? bar : bar / Math.max(1, series.length), height: Math.abs(base - valueY) } : { x: Math.min(horizontalStart, horizontalEnd), y: state.plot.y + index * rowBand + (rowBand - totalHeight) / 2 + (mode ? 0 : barSeriesIndex * itemHeight), width: Math.abs(horizontalEnd - horizontalStart), height: itemHeight }; const dataRef = { seriesIndex, dataIndex: index, field: encoding.field, stackStart: start, stackEnd: end }; scene.add(new SceneNode({ id: `series-${seriesIndex}-item-${index}`, type: 'rect', geometry, bounds: geometry, style: markStyle(spec, { fill: colors[seriesIndex] }), dataRef, interactive: true })); addMarkLabel(scene, spec, `series-${seriesIndex}-item-${index}`, value, vertical ? geometry.x + geometry.width / 2 : geometry.x + geometry.width + 12, vertical ? geometry.y - 5 : geometry.y + geometry.height / 2 + 4, dataRef); }); });
+  } else if (spec.type === 'scatter') {
+    data.rows.forEach((row, index) => { const xValue = Number(row[state.xField]), yValue = Number(row[state.yField]); if (!Number.isFinite(xValue) || !Number.isFinite(yValue)) return; const radius = markRadius(spec), geometry = { cx: state.x(xValue), cy: state.y(yValue), r: radius }, dataRef = { seriesIndex: 0, dataIndex: index, field: state.yField }; scene.add(new SceneNode({ id: `series-0-item-${index}`, type: 'circle', geometry, bounds: { x: geometry.cx - radius - 3, y: geometry.cy - radius - 3, width: radius * 2 + 6, height: radius * 2 + 6 }, style: markStyle(spec, { fill: colors[0] }), dataRef, interactive: true })); addMarkLabel(scene, spec, `series-0-item-${index}`, yValue, geometry.cx, geometry.cy - radius - 3, dataRef, state.plot, { x: geometry.cx, y: geometry.cy, radius }); });
+  } else if (spec.type === 'pie') {
+    const categoryField = spec.encoding.category?.field || 'name', valueField = spec.encoding.value?.field || 'value', values = data.rows.map(row => Number(row[valueField])), total = values.reduce((sum, value) => sum + (Number.isFinite(value) && value > 0 ? value : 0), 0), negativeCount = values.filter(value => Number.isFinite(value) && value < 0).length, cx = state.plot.x + state.plot.width / 2, cy = state.plot.y + state.plot.height / 2, radius = Math.min(state.plot.width, state.plot.height) * 0.46, innerR = radius * Number(spec.innerRadius || 0); let angle = -Math.PI / 2;
+    const polarLabels = { visible: 0, scaled: 0, overflowed: 0, suppressed: 0 };
+    if (negativeCount) data.warnings.push({ code: 'NEGATIVE_VALUE_DROPPED', path: 'encoding.value', count: negativeCount, message: `Pie ignores ${negativeCount} negative value${negativeCount === 1 ? '' : 's'} when calculating shares.`, suggestion: 'Use non-negative part-to-whole values or choose a Cartesian chart for signed measures.' });
+    if (!(total > 0)) { data.warnings.push({ code: 'ZERO_TOTAL', path: 'encoding.value', message: 'Pie requires a positive total.', suggestion: 'Provide at least one positive value or render an explicit empty state.' }); addEmptyState(scene, spec, state.plot, 'positive', 'pie-zero-total'); }
+    else data.rows.forEach((row, index) => { const rawValue = values[index], value = Number.isFinite(rawValue) ? Math.max(0, rawValue) : 0, end = angle + value / total * Math.PI * 2, fill = colors[index % colors.length], dataRef = { seriesIndex: 0, dataIndex: index, category: row[categoryField], value, rawValue }; scene.add(new SceneNode({ id: `series-0-item-${index}`, type: 'arc', geometry: { cx, cy, r: radius, innerR, start: angle, end }, bounds: { x: cx - radius, y: cy - radius, width: radius * 2, height: radius * 2 }, style: markStyle(spec, { fill, stroke: spec.theme.background, strokeWidth: spec.theme.marks.gridWidth }), dataRef, interactive: true })); if (spec.labels?.enabled) { const label = formatValue(value / total, spec.labels.format || { style: 'percent' }, spec.locale), placement = polarLabelLayout(label, { cx, cy, outerRadius: radius, innerRadius: innerR, startAngle: angle, endAngle: end, size: fontSize(spec, 'label', 12), font: labelFont(spec), minSize: 10, padding: 4 }); addText(scene, `series-0-item-${index}-label`, label, placement.x, placement.y, { fill: readableLabelColor(spec, fill), font: fontAtSize(spec.labels.font || font(spec, 'label'), placement.size), textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle' }, dataRef); polarLabels.visible += 1; if (placement.scaled) polarLabels.scaled += 1; if (placement.overflowed) polarLabels.overflowed += 1; } angle = end; });
+    state.labelLayout = { ...(state.labelLayout || {}), polar: polarLabels };
+    if (polarLabels.overflowed) data.warnings.push({ code: 'POLAR_LABEL_OVERFLOW', path: 'labels', count: polarLabels.overflowed, message: `${polarLabels.overflowed} pie label${polarLabels.overflowed === 1 ? '' : 's'} exceeded the available sector space and may overflow its sector.`, suggestion: 'Increase chart size, reduce the number of slices, or rely on the legend for small sectors.' });
+  } else if (spec.type === 'funnel') {
+    const categoryField = spec.encoding.category?.field || 'name', valueField = spec.encoding.value?.field || 'value'; const maxValue = Math.max(...data.rows.map(row => Number(row[valueField]) || 0), 1); const segmentHeight = state.plot.height / data.rows.length;
+    data.rows.forEach((row, index) => { const value = Number(row[valueField]) || 0, category = String(row[categoryField] ?? row.name ?? row.id ?? `Stage ${index + 1}`), ratio = Math.max(0.1, value / maxValue), fill = colors[index % colors.length]; const width = state.plot.width * ratio; const geometry = { x: state.plot.x + (state.plot.width - width) / 2, y: state.plot.y + index * segmentHeight, width, height: Math.max(2, segmentHeight - 3) }, dataRef = { seriesIndex: 0, dataIndex: index, field: valueField, category, value }; scene.add(new SceneNode({ id: `series-0-item-${index}`, type: 'rect', geometry, bounds: geometry, style: markStyle(spec, { fill }), dataRef, interactive: true })); const labelSize = fontSize(spec, 'label', 12), textColor = readableLabelColor(spec, fill), availableWidth = Math.max(labelSize * 2, width - 12), label = truncateText(category, availableWidth, labelSize, labelFont(spec)); if (label !== category) data.warnings.push({ code: 'FUNNEL_LABEL_TRUNCATED', path: `data.values[${index}].${categoryField}`, index, rawLabel: category, renderedLabel: label, availableWidth, message: `Funnel stage label "${category}" was truncated to "${label}" because the stage is too narrow.`, suggestion: 'Increase chart width, shorten the stage label, or use a wider stage/value distribution.' }); addText(scene, `funnel-category-${index}`, label, geometry.x + geometry.width / 2, geometry.y + geometry.height / 2 - (spec.labels?.enabled ? labelSize * 0.6 : 0), { fill: textColor, font: spec.labels?.font || font(spec, 'label'), textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle' }, dataRef); if (spec.labels?.enabled) addText(scene, `funnel-value-${index}`, formatValue(value, spec.labels.format, spec.locale), geometry.x + geometry.width / 2, geometry.y + geometry.height / 2 + labelSize * 0.65, { fill: textColor, font: spec.labels?.font || font(spec, 'label'), textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle' }, dataRef); });
+  } else if (spec.type === 'gauge') {
+    const valueField = spec.encoding.value?.field || 'value', domain = Array.isArray(spec.domain) ? spec.domain : [0, 100], rawValue = Number(data.rows[0]?.[valueField]), numericValue = Number.isFinite(rawValue) ? rawValue : 0, value = Math.max(Number(domain[0]), Math.min(Number(domain[1]), numericValue)), ratio = (value - Number(domain[0])) / (Number(domain[1]) - Number(domain[0]) || 1), cx = state.plot.x + state.plot.width / 2, cy = state.plot.y + state.plot.height * 0.68, radius = Math.min(state.plot.width * 0.42, state.plot.height * 0.62), start = Math.PI, end = start + Math.PI * ratio;
+    if (!Array.isArray(spec.domain)) data.warnings.push({ code: 'MISSING_GAUGE_DOMAIN', path: 'domain', message: 'Gauge rendered with a compatibility fallback; provide an explicit domain to make the value meaningful.' });
+    if (numericValue < Number(domain[0]) || numericValue > Number(domain[1])) data.warnings.push({ code: 'VALUE_CLAMPED', path: `data.values[0].${valueField}`, count: 1, rawValue: numericValue, domain: [...domain], message: `Gauge value ${numericValue} is outside domain [${domain[0]}, ${domain[1]}] and was clamped for the arc.`, suggestion: 'Choose a domain that covers the value or review the source unit.' });
+    const label = formatValue(numericValue, spec.labels?.format || spec.encoding.value?.format || { maximumFractionDigits: 2 }, spec.locale), placement = polarLabelLayout(label, { position: 'center', cx, cy, outerRadius: radius, size: spec.labels?.font ? fontPixels(spec.labels.font) : fontSize(spec, 'metric', 24), font: spec.labels?.font || font(spec, 'metric'), minSize: 12, maxWidth: radius * 1.25, padding: 4, offsetRatio: 0.36 });
+    scene.add(new SceneNode({ id: 'gauge-background', type: 'arc', geometry: { cx, cy, r: radius, start: Math.PI, end: Math.PI * 2 }, style: { fill: spec.theme.grid } })); scene.add(new SceneNode({ id: 'gauge-value', type: 'arc', geometry: { cx, cy, r: radius, start, end }, style: { fill: colors[0] }, dataRef: { seriesIndex: 0, dataIndex: 0, value, rawValue: numericValue }, interactive: true })); addText(scene, 'gauge-label', label, placement.x, placement.y, { fill: spec.theme.text, font: fontAtSize(spec.labels?.font || font(spec, 'metric'), placement.size), textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle' });
+    state.labelLayout = { ...(state.labelLayout || {}), polar: { visible: 1, scaled: placement.scaled ? 1 : 0, overflowed: placement.overflowed ? 1 : 0, suppressed: 0 } };
+    if (placement.overflowed) data.warnings.push({ code: 'POLAR_LABEL_OVERFLOW', path: 'labels', count: 1, message: 'The Gauge value label exceeds the available body width.', suggestion: 'Increase chart size or reduce the metric font size.' });
+  }
   addAnnotations({ scene, data, state }, spec);
+  addLegend(scene, spec, state.chrome.legend);
+  state.labelLayout = { ...(state.labelLayout || {}), marks: scene._labelLayout };
+  if (scene._labelLayout.suppressed) data.warnings.push({ code: 'LABELS_SUPPRESSED', path: 'labels', count: scene._labelLayout.suppressed, message: `${scene._labelLayout.suppressed} data labels were suppressed because there was no collision-free placement.`, suggestion: 'Increase chart size, reduce label density, or disable labels.' });
+  addBranding(scene, spec);
   return { scene, data, state };
 }

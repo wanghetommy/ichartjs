@@ -16,9 +16,15 @@ for (const [name, type, count] of fixtures) {
   const chart = createChart({ type, renderer: 'auto', width: 960, height: 480, data: type === 'heatmap' ? data : data });
   const elapsedMs = Number((performance.now() - started).toFixed(2));
   const state = chart.getState();
-  results.push({ name, count, elapsedMs, renderer: state.rendererSelection.effective, recordCount: state.rendererSelection.recordCount, renderable: state.health.renderable });
+  const updateStarted = performance.now();
+  chart.setData(data);
+  const updateMs = Number((performance.now() - updateStarted).toFixed(2));
+  const resizeStarted = performance.now();
+  chart.resize(800, 400);
+  const resizeMs = Number((performance.now() - resizeStarted).toFixed(2));
+  results.push({ name, count, elapsedMs, updateMs, resizeMs, renderer: state.rendererSelection.effective, recordCount: state.rendererSelection.recordCount, renderable: state.health.renderable });
   chart.destroy();
   if (!state.health.renderable) throw new Error(`${name}: chart is not renderable`);
-  if (elapsedMs > 5000) throw new Error(`${name}: exceeded 5000ms local performance budget (${elapsedMs}ms)`);
+  if (Math.max(elapsedMs, updateMs, resizeMs) > 5000) throw new Error(`${name}: exceeded 5000ms local lifecycle budget (${Math.max(elapsedMs, updateMs, resizeMs)}ms)`);
 }
 console.log(JSON.stringify({ version: '1.0', policy: 'local-smoke-budget', results }, null, 2));
