@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 2.0.29 - 2026-10-12
+
+- Completed Iteration 29 layout and readability hardening: shared root/standard chart construction, font-aware chart chrome, localized empty states, visual mark tokens, formatted standard tooltips, explicit interaction gates, profile-family guards, and renderer-independent output checks.
+- Added real-browser acceptance readiness for isolated test ports and page-specific initialization signals; SVG/Canvas Gallery, Profile Loading, Accessibility Lab, Diagram Editor and Freeform Board scenarios now pass 39/39.
+- Extended performance checks to `setData()` and `resize()` and refreshed the measured profile footprint without changing public chart types or release version.
+
 ## 2.0.28 - 2026-10-09
 
 - Hardened array Patch insertion, append, removal and replacement, rejecting invalid paths/indices/JSON values atomically and preserving state on failure; empty batches are no-ops.

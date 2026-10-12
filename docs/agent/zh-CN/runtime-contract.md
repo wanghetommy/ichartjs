@@ -18,6 +18,8 @@ Agent 应优先使用 `getCapabilities()`，不要硬编码未声明的图表类
 
 Iteration 8 通过 `getChartCapability(type)` 提供逐图表能力档案，包括必需数据角色、支持的交互、Renderer、功能状态、导出和建议限制。Agent 不应猜测未声明能力。
 
+按能力拆分的 `/standard`、`/project`、`/diagram` 和 `/board` 入口，在创建和更新时都只接受自己声明的图表族。更新到其他图表族会返回 `PROFILE_TYPE_UNSUPPORTED`，应改用对应入口。主题变化会重新计算主题派生的配色、背景和内边距；宿主显式传入的值保持不变。
+
 `planChart(data, { intent, renderer })` 返回版本化规划结果：主选图表、备选项、置信度、原因、缺失字段、建议编码、假设、警告、不支持请求和安全下一步。规划不会虚构业务含义、单位、日期或缺失字段。
 
 未知 intent 还会返回 `intentKnown`、`intentSuggestions` 和 `fallbackUsed`。Spec 的通道按图表类型约束：笛卡尔图表是 `x`/`y`，Pie/Funnel 是 `category`/`value`，Gauge 只使用 `value`，Heatmap 是 `x`/`y`/`color`，Radar 字段位于 `indicators`。`validateSpec()` 会拒绝不支持的通道和缺失字段。Gauge 必须显式声明 `domain`，超出范围时会报告 `VALUE_CLAMPED`；Pie 的负值报告 `NEGATIVE_VALUE_DROPPED`，没有正数占比时 `ZERO_TOTAL` 会使校验失败。
