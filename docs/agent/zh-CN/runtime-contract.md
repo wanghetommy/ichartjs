@@ -18,7 +18,7 @@ Agent 应优先使用 `getCapabilities()`，不要硬编码未声明的图表类
 
 Iteration 8 通过 `getChartCapability(type)` 提供逐图表能力档案，包括必需数据角色、支持的交互、Renderer、功能状态、导出和建议限制。Agent 不应猜测未声明能力。
 
-按能力拆分的 `/standard`、`/project`、`/diagram` 和 `/board` 入口，在创建和更新时都只接受自己声明的图表族。更新到其他图表族会返回 `PROFILE_TYPE_UNSUPPORTED`，应改用对应入口。主题变化会重新计算主题派生的配色、背景和内边距；宿主显式传入的值保持不变。
+按能力拆分的 `/standard`、`/project`、`/diagram` 图表入口，在创建和更新时都只接受自己声明的图表族。更新到其他图表族会返回 `PROFILE_TYPE_UNSUPPORTED`，应改用对应入口。`/board` 使用 BoardSpec，而不是 ChartSpec。主题变化会重新计算图表主题派生的配色、背景和内边距；宿主显式传入的值保持不变。Profile 校验、场景构建或渲染失败不会提交 Spec、诊断或样式覆盖标记，之后仍可正常切换主题；宿主 DOM 可用时会恢复原来的渲染表面。
 
 `planChart(data, { intent, renderer })` 返回版本化规划结果：主选图表、备选项、置信度、原因、缺失字段、建议编码、假设、警告、不支持请求和安全下一步。规划不会虚构业务含义、单位、日期或缺失字段。
 
@@ -35,7 +35,7 @@ Iteration 8 通过 `getChartCapability(type)` 提供逐图表能力档案，包�
 - 布局和数据语义不依赖 Renderer。
 - Diagram 结构字段必须位于 Spec 顶层：通用图表使用 `data.values`；Flow/Swimlane 使用 `nodes/edges/lanes`，Architecture 使用 `nodes/edges/layers/boundaries`，Mindmap 使用带 `parentId` 的 `nodes` 和可选 `edges`。不要将这些字段放在 `data` 内。
 - `svg` 适合 DOM 交互和可访问性；`canvas` 适合大量图元和绘制性能。
-- 使用 `renderer: "auto"` 时，iChart.js 会在创建时进行一次确定性选择：小型或文字/结构密集场景使用 SVG，大量图元场景使用 Canvas。仅仅开启连续交互不会强制使用 Canvas；如果大场景同时存在连续交互，交互只作为附加选择原因返回。数据后续变化时不会自动替换 Renderer；Agent 可通过 `chart.getState().rendererSelection` 和 `chart.explain().renderer` 检查实际 Renderer 及原因。显式指定 `svg` 或 `canvas` 时始终优先。
+- 使用 `renderer: "auto"` 时，root 图表在创建时进行确定性选择：小型或文字/结构密集场景使用 SVG，大量图元使用 Canvas。普通数据更新保留原来的选择；宿主显式调用 `chart.update({ renderer: "svg" | "canvas" | "auto" })` 才会原子地切换或重新选择。按能力拆分的图表 Profile 在更新时根据当前数据和无障碍设置重新评估 `auto`；Board 保持既有的按图元数量重新评估策略。显式 `svg` 或 `canvas` 始终优先，连续交互本身不会强制 Canvas。通过 `getState().rendererSelection` 检查请求、实际 Renderer 和原因。成功切换后清理原来的 Renderer 与事件绑定，失败则保留原状态和渲染表面；切换不修改视图坐标，也不隐式开启导航或编辑。
 - 数值纵轴默认使用易读域（`yAxis.nice: true`、`yAxis.ticks: "auto"`）；使用 `yAxis.domain: [min, max]` 固定范围，或使用 `yAxis.nice: false` 保留原始边界。Agent 可通过 `chart.getState().axes` 或 `chart.explain().axes` 自检原始域、计算域、刻度、步长和策略。分类/时间横轴的 `min/max` 和 `domain` 不支持，范围由数据确定。
 - Timeline 和 Milestone 的 `chart.getState().timeAxis` 与 `chart.explain().timeAxis` 会返回 `orientation: "horizontal"`、`field: "date"`、`coordinate: "x"`、`rowCoordinate: "y"`、数值 `domain` 和 ISO `domainISO`。验收事件日期时应比较 `x`/`cx`；y/`cy` 只是事件行布局坐标。
 - `chart.getState().health` 和 `chart.explain().health` 提供 `ready`、`degraded` 或 `empty`，以及可渲染性、问题代码、警告数、隐藏标签数、限制值数和已渲染标记数。`locale` 默认 `en-US`，可设置 `zh-CN` 影响输出格式；输入日期应使用 ISO-8601 字符串。

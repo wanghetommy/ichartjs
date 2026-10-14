@@ -1,10 +1,5 @@
 /** Renderer-independent chart lifecycle cleanup. */
-export function destroyChart(chart) {
-  if (chart._destroyed) return;
-  chart._destroyed = true;
-  chart._preferencesUnsubscribe?.();
-  chart._resizeObserver?.disconnect();
-  chart._colorSchemeQuery?.removeEventListener?.('change', chart._colorSchemeHandler);
+export function detachChartEvents(chart) {
   if (chart._eventsBound) {
     const { target, handler, start, move, end, leave, touchStart, touchMove, touchEnd, wheel } = chart._eventsBound;
     target.removeEventListener('mousemove', handler);
@@ -21,11 +16,22 @@ export function destroyChart(chart) {
   }
   const target = chart.renderer.svg || chart.renderer.canvas;
   if (chart._keyboardHandler) target?.removeEventListener('keydown', chart._keyboardHandler);
+  chart._eventsBound = null;
+  chart._keyboardBound = false;
+  chart._keyboardHandler = null;
+}
+
+export function destroyChart(chart) {
+  if (chart._destroyed) return;
+  chart._destroyed = true;
+  chart._preferencesUnsubscribe?.();
+  chart._resizeObserver?.disconnect();
+  chart._colorSchemeQuery?.removeEventListener?.('change', chart._colorSchemeHandler);
+  detachChartEvents(chart);
   chart._tooltip?.remove();
   chart.plugins.destroy();
   chart.renderer.destroy();
   chart.listeners.clear();
-  chart._eventsBound = null;
   chart._selected.clear();
   chart._clipboard = { nodes: [], edges: [] };
 }

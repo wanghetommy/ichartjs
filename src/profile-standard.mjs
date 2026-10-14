@@ -118,6 +118,7 @@ function layout(spec, data, legendEntries = [], layoutOptions = {}) {
   const xEncoding = spec.encoding.x || { field: 'name', type: 'category' };
   const xField = xEncoding.field || 'name';
   const categories = [...new Set(data.rows.map(row => String(row[xField] ?? '')))].filter(Boolean);
+  const categoryIndexes = new Map(categories.map((category, index) => [category, index]));
   const temporal = xEncoding.type === 'temporal' || xEncoding.type === 'time';
   const quantitativeX = xEncoding.type === 'quantitative' || xEncoding.type === 'linear';
   const dates = temporal ? data.rows.map(row => new Date(row[xField]).getTime()).filter(Number.isFinite) : [];
@@ -136,7 +137,7 @@ function layout(spec, data, legendEntries = [], layoutOptions = {}) {
   const rawMax = Math.max(1, ...(numbers.length ? numbers : [1]));
   const axisType = spec.yAxis?.type || yEncodings[0]?.type || 'linear';
   const [min, max] = resolveAxisDomain(rawMin, rawMax, spec.yAxis || {}, axisType);
-  const x = category => temporal ? plot.x + ((new Date(category).getTime() - xMin) / (xMax - xMin || 1)) * plot.width : quantitativeX ? plot.x + ((Number(category) - xMin) / (xMax - xMin || 1)) * plot.width : plot.x + (categories.indexOf(String(category)) + 0.5) * plot.width / Math.max(1, categories.length);
+  const x = category => temporal ? plot.x + ((new Date(category).getTime() - xMin) / (xMax - xMin || 1)) * plot.width : quantitativeX ? plot.x + ((Number(category) - xMin) / (xMax - xMin || 1)) * plot.width : plot.x + ((categoryIndexes.get(String(category)) ?? -1) + 0.5) * plot.width / Math.max(1, categories.length);
   const transform = value => axisType === 'log' ? Math.log10(Math.max(0.000001, Number(value))) : Number(value);
   const transformedMin = transform(min), transformedMax = transform(max);
   const y = value => plot.y + plot.height - ((transform(value) - transformedMin) / (transformedMax - transformedMin || 1)) * plot.height;

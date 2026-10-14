@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { chromium } from 'playwright-core';
 import { readDocumentSnippets, quickstartWorkflowSource } from '../../scripts/check-doc-snippets.mjs';
+import { measureMountedLifecycle } from './lifecycle-benchmark.mjs';
 
 const root = new URL('../../', import.meta.url);
 const browserPort = Number(process.env.BROWSER_PORT || 34567);
@@ -65,6 +66,104 @@ async function goto(path, options = {}) {
 after(async () => {
   await browser?.close();
   server?.kill('SIGTERM');
+});
+
+test('Iteration 30: mounted updates, rejection recovery, renderer replacement and Profile controls', async () => {
+  await goto('/playground/profile-loading.html');
+  await page.locator('#chart-board svg').waitFor({ state: 'attached' });
+  for (const name of ['standard', 'project', 'diagram', 'board']) {
+    const card = page.locator('.profile-card').filter({ has: page.locator(`#chart-${name}`) });
+    await card.locator('[data-renderer]').selectOption('canvas');
+    await page.locator(`#chart-${name} canvas`).waitFor({ state: 'attached' });
+    await card.locator('[data-reject]').click();
+    const rejected = JSON.parse(await card.locator('[data-output]').textContent());
+    assert.equal(rejected.rejection.unchanged, true);
+    assert.ok(rejected.rejection.codes.length);
+    await card.locator('[data-theme]').click();
+    const styled = JSON.parse(await card.locator('[data-output]').textContent());
+    assert.equal(styled.background, '#0f172a');
+    if (name === 'board') assert.equal(await card.evaluate(element => element._instance.getSpec().items.find(item => item.id === 'title').style.fill), '#f8fafc');
+    assert.equal(await page.locator(`#chart-${name} canvas`).evaluate(surface => surface.style.background), 'rgb(15, 23, 42)');
+    await card.locator('[data-renderer]').selectOption('svg');
+    assert.equal(await page.locator(`#chart-${name} svg, #chart-${name} canvas`).count(), 1);
+  }
+  const result = await page.evaluate(async () => {
+    const root = await import('/src/index.mjs'), standard = await import('/src/standard.mjs'), project = await import('/src/project-profile.mjs'), diagram = await import('/src/diagram-profile.mjs'), board = await import('/src/board-profile.mjs');
+    const { CanvasRenderer } = await import('/src/renderer.mjs');
+    const host = document.createElement('div'); host.id = 'update-acceptance'; document.body.append(host);
+    const reports = [];
+    const line = { type: 'line', data: [{ id: 'a', name: 'A', value: 1 }, { id: 'b', name: 'B', value: 2 }] };
+    const boardSpec = { items: [{ id: 'box', kind: 'shape', position: { x: 20, y: 20 }, size: { width: 80, height: 40 }, style: { fill: '#2563eb' } }] };
+    for (const [name, factory, spec] of [['root', root.createChart, line], ['standard', standard.createChart, line], ['project', project.createChart, { type: 'gantt', data: [{ id: 'p', name: 'Plan', start: '2026-01-01', end: '2026-01-03' }] }], ['diagram', diagram.createChart, { type: 'flow', nodes: [{ id: 'a', label: 'A' }] }], ['root Board', spec => root.createBoard(spec).mount('#update-acceptance'), boardSpec], ['board Profile', spec => board.createBoard(spec).mount('#update-acceptance'), boardSpec]]) {
+      const chart = factory({ ...spec, container: '#update-acceptance', renderer: 'svg', theme: 'light', width: 500, height: 260, interaction: { tooltip: false } });
+      const before = JSON.stringify({ spec: chart.getSpec(), state: chart.getState() }), surface = chart.renderer.svg;
+      const render = CanvasRenderer.prototype.render;
+      CanvasRenderer.prototype.render = () => { throw new Error('injected rendering failure'); };
+      let rejected;
+      try { chart.update({ renderer: 'canvas', background: '#abcdef', theme: 'dark' }); } catch (error) { rejected = error.message; }
+      finally { CanvasRenderer.prototype.render = render; }
+      const unchanged = before === JSON.stringify({ spec: chart.getSpec(), state: chart.getState() });
+      const restored = chart.renderer.svg === surface && surface.isConnected && host.querySelectorAll('svg,canvas').length === 1;
+      let clicks = 0;
+      chart.on?.('click', () => { clicks += 1; });
+      for (const renderer of ['canvas', 'svg', 'canvas']) chart.update({ renderer });
+      surface.dispatchEvent(new MouseEvent('click', { clientX: 200, clientY: 100 }));
+      if (chart.setTheme) chart.setTheme({ mode: 'dark' }); else chart.update({ background: '#0f172a' });
+      if (chart.resize) chart.resize(620, 300); else chart.update({ width: 620, height: 300 });
+      const png = chart.export({ type: 'png' }), exported = chart.export({ type: 'json', as: 'object' }), saved = exported.spec ? exported : { spec: exported };
+      reports.push({ name, rejected, unchanged, restored, staleClicks: clicks, surfaces: host.querySelectorAll('svg,canvas').length, background: chart.getSpec().background, png: typeof png === 'string' && png.startsWith('data:image/png'), width: saved.spec.width, height: saved.spec.height });
+      chart.destroy(); host.replaceChildren();
+    }
+    host.remove(); return reports;
+  });
+  for (const report of result) {
+    assert.equal(report.rejected, 'injected rendering failure', report.name);
+    assert.equal(report.unchanged, true, report.name);
+    assert.equal(report.restored, true, report.name);
+    assert.equal(report.staleClicks, 0, report.name);
+    assert.equal(report.surfaces, 1, report.name);
+    assert.equal(report.background, '#0f172a', report.name);
+    assert.equal(report.png, true, report.name);
+    assert.equal(report.width, 620, report.name);
+    assert.equal(report.height, 300, report.name);
+  }
+});
+
+test('Iteration 30: mounted Canvas lifecycle latency remains within local smoke budgets', async context => {
+  await goto('/examples/consumer-browser.html');
+  const results = await page.evaluate(measureMountedLifecycle);
+  context.diagnostic(JSON.stringify({ policy: 'Chrome synchronous lifecycle; warmup plus three-run median', results }));
+  for (const result of results) for (const key of ['create', 'update', 'resize', 'theme']) {
+    assert.ok(result[key] < 5000, `${result.count} ${key}: ${result[key]}ms`);
+  }
+});
+
+test('Iteration 30: auto threshold updates keep a single mounted surface and current exports', async () => {
+  await goto('/examples/consumer-browser.html');
+  const result = await page.evaluate(async () => {
+    const { createChart } = await import('/src/standard.mjs');
+    const host = document.createElement('div'); host.id = 'auto-acceptance'; document.body.append(host);
+    const rows = count => Array.from({ length: count }, (_, index) => ({ id: `p${index}`, name: `P${index}`, value: index % 100 }));
+    const chart = createChart({ type: 'line', renderer: 'auto', container: '#auto-acceptance', data: rows(2) });
+    const records = [];
+    for (const count of [401, 400, 401, 2]) {
+      chart.update({ data: rows(count) });
+      records.push({ count, actual: (chart.renderer.svg || chart.renderer.canvas).tagName.toLowerCase(), state: chart.getState().renderer, surfaces: host.querySelectorAll('svg,canvas').length, ids: chart.getState().lineage.recordIds.length });
+    }
+    const saved = JSON.parse(chart.export({ type: 'json' }));
+    chart.destroy(); host.replaceChildren();
+    const restored = createChart(saved.spec);
+    const reload = { ids: restored.getState().lineage.recordIds, svg: restored.export({ type: 'svg' }).includes('<svg') };
+    restored.destroy(); host.remove(); return { records, reload };
+  });
+  for (const record of result.records) {
+    assert.equal(record.actual, record.count > 400 ? 'canvas' : 'svg');
+    assert.equal(record.actual, record.state);
+    assert.equal(record.surfaces, 1);
+    assert.equal(record.ids, record.count);
+  }
+  assert.deepEqual(result.reload.ids, ['p0', 'p1']);
+  assert.equal(result.reload.svg, true);
 });
 
 for (const renderer of ['svg', 'canvas']) for (const scenario of [

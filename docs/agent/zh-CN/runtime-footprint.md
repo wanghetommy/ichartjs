@@ -39,3 +39,5 @@ import { createBoard } from '@taylorwong/ichartjs/board';
 ```
 
 `standard` 用于基础与分析图表，`project` 用于项目管理图表，`diagram` 用于流程和架构图，`board` 用于 Freeform Board。不要引用未公开的 `src/*` 深层路径。
+
+图表 Profile 提供侧重渲染的 `update()`、`resize()`、`setTheme()`、状态和导出 API，不包含 root 的编辑/历史或设置菜单 Runtime。显式 Renderer 更新及 auto 阈值变化使用当前 Spec 和场景；被拒绝的更新不影响后续主题变化。通过 `getState().rendererSelection` 自检，在 `http://localhost:3000/playground/profile-loading.html` 验收连续操作，Performance Lab 查看更新、resize 和主题耗时。测量的是同步 API 耗时，不是完整帧绘制延迟，也不保证所有移动设备表现。

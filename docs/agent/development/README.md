@@ -25,10 +25,11 @@ Current policies use English. Chinese guidance is in [the companion Development 
 - [26](iteration-26.md): incremental Flow construction.
 - [27](iteration-27.md): incremental Board construction and shared Agent-driven workflow.
 - [29](iteration-29.md): unified chart component layout, readability and renderer-independent output.
+- [30](iteration-30.md): atomic updates, renderer lifecycle and measured responsiveness.
 
 Earlier iteration plans are linked from the Roadmap. An implemented plan is not proof of publication; read its status and evidence.
 
-Iteration 29 is implemented and included in `v2.0.29`. Use the iteration record for scope and acceptance evidence.
+Iteration 30 is implemented for release `v2.0.30`. Use the iteration record for scope and acceptance evidence.
 
 ## Historical records
 

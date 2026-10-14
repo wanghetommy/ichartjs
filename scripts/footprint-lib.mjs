@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 export const root = process.cwd();
 export const baseline = {
   moduleRawBytes: 535216,
-  moduleGzipBytes: 129699,
+  moduleGzipBytes: 129561,
   packageBytes: 344082,
   unpackedBytes: 1231449
 };
