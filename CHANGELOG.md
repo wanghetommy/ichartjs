@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 2.0.30 - 2026-10-14
+
+- Hardened Profile update/resize publication and failure recovery, preserving style provenance and diagnostics after rejected updates.
+- Added atomic SVG/Canvas replacement in chart Profiles and explicit root renderer updates, with disposal and event rebinding; ordinary root auto data updates retain their initial renderer.
+- Replaced repeated categorical position scans with a per-scene index, preserving category order, repeated labels and source records; expanded mounted lifecycle tests and existing Playground controls.
+- Restored the original gzip baseline instead of relaxing the footprint budget; removed unreachable legacy diagram handlers already owned by the shared interaction runtime.
 
 ## 2.0.29 - 2026-10-12
 

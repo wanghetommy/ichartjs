@@ -1,7 +1,6 @@
 /**
- * Small profile runtime shared by the public capability entries.
- * The complete root runtime remains in index.mjs; profile entries use this
- * runtime so unused project, diagram, and board code is not imported.
+ * Render-focused profile runtime with atomic updates and renderer replacement.
+ * The complete interaction and editing runtime remains in index.mjs.
  */
 import { normalizeSpec, validateSpec } from './spec.mjs';
 import { normalizeData, inspectData, binData, applyTransforms } from './data.mjs';
@@ -38,7 +37,7 @@ function lineageFor(model) {
 }
 
 function assertProfileType(type, options, operation = 'create') {
-  if (options.types?.includes(type)) return;
+  if (!options.types || options.types.includes(type)) return;
   throw new ChartValidationError(operation, [{
     code: 'PROFILE_TYPE_UNSUPPORTED',
     path: 'type',
@@ -67,28 +66,57 @@ export class ProfileChart {
   }
 
   render() {
+    return this._publish(this.spec);
+  }
+
+  _paint() {
+    if (!this.renderer.container) return;
+    this.renderer.options = this.spec;
+    const surface = this.renderer.svg || this.renderer.canvas;
+    if (surface?.style) surface.style.background = this.spec.background;
+    this.renderer.resize(this.spec.width, this.spec.height);
+    this.renderer.render(this.model.scene);
+  }
+
+  _publish(spec) {
     if (this._destroyed) throw new Error('Chart has been destroyed.');
-    this.model = this._buildScene(this.spec);
-    if (this.renderer.container) {
-      this.renderer.options = this.spec;
-      this.renderer.resize(this.spec.width, this.spec.height);
-      this.renderer.render(this.model.scene);
+    const model = this._buildScene(spec), selection = resolveRenderer(spec);
+    const previous = { spec: this.spec, model: this.model, renderer: this.renderer, selection: this._rendererSelection };
+    const renderer = selection.effective === previous.selection.effective ? previous.renderer : selection.effective === 'svg' ? new SVGRenderer(spec) : new CanvasRenderer(spec);
+    try {
+      this.spec = spec;
+      this.model = model;
+      this.renderer = renderer;
+      this._rendererSelection = selection;
+      if (renderer !== previous.renderer && this.container) renderer.mount(this.container);
+      this._paint();
+    } catch (error) {
+      this.spec = previous.spec;
+      this.model = previous.model;
+      this.renderer = previous.renderer;
+      this._rendererSelection = previous.selection;
+      try {
+        if (renderer !== previous.renderer) { renderer.destroy(); if (this.container) previous.renderer.mount(this.container); }
+        if (previous.model) this._paint();
+      } catch {}
+      throw error;
     }
+    if (renderer !== previous.renderer) previous.renderer.destroy();
     return this;
   }
 
   resize(width, height = this.spec.height) {
-    this.spec.width = Math.max(1, Number(width) || this.spec.width);
-    this.spec.height = Math.max(1, Number(height) || this.spec.height);
-    return this.render();
+    return this.update({ width: Math.max(1, Number(width) || this.spec.width), height: Math.max(1, Number(height) || this.spec.height) });
   }
 
   update(patch = {}) {
+    if (this._destroyed) throw new Error('Chart has been destroyed.');
     const next = { ...this.spec, ...patch };
     const source = { ...next };
-    for (const key of ['colors', 'background', 'padding']) if (patch[key] !== undefined) this._styleOverrides[key] = true;
+    const overrides = { ...this._styleOverrides };
+    for (const key of ['colors', 'background', 'padding']) if (patch[key] !== undefined) overrides[key] = true;
     if (patch.theme !== undefined) {
-      for (const key of ['colors', 'background', 'padding']) if (patch[key] === undefined && !this._styleOverrides[key]) {
+      for (const key of ['colors', 'background', 'padding']) if (patch[key] === undefined && !overrides[key]) {
         delete next[key];
         delete source[key];
       }
@@ -96,9 +124,10 @@ export class ProfileChart {
     const result = validateSpec(next);
     if (!result.valid) throw new ChartValidationError('update', result.errors);
     assertProfileType(result.spec.type, { types: this._types, profile: this.profile }, 'update');
+    this._publish(prepareSpec(result.spec, source));
     this._diagnostics = { warnings: result.warnings, normalizations: result.normalizations };
-    this.spec = prepareSpec(result.spec, source);
-    return this.render();
+    this._styleOverrides = overrides;
+    return this;
   }
 
   setTheme(theme) { return this.update({ theme }); }

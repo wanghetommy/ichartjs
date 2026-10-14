@@ -20,7 +20,7 @@ export { validateBoardCommand };
 import { resolveRenderer } from './renderer-policy.mjs';
 import { contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast } from './theme.mjs';
 import { PluginHost, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin } from './plugin.mjs';
-import { projectTooltip, rerouteDiagramScene } from './project.mjs';
+import { projectTooltip } from './project.mjs';
 import { copyJSON, getBusinessSchema, inspectDataSchema } from './schema.mjs';
 import { validateData } from './validation.mjs';
 import { commitPreview, getEditCapabilities, previewEdit, validateEdit } from './edit.mjs';
@@ -35,7 +35,7 @@ import { applyPreferencesToSpec, createPreferencesStore, defaultPreferences, mer
 import { mountChartSettings } from './preferences-ui.mjs';
 import { ChartValidationError } from './errors.mjs';
 import { diagramOperations, flowNodeKinds, incrementalFlowContract } from './contract-registry.mjs';
-import { destroyChart } from './chart-lifecycle.mjs';
+import { destroyChart, detachChartEvents } from './chart-lifecycle.mjs';
 import { boardCapabilities } from './board-contract.mjs';
 export { boardCapabilities };
 
@@ -149,7 +149,7 @@ export class Chart {
     this._colorSchemeQuery.addEventListener?.('change', this._colorSchemeHandler);
   }
   _mountRenderer() { const rendererType = this._rendererSelection?.effective || this.spec.renderer; this.renderer = rendererType === 'svg' ? new SVGRenderer(this.spec) : new CanvasRenderer(this.spec); if (this.container && typeof document !== 'undefined') this.renderer.mount(this.container); }
-  render() { this._hideTooltip(); this.model = buildScene(this.spec); paintSelection(this); this._addInteractionNodes(); this.plugins.beforeRender(this.model); if (this.renderer.container) { this.renderer.options = this.spec; const target = this.renderer.svg || this.renderer.canvas; if (target) target.style.background = this.spec.background; this.renderer.resize(this.spec.width, this.spec.height); this.renderer.render(this.model.scene); this._bindEvents(); this._applyAccessibility(); } this.plugins.afterRender(this.model); this.emit('render', { chart: this }); return this; }
+  render() { if (this._destroyed) throw new Error('Chart has been destroyed.'); this._hideTooltip(); this.model = buildScene(this.spec); paintSelection(this); this._addInteractionNodes(); this.plugins.beforeRender(this.model); if (this.renderer.container) { this.renderer.options = this.spec; const target = this.renderer.svg || this.renderer.canvas; if (target) target.style.background = this.spec.background; this.renderer.resize(this.spec.width, this.spec.height); this.renderer.render(this.model.scene); this._bindEvents(); this._applyAccessibility(); } this.plugins.afterRender(this.model); this.emit('render', { chart: this }); return this; }
   _addInteractionNodes() { if (this.spec.interaction?.crosshair && this.model.state?.plot) { const plot = this.model.state.plot, stroke = this.spec.theme?.focus || '#64748b'; this.model.scene.add({ id: 'crosshair-x', type: 'line', geometry: { x1: plot.x, y1: plot.y, x2: plot.x, y2: plot.y + plot.height }, style: { stroke, strokeWidth: 1, opacity: 0 }, interactive: false, zIndex: 99 }); this.model.scene.add({ id: 'crosshair-y', type: 'line', geometry: { x1: plot.x, y1: plot.y, x2: plot.x + plot.width, y2: plot.y }, style: { stroke, strokeWidth: 1, opacity: 0 }, interactive: false, zIndex: 99 }); } }
   _observeResize() { if (!this.container || typeof ResizeObserver === 'undefined') return; this._resizeObserver = new ResizeObserver(entries => { const width = Math.round(entries[0]?.contentRect?.width || 0); if (width && width !== this.spec.width) this.resize(width, this.spec.height); }); this._resizeObserver.observe(this.container); }
   _applyAccessibility() {
@@ -195,12 +195,6 @@ export class Chart {
           const ids = [];
           this.model.scene.walk(node => { if (node.interactive && node.dataRef) ids.push(node.id); });
           if (!ids.length) return;
-          if (isDiagram(this) && this.spec.editing?.enabled && this._selected.size) {
-            const delta = { x: ['ArrowRight', 'ArrowLeft'].includes(event.key) ? (event.key === 'ArrowRight' ? 8 : -8) : 0, y: ['ArrowDown', 'ArrowUp'].includes(event.key) ? (event.key === 'ArrowDown' ? 8 : -8) : 0 };
-            const result = this.moveSelectedBy(delta, { confirmed: true, source: 'keyboard' });
-            if (result.valid) event.preventDefault();
-            return;
-          }
           const direction = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1;
           this._focusIndex = Math.max(0, Math.min(ids.length - 1, (this._focusIndex ?? 0) + direction));
           const node = this.model.scene.find(ids[this._focusIndex]);
@@ -217,14 +211,14 @@ export class Chart {
     }
   }
   _bindEvents() { if (this._eventsBound || !this.renderer.container) return; const target = this.renderer.svg || this.renderer.canvas; const handler = event => { const type = event.type === 'click' ? 'click' : 'hover'; if (event.type === 'click' && isDiagram(this) && this._suppressDiagramClick) { this._suppressDiagramClick = false; return; } if (this.spec.interaction?.[type] === false) return; const point = this._eventPoint(event, target), node = this.model.scene.hit(point.x, point.y), dataIndex = node?.dataRef?.dataIndex == null ? undefined : node.dataRef.dataIndex + (this.model.data.viewOffset || 0), datum = node?.dataRef?.datum || (dataIndex === undefined ? undefined : normalizeData(this.spec.data).rows[dataIndex]); const payload = { type, chart: this, nativeEvent: event, target: node, dataRef: node?.dataRef ? { ...node.dataRef, dataIndex } : undefined, datum, coordinate: point }; if (type === 'hover') { this._pointer = point; this._updateCrosshair(point.x, point.y); this.emit('hover', payload); } else if (node) { this.emit('click', payload); if (!isDiagram(this)) this.select(node, { additive: Boolean(event.shiftKey || event.metaKey || event.ctrlKey) }); } if (type === 'hover' && this.spec.interaction.tooltip) { if (node) this._showTooltip(payload); else this._hideTooltip(); } };
-    const start = event => { if (diagramPointer(this, 'start', event, target)) return; const point = this._eventPoint(event, target), node = this.model.scene.hit(point.x, point.y); target.setPointerCapture?.(event.pointerId); if (this.spec.type === 'flow' && this.spec.interaction?.drag && node?.id?.startsWith('node-')) { this._nodeDrag = { node, point }; return; } if (this.spec.interaction?.brush) this._brushStart = point; else if (this.spec.interaction?.pan) { this._dragStart = point; this.emit('dragstart', { chart: this, coordinate: point, target: node }); } };
-    const move = event => { if (diagramPointer(this, 'move', event, target)) return; const point = this._eventPoint(event, target); if (this._brushStart) { this._brushEnd = point; this.emit('brush', { chart: this, start: this._brushStart, end: this._brushEnd }); } if (this._nodeDrag) { const { node, point: previous } = this._nodeDrag, dx = point.x - previous.x, dy = point.y - previous.y; node.geometry.x += dx; node.geometry.y += dy; node.bounds = { ...node.geometry }; const label = this.model.scene.find(`node-label-${node.dataRef.nodeId}`); if (label) { label.geometry.x += dx; label.geometry.y += dy; } const sourceNode = (this.spec.nodes || this.spec.data.nodes || []).find(item => item.id === node.dataRef.nodeId); if (sourceNode) sourceNode.position = { x: node.geometry.x, y: node.geometry.y }; rerouteDiagramScene(this.model.scene); this._nodeDrag.point = point; this.renderer.render(this.model.scene); this.emit('drag', { chart: this, target: node, coordinate: point }); } else if (this._dragStart) { this.panBy({ x: point.x - this._dragStart.x, y: point.y - this._dragStart.y }); this._dragStart = point; } };
-    const end = event => { if (diagramPointer(this, 'end', event, target)) return; if (this._brushStart && this._brushEnd) this.selectBox(this._brushStart, this._brushEnd); if (this._nodeDrag) this.emit('dragend', { chart: this, target: this._nodeDrag.node }); if (this._dragStart) this.emit('dragend', { chart: this, coordinate: this._eventPoint(event, target) }); target.releasePointerCapture?.(event.pointerId); this._brushStart = null; this._brushEnd = null; this._dragStart = null; this._nodeDrag = null; this._pinchStart = null; };
-    const touchStart = event => { if (isDiagram(this)) return; if (event.touches.length === 1) { const point = this._eventPoint(event.touches[0], target), node = this.model.scene.hit(point.x, point.y); this._touchStart = { x: event.touches[0].clientX, y: event.touches[0].clientY }; if (this.spec.type === 'flow' && this.spec.interaction?.drag && node?.id?.startsWith('node-')) this._nodeDrag = { node, point }; } if (event.touches.length === 2) { this._nodeDrag = null; this._pinchStart = this._touchDistance(event); } };
-    const touchMove = event => { if (isDiagram(this)) return; event.preventDefault(); if (event.touches.length === 2 && this.spec.interaction?.zoom && this._pinchStart) { const distance = this._touchDistance(event); if (distance) { const factor = this._pinchStart / distance; if (Math.abs(1 - factor) > 0.04) { const count = normalizeData(this.spec.data).rows.length, current = this.spec.view || { start: 0, end: count }; if (count > 1) this.zoomTo(resolveZoomWindow(count, current, factor)); else this.zoomTo({ scale: Math.max(0.5, Math.min(4, (this.spec.view?.scale || 1) / factor)) }); this._pinchStart = distance; } } } else if (event.touches.length === 1 && this._touchStart) { const touch = event.touches[0]; if (this._nodeDrag) move({ clientX: touch.clientX, clientY: touch.clientY }); else if (this.spec.interaction?.pan) { this.panBy({ x: touch.clientX - this._touchStart.x, y: touch.clientY - this._touchStart.y }); this._touchStart = { x: touch.clientX, y: touch.clientY }; } } };
+    const start = event => { if (diagramPointer(this, 'start', event, target)) return; const point = this._eventPoint(event, target), node = this.model.scene.hit(point.x, point.y); target.setPointerCapture?.(event.pointerId); if (this.spec.interaction?.brush) this._brushStart = point; else if (this.spec.interaction?.pan) { this._dragStart = point; this.emit('dragstart', { chart: this, coordinate: point, target: node }); } };
+    const move = event => { if (diagramPointer(this, 'move', event, target)) return; const point = this._eventPoint(event, target); if (this._brushStart) { this._brushEnd = point; this.emit('brush', { chart: this, start: this._brushStart, end: this._brushEnd }); } if (this._dragStart) { this.panBy({ x: point.x - this._dragStart.x, y: point.y - this._dragStart.y }); this._dragStart = point; } };
+    const end = event => { if (diagramPointer(this, 'end', event, target)) return; if (this._brushStart && this._brushEnd) this.selectBox(this._brushStart, this._brushEnd); if (this._dragStart) this.emit('dragend', { chart: this, coordinate: this._eventPoint(event, target) }); target.releasePointerCapture?.(event.pointerId); this._brushStart = null; this._brushEnd = null; this._dragStart = null; this._pinchStart = null; };
+    const touchStart = event => { if (isDiagram(this)) return; if (event.touches.length === 1) this._touchStart = { x: event.touches[0].clientX, y: event.touches[0].clientY }; if (event.touches.length === 2) this._pinchStart = this._touchDistance(event); };
+    const touchMove = event => { if (isDiagram(this)) return; event.preventDefault(); if (event.touches.length === 2 && this.spec.interaction?.zoom && this._pinchStart) { const distance = this._touchDistance(event); if (distance) { const factor = this._pinchStart / distance; if (Math.abs(1 - factor) > 0.04) { const count = normalizeData(this.spec.data).rows.length, current = this.spec.view || { start: 0, end: count }; if (count > 1) this.zoomTo(resolveZoomWindow(count, current, factor)); else this.zoomTo({ scale: Math.max(0.5, Math.min(4, (this.spec.view?.scale || 1) / factor)) }); this._pinchStart = distance; } } } else if (event.touches.length === 1 && this._touchStart) { const touch = event.touches[0]; if (this.spec.interaction?.pan) { this.panBy({ x: touch.clientX - this._touchStart.x, y: touch.clientY - this._touchStart.y }); this._touchStart = { x: touch.clientX, y: touch.clientY }; } } };
     const touchEnd = () => { this._touchStart = null; this._pinchStart = null; };
     const wheel = event => { if (!this.spec.interaction.zoom) return; event.preventDefault(); if (isDiagram(this)) { this.zoomTo({ scale: Math.max(0.25, Math.min(8, (this.spec.view?.scale || 1) * (event.deltaY > 0 ? 0.9 : 1.1))) }); return; } const count = normalizeData(this.spec.data).rows.length, current = this.spec.view || { start: 0, end: count }; this.zoomTo(resolveZoomWindow(count, current, event.deltaY > 0 ? 1.25 : 0.8)); };
-    const leave = event => { this._hideTooltip(); if (!this._dragStart && !this._nodeDrag) end(event); };
+    const leave = event => { this._hideTooltip(); if (!this._dragStart) end(event); };
     if (isDiagram(this)) target.style.touchAction = ['zoom', 'pan', 'brush', 'drag', 'edgeDrag', 'portConnect'].some(name => this.spec.interaction?.[name]) ? 'none' : 'auto'; target.addEventListener('mousemove', handler); target.addEventListener('click', handler); target.addEventListener('pointerdown', start); target.addEventListener('pointermove', move); target.addEventListener('pointerup', end); target.addEventListener('pointercancel', end); target.addEventListener('pointerleave', leave); target.addEventListener('touchstart', touchStart, { passive: false }); target.addEventListener('touchmove', touchMove, { passive: false }); target.addEventListener('touchend', touchEnd); target.addEventListener('wheel', wheel, { passive: false }); this._eventsBound = { target, handler, start, move, end, leave, touchStart, touchMove, touchEnd, wheel }; }
   _touchDistance(event) { if (!event.touches || event.touches.length < 2) return null; const [first, second] = event.touches; return Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY); }
   _eventPoint(event, target) { const rect = target.getBoundingClientRect(); return { x: (event.clientX - rect.left) * this.spec.width / (rect.width || this.spec.width), y: (event.clientY - rect.top) * this.spec.height / (rect.height || this.spec.height) }; }
@@ -232,6 +226,7 @@ export class Chart {
   _showTooltip(payload) { if (typeof document === 'undefined' || !this.container || !payload.datum) return; let tip = this._tooltip; if (!tip) { tip = this._tooltip = document.createElement('div'); tip.className = 'ichart-v2-tooltip'; Object.assign(tip.style, { position: 'fixed', pointerEvents: 'none', zIndex: 9999, padding: '8px 10px', borderRadius: '6px', maxWidth: 'min(320px, calc(100vw - 24px))', whiteSpace: 'pre-line' }); document.body.appendChild(tip); } Object.assign(tip.style, { background: this.spec.theme.surface, color: this.spec.theme.text, border: `1px solid ${this.spec.theme.border}`, font: this.spec.theme.typography.tooltip.font, boxShadow: `0 4px 12px ${this.spec.theme.border}88` }); const text = ['gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane', 'architecture', 'mindmap'].includes(this.spec.type) ? projectTooltip(this.spec.type, payload.datum, this.spec.locale) : formatChartTooltip(this.spec, payload.datum); tip.textContent = text; const left = Math.min((payload.nativeEvent.clientX || 0) + 12, window.innerWidth - tip.offsetWidth - 12); const top = Math.min((payload.nativeEvent.clientY || 0) + 12, window.innerHeight - tip.offsetHeight - 12); tip.style.left = `${Math.max(12, left)}px`; tip.style.top = `${Math.max(12, top)}px`; }
   _hideTooltip() { if (this._tooltip) this._tooltip.style.left = '-10000px'; }
   _validateMutation(operation, input) {
+    if (this._destroyed) throw new Error('Chart has been destroyed.');
     const result = validateSpec(input);
     if (!result.valid) throw new ChartValidationError(operation, result.errors);
     return result;
@@ -258,19 +253,25 @@ export class Chart {
     this._preferencesSnapshot = snapshot.preferencesSnapshot;
     this._specDiagnostics = snapshot.specDiagnostics;
     if (this.renderer) this.renderer.options = this.spec;
-    try { if (this.renderer?.container && this.model?.scene) this.renderer.render(this.model.scene); } catch {}
+    try { if (this.renderer?.container && this.model?.scene) { this.renderer.resize(this.spec.width, this.spec.height); (this.renderer.svg || this.renderer.canvas).style.background = this.spec.background; this.renderer.render(this.model.scene); this._bindEvents(); this._applyAccessibility(); } } catch {}
   }
-  _commitMutation() {
+  _commitMutation(selection = this._rendererSelection) {
     const previousRevision = this._revision;
+    const previousRenderer = this.renderer, previousSelection = this._rendererSelection;
     this._revision += 1;
     try {
+      this._rendererSelection = selection;
+      if (selection.effective !== previousSelection.effective) { detachChartEvents(this); this._mountRenderer(); }
       this.render();
+      if (this.renderer !== previousRenderer) previousRenderer.destroy();
       this._history.clear();
       this._lastChangeSet = null;
       this._editor.pending.clear();
       return this;
     } catch (error) {
       this._revision = previousRevision;
+      if (this.renderer !== previousRenderer) { detachChartEvents(this); this.renderer.destroy(); this.renderer = previousRenderer; if (this.container) previousRenderer.mount(this.container); }
+      this._rendererSelection = previousSelection;
       throw error;
     }
   }
@@ -300,7 +301,7 @@ export class Chart {
         } else this._localPreferences = mergePreferences(this._localPreferences, preferences);
       }
       this._resolveStyle();
-      return this._commitMutation();
+      return this._commitMutation(specUpdate.renderer === undefined ? this._rendererSelection : resolveRenderer(this.spec));
     } catch (error) {
       this._restoreMutation(snapshot);
       throw error;
@@ -340,7 +341,7 @@ export class Chart {
   getPreferenceResolution() { if (this._preferencesStore?.getResolution) return this._preferencesStore.getResolution(this.chartId); return { version: '1.0', precedence: [...preferencePrecedence], storage: this._preferencesStore?.storage || 'memory', scopes: { defaults: 'runtime', spec: 'chart-spec', global: this._preferencesStore ? 'host' : null, chart: this._preferencesStore ? 'host' : this._localPreferenceSource } }; }
   setPreferences(patch = {}, options = {}) { const checked = validatePreferences(patch, { partial: true }); if (!checked.valid) throw new ChartValidationError('setPreferences', checked.errors); const source = options.source || 'user'; if (this._preferencesStore) { const scope = options.scope === 'global' ? 'global' : 'chart'; if (scope === 'global') this._preferencesStore.setGlobal(checked.value, { ...options, source }); else this._preferencesStore.setChart(this.chartId || 'default', checked.value, { ...options, source }); return this; } const snapshot = this._snapshotMutation(); try { this._localPreferences = mergePreferences(this._localPreferences, checked.value); this._localPreferenceSource = source; this._preferencesSnapshot = JSON.stringify(this._localPreferences); this._resolveStyle(); this._commitMutation(); this.emit('preferenceschange', { chart: this, preferences: this.getPreferences(), source, scope: 'chart', persisted: false }); return this; } catch (error) { this._restoreMutation(snapshot); throw error; } }
   resetPreferences(options = {}) { if (this._preferencesStore) { this._preferencesStore.reset({ ...options, scope: options.scope || 'chart', chartId: this.chartId || 'default' }); return this; } const snapshot = this._snapshotMutation(); try { this._localPreferences = normalizePreferences({}); this._localPreferenceSource = options.source || 'user'; this._preferencesSnapshot = JSON.stringify(this._localPreferences); this._resolveStyle(); this._commitMutation(); this.emit('preferenceschange', { chart: this, preferences: this.getPreferences(), source: options.source || 'user', scope: 'chart', persisted: false }); return this; } catch (error) { this._restoreMutation(snapshot); throw error; } }
-  resize(width = this.spec.width, height = this.spec.height) { this.spec.width = width; this.spec.height = height; this.render(); this.emit('resize', { chart: this, width, height }); return this; }
+  resize(width = this.spec.width, height = this.spec.height) { if (this._destroyed) throw new Error('Chart has been destroyed.'); const snapshot = this._snapshotMutation(); try { this.spec = { ...this.spec, width, height }; this.render(); this.emit('resize', { chart: this, width, height }); return this; } catch (error) { this._restoreMutation(snapshot); throw error; } }
   getSpec() { return JSON.parse(JSON.stringify(this.spec)); }
   _getDiagnostics() { return [...new Map([...(this._specDiagnostics?.warnings || []), ...(this.model.data?.warnings || []), ...(this.spec.theme?.warnings || [])].map(item => [`${item.code}:${item.path || ''}`, item])).values()]; }
   _getHealth(warnings) {
@@ -697,4 +698,4 @@ export { normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, cr
 
 export { contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin };
 export { applyPreferencesToSpec, createPreferencesStore, defaultPreferences, mergePreferences, mergeThemePreference, mountChartSettings, normalizePreferences, validatePreferences };
-export const iChart = { version: '2.0.29', createChart, createBoard, validateBoardSpec, validateBoardCommand, planCanvas, boardCapabilities, ChartValidationError, inspectData, normalizeData, binData, applyTransforms, data, getCapabilities, getChartCapability, getChartContract, getPreferenceCapabilities, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, createPreferencesStore, defaultPreferences, normalizePreferences, mergePreferences, validatePreferences, applyPreferencesToSpec, mountChartSettings, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };
+export const iChart = { version: '2.0.30', createChart, createBoard, validateBoardSpec, validateBoardCommand, planCanvas, boardCapabilities, ChartValidationError, inspectData, normalizeData, binData, applyTransforms, data, getCapabilities, getChartCapability, getChartContract, getPreferenceCapabilities, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, createPreferencesStore, defaultPreferences, normalizePreferences, mergePreferences, validatePreferences, applyPreferencesToSpec, mountChartSettings, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };
