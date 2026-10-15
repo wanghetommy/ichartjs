@@ -1,42 +1,42 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>iChart.js Browser Consumer Example</title>
-  <style>body{margin:0;padding:24px;font:14px/1.5 system-ui,sans-serif;background:#f8fafc;color:#0f172a}main{max-width:760px;margin:auto}#chart{height:360px;background:#fff;border:1px solid #dbe3ee;border-radius:12px;padding:12px}#status{margin:12px 0;color:#15803d}code{background:#e2e8f0;padding:2px 5px;border-radius:4px}</style>
+  <style>
+    body{margin:0;padding:24px;font:14px/1.5 system-ui,sans-serif;background:#f8fafc;color:#0f172a}
+    main{max-width:960px;margin:auto}#chart{height:320px;background:#fff}#chart svg,#chart canvas{display:block;max-width:100%}
+    #chart-wrap{width:100%;overflow:hidden;border:1px solid #dbe3ee;border-radius:12px;box-sizing:border-box}
+    #status{margin:12px 0;color:#15803d}.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0}
+    button,select{font:inherit;padding:6px 10px}code,pre{background:#e2e8f0;border-radius:4px}code{padding:2px 5px}pre{padding:12px;overflow:auto}
+  </style>
 </head>
 <body>
   <main>
     <h1>Browser consumer example</h1>
-    <p id="status">Loading the public root entry…</p>
-    <div id="chart" aria-label="Monthly revenue trend"></div>
-    <p>This repository fixture uses an import map to point the package name at <code>src/index.mjs</code>. A published consumer should resolve the same package imports through its bundler.</p>
+    <p>Host-owned data, sizing and lifecycle. Navigation and editing remain disabled.</p>
+    <div class="toolbar">
+      <label>Entry <select id="entry"><option>root</option><option>standard</option><option>project</option><option>diagram</option><option>board</option></select></label>
+      <label>Renderer <select id="renderer"><option>svg</option><option>canvas</option></select></label>
+      <button id="load">Load data</button><button id="race">Race old / new data</button>
+      <button id="size">Resize parent</button><button id="visibility">Hide / show</button>
+      <button id="theme">Light / dark</button><button id="reject">Reject invalid update</button>
+      <button id="remount">Unmount / remount</button><button id="svg">Export SVG</button><button id="png">Export PNG</button>
+    </div>
+    <p id="status" role="status">Loading the public root entry…</p>
+    <div id="chart-wrap"><div id="chart" aria-label="Consumer chart"></div></div>
+    <details><summary>Host state</summary><pre id="output"></pre></details>
+    <p>This repository fixture uses an import map. A production host resolves the same npm imports through its bundler. Profiles and Board need host-managed sizing; root observes container width. Height is explicitly 320 px. The Flow host keeps a 560 px content width and offers horizontal scrolling on narrow screens, rather than shrinking nodes or changing zoom.</p>
   </main>
   <script type="importmap">
-  {
-    "imports": {
-      "@taylorwong/ichartjs": "../src/index.mjs",
-      "@taylorwong/ichartjs/standard": "../src/standard.mjs"
-    }
-  }
+  {"imports":{
+    "@taylorwong/ichartjs":"../src/index.mjs",
+    "@taylorwong/ichartjs/standard":"../src/standard.mjs",
+    "@taylorwong/ichartjs/project":"../src/project-profile.mjs",
+    "@taylorwong/ichartjs/diagram":"../src/diagram-profile.mjs",
+    "@taylorwong/ichartjs/board":"../src/board-profile.mjs"
+  }}
   </script>
-  <script type="module">
-    import { createChart, getCapabilities } from '@taylorwong/ichartjs';
-    const chart = createChart({
-      container: '#chart',
-      type: 'line',
-      renderer: 'svg',
-      data: { values: [
-        { id: 'jan', month: 'Jan', revenue: 120 },
-        { id: 'feb', month: 'Feb', revenue: 148 },
-        { id: 'mar', month: 'Mar', revenue: 136 }
-      ] },
-      encoding: { x: { field: 'month' }, y: { field: 'revenue' } },
-      accessibility: { enabled: true, description: 'Monthly revenue trend' }
-    });
-    document.querySelector('#status').textContent = `${getCapabilities().chartTypes.length} chart types available · ${chart.getState().health.status}`;
-    window.consumerChart = chart;
-  </script>
+  <script type="module" src="./consumer-host.mjs"></script>
 </body>
 </html>

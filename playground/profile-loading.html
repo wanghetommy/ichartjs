@@ -26,6 +26,8 @@ import { createChart } from '@taylorwong/ichartjs/diagram';
 import { createBoard } from '@taylorwong/ichartjs/board';</pre>
   </section>
   <section class="grid" id="profiles" aria-label="Capability profiles"></section>
+  <section class="panel" id="bundle-report" style="margin-top:16px"><h2>生产 Bundle · 实际构建</h2><p class="muted">固定 bundler 只导出各入口的工厂函数，与上面的源码模块图估算分开计量。不是宿主完整应用的传输体积。</p><div id="bundle-output">Loading measured bundles…</div></section>
+  <section class="panel" style="margin-top:16px"><h2>真实宿主生命周期</h2><p>检查异步数据、旧请求晚到、父容器缩放、隐藏/显示、卸载重建和 SVG/PNG 导出。Profile 尺寸由宿主管理，根入口自动观察容器宽度；两者均显式设置高度。</p><a href="../examples/consumer-browser.html?entry=standard">打开宿主集成示例 ↗</a></section>
 </main>
 <script type="module">
 import { pageNav, json, setStatus } from './playground.mjs';
@@ -39,6 +41,11 @@ const profiles = [
 ];
 const host=document.querySelector('#profiles');
 const footprint = await fetch('./footprint.json').then(response => response.json());
+try {
+  const report = await fetch('./bundle-footprint.json').then(response => { if (!response.ok) throw new Error(`HTTP ${response.status}`); return response.json(); });
+  const rows = Object.entries(report.entries).map(([name, entry]) => `<tr><th scope="row">${name}</th><td>${(entry.minifiedBytes / 1024).toFixed(1)} KiB</td><td>${(entry.gzipBytes / 1024).toFixed(1)} KiB</td><td>${entry.modules.length}</td></tr>`).join('');
+  document.querySelector('#bundle-output').innerHTML = `<p class="muted">${report.bundler.name} ${report.bundler.version} · ${report.bundler.target} · ${report.source} ${report.packageVersion}</p><div class="table-wrap"><table><thead><tr><th>Entry</th><th>Minified JS</th><th>Gzip</th><th>Modules</th></tr></thead><tbody>${rows}</tbody></table></div><p class="muted">ESM/browser/minify · gzip level 9 · optional Node canvas external · 不包含文档与 Skill。不同入口的共享代码不能直接相加。</p>`;
+} catch (error) { document.querySelector('#bundle-output').textContent = `Production measurement unavailable: ${error.message}. Run npm run bundle:measure -- --output=playground/bundle-footprint.json.`; }
 for(const item of profiles){
   const stats = footprint.profiles[item.id], size = `${(stats.rawBytes / 1024).toFixed(1)} KiB raw · ${(stats.gzipBytes / 1024).toFixed(1)} KiB gzip`;
   const card=document.createElement('article');card.className='card profile-card';card.innerHTML=`<div class="row"><h2>${item.label}</h2><span class="badge">profile</span></div><code>${item.entry}</code><p class="muted">${size}</p><div class="chart" id="chart-${item.id}"></div><div class="toolbar"><label>Renderer <select data-renderer><option>svg</option><option>canvas</option><option>auto</option></select></label><button data-theme>Toggle Light / Dark</button><button data-reject>Reject invalid update</button></div><div class="row"><span class="status" data-status>loading…</span><span class="muted" data-type></span></div><details><summary>Runtime state</summary><pre data-output>waiting…</pre></details>`;host.appendChild(card);

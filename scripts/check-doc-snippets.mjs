@@ -7,7 +7,9 @@ import { fileURLToPath } from 'node:url';
 const documents = {
   'README.md': ['agent-workflow', 'browser-chart'],
   'docs/agent/quickstart.md': ['imports', 'recipe-line', 'build', 'recipe-radar', 'validate', 'render-browser', 'render-headless', 'export'],
-  'docs/agent/text-annotations.md': ['annotations']
+  'docs/agent/text-annotations.md': ['annotations'],
+  'docs/agent/frontend-integration.md': ['frontend-chart', 'host-lifecycle'],
+  'docs/agent/zh-CN/frontend-integration.md': ['frontend-chart', 'host-lifecycle']
 };
 const constructionDocuments = {
   'docs/agent/diagram-scenario.md': ['incremental-flow'],
@@ -138,7 +140,7 @@ board.destroy();`)
         throw new Error(`${scenario.name}:\n${error.stderr || error.message}`, { cause: error });
       }
     }
-    return { nodeScenarios: scenarios.length, snippets: Object.keys(snippets).length, browserScenarios: 2 };
+    return { nodeScenarios: scenarios.length, snippets: Object.keys(snippets).length, browserScenarios: 6 };
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

@@ -1,6 +1,6 @@
 /** Freeform Board composition, fitted text, assets and host-controlled editing. */
 import { Scene, SceneNode } from './scene.mjs';
-import { CanvasRenderer, SVGRenderer } from './renderer.mjs';
+import { CanvasRenderer, SVGRenderer, resolveContainer } from './renderer.mjs';
 import { sceneToSvgString } from './scene-svg.mjs';
 import { validateSpec } from './spec.mjs';
 import { ChartValidationError } from './errors.mjs';
@@ -202,7 +202,7 @@ export class FreeformBoard {
   _notify(type) { for (const listener of this._listeners) { try { listener({ type, state: this.getState(), change: deepClone(this._lastChange) }); } catch {} } }
   previewEdit(command) { return this._editor.preview(command); }
   applyEdit(command, options = {}) { return this._editor.apply(command, options); }
-  mount(container) { this._container = typeof container === 'string' ? document.querySelector(container) : container; if (!this._container) throw new Error('Board container was not found.'); this.renderer.mount(this._container); this.renderer.resize(this.spec.width, this.spec.height); this._render(); return this; }
+  mount(container) { this._container = resolveContainer(container); if (!this._container) throw new Error('Board container was not found.'); try { this.renderer.mount(this._container); this._render(); } catch (error) { this.renderer.destroy(); this._container = null; throw error; } return this; }
   _render() { if (this._container) { this.renderer.options = this.spec; const element = this.renderer.svg || this.renderer.canvas; if (element?.style) element.style.background = this.spec.background; this.renderer.resize(this.spec.width, this.spec.height); this.renderer.render(this.scene); } }
   _rebuild() { this.scene = buildBoardScene(this.spec, this._images, this._buildChartScene); this._render(); }
   _publish(spec) {

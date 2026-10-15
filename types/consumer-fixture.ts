@@ -14,6 +14,10 @@ import { createChart as createProfileChart } from '@taylorwong/ichartjs/standard
 declare const spec: ChartSpec;
 declare const command: EditCommand;
 declare const filters: LinkedFilters;
+declare const containerElement: HTMLElement;
+
+createChart({ ...spec, container: containerElement }).destroy();
+createProfileChart({ ...spec, container: containerElement }).destroy();
 
 const chart: Chart = createChart({ ...spec, type: spec.type || 'line', data: [{ id: 'row-1', name: 'A', value: 1 }] });
 const listener = (event: ChartEvent) => event.chart.getState().revision;

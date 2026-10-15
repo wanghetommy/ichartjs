@@ -6,6 +6,8 @@ Shared iChart.js 2.0 Runtime rules used by all three scenarios.
 
 ## Standard Flow
 
+Mounting/lifecycle rules are in [Frontend Integration](frontend-integration.md#component-lifecycle). An Element container is a non-serializable host binding, not persisted chart data; selector strings remain portable. Missing requested targets throw. Destroy removes runtime-owned surfaces but keeps caller-owned SVG/Canvas elements. Root plugins are installed from host callbacks, not JSON-normalized function copies.
+
 ```text
 getCapabilities → inspectData → planChart → create Spec → validateSpec → createChart → explain and inspect state
 ```

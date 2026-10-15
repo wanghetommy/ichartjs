@@ -1,3 +1,4 @@
+/** Shared Scene Graph SVG export with unique semantic attributes. */
 function _svgEscape(value, mode = 'text') {
   const raw = value == null ? '' : String(value);
   let out = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -104,14 +105,10 @@ export function sceneToSvgString(scene, spec = {}) {
     }
     if (node.highlighted || node.selected) attrs.push(`filter="brightness(1.2)"`);
     if (node.interactive) css.push('cursor:pointer');
-    if (s.pointerEvents === 'none') css.push('pointer-events:none');
-    if (s.ariaHidden === 'true') attrs.push(`aria-hidden="true"`);
-    if (s.role === 'presentation') attrs.push(`role="presentation"`);
-    if (node.decorative) {
-      attrs.push(`aria-hidden="true"`);
-      attrs.push(`role="presentation"`);
-      css.push('pointer-events:none', 'user-select:none');
-    }
+    if (s.pointerEvents === 'none' || node.decorative) css.push('pointer-events:none');
+    if (s.ariaHidden === 'true' || node.decorative) attrs.push(`aria-hidden="true"`);
+    if (s.role === 'presentation' || node.decorative) attrs.push(`role="presentation"`);
+    if (node.decorative) css.push('user-select:none');
     if (css.length) attrs.push(`style="${_svgEscape(css.join(';'), 'attr')}"`);
     if (node.type === 'text') {
       lines.push(`${indent}<${tag} ${attrs.join(' ')}>${_svgEscape(g.text ?? '')}</${tag}>`);

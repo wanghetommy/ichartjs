@@ -1,6 +1,6 @@
 {
   "name": "@taylorwong/ichartjs",
-  "version": "2.0.30",
+  "version": "2.0.31",
   "description": "Agent-first, renderer-independent charting and project visualization runtime",
   "type": "module",
   "main": "./src/index.mjs",
@@ -69,6 +69,8 @@
     "adoption:check": "node scripts/check-agent-adoption.mjs",
     "first-run:check": "node scripts/check-first-run.mjs",
     "consumer:check": "node scripts/check-consumer.mjs",
+    "consumer:browser": "node scripts/check-browser-consumer.mjs",
+    "bundle:measure": "node scripts/measure-consumer-bundle.mjs",
     "footprint:check": "node scripts/check-footprint.mjs",
     "footprint:generate": "node scripts/generate-footprint.mjs",
     "profiles:check": "node scripts/check-profiles.mjs",

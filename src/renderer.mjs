@@ -1,7 +1,4 @@
-/**
- * Canvas and SVG renderer implementations for the shared Scene Graph.
- * Rendering is intentionally separate from chart layout and data semantics.
- */
+/** Canvas/SVG Scene Graph drawing; own mounted children, not caller surfaces. */
 const NO_FILL_TOKENS = new Set(['none', 'transparent', '']);
 
 function drawSceneImage(context, geometry) {
@@ -17,6 +14,7 @@ function drawSceneImage(context, geometry) {
   context.drawImage(image, x + (width - drawWidth) / 2, y + (height - drawHeight) / 2, drawWidth, drawHeight); context.restore();
 }
 
+export function resolveContainer(container) { const target = typeof container === 'string' ? document.querySelector(container) : container; if (typeof container === 'string' && !target) throw new Error('Requested container was not found.'); return target; }
 function color(style, key, fallback) { return style && style[key] != null ? style[key] : fallback; }
 function hasPaint(style, key) { const value = style?.[key]; return value != null && (typeof value !== 'string' || !NO_FILL_TOKENS.has(value.trim().toLowerCase())); }
 function hasFill(style) { return hasPaint(style, 'fill'); }
@@ -46,11 +44,11 @@ function drawArc(context, geometry, style) {
 
 export class BaseRenderer {
   constructor(options = {}) { this.options = options; this.container = null; }
-  mount(container) { this.container = typeof container === 'string' ? document.querySelector(container) : container; if (!this.container) throw new Error('Chart container was not found.'); return this; }
+  mount(container) { const target = resolveContainer(container); if (!target) throw new Error('Chart container was not found.'); const surface = this.svg || this.canvas; if (this.container !== target && surface !== this.container && surface !== target) surface?.remove?.(); this.container = target; return this; }
   resize() {}
   clear() {}
   render() { throw new Error('Renderer.render() must be implemented.'); }
-  destroy() { this.clear(); this.container = null; }
+  destroy() { this.clear(); const surface = this.svg || this.canvas; if (surface !== this.container) surface?.remove?.(); this.container = this.svg = this.canvas = this.ctx = null; }
 }
 
 export class CanvasRenderer extends BaseRenderer {

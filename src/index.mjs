@@ -7,7 +7,7 @@ import { normalizeData, inspectData, data } from './data.mjs';
 import { binData, applyTransforms } from './transforms.mjs';
 import { formatChartTooltip } from './tooltip.mjs';
 import { buildScene } from './charts.mjs';
-import { CanvasRenderer, SVGRenderer } from './renderer.mjs';
+import { CanvasRenderer, SVGRenderer, resolveContainer } from './renderer.mjs';
 import { sceneToSvgString } from './scene-svg.mjs';
 import { createBoard as createBoardRuntime, FreeformBoard as FreeformBoardRuntime, validateBoardSpec, planCanvas } from './board.mjs';
 export class FreeformBoard extends FreeformBoardRuntime {
@@ -41,7 +41,6 @@ export { boardCapabilities };
 
 import { isDiagram, paintSelection, diagramPointer, diagramKeyboard } from './diagram-interaction.mjs';
 
-function resolveContainer(container) { return typeof container === 'string' ? document.querySelector(container) : container; }
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
 function isPreferencesStore(value) { return Boolean(value && typeof value.getEffective === 'function' && typeof value.setChart === 'function' && typeof value.subscribe === 'function'); }
 export function resolveZoomWindow(count, current, factor) {
@@ -99,7 +98,7 @@ export class Chart {
     this.spec = result.spec;
     this._preferenceBase = Object.fromEntries(['legend', 'labels', 'grid', 'branding', 'padding'].map(key => [key, clone(this.spec[key])]));
     this._resolveStyle();
-    this.container = typeof document === 'undefined' ? null : resolveContainer(this.spec.container);
+    this.container = typeof document === 'undefined' ? null : resolveContainer(input.container);
     this.listeners = new Map();
     this._selected = new Map();
     this._clipboard = { nodes: [], edges: [] };
@@ -108,12 +107,11 @@ export class Chart {
     this._lastChangeSet = null;
     this._destroyed = false;
     this._editor = new EditController(this);
-    this.plugins = new PluginHost(this, this.spec.plugins);
+    this.plugins = new PluginHost(this, input.plugins);
     this._rendererSelection = resolveRenderer(this.spec);
-    this._mountRenderer();
+    try { this._mountRenderer(); this.render(); } catch (error) { this.destroy(); throw error; }
     this._observeResize();
     this._observeColorScheme();
-    this.render();
     this._preferencesSnapshot = JSON.stringify(this.getPreferences());
     if (this._preferencesStore) this._preferencesUnsubscribe = this._preferencesStore.subscribe(event => {
       const next = this._preferencesStore.getEffective(this.chartId);
@@ -151,7 +149,7 @@ export class Chart {
   _mountRenderer() { const rendererType = this._rendererSelection?.effective || this.spec.renderer; this.renderer = rendererType === 'svg' ? new SVGRenderer(this.spec) : new CanvasRenderer(this.spec); if (this.container && typeof document !== 'undefined') this.renderer.mount(this.container); }
   render() { if (this._destroyed) throw new Error('Chart has been destroyed.'); this._hideTooltip(); this.model = buildScene(this.spec); paintSelection(this); this._addInteractionNodes(); this.plugins.beforeRender(this.model); if (this.renderer.container) { this.renderer.options = this.spec; const target = this.renderer.svg || this.renderer.canvas; if (target) target.style.background = this.spec.background; this.renderer.resize(this.spec.width, this.spec.height); this.renderer.render(this.model.scene); this._bindEvents(); this._applyAccessibility(); } this.plugins.afterRender(this.model); this.emit('render', { chart: this }); return this; }
   _addInteractionNodes() { if (this.spec.interaction?.crosshair && this.model.state?.plot) { const plot = this.model.state.plot, stroke = this.spec.theme?.focus || '#64748b'; this.model.scene.add({ id: 'crosshair-x', type: 'line', geometry: { x1: plot.x, y1: plot.y, x2: plot.x, y2: plot.y + plot.height }, style: { stroke, strokeWidth: 1, opacity: 0 }, interactive: false, zIndex: 99 }); this.model.scene.add({ id: 'crosshair-y', type: 'line', geometry: { x1: plot.x, y1: plot.y, x2: plot.x + plot.width, y2: plot.y }, style: { stroke, strokeWidth: 1, opacity: 0 }, interactive: false, zIndex: 99 }); } }
-  _observeResize() { if (!this.container || typeof ResizeObserver === 'undefined') return; this._resizeObserver = new ResizeObserver(entries => { const width = Math.round(entries[0]?.contentRect?.width || 0); if (width && width !== this.spec.width) this.resize(width, this.spec.height); }); this._resizeObserver.observe(this.container); }
+  _observeResize() { if (!this.container || typeof ResizeObserver === 'undefined') return; this._resizeObserver = new ResizeObserver(entries => { const width = Math.round(entries[0]?.contentRect?.width || 0); if (!this._destroyed && width && width !== this.spec.width) this.resize(width, this.spec.height); }); this._resizeObserver.observe(this.container); }
   _applyAccessibility() {
     if (!this.container) return;
     const target = this.renderer.svg || this.renderer.canvas;
@@ -521,7 +519,6 @@ getState() { const brandingSignature = discoverCapabilities().branding.signature
         const r = new CanvasRenderer({ ...this.spec, container: undefined });
         r.canvas = cv; r.ctx = cv.getContext('2d');
         r.resize(this.spec.width, this.spec.height);
-        if (this.spec.background) { r.ctx.fillStyle = this.spec.background; r.ctx.fillRect(0, 0, this.spec.width, this.spec.height); }
         r.render(this.model.scene);
         return r.exportImage(type);
       }
@@ -590,9 +587,7 @@ getState() { const brandingSignature = discoverCapabilities().branding.signature
       const dataUrl = this.renderer.exportImage(rasterType);
       if (options.as === 'blob') {
         if (typeof document === 'undefined' || typeof Blob === 'undefined' || typeof atob !== 'function') return { valid: false, code: 'BLOB_HEADLESS', message: 'PNG as=blob requires a browser runtime (atob + Blob). Use as=dataurl or as=string in headless.', suggestion: 'In Node headless, install the canvas package and render via a mounted CanvasRenderer, or fall back to chart.export({type:"svg"}).' };
-        const comma = dataUrl.indexOf(',');
-        const bytes = Uint8Array.from(atob(dataUrl.slice(comma + 1)), c => c.charCodeAt(0));
-        return new Blob([bytes], { type: rasterType });
+        return dataUrlToBlob(dataUrl, rasterType);
       }
       return dataUrl;
     }
@@ -601,14 +596,11 @@ getState() { const brandingSignature = discoverCapabilities().branding.signature
       const r = new CanvasRenderer({ ...this.spec, container: undefined });
       r.canvas = cv; r.ctx = cv.getContext('2d');
       r.resize(this.spec.width, this.spec.height);
-      if (this.spec.background) { r.ctx.fillStyle = this.spec.background; r.ctx.fillRect(0, 0, this.spec.width, this.spec.height); }
       r.render(this.model.scene);
       const dataUrl = r.exportImage(rasterType);
       if (options.as === 'blob') {
         if (typeof Blob === 'undefined' || typeof atob !== 'function') return { valid: false, code: 'BLOB_UNSUPPORTED', message: 'as=blob requires Blob + atob.' };
-        const comma = dataUrl.indexOf(',');
-        const bytes = Uint8Array.from(atob(dataUrl.slice(comma + 1)), c => c.charCodeAt(0));
-        return new Blob([bytes], { type: rasterType });
+        return dataUrlToBlob(dataUrl, rasterType);
       }
       return dataUrl;
     }
@@ -698,4 +690,4 @@ export { normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, cr
 
 export { contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin };
 export { applyPreferencesToSpec, createPreferencesStore, defaultPreferences, mergePreferences, mergeThemePreference, mountChartSettings, normalizePreferences, validatePreferences };
-export const iChart = { version: '2.0.30', createChart, createBoard, validateBoardSpec, validateBoardCommand, planCanvas, boardCapabilities, ChartValidationError, inspectData, normalizeData, binData, applyTransforms, data, getCapabilities, getChartCapability, getChartContract, getPreferenceCapabilities, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, createPreferencesStore, defaultPreferences, normalizePreferences, mergePreferences, validatePreferences, applyPreferencesToSpec, mountChartSettings, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };
+export const iChart = { version: '2.0.31', createChart, createBoard, validateBoardSpec, validateBoardCommand, planCanvas, boardCapabilities, ChartValidationError, inspectData, normalizeData, binData, applyTransforms, data, getCapabilities, getChartCapability, getChartContract, getPreferenceCapabilities, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, createPreferencesStore, defaultPreferences, normalizePreferences, mergePreferences, validatePreferences, applyPreferencesToSpec, mountChartSettings, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };
