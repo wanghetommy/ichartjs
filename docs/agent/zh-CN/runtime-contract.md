@@ -1,5 +1,7 @@
 # Runtime 契约
 
+挂载/生命周期规则见[前端集成](frontend-integration.md)。Element 容器是不可序列化的宿主绑定，不持久化为图表数据；选择器字符串仍可保留。找不到明确请求的容器会抛错。销毁会移除 Runtime 自建表面，保留宿主的 SVG/Canvas 元素。根入口插件使用宿主回调，而不是 JSON 规范化后的函数副本。
+
 三个开发场景共用的 Runtime 规则。
 
 [图表文本与标注](text-annotations.md) 定义文字拟合、换行、参考线和稳定 ID 标注。从 root 的 `getCapabilities().text` / `.annotations` 发现契约，数据标注保存在 `ChartSpec.annotations`，不要当作临时像素线插件。

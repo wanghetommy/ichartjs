@@ -4,7 +4,7 @@
  */
 import { normalizeSpec, validateSpec } from './spec.mjs';
 import { normalizeData, inspectData, binData, applyTransforms } from './data.mjs';
-import { CanvasRenderer, SVGRenderer } from './renderer.mjs';
+import { CanvasRenderer, SVGRenderer, resolveContainer } from './renderer.mjs';
 import { sceneToSvgString } from './scene-svg.mjs';
 import { resolveRenderer } from './renderer-policy.mjs';
 import { resolveTheme } from './theme.mjs';
@@ -57,12 +57,12 @@ export class ProfileChart {
     this._styleOverrides = { colors: input.colors !== undefined, background: input.background !== undefined, padding: input.padding !== undefined };
     this._diagnostics = { warnings: result.warnings, normalizations: result.normalizations };
     this.spec = prepareSpec(result.spec, input);
-    this.container = typeof document === 'undefined' ? null : (typeof this.spec.container === 'string' ? document.querySelector(this.spec.container) : this.spec.container);
+    this.container = typeof document === 'undefined' ? null : resolveContainer(input.container);
     this._rendererSelection = resolveRenderer(this.spec);
     this.renderer = this._rendererSelection.effective === 'svg' ? new SVGRenderer(this.spec) : new CanvasRenderer(this.spec);
     this._destroyed = false;
     if (this.container) this.renderer.mount(this.container);
-    this.render();
+    try { this.render(); } catch (error) { this.destroy(); throw error; }
   }
 
   render() {

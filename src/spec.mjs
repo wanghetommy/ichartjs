@@ -161,7 +161,7 @@ function validateEncodingContract(input, spec, errors) {
 }
 
 export function normalizeSpec(input = {}) {
-  const spec = merge(defaults, input);
+  const spec = merge(defaults, { ...input, container: typeof input.container === 'string' ? input.container : undefined });
   spec.title = normalizeTitle(spec.title);
   if (input.branding === undefined && input.theme && typeof input.theme === 'object' && input.theme.branding !== undefined) spec.branding = clone(input.theme.branding);
   if (spec.branding === false) spec.branding = { enabled: false };

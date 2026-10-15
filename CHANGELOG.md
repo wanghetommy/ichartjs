@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.31 - 2026-10-15
+
+- Hardened shared mount ownership: missing requested selectors reject, Element bindings stay outside portable Specs, destroy removes runtime-created surfaces and retains caller-owned SVG/Canvas elements.
+- Cleaned up failed initial chart rendering and Board mounting, ignored queued root resize callbacks after destruction, and installed constructor plugins from live host callbacks.
+- Fixed duplicate decorative accessibility attributes in shared SVG serialization, making Canvas/headless exports parseable XML.
+- Kept dense Cartesian endpoint ticks readable and made narrow Flow hosts scroll without changing chart zoom or node sizes.
+- Added installed-package browser host acceptance, pinned production bundle measurements, bilingual executable lifecycle guidance and multi-chart presentation-opportunity measurements in existing demos.
+
 ## 2.0.30 - 2026-10-14
 
 - Hardened Profile update/resize publication and failure recovery, preserving style provenance and diagnostics after rejected updates.

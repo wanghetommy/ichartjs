@@ -29,8 +29,10 @@ export function destroyChart(chart) {
   chart._colorSchemeQuery?.removeEventListener?.('change', chart._colorSchemeHandler);
   detachChartEvents(chart);
   chart._tooltip?.remove();
+  chart._tooltip = null;
   chart.plugins.destroy();
   chart.renderer.destroy();
+  chart.container = null;
   chart.listeners.clear();
   chart._selected.clear();
   chart._clipboard = { nodes: [], edges: [] };

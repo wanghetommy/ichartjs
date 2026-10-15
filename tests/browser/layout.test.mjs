@@ -6,6 +6,7 @@ import { spawn } from 'node:child_process';
 import { chromium } from 'playwright-core';
 import { readDocumentSnippets, quickstartWorkflowSource } from '../../scripts/check-doc-snippets.mjs';
 import { measureMountedLifecycle } from './lifecycle-benchmark.mjs';
+import { verifyHostLifecycle } from './host-lifecycle.mjs';
 
 const root = new URL('../../', import.meta.url);
 const browserPort = Number(process.env.BROWSER_PORT || 34567);
@@ -66,6 +67,94 @@ async function goto(path, options = {}) {
 after(async () => {
   await browser?.close();
   server?.kill('SIGTERM');
+});
+
+test('Iteration 31: host resizing, late data, failure cleanup and repeated mounting', async () => {
+  await goto('/examples/consumer-browser.html');
+  const entries = { root: `${baseUrl}/src/index.mjs`, standard: `${baseUrl}/src/standard.mjs`, project: `${baseUrl}/src/project-profile.mjs`, diagram: `${baseUrl}/src/diagram-profile.mjs`, board: `${baseUrl}/src/board-profile.mjs` };
+  const results = await page.evaluate(verifyHostLifecycle, entries);
+  assert.equal(results.length, 10);
+  for (const result of results) for (const [name, passed] of Object.entries(result.checks)) assert.equal(passed, true, `${result.entry}/${result.renderer}: ${name}`);
+});
+
+test('Iteration 31: browser consumer controls keep late data and remounting host-owned', async () => {
+  const errors = [], onError = error => errors.push(error.message);
+  page.on('pageerror', onError);
+  try {
+    for (const renderer of ['svg', 'canvas']) for (const entry of ['root', 'standard', 'project', 'diagram', 'board']) {
+      await goto(`/examples/consumer-browser.html?entry=${entry}&renderer=${renderer}`);
+      await page.waitForFunction(() => Boolean(window.consumerChart));
+      await page.locator('#race').click();
+      await page.waitForFunction(() => window.hostDemo.revision === 2);
+      await page.evaluate(async () => { const late = window.hostDemo.load(9, 60); await window.hostDemo.mount(); await late; });
+      assert.equal(await page.evaluate(() => window.hostDemo.revision), 2);
+      assert.equal(await page.locator('#chart svg,#chart canvas').count(), 1);
+      await page.locator('#size').click();
+      await page.waitForFunction(entry => entry === 'diagram' ? window.consumerChart.getSpec().width === 560 : window.consumerChart.getSpec().width < 400, entry);
+      await page.locator('#visibility').click();
+      assert.equal(await page.locator('#chart-wrap').isHidden(), true);
+      await page.locator('#size').click(); await page.locator('#visibility').click();
+      await page.waitForFunction(() => window.consumerChart.getSpec().width > 400);
+      await page.locator('#theme').click(); await page.locator('#reject').click();
+      assert.match(await page.locator('#status').textContent(), /Spec unchanged/);
+      assert.equal(await page.evaluate(() => window.consumerChart.getSpec().background), '#0f172a');
+      assert.equal(await page.locator('#png').isDisabled(), entry !== 'root' && renderer === 'svg');
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await goto('/examples/consumer-browser.html?entry=diagram');
+    await page.waitForFunction(() => Boolean(window.consumerChart));
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    assert.equal(await page.evaluate(() => document.querySelector('#chart-wrap').scrollWidth > document.querySelector('#chart-wrap').clientWidth), true);
+    await page.locator('#chart-wrap').evaluate(element => { element.scrollLeft = element.scrollWidth; });
+    assert.equal(await page.locator('#chart svg').evaluate(element => [...element.querySelectorAll('text')].some(node => node.textContent === 'Done')), true);
+    assert.deepEqual(errors, []);
+  } finally { page.off('pageerror', onError); await page.setViewportSize({ width: 900, height: 600 }); }
+});
+
+test('Iteration 31: multi-chart presentation timing and lifecycle residue remain inspectable', async () => {
+  await goto('/playground/performance-lab.html');
+  await page.locator('#status.ready').waitFor();
+  await page.locator('#kind').selectOption('dashboard');
+  for (const renderer of ['svg', 'canvas']) {
+    await page.locator('#renderer').selectOption(renderer); await page.locator('#run').click();
+    await page.locator('#status.ready').waitFor();
+    const result = await page.evaluate(() => window.performanceResult);
+    assert.equal(result.chartCount, 3);
+    assert.deepEqual(result.actualCounts, [100, 100, 100]);
+    assert.deepEqual(result.effectiveRenderers, [renderer, renderer, renderer]);
+    assert.equal(await page.locator('#chart svg,#chart canvas').count(), 3);
+    for (const value of result.measurements.filter(value => value.presentationOpportunityMs !== undefined)) assert.ok(value.presentationOpportunityMs >= value.durationMs);
+    assert.ok(['svg-export', 'png-export', 'json-export'].every(label => result.measurements.some(value => value.label === label && value.bytes > 0)));
+    await page.locator('#lifecycle').click(); await page.locator('#status.ready').waitFor();
+    assert.deepEqual(await page.evaluate(() => ({ cycles: window.performanceResult.lifecycleCycles, maximum: window.performanceResult.maximumRemainingChildren, remaining: window.performanceResult.remainingChildren })), { cycles: 25, maximum: 0, remaining: 0 });
+  }
+});
+
+test('Iteration 31: actual bilingual frontend lifecycle snippets reject stale data and clean up', async () => {
+  const snippets = readDocumentSnippets();
+  await goto('/playground/index.html');
+  for (const file of ['docs/agent/frontend-integration.md', 'docs/agent/zh-CN/frontend-integration.md']) for (const id of ['frontend-chart', 'host-lifecycle']) {
+    const source = snippets[`${file}:${id}`].code;
+    const result = await page.evaluate(async ({ source, id }) => {
+      document.body.innerHTML = '<div id="chart" style="width:520px;height:320px"></div>';
+      const rows = [{ id: 'a', category: 'A', value: 2, month: 'Jan', revenue: 2 }, { id: 'b', category: 'B', value: 4, month: 'Feb', revenue: 4 }];
+      const code = `const rows = ${JSON.stringify(rows)};\n${source}\nexport { chart${id === 'host-lifecycle' ? ',refreshRows,dispose' : ''} };`.replaceAll("'@taylorwong/ichartjs/standard'", `'${location.origin}/src/standard.mjs'`).replaceAll("'@taylorwong/ichartjs'", `'${location.origin}/src/index.mjs'`);
+      const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+      let module;
+      try {
+        module = await import(url);
+        if (id === 'host-lifecycle') {
+          let resolveOld;
+          const late = module.refreshRows(() => new Promise(resolve => { resolveOld = resolve; }));
+          await module.refreshRows(() => Promise.resolve(rows)); resolveOld([{ id: 'stale', month: 'Old', revenue: 1 }]); await late;
+        }
+        const result = { renderable: module.chart.getState().health.renderable, ids: module.chart.explain().lineage.recordIds, mounted: Boolean(document.querySelector('#chart svg,#chart canvas')) };
+        if (id === 'host-lifecycle') module.dispose(); else module.chart.destroy();
+        return { ...result, remaining: document.querySelector('#chart').childElementCount };
+      } finally { if (module?.dispose) module.dispose(); else module?.chart.destroy(); URL.revokeObjectURL(url); }
+    }, { source, id });
+    assert.deepEqual(result, { renderable: true, ids: ['a', 'b'], mounted: true, remaining: 0 }, `${file}:${id}`);
+  }
 });
 
 test('Iteration 30: mounted updates, rejection recovery, renderer replacement and Profile controls', async () => {

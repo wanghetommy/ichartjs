@@ -37,6 +37,14 @@ The Playground home page at `playground/index.html` displays the same report in 
 
 Documentation, Skill files, Recipes, and capability manifests are package resources for Agents; they are not browser runtime modules unless the host imports or requests them.
 
+## Production bundle measurement
+
+`npm run bundle:measure -- --output=playground/bundle-footprint.json` builds each public factory from the installed local npm tarball using pinned esbuild `0.28.2`, ESM/browser/ES2022, minification and level-9 gzip. `npm run bundle:measure -- --published=2.0.30 --output=/tmp/ichart-baseline.json` measures a registry release with identical settings. The tool installs the bundler in a temporary directory; network access is required, but no runtime/development dependency is added to the package and this is not a mandatory network-dependent CI gate.
+
+The factory workload exports only `createChart` (or Board `createBoard`); applications importing more APIs, multiple profiles or additional assets have different results. The optional Node `canvas` adapter is external. Included modules are reported, and Profile builds are checked not to pull in root or Agent resources. Source-graph estimates, production bundle gzip and npm package sizes are three different measurements; neither gzip figure proves actual server transfer size.
+
+Profile Loading displays the checked-in production report separately from source estimates. `npm run consumer:browser` runs the existing browser host fixture against these installed-package minified bundles; it requires Chrome and downloads the pinned bundler into a temporary directory. It does not fetch a moving package release.
+
 ## Mobile guidance today
 
 - Use a production bundler rather than loading `src/index.mjs` directly from a page.

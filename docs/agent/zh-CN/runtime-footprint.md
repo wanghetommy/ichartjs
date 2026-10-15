@@ -27,6 +27,14 @@ npm run footprint:check
 - Recipe、Skill、文档和能力清单只在 Agent/工具链需要时加载。
 - 不要在宿主项目中复制一份图表渲染代码来规避体积。
 
+## 实际生产 bundle 测量
+
+`npm run bundle:measure -- --output=playground/bundle-footprint.json` 从实际安装的本地 npm tarball 构建各公开工厂入口，固定 esbuild `0.28.2`、ESM/browser/ES2022、minify、level-9 gzip。使用 `npm run bundle:measure -- --published=2.0.30 --output=/tmp/ichart-baseline.json` 可按相同配置测量 Registry 发布包。工具在临时目录安装 bundler，需要网络；不增加包的运行时/开发依赖，也不新增必须联网的 CI 门禁。
+
+测量只导出 `createChart`（Board 为 `createBoard`）；实际应用引入更多 API、多个 Profile 或资源时结果会变化。可选 Node `canvas` 适配器保持 external。报告列出实际纳入模块，检查 Profile 不引入 root 或 Agent 资源。源码图估算、生产 bundle gzip、npm 包大小是三种不同指标，都不能直接证明服务器实际传输字节。
+
+Profile Loading 将生产构建报告与源码估算分开展示。`npm run consumer:browser` 使用安装包的压缩 bundle 运行现有宿主浏览器示例，需要 Chrome 和固定 bundler 的临时下载权限，不依赖不断变化的 npm 最新版本。
+
 ## 能力入口
 
 完整入口保持兼容，同时提供按能力拆分的公共入口：

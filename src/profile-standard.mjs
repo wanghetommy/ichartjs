@@ -212,7 +212,7 @@ function addAxes(scene, spec, state) {
   const yTicks = state.yTicks;
   if (spec.grid?.visible !== false) yTicks.forEach((value, index) => scene.add(new SceneNode({ id: `grid-y-${index}`, type: 'line', geometry: { x1: plot.x, y1: y(value), x2: plot.x + plot.width, y2: y(value) }, style: { stroke: spec.grid?.color || spec.theme.grid, strokeWidth: spec.theme.marks.gridWidth }, zIndex: -2 })));
   labels.forEach((category, index) => {
-    if (index % state.xLabels.step !== 0 && index !== labels.length - 1) return;
+    if (index !== labels.length - 1 && (index % state.xLabels.step !== 0 || index > 0 && labels.length - 1 - index < state.xLabels.step)) return;
     addText(scene, `label-x-${category}`, state.temporal ? formatTime(category, state.xMax - state.xMin, spec.xAxis?.format, spec.locale) : state.quantitativeX ? formatValue(category, spec.xAxis?.format, spec.locale) : category, x(category), plot.y + plot.height + (state.xLabels.rotation ? 10 : 22), { fill: spec.theme.muted, font: font(spec, 'axis'), textAnchor: state.xLabels.rotation ? 'end' : 'middle', textBaseline: state.xLabels.rotation ? 'middle' : 'alphabetic', rotation: state.xLabels.rotation });
   });
   yTicks.forEach(value => addText(scene, `label-y-${value}`, formatValue(value, spec.yAxis?.format, spec.locale), plot.x - 10, y(value) + 4, { fill: spec.theme.muted, font: font(spec, 'axis'), textAnchor: 'end' }));
