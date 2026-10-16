@@ -1,5 +1,15 @@
 # Scenario: Interactive Diagrams
 
+## Optional Soft Visuals
+
+`theme: {palette:'soft'}` selects an eight-color palette independently of `diagram: {appearance:'soft'}`. The latter uses light node fills, rounded process boxes, safe rounded orthogonal bends and open arrows. Classic remains default; semantic shapes and static interaction defaults are preserved. Dark/contrast modes remain available; colors never infer risk from labels.
+
+Diagram options: `cornerRadius` (0–24), `arrow` (open/filled), `iconPosition` (left/top), `iconBadge` (boolean). Corner ports can limit node radius. Unsafe bend hulls stay sharp; waypoints/edit handles remain unchanged. Mindmap retains its existing cubic policy.
+
+`nodes[].icon` uses the sixteen names in `getCapabilities().diagram.visuals.icons` (root or `/diagram`). Node/edge `tone` is explicitly accent, secondary, neutral, success, warning or danger. Icons are decorative, not decisions. They participate in fitting: `ICON_SUPPRESSED` preserves text when space is insufficient; `UNKNOWN_ICON` preserves labels for unknown names. JSON, schemas and editing retain these fields. Top placement needs taller nodes.
+
+Preview: Gallery “Flow · Soft visuals”; `diagram-editor.html?scenario=editor&appearance=soft`; `canvas-board.html?scenario=icons`. SVG/Canvas share geometry; choosing appearance does not enable interaction.
+
 Agent usage and development guide for process modeling, responsibility mapping, and editable diagrams.
 
 ## Supported Types

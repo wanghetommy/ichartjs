@@ -1,5 +1,7 @@
 /** JSON-safe Board validation and discovery, sharing runtime text fitting. */
 import { validateSpec } from './spec.mjs';
+import { exportContract } from './export.mjs';
+import { iconNames } from './icons.mjs';
 import { boardTextLayout, fontPixels } from './layout.mjs';
 
 export const boardEditableFields = {
@@ -7,7 +9,7 @@ export const boardEditableFields = {
   itemTypes: {
     image: ['position', 'size', 'assetId', 'fit'],
     text: ['position', 'size', 'text', 'fontSize', 'fontFamily', 'fontWeight', 'lineHeight', 'padding', 'textAlign', 'verticalAlign', 'wrap', 'maxLines', 'minFontSize', 'background'],
-    shape: ['position', 'size', 'shape', 'startAngle', 'endAngle', 'innerRadius', 'points'],
+    shape: ['position', 'size', 'shape', 'startAngle', 'endAngle', 'innerRadius', 'points', 'icon'],
     path: ['position', 'size', 'curve', 'closed', 'points'],
     connector: ['from', 'to', 'routing'],
     chart: ['position', 'size', 'spec']
@@ -37,6 +39,8 @@ export const boardCapabilities = {
   text: { wrapping: true, hardBreaks: true, fontPrecedence: 'style.font then fontSize/fontWeight/fontFamily; fitting resizes the effective font', alignment: ['start', 'center', 'end'], verticalAlignment: ['top', 'middle', 'bottom'], overflow: ['scale', 'wrap', 'truncate'], defaultMaxLines: 3, minFontSize: 8 },
   renderers: ['svg', 'canvas', 'auto'],
   exports: ['json', 'svg', 'png', 'jpeg'],
+  icons: { names: iconNames, field: 'items[].icon on shape items; decorative; no new item kind' },
+  export: { delivery: structuredClone(exportContract) },
   imageMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
   limits: { maxAssetBytes: 10485760, maxImageDimension: 8192, minItemSize: 16, maxBoardDimension: 16384, maxItems: 2000 },
   defaults: { editing: false, zoom: false, pan: false, drag: false },
@@ -100,6 +104,10 @@ export function validateBoardSpec(input = {}) {
     if (!boardCapabilities.items.includes(item.kind)) fail(`${path}.kind`, 'Use image, text, shape, path, connector, or chart.');
     item.visible ??= true; item.locked ??= false; item.opacity ??= 1; item.zIndex ??= item.kind === 'connector' ? -1 : index;
     if (typeof item.visible !== 'boolean' || typeof item.locked !== 'boolean') fail(path, 'visible and locked must be boolean.');
+    if (item.icon !== undefined && item.kind !== 'shape') fail(`${path}.icon`, 'Icons are supported on shape items only.');
+    if (item.icon !== undefined && typeof item.icon !== 'string') fail(`${path}.icon`, 'Use an icon name.');
+    else if (item.icon && !iconNames.includes(item.icon)) warnings.push(diagnostic('UNKNOWN_ICON', `${path}.icon`, 'Unknown icon; the shape is retained.'));
+    if (item.icon && Math.min(item.size?.width, item.size?.height) < 24) warnings.push(diagnostic('ICON_SUPPRESSED', `${path}.icon`, 'Icon hidden because the item is too small.'));
     if (!Number.isFinite(item.zIndex)) fail(`${path}.zIndex`, 'zIndex must be finite.');
     if (!Number.isFinite(item.opacity) || item.opacity < 0 || item.opacity > 1) fail(`${path}.opacity`, 'Opacity must be between 0 and 1.');
     if (item.kind === 'connector') {

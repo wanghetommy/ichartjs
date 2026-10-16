@@ -1,5 +1,7 @@
 # Freeform Board 场景
 
+shape 元素可选 `icon`，名称见 `boardCapabilities.icons.names`，不增加元素类型。图标仅装饰，遵循元素透明度、可见性和历史，颜色使用 `style.color`（或 stroke）。尺寸小于 24 时返回 `ICON_SUPPRESSED`，未知名称返回 `UNKNOWN_ICON`。`canvas-board.html?scenario=icons` 展示目录，可附加 `renderer=canvas`、`mode=dark`；窄屏滚动目录，不压缩文字。
+
 当页面需要在一个有边界的白板中组合图片、文字、简笔画、连接线和多个 iChart.js 图表时，使用 Freeform Board。简笔画是白板的能力，不是新的图表类型。它有意不做成完整的 Illustrator 或 Figma 替代品。
 
 ## 最小工作流
@@ -104,7 +106,7 @@ console.log(board.getState());
 
 - `board.export({ type: 'json' })` 输出可复现的 BoardSpec。
 - `board.export({ type: 'svg' })` 输出无头 SVG 字符串，不依赖 DOM。
-- 浏览器中挂载的 Canvas 画布可以导出 PNG/JPEG。
+- 浏览器 PNG/JPEG 通过场景重绘，不依赖挂载或 SVG/Canvas 显示；图片先等待 `ready()` 并检查错误，详见[导出契约](runtime-contract.md#导出与下载)。
 - 交付前检查 `board.getState().health`、`board.getState().rendererSelection` 和 `board.explain()`。
 
 ## 文本与简笔画

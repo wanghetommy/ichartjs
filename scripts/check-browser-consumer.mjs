@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { chromium } from 'playwright-core';
 import { buildConsumerBundles } from './consumer-bundle-lib.mjs';
 import { verifyHostLifecycle } from '../tests/browser/host-lifecycle.mjs';
+import { verifyExportDelivery } from '../tests/browser/export-delivery.mjs';
 
 const work = mkdtempSync(join(tmpdir(), 'ichartjs-mounted-consumer-'));
 let server, browser;
@@ -35,9 +36,11 @@ try {
   await page.waitForFunction(() => Boolean(window.consumerChart));
   const entries = Object.fromEntries(Object.keys(report.entries).map(name => [name, `${base}/bundles/${name}.mjs`]));
   const results = await page.evaluate(verifyHostLifecycle, entries);
+  const delivery = await page.evaluate(verifyExportDelivery, entries);
+  for (const result of delivery) for (const [name, passed] of Object.entries(result.checks)) assert.equal(passed, true, `${result.entry}/${result.renderer}/DPR${result.ratio}: ${name}`);
   for (const result of results) for (const [name, passed] of Object.entries(result.checks)) assert.equal(passed, true, `${result.entry}/${result.renderer}: ${name}`);
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ source: 'installed local npm tarball through minified browser bundles', packageVersion: report.packageVersion, scenarios: results }, null, 2));
+  console.log(JSON.stringify({ source: 'installed local npm tarball through minified browser bundles', packageVersion: report.packageVersion, scenarios: results, delivery }, null, 2));
 } finally {
   await browser?.close();
   if (server?.listening) await new Promise(resolve => server.close(resolve));

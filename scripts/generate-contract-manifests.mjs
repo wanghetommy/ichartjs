@@ -27,6 +27,7 @@ const next = {
   commands: capabilities.commands,
   diagramOperations: capabilities.diagramOperations,
   diagram: capabilities.diagram,
+  styleSystem: capabilities.styleSystem,
   businessModels: capabilities.businessModels,
   diagramEdgeModels: capabilities.diagramEdgeModels,
   exports: capabilities.exports,

@@ -2,6 +2,7 @@
  * Chart Spec defaults, normalization, and top-level validation.
  * The normalized Spec is the stable contract shared by all renderers.
  */
+import { clone, merge } from './json.mjs';
 import { chartProfiles } from './capabilities.mjs';
 import { normalizeData } from './data.mjs';
 import { themeModes, themePalettes, themePresets } from './theme.mjs';
@@ -31,21 +32,6 @@ const defaults = {
   ,locale: 'en-US'
 };
 
-function clone(value) {
-  return value == null ? value : JSON.parse(JSON.stringify(value));
-}
-
-function merge(base, extra) {
-  const result = clone(base);
-  Object.keys(extra || {}).forEach(key => {
-    if (extra[key] && typeof extra[key] === 'object' && !Array.isArray(extra[key]) && result[key] && typeof result[key] === 'object') {
-      result[key] = merge(result[key], extra[key]);
-    } else if (extra[key] !== undefined) {
-      result[key] = clone(extra[key]);
-    }
-  });
-  return result;
-}
 
 function normalizeTitle(title) {
   if (typeof title === 'string') return { text: title };

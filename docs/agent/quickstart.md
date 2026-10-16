@@ -10,7 +10,7 @@ For a new JavaScript or TypeScript project, install the runtime before importing
 npm install @taylorwong/ichartjs@^2
 ```
 
-Pin `@taylorwong/ichartjs@2.0.31` for a reproducible release. Use the package root when the Agent needs discovery and cross-family APIs; use `/standard`, `/project`, `/diagram`, or `/board` when the chart family is already known and the host wants a smaller entry.
+Pin `@taylorwong/ichartjs@2.0.32` for a reproducible release. Use the package root when the Agent needs discovery and cross-family APIs; use `/standard`, `/project`, `/diagram`, or `/board` when the chart family is already known and the host wants a smaller entry.
 
 Profile entries are independent public entry points and do not require importing the root entry first. The root entry is the complete cross-family runtime; it is not a prerequisite or a plugin registry for the focused entries. Run `node examples/consumer-quickstart.mjs` to verify the root, all Profiles, SVG output, and Board output from one consumer fixture.
 
@@ -228,7 +228,7 @@ const chart = createChart(validation.spec);
 
 Headless environment capabilities:
 - JSON and SVG string export work with zero dependencies.
-- PNG/JPEG raster export requires the optional `canvas` npm package; otherwise a structured `HEADLESS_EXPORT_UNSUPPORTED` error is returned.
+- Node PNG/JPEG requires root Chart `exportAsync()` and optional `canvas`; Profiles/Board remain SVG/JSON-only in Node. Unavailable sync raster returns `HEADLESS_EXPORT_UNSUPPORTED`.
 - The on-screen renderer is decoupled from the export backend; any mounted renderer can export any supported format.
 - Prefer `svg` for accessibility, DOM inspection, and diagram editing; prefer `canvas` for larger mark counts when lower DOM overhead matters.
 

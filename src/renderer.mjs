@@ -1,4 +1,6 @@
 /** Canvas/SVG Scene Graph drawing; own mounted children, not caller surfaces. */
+import { pathCommands, rectanglePath } from './path.mjs';
+import { svgNode } from './scene-svg.mjs';
 const NO_FILL_TOKENS = new Set(['none', 'transparent', '']);
 
 function drawSceneImage(context, geometry) {
@@ -21,14 +23,13 @@ function hasFill(style) { return hasPaint(style, 'fill'); }
 function hasStroke(style) { return hasPaint(style, 'stroke'); }
 
 function drawPath(context, geometry, style) {
-  const points = geometry.renderPoints || geometry.points;
-  if (!Array.isArray(points) || points.length < 2) return;
   context.beginPath();
-  if (geometry.curve === 'cubic' && points.length === 4) {
-    context.moveTo(points[0].x, points[0].y);
-    context.bezierCurveTo(points[1].x, points[1].y, points[2].x, points[2].y, points[3].x, points[3].y);
-  } else points.forEach((point, index) => index ? context.lineTo(point.x, point.y) : context.moveTo(point.x, point.y));
-  if (geometry.closed) context.closePath();
+  for (const [kind, ...values] of pathCommands(geometry)) {
+    if (kind === 'M') context.moveTo(...values);
+    else if (kind === 'L') context.lineTo(...values);
+    else if (kind === 'C') context.bezierCurveTo(...values);
+    else context.closePath();
+  }
   if (hasFill(style)) context.fill(); if (hasStroke(style)) context.stroke();
 }
 
@@ -57,13 +58,14 @@ export class CanvasRenderer extends BaseRenderer {
   clear() { if (this.ctx) this.ctx.clearRect(0, 0, this.width, this.height); }
   render(scene) {
     this.clear(); const ctx = this.ctx;
-    if (hasPaint({ fill: this.options?.background })) { ctx.save(); ctx.fillStyle = this.options.background; ctx.fillRect(0, 0, this.width, this.height); ctx.restore(); }
+    if (hasFill({ fill: this.options?.background })) { ctx.save(); ctx.fillStyle = this.options.background; ctx.fillRect(0, 0, this.width, this.height); ctx.restore(); }
     const draw = node => {
       if (!node.visible) return;
       const geometry = node.geometry || {}, style = node.style || {};
       ctx.save(); ctx.globalAlpha = style.opacity == null ? 1 : style.opacity; ctx.fillStyle = hasFill(style) ? color(style, 'fill', node.highlighted || node.selected ? '#1d4ed8' : '#2563eb') : 'rgba(0,0,0,0)'; ctx.strokeStyle = hasStroke(style) ? color(style, 'stroke', '#0f172a') : 'rgba(0,0,0,0)'; ctx.lineWidth = style.strokeWidth || 1; if (typeof ctx.setLineDash === 'function') ctx.setLineDash(Array.isArray(style.lineDash) ? style.lineDash : []);
+      if (style.lineCap) ctx.lineCap = style.lineCap; if (style.lineJoin) ctx.lineJoin = style.lineJoin;
       if (node.type === 'image') drawSceneImage(ctx, geometry);
-      else if (node.type === 'rect') { if (hasFill(style)) ctx.fillRect(geometry.x, geometry.y, geometry.width, geometry.height); if (hasStroke(style)) ctx.strokeRect(geometry.x, geometry.y, geometry.width, geometry.height); }
+      else if (node.type === 'rect') { if (geometry.radius > 0) drawPath(ctx, rectanglePath(geometry), style); else { if (hasFill(style)) ctx.fillRect(geometry.x, geometry.y, geometry.width, geometry.height); if (hasStroke(style)) ctx.strokeRect(geometry.x, geometry.y, geometry.width, geometry.height); } }
       else if (node.type === 'line') { ctx.beginPath(); ctx.moveTo(geometry.x1, geometry.y1); ctx.lineTo(geometry.x2, geometry.y2); if (hasStroke(style)) ctx.stroke(); }
       else if (node.type === 'path') drawPath(ctx, geometry, style);
       else if (node.type === 'circle') { ctx.beginPath(); ctx.arc(geometry.cx, geometry.cy, geometry.r, 0, Math.PI * 2); if (hasFill(style)) ctx.fill(); if (hasStroke(style)) ctx.stroke(); }
@@ -75,23 +77,6 @@ export class CanvasRenderer extends BaseRenderer {
     draw(scene.root);
   }
   exportImage(type = 'image/png') { return this.canvas.toDataURL(type); }
-}
-
-function svgPathForArc(geometry) {
-  const large = geometry.end - geometry.start > Math.PI ? 1 : 0;
-  const start = `${geometry.cx + geometry.r * Math.cos(geometry.start)} ${geometry.cy + geometry.r * Math.sin(geometry.start)}`;
-  const end = `${geometry.cx + geometry.r * Math.cos(geometry.end)} ${geometry.cy + geometry.r * Math.sin(geometry.end)}`;
-  if (geometry.sector === false) return `M ${start} A ${geometry.r} ${geometry.r} 0 ${large} 1 ${end}`;
-  if (geometry.innerR > 0) return [`M ${start}`, `A ${geometry.r} ${geometry.r} 0 ${large} 1 ${end}`, `L ${geometry.cx + geometry.innerR * Math.cos(geometry.end)} ${geometry.cy + geometry.innerR * Math.sin(geometry.end)}`, `A ${geometry.innerR} ${geometry.innerR} 0 ${large} 0 ${geometry.cx + geometry.innerR * Math.cos(geometry.start)} ${geometry.cy + geometry.innerR * Math.sin(geometry.start)}`, 'Z'].join(' ');
-  return [`M ${geometry.cx} ${geometry.cy}`, `L ${start}`, `A ${geometry.r} ${geometry.r} 0 ${large} 1 ${end}`, 'Z'].join(' ');
-}
-
-function svgFont(style, element) {
-  if (!style.font) return;
-  const raw = String(style.font).trim(); element.setAttribute('font', raw);
-  const sizeMatch = raw.match(/\b(\d+(?:\.\d+)?)\s*(px|em|rem|pt|%)/i); if (sizeMatch) element.style.fontSize = `${sizeMatch[1]}${sizeMatch[2].toLowerCase()}`;
-  const weightMatch = raw.match(/^\s*(\d{3}|normal|bold|lighter|bolder)\b/i); if (weightMatch) element.style.fontWeight = weightMatch[1];
-  const family = raw.replace(/^\s*(?:(?:normal|italic|oblique)(?:\s+[^0-9\s]+)?\s+)?(?:\d{3}|normal|bold|lighter|bolder)\s+/i, '').replace(/\b\d+(?:\.\d+)?\s*(?:px|em|rem|pt|%)(?:\s*\/\s*\S+)?\s*/i, '').trim(); if (family) element.style.fontFamily = family;
 }
 
 export class SVGRenderer extends BaseRenderer {
@@ -106,19 +91,9 @@ export class SVGRenderer extends BaseRenderer {
     const renderNode = node => {
       if (!node.visible) return;
       if (node.type === 'root') { node.children.slice().sort((a, b) => a.zIndex - b.zIndex).forEach(renderNode); return; }
-      const geometry = node.geometry || {}, style = node.style || {}, element = document.createElementNS('http://www.w3.org/2000/svg', node.type === 'path' || node.type === 'arc' ? 'path' : node.type === 'text' ? 'text' : node.type);
-      element.setAttribute('id', node.id); element.setAttribute('data-node-id', node.id); if (node.dataRef) element.setAttribute('data-data-ref', JSON.stringify(node.dataRef));
-      if (node.type === 'image') { ['x', 'y', 'width', 'height'].forEach(key => element.setAttribute(key, geometry[key])); element.setAttribute('href', geometry.src); element.setAttribute('preserveAspectRatio', geometry.fit === 'stretch' ? 'none' : geometry.fit === 'cover' ? 'xMidYMid slice' : 'xMidYMid meet'); element.setAttribute('aria-label', geometry.alt || ''); }
-      else if (node.type === 'rect') { ['x', 'y', 'width', 'height'].forEach(key => element.setAttribute(key, geometry[key])); }
-      else if (node.type === 'line') { ['x1', 'y1', 'x2', 'y2'].forEach(key => element.setAttribute(key, geometry[key])); }
-      else if (node.type === 'circle') { ['cx', 'cy', 'r'].forEach(key => element.setAttribute(key, geometry[key])); }
-      else if (node.type === 'ellipse') { ['cx', 'cy', 'rx', 'ry'].forEach(key => element.setAttribute(key, geometry[key])); }
-      else if (node.type === 'arc') element.setAttribute('d', svgPathForArc(geometry));
-      else if (node.type === 'path') { const points = geometry.renderPoints || geometry.points; const d = geometry.curve === 'cubic' && points?.length === 4 ? `M ${points[0].x} ${points[0].y} C ${points[1].x} ${points[1].y} ${points[2].x} ${points[2].y} ${points[3].x} ${points[3].y}` : `${(points || []).map((point, index) => `${index ? 'L' : 'M'} ${point.x} ${point.y}`).join(' ')}${geometry.closed ? ' Z' : ''}`; element.setAttribute('d', d); }
-      else if (node.type === 'text') { element.setAttribute('x', geometry.x); element.setAttribute('y', geometry.y); if (Number(style.rotation)) element.setAttribute('transform', `rotate(${Number(style.rotation)} ${geometry.x} ${geometry.y})`); element.textContent = geometry.text; element.setAttribute('text-anchor', style.textAnchor || (style.textAlign === 'end' ? 'end' : style.textAlign === 'center' ? 'middle' : style.textAlign === 'right' ? 'end' : 'start')); const baseline = style.textBaseline || style.baseline || 'alphabetic'; element.setAttribute('dominant-baseline', baseline === 'middle' || baseline === 'central' ? 'middle' : baseline === 'top' ? 'text-before-edge' : baseline === 'bottom' ? 'text-after-edge' : 'alphabetic'); svgFont(style, element); }
-      if (['path', 'circle', 'ellipse', 'rect'].includes(node.type)) element.setAttribute('fill', hasFill(style) ? style.fill : 'none'); else if (node.type === 'arc') element.setAttribute('fill', geometry.sector === false ? 'none' : hasFill(style) ? style.fill : 'none'); else if (node.type === 'text') element.setAttribute('fill', hasFill(style) ? style.fill : '#0f172a');
-      if (hasStroke(style)) element.setAttribute('stroke', style.stroke); else if (style.stroke != null) element.setAttribute('stroke', 'none'); if (style.strokeWidth != null) element.setAttribute('stroke-width', style.strokeWidth); if (Array.isArray(style.lineDash) && style.lineDash.length) element.setAttribute('stroke-dasharray', style.lineDash.join(' ')); if (style.opacity != null) element.setAttribute('opacity', node.highlighted || node.selected ? 1 : style.opacity); if (node.highlighted || node.selected) element.setAttribute('filter', 'brightness(1.2)');
-      if (node.interactive) element.style.cursor = 'pointer'; if (style.pointerEvents === 'none') element.style.pointerEvents = 'none'; if (style.ariaHidden === 'true') element.setAttribute('aria-hidden', 'true'); if (style.role === 'presentation') element.setAttribute('role', 'presentation'); if (node.decorative) { element.setAttribute('aria-hidden', 'true'); element.setAttribute('role', 'presentation'); element.style.pointerEvents = 'none'; }
+      const { tag, attributes, text } = svgNode(node), element = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
+      if (text !== null) element.textContent = text;
       this.svg.appendChild(element); node.children.slice().sort((a, b) => a.zIndex - b.zIndex).forEach(renderNode);
     };
     renderNode(scene.root);

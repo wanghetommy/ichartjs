@@ -1,4 +1,6 @@
+import { createSoftFlow } from './diagram-visuals.mjs';
 export const galleryCases = [
+  { id: 'flow-soft', name: 'Flow · Soft visuals', category: 'diagram', renderer: 'svg', spec: createSoftFlow() },
   {id:'line',name:'Line',category:'basic',renderer:'svg',spec:{type:'line',data:[{id:'jan',name:'Jan',value:18},{id:'feb',name:'Feb',value:28},{id:'mar',name:'Mar',value:22},{id:'apr',name:'Apr',value:36},{id:'may',name:'May',value:31}],title:{text:'Monthly trend',subtitle:'Line preserves an unfilled path'},labels:{enabled:true}}},
   {id:'area',name:'Area',category:'basic',renderer:'canvas',spec:{type:'area',data:[{id:'jan',name:'Jan',product:12,service:8},{id:'feb',name:'Feb',product:24,service:12},{id:'mar',name:'Mar',product:20,service:15},{id:'apr',name:'Apr',product:34,service:18}],encoding:{x:{field:'name'},y:[{field:'product',name:'Product'},{field:'service',name:'Service'}]},stack:'stacked',title:{text:'Stacked area'}}},
   {id:'bar',name:'Bar',category:'basic',renderer:'svg',spec:{type:'bar',data:[{id:'a',name:'Alpha',value:24},{id:'b',name:'Beta',value:-18},{id:'c',name:'Gamma',value:32},{id:'d',name:'Delta',value:27}],title:{text:'Positive and negative values'},labels:{enabled:true}}},

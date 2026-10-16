@@ -2,6 +2,7 @@
  * Small, renderer-neutral preference contract shared by the Chart API,
  * interactive settings UI, and Agent integrations.
  */
+import { clone, merge } from './json.mjs';
 import { themeModes, themePalettes, themePresets } from './theme.mjs';
 
 export const preferenceVersion = '1.0';
@@ -20,16 +21,6 @@ export const defaultPreferences = Object.freeze({
   motion: 'auto'
 });
 
-function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
-
-function merge(base, extra) {
-  const result = clone(base) || {};
-  Object.entries(extra || {}).forEach(([key, value]) => {
-    if (value && typeof value === 'object' && !Array.isArray(value) && result[key] && typeof result[key] === 'object' && !Array.isArray(result[key])) result[key] = merge(result[key], value);
-    else if (value !== undefined) result[key] = clone(value);
-  });
-  return result;
-}
 
 function isPlainObject(value) { return Boolean(value) && typeof value === 'object' && !Array.isArray(value); }
 

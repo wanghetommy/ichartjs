@@ -2,12 +2,14 @@
 import { Scene, SceneNode } from './scene.mjs';
 import { CanvasRenderer, SVGRenderer, resolveContainer } from './renderer.mjs';
 import { sceneToSvgString } from './scene-svg.mjs';
+import { resolveExport, encodeExport, exportRaster, exportError } from './export.mjs';
 import { validateSpec } from './spec.mjs';
 import { ChartValidationError } from './errors.mjs';
 import { EditHistory } from './history.mjs';
 import { cloneBoard, validateBoardSpec } from './board-contract.mjs';
 import { boardTextLayout, fontAtSize } from './layout.mjs';
 import { BoardEditController } from './board-edit.mjs';
+import { iconNodes } from './icons.mjs';
 
 function deepClone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
 function itemBounds(item) { return { x: item.position.x, y: item.position.y, width: item.size.width, height: item.size.height }; }
@@ -40,6 +42,8 @@ function transformGeometry(geometry, bounds, target) {
   if (Number.isFinite(geometry.rx)) result.rx *= sx;
   if (Number.isFinite(geometry.ry)) result.ry *= sy;
   if (Number.isFinite(geometry.innerR)) result.innerR *= Math.min(sx, sy);
+  if (Number.isFinite(geometry.radius)) result.radius *= Math.min(sx, sy);
+  if (geometry.cornerRadii) result.cornerRadii = geometry.cornerRadii.map(radius => radius * Math.min(sx, sy));
   if (Array.isArray(geometry.points)) result.points = geometry.points.map(point);
   if (Array.isArray(geometry.renderPoints)) result.renderPoints = geometry.renderPoints.map(point);
   return result;
@@ -107,6 +111,10 @@ function buildBoardScene(spec, loadedImages = new Map(), buildChartScene = null)
         const radius = Math.min(bounds.width, bounds.height) / 2, start = Number(item.startAngle) * Math.PI / 180, rawEnd = Number(item.endAngle) * Math.PI / 180, end = rawEnd <= start ? rawEnd + Math.PI * 2 : rawEnd, geometry = { cx: bounds.x + bounds.width / 2, cy: bounds.y + bounds.height / 2, r: radius, innerR: radius * (Number(item.innerRadius) || 0), start, end, sector: shape === 'sector' };
         scene.add(new SceneNode({ id: item.id, type: 'arc', geometry, bounds, style: shape === 'arc' ? { ...style, fill: 'none' } : style, zIndex: item.zIndex, interactive: Boolean(spec.editing.enabled && !item.locked) }));
       } else scene.add(new SceneNode({ id: item.id, type: shape === 'ellipse' ? 'ellipse' : 'rect', geometry: shape === 'ellipse' ? { cx: bounds.x + bounds.width / 2, cy: bounds.y + bounds.height / 2, rx: bounds.width / 2, ry: bounds.height / 2 } : bounds, bounds, style, zIndex: item.zIndex, interactive: Boolean(spec.editing.enabled && !item.locked) }));
+      if (item.icon && Math.min(bounds.width, bounds.height) >= 24) {
+        const size = Math.min(32, bounds.width - 8, bounds.height - 8), box = { x: bounds.x + (bounds.width - size) / 2, y: bounds.y + (bounds.height - size) / 2, width: size, height: size };
+        iconNodes(item.icon, box, style.color || (style.stroke !== 'none' && style.stroke) || '#008080', `icon-${item.id}`).forEach(node => scene.add({ ...node, style: { ...node.style, opacity: item.opacity ?? 1 }, zIndex: (item.zIndex || 0) + 0.1 }));
+      }
     } else if (item.kind === 'path') {
       const points = item.points.map(point => ({ x: bounds.x + point.x * bounds.width, y: bounds.y + point.y * bounds.height }));
       scene.add(new SceneNode({ id: item.id, type: 'path', geometry: { points, curve: item.curve || 'linear', closed: Boolean(item.closed) }, bounds, style, zIndex: item.zIndex, interactive: Boolean(spec.editing.enabled && !item.locked) }));
@@ -263,7 +271,14 @@ export class FreeformBoard {
   }
   undo() { return this._restore('undo'); }
   redo() { return this._restore('redo'); }
-  export(options = {}) { const type = options.type || 'svg'; if (type === 'json') return options.as === 'string' ? JSON.stringify(this.spec, null, 2) : this.getSpec(); if (type === 'svg') return sceneToSvgString(this.scene, this.spec); if ((type === 'png' || type === 'jpeg') && this.renderer instanceof CanvasRenderer && this.renderer.canvas) return this.renderer.exportImage(type === 'jpeg' ? 'image/jpeg' : 'image/png'); return { valid: false, code: 'BOARD_RASTER_EXPORT_UNSUPPORTED', message: 'Raster board export requires a mounted Canvas renderer.', suggestion: 'Use renderer: "canvas", mount the board, then export PNG or JPEG.' }; }
+  export(options = {}) {
+    const request = resolveExport(options);
+    if (request.valid === false) return request;
+    if (this._destroyed) return exportError('EXPORT_DESTROYED', 'Board has been destroyed.');
+    if (request.kind === 'json') return encodeExport(this.getSpec(), options.as === undefined ? { ...request, as: 'object' } : request);
+    if (request.kind === 'svg') return encodeExport(sceneToSvgString(this.scene, this.spec), request);
+    return exportRaster(this.spec, this.scene, request);
+  }
   destroy() { this.renderer.destroy(); this._container = null; this.scene = null; this._destroyed = true; this._editor.invalidate(); this._listeners.clear(); for (const load of this._assetLoads.values()) load.cancel?.(); this._assetLoads.clear(); this._images.clear(); }
 }
 

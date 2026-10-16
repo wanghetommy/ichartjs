@@ -1,4 +1,5 @@
 /** Shared Scene Graph SVG export with unique semantic attributes. */
+import { pathString } from './path.mjs';
 function _svgEscape(value, mode = 'text') {
   const raw = value == null ? '' : String(value);
   let out = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -24,101 +25,66 @@ function hasPaint(style, key) {
   if (value == null) return false;
   return typeof value !== 'string' || !NO_PAINT_TOKENS.has(value.trim().toLowerCase());
 }
+function svgArcPath(geometry) {
+  const large = geometry.end - geometry.start > Math.PI ? 1 : 0;
+  const start = `${geometry.cx + geometry.r * Math.cos(geometry.start)} ${geometry.cy + geometry.r * Math.sin(geometry.start)}`;
+  const end = `${geometry.cx + geometry.r * Math.cos(geometry.end)} ${geometry.cy + geometry.r * Math.sin(geometry.end)}`;
+  if (geometry.sector === false) return `M ${start} A ${geometry.r} ${geometry.r} 0 ${large} 1 ${end}`;
+  if (geometry.innerR > 0) return [`M ${start}`, `A ${geometry.r} ${geometry.r} 0 ${large} 1 ${end}`, `L ${geometry.cx + geometry.innerR * Math.cos(geometry.end)} ${geometry.cy + geometry.innerR * Math.sin(geometry.end)}`, `A ${geometry.innerR} ${geometry.innerR} 0 ${large} 0 ${geometry.cx + geometry.innerR * Math.cos(geometry.start)} ${geometry.cy + geometry.innerR * Math.sin(geometry.start)}`, 'Z'].join(' ');
+  return [`M ${geometry.cx} ${geometry.cy}`, `L ${start}`, `A ${geometry.r} ${geometry.r} 0 ${large} 1 ${end}`, 'Z'].join(' ');
+}
+
+
+export function svgNode(node) {
+  const geometry = node.geometry || {}, style = node.style || {}, attributes = {}, css = [];
+  const tag = node.type === 'group' ? 'g' : node.type === 'arc' ? 'path' : node.type;
+  if (node.id) { attributes.id = node.id; attributes['data-node-id'] = node.id; }
+  if (node.dataRef) attributes['data-data-ref'] = JSON.stringify(node.dataRef);
+  const keys = { rect: ['x', 'y', 'width', 'height'], line: ['x1', 'y1', 'x2', 'y2'], circle: ['cx', 'cy', 'r'], ellipse: ['cx', 'cy', 'rx', 'ry'], image: ['x', 'y', 'width', 'height'] };
+  for (const key of keys[node.type] || []) attributes[key] = geometry[key];
+  if (node.type === 'rect' && geometry.radius > 0) attributes.rx = Math.min(geometry.radius, geometry.width / 2, geometry.height / 2);
+  if (node.type === 'image') { attributes.href = geometry.src; attributes.preserveAspectRatio = geometry.fit === 'stretch' ? 'none' : geometry.fit === 'cover' ? 'xMidYMid slice' : 'xMidYMid meet'; attributes['aria-label'] = geometry.alt || ''; }
+  if (node.type === 'path') attributes.d = pathString(geometry);
+  if (node.type === 'arc') attributes.d = svgArcPath(geometry);
+  if (node.type === 'text') {
+    attributes.x = geometry.x; attributes.y = geometry.y;
+    if (Number(style.rotation)) attributes.transform = 'rotate(' + Number(style.rotation) + ' ' + geometry.x + ' ' + geometry.y + ')';
+    attributes['text-anchor'] = style.textAnchor || (['center', 'middle'].includes(style.textAlign) ? 'middle' : ['right', 'end'].includes(style.textAlign) ? 'end' : 'start');
+    const baseline = style.textBaseline || style.baseline || 'alphabetic';
+    attributes['dominant-baseline'] = baseline === 'middle' || baseline === 'central' ? 'middle' : baseline === 'top' ? 'text-before-edge' : baseline === 'bottom' ? 'text-after-edge' : 'alphabetic';
+    if (style.font) {
+      const font = _svgStyleFontParts(style.font); attributes.font = style.font;
+      css.push('font:' + style.font);
+      if (font.size) { attributes['font-size'] = font.size; css.push('font-size:' + font.size); }
+      if (font.weight) { attributes['font-weight'] = font.weight; css.push('font-weight:' + font.weight); }
+      if (font.family) { attributes['font-family'] = font.family; css.push('font-family:' + font.family); }
+    }
+  }
+  if (['path', 'arc', 'rect', 'circle', 'ellipse', 'text'].includes(node.type)) attributes.fill = node.type === 'arc' && geometry.sector === false ? 'none' : hasPaint(style, 'fill') ? style.fill : node.type === 'text' ? '#0f172a' : 'none';
+  for (const [key, attribute] of [['stroke', 'stroke'], ['strokeWidth', 'stroke-width'], ['lineCap', 'stroke-linecap'], ['lineJoin', 'stroke-linejoin']]) if (style[key] != null) attributes[attribute] = style[key];
+  if (style.lineDash?.length) attributes['stroke-dasharray'] = style.lineDash.join(' ');
+  if (style.opacity != null) attributes.opacity = node.highlighted || node.selected ? 1 : style.opacity;
+  if (node.highlighted || node.selected) attributes.filter = 'brightness(1.2)';
+  if (node.interactive) css.push('cursor:pointer');
+  if (style.pointerEvents === 'none' || node.decorative) css.push('pointer-events:none');
+  if (style.ariaHidden === 'true' || node.decorative) attributes['aria-hidden'] = 'true';
+  if (style.role === 'presentation' || node.decorative) attributes.role = 'presentation';
+  if (css.length) attributes.style = css.join(';');
+  return { tag, attributes, text: node.type === 'text' ? geometry.text ?? '' : null };
+}
+
 export function sceneToSvgString(scene, spec = {}) {
-  const w = Number(scene?.width ?? spec?.width ?? 640);
-  const h = Number(scene?.height ?? spec?.height ?? 360);
-  const bg = spec.background ?? '#ffffff';
-  const lines = [`<?xml version="1.0" encoding="UTF-8"?>`, `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`];
-  if (bg) lines.push(`  <rect x="0" y="0" width="${w}" height="${h}" fill="${_svgEscape(bg, 'attr')}"/>`);
-  const renderNode = (node, indent = '  ') => {
-    if (!node || !node.visible) return;
-    if (node.type === 'root') {
-      const kids = [...node.children].sort((a, b) => a.zIndex - b.zIndex);
-      kids.forEach(k => renderNode(k, indent));
-      return;
+  const width = Number(scene?.width ?? spec.width ?? 640), height = Number(scene?.height ?? spec.height ?? 360);
+  const lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height + '" viewBox="0 0 ' + width + ' ' + height + '">'];
+  const attributeText = attributes => Object.entries(attributes).map(([key, value]) => key + '="' + _svgEscape(value, 'attr') + '"').join(' ');
+  if (spec.background ?? '#ffffff') lines.push('  <rect ' + attributeText({ x: 0, y: 0, width, height, fill: spec.background ?? '#ffffff' }) + '/>');
+  const draw = node => {
+    if (!node.visible) return;
+    if (node.id !== 'root') {
+      const { tag, attributes, text } = svgNode(node);
+      lines.push('  <' + tag + ' ' + attributeText(attributes) + (text === null ? '/>' : '>' + _svgEscape(text) + '</' + tag + '>'));
     }
-    const g = node.geometry || {}; const s = node.style || {};
-    const attrs = [];
-    if (node.id) attrs.push(`id="${_svgEscape(node.id, 'attr')}" data-node-id="${_svgEscape(node.id, 'attr')}"`);
-    if (node.dataRef) attrs.push(`data-data-ref="${_svgEscape(JSON.stringify(node.dataRef), 'attr')}"`);
-    const css = [];
-    let tag = node.type;
-    if (node.type === 'image') {
-      attrs.push(`x="${g.x}" y="${g.y}" width="${g.width}" height="${g.height}" href="${_svgEscape(g.src, 'attr')}" preserveAspectRatio="${g.fit === 'stretch' ? 'none' : g.fit === 'cover' ? 'xMidYMid slice' : 'xMidYMid meet'}" aria-label="${_svgEscape(g.alt || '', 'attr')}"`);
-    } else if (node.type === 'rect') {
-      attrs.push(`x="${g.x}" y="${g.y}" width="${g.width}" height="${g.height}"`);
-    } else if (node.type === 'line') {
-      attrs.push(`x1="${g.x1}" y1="${g.y1}" x2="${g.x2}" y2="${g.y2}"`);
-    } else if (node.type === 'circle') {
-      attrs.push(`cx="${g.cx}" cy="${g.cy}" r="${g.r}"`);
-    } else if (node.type === 'ellipse') {
-      attrs.push(`cx="${g.cx}" cy="${g.cy}" rx="${g.rx}" ry="${g.ry}"`);
-    } else if (node.type === 'arc') {
-      tag = 'path';
-      const large = g.end - g.start > Math.PI ? 1 : 0;
-      const outerStart = `${g.cx + g.r * Math.cos(g.start)} ${g.cy + g.r * Math.sin(g.start)}`;
-      const outerEnd = `${g.cx + g.r * Math.cos(g.end)} ${g.cy + g.r * Math.sin(g.end)}`;
-      let d;
-      if (g.sector === false) {
-        d = [`M ${outerStart}`, `A ${g.r} ${g.r} 0 ${large} 1 ${outerEnd}`].join(' ');
-      } else if (g.innerR > 0) {
-        d = [`M ${outerStart}`, `A ${g.r} ${g.r} 0 ${large} 1 ${outerEnd}`, `L ${g.cx + g.innerR * Math.cos(g.end)} ${g.cy + g.innerR * Math.sin(g.end)}`, `A ${g.innerR} ${g.innerR} 0 ${large} 0 ${g.cx + g.innerR * Math.cos(g.start)} ${g.cy + g.innerR * Math.sin(g.start)}`, 'Z'].join(' ');
-      } else {
-        d = [`M ${g.cx} ${g.cy}`, `L ${outerStart}`, `A ${g.r} ${g.r} 0 ${large} 1 ${outerEnd}`, 'Z'].join(' ');
-      }
-      attrs.push(`d="${_svgEscape(d, 'attr')}"`);
-    } else if (node.type === 'path') {
-      const points = g.renderPoints || g.points;
-      const d = g.curve === 'cubic' && points?.length === 4
-        ? `M ${points[0].x} ${points[0].y} C ${points[1].x} ${points[1].y} ${points[2].x} ${points[2].y} ${points[3].x} ${points[3].y}`
-        : `${(points || []).map((p, i) => `${i ? 'L' : 'M'} ${p.x} ${p.y}`).join(' ')}${g.closed ? ' Z' : ''}`;
-      attrs.push(`d="${_svgEscape(d, 'attr')}"`);
-    } else if (node.type === 'text') {
-      attrs.push(`x="${g.x}" y="${g.y}"`);
-      if (Number.isFinite(Number(s.rotation)) && Number(s.rotation) !== 0) attrs.push(`transform="rotate(${Number(s.rotation)} ${g.x} ${g.y})"`);
-      const anchor = s.textAnchor || (s.textAlign === 'end' ? 'end' : s.textAlign === 'center' ? 'middle' : s.textAlign === 'right' ? 'end' : s.textAlign === 'left' ? 'start' : 'start');
-      if (anchor) attrs.push(`text-anchor="${anchor}"`);
-      const baseline = s.textBaseline || s.baseline || 'alphabetic';
-      if (baseline === 'top') { attrs.push(`dominant-baseline="text-before-edge"`); attrs.push(`alignment-baseline="before-edge"`); }
-      else if (baseline === 'middle' || baseline === 'central') { attrs.push(`dominant-baseline="middle"`); attrs.push(`alignment-baseline="middle"`); }
-      else if (baseline === 'bottom' || baseline === 'hanging') { attrs.push(`dominant-baseline="text-after-edge"`); attrs.push(`alignment-baseline="after-edge"`); }
-      else { attrs.push(`dominant-baseline="alphabetic"`); attrs.push(`alignment-baseline="alphabetic"`); }
-      if (s.font) {
-        const rawFont = String(s.font).trim();
-        attrs.push(`font="${_svgEscape(rawFont, 'attr')}"`);
-        const { size, weight, family } = _svgStyleFontParts(rawFont);
-        if (size) css.push(`font-size:${size}`);
-        if (weight) css.push(`font-weight:${weight}`);
-        if (family) css.push(`font-family:${family}`);
-      }
-    } else {
-      tag = 'g';
-    }
-    if (['path', 'circle', 'ellipse', 'rect', 'arc'].includes(node.type)) attrs.push(`fill="${node.type === 'arc' && g.sector === false ? 'none' : hasPaint(s, 'fill') ? _svgEscape(s.fill, 'attr') : 'none'}"`);
-    else if (node.type === 'text') attrs.push(`fill="${hasPaint(s, 'fill') ? _svgEscape(s.fill, 'attr') : '#0f172a'}"`);
-    if (hasPaint(s, 'stroke')) attrs.push(`stroke="${_svgEscape(s.stroke, 'attr')}"`);
-    else if (s.stroke != null) attrs.push('stroke="none"');
-    if (s.strokeWidth) attrs.push(`stroke-width="${s.strokeWidth}"`);
-    if (s.opacity != null) {
-      const opacity = (node.highlighted || node.selected) ? 1 : s.opacity;
-      attrs.push(`opacity="${opacity}"`);
-    }
-    if (node.highlighted || node.selected) attrs.push(`filter="brightness(1.2)"`);
-    if (node.interactive) css.push('cursor:pointer');
-    if (s.pointerEvents === 'none' || node.decorative) css.push('pointer-events:none');
-    if (s.ariaHidden === 'true' || node.decorative) attrs.push(`aria-hidden="true"`);
-    if (s.role === 'presentation' || node.decorative) attrs.push(`role="presentation"`);
-    if (node.decorative) css.push('user-select:none');
-    if (css.length) attrs.push(`style="${_svgEscape(css.join(';'), 'attr')}"`);
-    if (node.type === 'text') {
-      lines.push(`${indent}<${tag} ${attrs.join(' ')}>${_svgEscape(g.text ?? '')}</${tag}>`);
-    } else {
-      lines.push(`${indent}<${tag} ${attrs.join(' ')}/>`);
-    }
-    const kids = [...(node.children || [])].sort((a, b) => a.zIndex - b.zIndex);
-    kids.forEach(k => renderNode(k, indent + '  '));
+    node.children.slice().sort((first, second) => first.zIndex - second.zIndex).forEach(draw);
   };
-  renderNode(scene.root);
-  lines.push(`</svg>`);
-  return lines.join('\n');
+  draw(scene.root); lines.push('</svg>'); return lines.join('\n');
 }

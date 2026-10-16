@@ -9,6 +9,7 @@ import { formatChartTooltip } from './tooltip.mjs';
 import { buildScene } from './charts.mjs';
 import { CanvasRenderer, SVGRenderer, resolveContainer } from './renderer.mjs';
 import { sceneToSvgString } from './scene-svg.mjs';
+import { resolveExport, encodeExport, exportRaster, exportError } from './export.mjs';
 import { createBoard as createBoardRuntime, FreeformBoard as FreeformBoardRuntime, validateBoardSpec, planCanvas } from './board.mjs';
 export class FreeformBoard extends FreeformBoardRuntime {
   constructor(spec = {}) { super(spec, { buildChartScene: buildScene }); }
@@ -51,30 +52,6 @@ export function resolveZoomWindow(count, current, factor) {
   const center = (start + end) / 2;
   const nextStart = Math.max(0, Math.min(total - nextSpan, Math.round(center - nextSpan / 2)));
   return { start: nextStart, end: nextStart + nextSpan };
-}
-
-function exportError(code, message, suggestion, extra = {}) { return { valid: false, code, message, suggestion, ...extra }; }
-function dataUrlToBlob(dataUrl, mime) {
-  if (typeof Blob === 'undefined') return exportError('BLOB_HEADLESS', 'Blob is not available in this runtime.', 'Use as=dataurl or as=string.');
-  const comma = dataUrl.indexOf(',');
-  if (comma < 0) return exportError('EXPORT_UNSUPPORTED', 'The renderer returned an invalid data URL.', 'Use chart.export({ type: "svg" }) and inspect the returned string.');
-  const header = dataUrl.slice(0, comma), payload = dataUrl.slice(comma + 1);
-  const bytes = /;base64$/i.test(header)
-    ? Uint8Array.from(atob(payload), value => value.charCodeAt(0))
-    : new TextEncoder().encode(decodeURIComponent(payload));
-  return new Blob([bytes], { type: mime });
-}
-function canvasFactoryFromModule(module) { return module?.createCanvas || module?.default?.createCanvas || null; }
-function renderRasterWithCanvas(createCanvas, spec, scene, rasterType, as) {
-  const canvas = createCanvas(spec.width, spec.height), renderer = new CanvasRenderer({ ...spec });
-  renderer.canvas = canvas;
-  renderer.ctx = canvas.getContext('2d');
-  if (!renderer.ctx) return exportError('HEADLESS_EXPORT_UNSUPPORTED', 'The optional canvas package did not provide a 2D context.', 'Install a supported canvas implementation or use SVG export.');
-  renderer.resize(spec.width, spec.height);
-  renderer.render(scene);
-  const dataUrl = renderer.exportImage(rasterType);
-  if (as === 'blob') return dataUrlToBlob(dataUrl, rasterType);
-  return dataUrl;
 }
 
 export class Chart {
@@ -501,136 +478,45 @@ getState() { const brandingSignature = discoverCapabilities().branding.signature
   resetZoom() { delete this.spec.view; return this.render(); }
   zoomTo(view) { this.spec.view = { ...view }; this.emit('zoomchange', { chart: this, view: this.spec.view }); return this.render(); }
   panBy(delta) { const current = this.spec.view || {}; this.spec.view = { ...current, offsetX: (current.offsetX || 0) + (delta.x || 0), offsetY: (current.offsetY || 0) + (delta.y || 0) }; this.emit('zoomchange', { chart: this, view: this.spec.view }); return this.render(); }
-  toDataURL(type = 'image/png') {
-    const rawType = String(type || 'image/png').toLowerCase();
-    const wantsSvg = rawType.includes('svg') || rawType.includes('xml');
-    if (this.renderer instanceof SVGRenderer) {
-      if (wantsSvg) {
-        const headlessEnv = typeof document === 'undefined' || typeof XMLSerializer === 'undefined';
-        const string = headlessEnv
-          ? sceneToSvgString(this.model.scene, this.spec)
-          : this.renderer.container
-            ? this.renderer.exportString()
-            : (() => { const renderer = new SVGRenderer(this.spec); renderer.resize(this.spec.width, this.spec.height); renderer.render(this.model.scene); return renderer.exportString(); })();
-        return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(string)}`;
-      }
-      if (typeof document !== 'undefined') {
-        const cv = document.createElement('canvas');
-        const r = new CanvasRenderer({ ...this.spec, container: undefined });
-        r.canvas = cv; r.ctx = cv.getContext('2d');
-        r.resize(this.spec.width, this.spec.height);
-        r.render(this.model.scene);
-        return r.exportImage(type);
-      }
-      return { valid: false, code: 'HEADLESS_EXPORT_UNSUPPORTED', rasterCode: 'RASTER_EXPORT_UNSUPPORTED', message: `SVG renderer raster ('${type}') in headless requires npm i canvas, or fall back to chart.export({type:"svg"}).`, suggestion: 'Use chart.export({type:"svg"}) for headless, or render with { renderer: "canvas" }.' };
-    }
-    if (this.renderer instanceof CanvasRenderer && typeof this.renderer.exportImage === 'function' && this.renderer.canvas) return this.renderer.exportImage(type);
-    return exportError(typeof document === 'undefined' ? 'HEADLESS_EXPORT_UNSUPPORTED' : 'EXPORT_UNSUPPORTED', `toDataURL('${type}') is not available because the renderer has no canvas surface.`, 'Mount the chart in a browser or use chart.export({ type: "svg" }).');
-  }
+  toDataURL(type = 'image/png') { return this.export({ type, as: 'dataurl' }); }
   toBlob(type = 'image/png') {
-    if (typeof document === 'undefined') return { valid: false, code: 'BLOB_HEADLESS', message: 'toBlob() requires a browser document. Use toDataURL() or export({type:"svg"}) in headless.', suggestion: 'Use chart.export({type:"svg"}) or chart.toDataURL() which both return strings usable in headless.' };
-    let url;
-    try { url = this.toDataURL(type); } catch (error) { return exportError('EXPORT_UNSUPPORTED', String(error?.message || error), 'Use chart.export({ type: "svg" }) or mount a supported renderer.'); }
-    if (!url || typeof url !== 'string') return { valid: false, code: 'EXPORT_UNSUPPORTED', message: "Couldn't produce a data URL for export.", suggestion: (url && url.message) || url };
-    const normalizedType = String(type).toLowerCase();
-    const mime = normalizedType.includes('svg') ? 'image/svg+xml' : /^image\//i.test(normalizedType) ? normalizedType : 'image/png';
-    return dataUrlToBlob(url, mime);
+    const request = resolveExport({ type, as: 'blob' });
+    if (request.valid === false) return request;
+    if (typeof document === 'undefined') return exportError('BLOB_HEADLESS', 'toBlob() requires a browser document.');
+    return this.export({ type, as: 'blob' });
+  }
+  _exportScene() {
+    if (!isDiagram(this)) return this.model.scene;
+    const model = buildScene({ ...this.spec, editing: { ...this.spec.editing, enabled: false }, interaction: { ...this.spec.interaction, portConnect: false } });
+    this.plugins.beforeRender(model);
+    return model.scene;
   }
   export(options = {}) {
-    const rawType = String(options.type || (this.renderer instanceof CanvasRenderer ? 'image/png' : 'image/svg+xml')).toLowerCase();
-    const normalizeType = t => {
-      if (t === 'json' || t === 'application/json' || t.endsWith('/json')) return 'json';
-      if (t.includes('svg')) return 'svg';
-      if (t.includes('png')) return 'png';
-      if (t.includes('jpeg') || t.includes('jpg')) return 'jpeg';
-      return 'auto';
-    };
-    const kind = normalizeType(rawType);
-    if (kind === 'auto') return exportError('EXPORT_TYPE_UNSUPPORTED', `Unknown export type: ${rawType}`, 'Use png, svg, jpeg, or json.');
-    if (kind === 'json') {
-      const payload = { version: '2.0', spec: this.getSpec(), state: this.getState() };
-      const json = JSON.stringify(payload, null, 2);
-      if (!options.as || options.as === 'string') return json;
-      if (options.as === 'object') return payload;
-      if (options.as === 'dataurl') return `data:application/json;charset=utf-8,${encodeURIComponent(json)}`;
-      if (options.as === 'blob') return dataUrlToBlob(`data:application/json;charset=utf-8,${encodeURIComponent(json)}`, 'application/json');
-      return exportError('EXPORT_TYPE_UNSUPPORTED', `Unsupported JSON export format: ${options.as}`, 'Use string, dataurl, blob, or object.');
-    }
-    if (kind === 'svg') {
-      let exportScene = this.model.scene;
-      if (isDiagram(this)) {
-        const model = buildScene({ ...this.spec, editing: { ...this.spec.editing, enabled: false }, interaction: { ...this.spec.interaction, portConnect: false } });
-        this.plugins.beforeRender(model);
-        exportScene = model.scene;
+    const request = resolveExport(options, this.renderer instanceof CanvasRenderer ? 'png' : 'svg');
+    if (request.valid === false) return request;
+    if (this._destroyed) return exportError('EXPORT_DESTROYED', 'Chart has been destroyed.');
+    try {
+      if (request.kind === 'json') return encodeExport({ version: '2.0', spec: this.getSpec(), state: this.getState() }, request);
+      const scene = this._exportScene();
+      if (request.kind !== 'svg') return exportRaster(this.spec, scene, request);
+      let svg;
+      if (typeof document === 'undefined' || typeof XMLSerializer === 'undefined') svg = sceneToSvgString(scene, this.spec);
+      else {
+        const renderer = !isDiagram(this) && this.renderer instanceof SVGRenderer && this.renderer.container ? this.renderer : new SVGRenderer(this.spec);
+        if (renderer !== this.renderer) { renderer.resize(this.spec.width, this.spec.height); renderer.render(scene); }
+        svg = renderer.exportString();
       }
-      const svgRendererReady = !isDiagram(this) && this.renderer instanceof SVGRenderer && this.renderer.container;
-      const headlessEnv = typeof document === 'undefined' || typeof XMLSerializer === 'undefined';
-      if (headlessEnv) {
-        const string = sceneToSvgString(exportScene, this.spec);
-        if (options.as === 'dataurl') return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(string)}`;
-        if (options.as === 'blob') return { valid: false, code: 'BLOB_HEADLESS', message: 'as=blob requires a browser runtime (Blob). Use as=string or as=dataurl in headless.', suggestion: 'chart.export({type:"svg"}) returns the SVG string directly.' };
-        return string;
-      }
-      const svgRenderer = svgRendererReady
-        ? this.renderer
-        : (() => { const r = new SVGRenderer(this.spec); r.resize(this.spec.width, this.spec.height); r.render(exportScene); return r; })();
-      const string = svgRenderer.exportString();
-      if (options.as === 'dataurl') return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(string)}`;
-      if (options.as === 'blob') {
-        if (typeof Blob === 'undefined') return { valid: false, code: 'BLOB_HEADLESS', message: 'as=blob requires a browser runtime. Use as=string or as=dataurl in headless.', suggestion: 'chart.export({type:"svg"}) returns the SVG string directly.' };
-        return new Blob([string], { type: 'image/svg+xml' });
-      }
-      return string;
-    }
-    const rasterType = kind === 'jpeg' ? 'image/jpeg' : 'image/png';
-    if (this.renderer instanceof CanvasRenderer && typeof this.renderer.exportImage === 'function' && this.renderer.canvas) {
-      const dataUrl = this.renderer.exportImage(rasterType);
-      if (options.as === 'blob') {
-        if (typeof document === 'undefined' || typeof Blob === 'undefined' || typeof atob !== 'function') return { valid: false, code: 'BLOB_HEADLESS', message: 'PNG as=blob requires a browser runtime (atob + Blob). Use as=dataurl or as=string in headless.', suggestion: 'In Node headless, install the canvas package and render via a mounted CanvasRenderer, or fall back to chart.export({type:"svg"}).' };
-        return dataUrlToBlob(dataUrl, rasterType);
-      }
-      return dataUrl;
-    }
-    if (this.renderer instanceof SVGRenderer && typeof document !== 'undefined') {
-      const cv = document.createElement('canvas');
-      const r = new CanvasRenderer({ ...this.spec, container: undefined });
-      r.canvas = cv; r.ctx = cv.getContext('2d');
-      r.resize(this.spec.width, this.spec.height);
-      r.render(this.model.scene);
-      const dataUrl = r.exportImage(rasterType);
-      if (options.as === 'blob') {
-        if (typeof Blob === 'undefined' || typeof atob !== 'function') return { valid: false, code: 'BLOB_UNSUPPORTED', message: 'as=blob requires Blob + atob.' };
-        return dataUrlToBlob(dataUrl, rasterType);
-      }
-      return dataUrl;
-    }
-    return exportError('HEADLESS_EXPORT_UNSUPPORTED', `Raster export (${rasterType}) requires a mounted CanvasRenderer or the async optional canvas adapter.`, 'Use chart.exportAsync({ type: "png" }) with the optional canvas package, or fall back to chart.export({ type: "svg" }).', { rasterCode: 'RASTER_EXPORT_UNSUPPORTED' });
+      return encodeExport(svg, request);
+    } catch (error) { return exportError('EXPORT_FAILED', String(error?.message || error)); }
   }
   async exportAsync(options = {}) {
-    const rawType = String(options.type || (this.renderer instanceof CanvasRenderer ? 'image/png' : 'image/svg+xml')).toLowerCase();
-    const normalizeType = t => {
-      if (t === 'json' || t === 'application/json' || t.endsWith('/json')) return 'json';
-      if (t.includes('svg')) return 'svg';
-      if (t.includes('png')) return 'png';
-      if (t.includes('jpeg') || t.includes('jpg')) return 'jpeg';
-      return 'auto';
-    };
-    const kind = normalizeType(rawType);
-    if (kind === 'auto') return exportError('EXPORT_TYPE_UNSUPPORTED', `Unknown export type: ${rawType}`, 'Use png, svg, jpeg, or json.');
-    if (kind === 'png' || kind === 'jpeg') {
-      const direct = this.export(options);
-      if (!(direct && typeof direct === 'object' && direct.code === 'HEADLESS_EXPORT_UNSUPPORTED')) return direct;
-      try {
-        const moduleName = 'canvas';
-        const module = await import(moduleName);
-        const createCanvas = canvasFactoryFromModule(module);
-        if (!createCanvas) return direct;
-        return renderRasterWithCanvas(createCanvas, this.spec, this.model.scene, kind === 'jpeg' ? 'image/jpeg' : 'image/png', options.as);
-      } catch {
-        return direct;
-      }
-    }
-    return this.export(options);
+    const direct = this.export(options);
+    if (direct?.code !== 'HEADLESS_EXPORT_UNSUPPORTED') return direct;
+    try {
+      const moduleName = 'canvas', module = await import(moduleName);
+      const createCanvas = module?.createCanvas || module?.default?.createCanvas;
+      return createCanvas ? exportRaster(this.spec, this._exportScene(), resolveExport(options, 'png'), createCanvas) : direct;
+    } catch { return direct; }
   }
   _safeFilename(prefix = 'ichart') {
     const sanitize = s => String(s == null ? '' : s).replace(/[\\/:*?"<>|\s]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || prefix;
@@ -639,27 +525,12 @@ getState() { const brandingSignature = discoverCapabilities().branding.signature
     return `${prefix}-${title}-${ts}`;
   }
   download(options = {}) {
-    if (typeof document === 'undefined' || typeof URL === 'undefined') {
-      const kind = (options.type || options.format || 'auto').toString().toLowerCase();
-      if (kind.includes('svg')) return this.export({ type: 'svg' });
-      if (kind.includes('json')) return this.export({ type: 'json' });
-      return { valid: false, code: 'DOWNLOAD_HEADLESS', message: 'chart.download*() triggers a browser save-as dialog; in headless, use chart.export() directly.', suggestion: 'Use chart.export({type:"svg|json"}) (strings) or chart.toDataURL() (data URL) in headless.' };
-    }
-    const kind = (options.type || options.format || 'png').toString().toLowerCase();
-    if (kind.includes('svg')) {
-      const svg = this.export({ type: 'svg' });
-      if (!svg || typeof svg !== 'string') return svg;
-      return this._downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), `${this._safeFilename('ichartjs')}.svg`);
-    }
-    if (kind.includes('json')) {
-      const json = this.export({ type: 'json' });
-      return this._downloadBlob(new Blob([json], { type: 'application/json' }), `${this._safeFilename('ichartjs')}.json`);
-    }
-    const rasterType = kind.includes('jpeg') || kind.includes('jpg') ? 'image/jpeg' : 'image/png';
-    const ext = kind.includes('jpeg') || kind.includes('jpg') ? 'jpg' : 'png';
-    const blob = this.toBlob(rasterType);
-    if (!blob || blob instanceof Blob === false) return blob;
-    return this._downloadBlob(blob, `${this._safeFilename('ichartjs')}.${ext}`);
+    if (!options || typeof options !== 'object' || Array.isArray(options)) return resolveExport(options);
+    const request = resolveExport({ type: options.type ?? options.format ?? 'png' });
+    if (request.valid === false) return request;
+    if (typeof document === 'undefined' || typeof URL === 'undefined') return request.kind === 'svg' || request.kind === 'json' ? this.export({ type: request.kind }) : exportError('DOWNLOAD_HEADLESS', 'Use export() or exportAsync() in headless runtimes.');
+    const blob = this.export({ type: request.kind, as: 'blob' });
+    return blob instanceof Blob ? this._downloadBlob(blob, `${this._safeFilename('ichartjs')}.${request.kind === 'jpeg' ? 'jpg' : request.kind}`) : blob;
   }
   downloadPNG() { return this.download({ type: 'png' }); }
   downloadSVG() { return this.download({ type: 'svg' }); }
@@ -681,7 +552,7 @@ getState() { const brandingSignature = discoverCapabilities().branding.signature
 
 export function createChart(spec) { return new Chart(spec); }
 export { ChartValidationError } from './errors.mjs';
-export function getCapabilities() { const capabilities = discoverCapabilities(); return { ...capabilities, canvasComposition: boardCapabilities, interactionDefaults: { ...capabilities.interactionDefaults }, diagram: { incrementalBuilding: clone(incrementalFlowContract), layoutModes: diagramLayoutModes, routingModes: edgeRoutingModes, entities: ['node', 'edge', 'lane', 'group', 'port', 'waypoint'], operations: [...diagramOperations], flowNodeKinds: [...flowNodeKinds], flowBranchEdges: { label: 'edge.label', minimumOutgoing: 2 }, flowLoops: 'supported', flowConnectors: { kind: 'connector', linking: 'explicit from/to edges' }, curvedEdges: { renderers: ['canvas', 'svg'], type: 'cubic-bezier', tension: { minimum: 0.2, maximum: 0.8, default: 0.4 }, mindmapDefault: true, obstacleFallback: 'orthogonal', controlPointEditing: false }, obstacles: { default: 'all-visible-node-shapes', shapes: ['rect', 'ellipse', 'circle', 'diamond', 'parallelogram', 'polygon', 'closed-path'], backgroundBoundaries: 'opt-in', collisionFallback: 'bounds-with-warning' }, edgeEditing: { renderers: ['canvas', 'svg'], selection: true, waypointDrag: true, segmentDrag: true, orthogonalWaypointDrag: true, persistentWaypoints: true, manualRouteValidation: 'preview-and-commit', rejectionDiagnostic: 'EDGE_MANUAL_ROUTE_INVALID', routeState: 'getState().edgeRoutes', restoreAutoOperation: 'updateEdge', enabledByDefault: false, activation: ['editing.enabled', 'interaction.edgeDrag'], routingModes: ['auto', 'manual'], lineStyles: ['solid', 'dashed', 'dotted'] }, validation: ['duplicate-ids', 'missing-endpoints', 'missing-ports', 'missing-lanes', 'invalid-waypoints', 'invalid-curve-tension', 'invalid-edge-routing'] }, editing: { modes: ['preview', 'commit', 'undo', 'redo'], operations: [...capabilities.commands], confirmationRequiredByDefault: true, commit: 'local-runtime-host-persistence-required' } }; }
+export function getCapabilities() { const capabilities = discoverCapabilities(); return { ...capabilities, canvasComposition: boardCapabilities, interactionDefaults: { ...capabilities.interactionDefaults }, diagram: { ...capabilities.diagram, incrementalBuilding: clone(incrementalFlowContract), layoutModes: diagramLayoutModes, routingModes: edgeRoutingModes, entities: ['node', 'edge', 'lane', 'group', 'port', 'waypoint'], operations: [...diagramOperations], flowNodeKinds: [...flowNodeKinds], flowBranchEdges: { label: 'edge.label', minimumOutgoing: 2 }, flowLoops: 'supported', flowConnectors: { kind: 'connector', linking: 'explicit from/to edges' }, curvedEdges: { renderers: ['canvas', 'svg'], type: 'cubic-bezier', tension: { minimum: 0.2, maximum: 0.8, default: 0.4 }, mindmapDefault: true, obstacleFallback: 'orthogonal', controlPointEditing: false }, obstacles: { default: 'all-visible-node-shapes', shapes: ['rect', 'ellipse', 'circle', 'diamond', 'parallelogram', 'polygon', 'closed-path'], backgroundBoundaries: 'opt-in', collisionFallback: 'bounds-with-warning' }, edgeEditing: { renderers: ['canvas', 'svg'], selection: true, waypointDrag: true, segmentDrag: true, orthogonalWaypointDrag: true, persistentWaypoints: true, manualRouteValidation: 'preview-and-commit', rejectionDiagnostic: 'EDGE_MANUAL_ROUTE_INVALID', routeState: 'getState().edgeRoutes', restoreAutoOperation: 'updateEdge', enabledByDefault: false, activation: ['editing.enabled', 'interaction.edgeDrag'], routingModes: ['auto', 'manual'], lineStyles: ['solid', 'dashed', 'dotted'] }, validation: ['duplicate-ids', 'missing-endpoints', 'missing-ports', 'missing-lanes', 'invalid-waypoints', 'invalid-curve-tension', 'invalid-edge-routing'] }, editing: { modes: ['preview', 'commit', 'undo', 'redo'], operations: [...capabilities.commands], confirmationRequiredByDefault: true, commit: 'local-runtime-host-persistence-required' } }; }
 export function recommend(input, options = {}) { const plan = planChart(input, options); return { primary: plan.primary, alternatives: plan.alternatives, reason: plan.reasons.join(' '), reasons: plan.reasons, confidence: plan.confidence, requiredFields: plan.requiredFields, assumptions: plan.assumptions, warnings: plan.warnings, nextActions: plan.nextActions }; }
 export { normalizeSpec, validateSpec, normalizeData, inspectData, binData, applyTransforms, data, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, getChartCapability, getChartContract, getPreferenceCapabilities, planChart, explainChart };
 export { diagramLayoutModes, diagramModes, edgeRoutingModes, normalizeDiagramSpec, validateDiagram, layoutDiagram, routeEdge };
@@ -690,4 +561,4 @@ export { normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, cr
 
 export { contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin };
 export { applyPreferencesToSpec, createPreferencesStore, defaultPreferences, mergePreferences, mergeThemePreference, mountChartSettings, normalizePreferences, validatePreferences };
-export const iChart = { version: '2.0.31', createChart, createBoard, validateBoardSpec, validateBoardCommand, planCanvas, boardCapabilities, ChartValidationError, inspectData, normalizeData, binData, applyTransforms, data, getCapabilities, getChartCapability, getChartContract, getPreferenceCapabilities, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, createPreferencesStore, defaultPreferences, normalizePreferences, mergePreferences, validatePreferences, applyPreferencesToSpec, mountChartSettings, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };
+export const iChart = { version: '2.0.32', createChart, createBoard, validateBoardSpec, validateBoardCommand, planCanvas, boardCapabilities, ChartValidationError, inspectData, normalizeData, binData, applyTransforms, data, getCapabilities, getChartCapability, getChartContract, getPreferenceCapabilities, planChart, recommend, explainChart, contrastRatio, planStyle, resolveTheme, styleCapabilities, themeModes, themePalettes, themePresets, validateThemeContrast, createPreferencesStore, defaultPreferences, normalizePreferences, mergePreferences, validatePreferences, applyPreferencesToSpec, mountChartSettings, annotationPlugin, dataZoomPlugin, dataLabelsPlugin, accessibilityPlugin, getBusinessSchema, inspectDataSchema, validateData, getEditCapabilities, validateEdit, previewEdit, commitPreview, validateRecipe, normalizeProjectCalendar, applyWorkingCalendar, normalizeDependencies, analyzeSchedule, analyzeBurndownSeries, analyzeCapacity, buildCapacityView, buildCumulativeFlowSeries, buildVelocitySeries, buildReleaseForecast, buildRiskMatrixSeries, buildIssueAgingSeries, normalizeLinkedFilters, normalizeLinkedSelection, filterProjectRows, createLinkedProjectState, linkedRecordId };

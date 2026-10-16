@@ -2,6 +2,7 @@
  * Renderer-independent Scene Graph nodes, traversal, lookup, and hit testing.
  * Scene nodes carry geometry, style, data references, and interaction state.
  */
+import { samplePath } from './path.mjs';
 export class SceneNode {
   constructor(config = {}) {
     Object.assign(this, { id: '', type: 'group', geometry: {}, style: {}, children: [], dataRef: null, bounds: null, zIndex: 0, visible: true, interactive: false, selected: false, highlighted: false }, config);
@@ -34,7 +35,7 @@ function geometryHit(node, x, y) {
   const geometry = node.geometry || {}, tolerance = Number(node.hitTolerance) || Math.max(6, Number(node.style?.strokeWidth) + 4 || 6);
   if (node.type === 'line') return pointToSegmentDistance({ x, y }, { x: geometry.x1, y: geometry.y1 }, { x: geometry.x2, y: geometry.y2 }) <= tolerance;
   if (node.type === 'path' && Array.isArray(geometry.points)) {
-    const points = geometry.curve === 'cubic' ? sampleCubicBezier(geometry.points) : geometry.points;
+    const points = geometry.curve === 'cubic' || geometry.cornerRadii || geometry.radius ? samplePath(geometry) : geometry.points;
     if (geometry.closed && node.style?.fill && node.style.fill !== 'none') {
       let inside = false;
       for (let index = 0, previousIndex = points.length - 1; index < points.length; previousIndex = index, index += 1) {
@@ -51,6 +52,7 @@ function geometryHit(node, x, y) {
     const ry = Math.max(1, Number(geometry.ry) || 0) + tolerance;
     return ((x - geometry.cx) / rx) ** 2 + ((y - geometry.cy) / ry) ** 2 <= 1;
   }
+  if (node.type === 'rect' && geometry.radius > 0) { const radius = Math.min(geometry.radius, geometry.width / 2, geometry.height / 2), closestX = Math.max(geometry.x + radius, Math.min(geometry.x + geometry.width - radius, x)), closestY = Math.max(geometry.y + radius, Math.min(geometry.y + geometry.height - radius, y)); return Math.hypot(x - closestX, y - closestY) <= radius; }
   return Boolean(node.bounds && x >= node.bounds.x && x <= node.bounds.x + node.bounds.width && y >= node.bounds.y && y <= node.bounds.y + node.bounds.height);
 }
 

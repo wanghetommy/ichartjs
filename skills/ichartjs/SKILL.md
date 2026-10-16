@@ -23,7 +23,7 @@ Recommended installation:
 npx skills add wanghetommy/ichartjs --skill ichartjs
 ```
 
-Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.31/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
+Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.32/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
 
 The Skill is a workflow adapter, not the chart runtime. If the current JavaScript or TypeScript project does not already depend on iChart.js, install the matching runtime from npm:
 
@@ -68,7 +68,9 @@ For titles, labels or annotations, read [Chart Text and Annotations](https://git
 
 Use top-level `width` and `height` for chart dimensions. `size: { width, height }` is not a chart Spec option and returns `UNSUPPORTED_SIZE_OPTION`.
 
-Theme values are discoverable from `getCapabilities().styleSystem` or `getPreferenceCapabilities()`. The current values are `mode: auto | light | dark | contrast`, `preset: auto | analysis | dashboard | report | presentation | project | diagram`, and `palette: auto | categorical | sequential | diverging | status`.
+Theme values are discoverable from `getCapabilities().styleSystem` or `getPreferenceCapabilities()`. The current values are `mode: auto | light | dark | contrast`, `preset: auto | analysis | dashboard | report | presentation | project | diagram`, and `palette: auto | categorical | sequential | diverging | status | soft`.
+
+Optional diagram visuals are discoverable from `getCapabilities().diagram.visuals`: `diagram.appearance: 'soft'` is independent of `theme.palette: 'soft'`. Use its sixteen icon names in `nodes[].icon` (or Board shape `items[].icon`), and explicit node/edge `tone` values only when requested. Do not infer risk or business status from labels. Icons are decorative and may be suppressed in small nodes to preserve readable labels; inspect `ICON_SUPPRESSED` / `UNKNOWN_ICON` diagnostics. Existing semantic shapes, routes and static defaults remain authoritative.
 
 ## Freeform Board
 
@@ -97,7 +99,7 @@ Route by requested output:
 
 - **Live product component**: modify the host JavaScript project and mount `createChart()`; return changed files and the host preview URL.
 - **Coding Agent change**: inspect the repository, use the Runtime, run focused checks, and return the validated Spec plus changed files.
-- **One-off artifact**: generate SVG/JSON directly; use browser PNG export or `exportAsync()` with optional `canvas` for Node PNG/JPEG.
+- **One-off artifact**: all entries export browser PNG/JPEG regardless of SVG/Canvas display. Inspect `export.delivery` for type/as and errors; await Board images. Node raster uses root `exportAsync()` with optional `canvas`, not Profiles/Board.
 - **Project or Diagram workflow**: load the matching scenario guide and preserve all stable IDs.
 - **CI/report output**: keep JSON as the reproducible checkpoint and SVG/PNG as presentation artifacts.
 - **Visible incremental construction**: use the shared workflow and matching Flow/Board contract; preserve manual content, support cancellation/history, and review final requirements before delivery. Report committed steps, unresolved warnings, revision and the live preview URL; do not force this mode for simple one-off work.

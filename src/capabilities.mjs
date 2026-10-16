@@ -5,6 +5,8 @@ import { inspectData } from './data.mjs';
 import { planStyle, styleCapabilities } from './theme.mjs';
 import { defaultPreferences, preferenceDensities, preferenceMotions, preferencePrecedence, preferenceTriStates } from './preferences.mjs';
 import { annotationContract, businessModels, chartProfiles, chartTypes, commandTypes, contractVersion, diagramEdgeModels, diagramOperations, exportTypes, flowNodeKinds, incrementalFlowContract, interactionDefaults, renderers, textContract } from './contract-registry.mjs';
+import { exportContract } from './export.mjs';
+import { diagramVisualContract } from './diagram-style.mjs';
 import { rendererPolicy } from './renderer-policy.mjs';
 
 export { chartProfiles, chartTypes };
@@ -93,13 +95,13 @@ const preferenceMessages = {
     groups: { theme: 'Theme', typography: 'Typography', components: 'Components', behavior: 'Behavior' },
     fields: { mode: 'Theme', preset: 'Style preset', palette: 'Palette', scale: 'Font size', density: 'Density', legend: 'Legend', labels: 'Data labels', grid: 'Grid lines', branding: 'Branding', motion: 'Motion' },
     descriptions: { mode: 'Select automatic, light, dark, or high-contrast rendering.', preset: 'Select a semantic visual preset.', palette: 'Select a semantic color palette.', scale: 'Scale chart typography without changing business data.', density: 'Adjust chart spacing and padding density.', legend: 'Show, hide, or automatically resolve the legend.', labels: 'Show, hide, or automatically resolve data labels.', grid: 'Show, hide, or automatically resolve grid lines.', branding: 'Control the Powered by iChart.js signature.', motion: 'Control animation and motion preference.' },
-    options: { auto: 'Auto', light: 'Light', dark: 'Dark', contrast: 'High contrast', analysis: 'Analysis', dashboard: 'Dashboard', report: 'Report', presentation: 'Presentation', project: 'Project', diagram: 'Diagram', categorical: 'Categorical', sequential: 'Sequential', diverging: 'Diverging', status: 'Status', compact: 'Compact', comfortable: 'Comfortable', spacious: 'Spacious', full: 'Full', reduced: 'Reduced', off: 'Off', true: 'Show', false: 'Hide', '0.85': 'Small', '1': 'Default', '1.15': 'Large', '1.3': 'Extra large' }
+    options: { auto: 'Auto', light: 'Light', dark: 'Dark', contrast: 'High contrast', analysis: 'Analysis', dashboard: 'Dashboard', report: 'Report', presentation: 'Presentation', project: 'Project', diagram: 'Diagram', soft: 'Soft', categorical: 'Categorical', sequential: 'Sequential', diverging: 'Diverging', status: 'Status', compact: 'Compact', comfortable: 'Comfortable', spacious: 'Spacious', full: 'Full', reduced: 'Reduced', off: 'Off', true: 'Show', false: 'Hide', '0.85': 'Small', '1': 'Default', '1.15': 'Large', '1.3': 'Extra large' }
   },
   'zh-CN': {
     groups: { theme: '主题', typography: '排版', components: '显示内容', behavior: '行为' },
     fields: { mode: '主题', preset: '样式预设', palette: '配色', scale: '字号', density: '布局密度', legend: '图例', labels: '数据标签', grid: '网格线', branding: '品牌署名', motion: '动效' },
     descriptions: { mode: '选择自动、浅色、深色或高对比度主题。', preset: '选择语义化视觉预设。', palette: '选择语义化配色方案。', scale: '在不改变业务数据的情况下缩放图表字体。', density: '调整图表间距与内边距密度。', legend: '显示、隐藏或自动判断图例。', labels: '显示、隐藏或自动判断数据标签。', grid: '显示、隐藏或自动判断网格线。', branding: '控制 Powered by iChart.js 品牌署名。', motion: '控制动画和动效偏好。' },
-    options: { auto: '自动', light: '浅色', dark: '深色', contrast: '高对比度', analysis: '分析', dashboard: '仪表盘', report: '报告', presentation: '演示', project: '项目', diagram: '图表结构', categorical: '分类', sequential: '渐变', diverging: '发散', status: '状态', compact: '紧凑', comfortable: '舒适', spacious: '宽松', full: '完整', reduced: '减少', off: '关闭', true: '显示', false: '隐藏', '0.85': '小', '1': '默认', '1.15': '大', '1.3': '特大' }
+    options: { auto: '自动', light: '浅色', dark: '深色', contrast: '高对比度', analysis: '分析', dashboard: '仪表盘', report: '报告', presentation: '演示', project: '项目', diagram: '图表结构', soft: '柔和', categorical: '分类', sequential: '渐变', diverging: '发散', status: '状态', compact: '紧凑', comfortable: '舒适', spacious: '宽松', full: '完整', reduced: '减少', off: '关闭', true: '显示', false: '隐藏', '0.85': '小', '1': '默认', '1.15': '大', '1.3': '特大' }
   }
 };
 
@@ -228,6 +230,7 @@ export function getCapabilities() {
   const intents = [...new Set(Object.values(chartProfiles).flatMap(profile => profile.intents))];
   const preferenceCapabilities = getPreferenceCapabilities();
   const exp = {
+    delivery: structuredClone(exportContract),
     types: ['png', 'jpeg', 'svg', 'json'],
     mime: { png: 'image/png', jpeg: 'image/jpeg', svg: 'image/svg+xml', json: 'application/json' },
     browser: { png: true, jpeg: true, svg: true, json: true },
@@ -238,17 +241,17 @@ export function getCapabilities() {
       json: true,
     },
     methods: {
-      exportPNG: 'chart.export({ type:"png" }) returns a browser data URL. In Node headless use chart.exportAsync({ type:"png" }) after installing the optional canvas package, or fall back to SVG.',
-      exportSVG: 'chart.export({ type:"svg" }) returns the SVG string in both browser and headless; as:"dataurl" for embeds, as:"blob" for a Blob (browser).',
-      exportJSON: 'chart.export({ type:"json" }) returns pretty JSON; use as:"object", as:"dataurl", or as:"blob" for the corresponding representation.',
-      downloadPNG: 'chart.downloadPNG() triggers a browser save-as dialog (filename derived from title + timestamp).',
-      downloadSVG: 'chart.downloadSVG() same semantics as downloadPNG but for SVG.',
-      downloadJSON: 'chart.downloadJSON() saves {version,spec,state} as a .json document.',
-      toDataURL: 'chart.toDataURL("image/png"|"image/svg+xml") returns a data URL string.',
-      toBlob: 'chart.toBlob("image/png"|"image/svg+xml") returns a Blob (browser-only).',
+      exportPNG: 'export({type:"png"}); browser Data URL; root exportAsync for Node',
+      exportSVG: 'export({type:"svg"}); browser/headless string',
+      exportJSON: 'export({type:"json"}); string; as:"object" for payload',
+      downloadPNG: 'root browser PNG download',
+      downloadSVG: 'root browser SVG download',
+      downloadJSON: 'root browser JSON download',
+      toDataURL: 'root data URL; exact type/MIME',
+      toBlob: 'root browser Blob; exact type/MIME'
     },
     options: { as: ['string', 'object', 'dataurl', 'blob'] },
-    branding: 'By default PNG/SVG exports include the Powered by iChart.js branding watermark. Pass branding: { enabled: false } or branding: false to remove it for white-label output.',
+    branding: 'PNG/SVG honor Spec branding; use branding:false for white-label output.',
   };
   return {
     version: '2.0',
@@ -269,6 +272,7 @@ export function getCapabilities() {
       linkedState: ['owner', 'status', 'priority', 'sprint', 'label'],
     },
     diagrams,
+    diagram: { visuals: structuredClone(diagramVisualContract) },
     excluded: ['map', '3d'],
     renderers: [...renderers],
     interactionDefaults: { ...interactionDefaults },

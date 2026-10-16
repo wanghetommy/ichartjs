@@ -3,10 +3,12 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
+import { createServer } from 'node:http';
 import { chromium } from 'playwright-core';
 import { readDocumentSnippets, quickstartWorkflowSource } from '../../scripts/check-doc-snippets.mjs';
 import { measureMountedLifecycle } from './lifecycle-benchmark.mjs';
 import { verifyHostLifecycle } from './host-lifecycle.mjs';
+import { verifyExportDelivery } from './export-delivery.mjs';
 
 const root = new URL('../../', import.meta.url);
 const browserPort = Number(process.env.BROWSER_PORT || 34567);
@@ -69,6 +71,117 @@ after(async () => {
   server?.kill('SIGTERM');
 });
 
+test('Iteration 33: soft diagram geometry, icons and browser delivery share both renderers and entries', async () => {
+  await goto('/playground/index.html');
+  const reports = await page.evaluate(async () => {
+    const root = await import('/src/index.mjs'), profile = await import('/src/diagram-profile.mjs');
+    const host = document.createElement('div'); document.body.append(host);
+    const reports = [], images = new Map();
+    for (const type of ['flow', 'architecture', 'mindmap', 'swimlane']) for (const mode of ['light', 'dark', 'contrast']) for (const [entry, api] of [['root', root], ['diagram', profile]]) for (const renderer of ['svg', 'canvas']) {
+      const nodes = [{ id: 'a', label: 'Request', icon: 'user', position: { x: 30, y: 60 }, size: { width: 160, height: 72 } }, { id: 'b', label: 'Review', icon: 'shield', tone: 'secondary', position: { x: 330, y: 200 }, size: { width: 160, height: 72 } }];
+      if (type === 'mindmap') nodes[1].parentId = 'a';
+      if (type === 'architecture') nodes.forEach(node => { node.layerId = 'layer'; });
+      if (type === 'swimlane') nodes.forEach(node => { node.lane = 'lane'; });
+      const spec = { type, nodes, edges: [{ id: 'link', from: 'a', to: 'b' }], ...(type === 'architecture' ? { layers: [{ id: 'layer', label: 'Services' }] } : {}), ...(type === 'swimlane' ? { lanes: [{ id: 'lane', label: 'Team' }] } : {}), theme: { mode, palette: 'soft' }, diagram: { layout: 'manual', appearance: 'soft' }, width: 560, height: 360, renderer, branding: false };
+      const chart = api.createChart({ ...spec, container: host });
+      try {
+        const svg = chart.export({ type: 'svg' }), xml = new DOMParser().parseFromString(svg, 'image/svg+xml');
+        const png = chart.export({ type: 'png' }), key = `${type}/${mode}`;
+        if (!images.has(key)) images.set(key, png);
+        const icons = [...xml.querySelectorAll('[id^="icon-"]')];
+        const saved = chart.export({ type: 'json', as: 'object' });
+        const restored = api.createChart(saved.spec);
+        const sameSpec = JSON.stringify(restored.getSpec()) === JSON.stringify(chart.getSpec()); restored.destroy();
+        reports.push({ type, mode, entry, renderer, renderable: chart.getState().health.renderable, mounted: host.querySelectorAll('svg,canvas').length === 1, xml: !xml.querySelector('parsererror'), rounded: xml.querySelector('#node-a')?.getAttribute('rx') === '10', open: xml.querySelector('#edge-0-arrow')?.getAttribute('fill') === 'none', decorative: icons.length > 0 && icons.every(icon => icon.getAttribute('aria-hidden') === 'true' && icon.getAttribute('role') === 'presentation'), parity: png === images.get(key), jpeg: chart.export({ type: 'jpeg' }).startsWith('data:image/jpeg;'), sameSpec });
+      } finally { chart.destroy(); }
+    }
+    host.remove(); return reports;
+  });
+  assert.equal(reports.length, 48);
+  for (const report of reports) for (const key of ['renderable', 'mounted', 'xml', 'rounded', 'open', 'decorative', 'parity', 'jpeg', 'sameSpec']) assert.equal(report[key], true, `${report.type}/${report.mode}/${report.entry}/${report.renderer}: ${key}`);
+});
+
+test('Iteration 33: Gallery preserves tall soft diagrams and Board keeps icons readable in narrow hosts', async () => {
+  for (const renderer of ['svg', 'canvas']) {
+    await goto(`/playground/project-gallery.html?case=flow-soft&renderer=${renderer}`);
+    const host = page.locator('#chart-flow-soft');
+    assert.equal(Math.round((await host.boundingBox()).height), 450);
+    const state = JSON.parse(await page.locator('[data-output]').textContent());
+    assert.equal(state.state.health.renderable, true);
+    assert.equal(state.state.warnings.length, 0);
+    await page.locator('[data-preview]').click(); await page.locator('#dialogClose').click();
+    assert.equal(Math.round((await host.boundingBox()).height), 450);
+    await page.locator('#size').selectOption('390');
+    assert.equal(Math.round((await host.boundingBox()).height), 450);
+    assert.equal(JSON.parse(await page.locator('[data-output]').textContent()).state.health.renderable, true);
+    await page.setViewportSize({ width: 390, height: 844 });
+    try {
+      await goto(`/playground/canvas-board.html?scenario=icons&mode=dark&renderer=${renderer}`);
+      const result = await page.locator('#board').evaluate(host => ({ pageFits: document.documentElement.scrollWidth <= innerWidth, scrolls: host.scrollWidth > host.clientWidth, width: host.querySelector('svg,canvas').getBoundingClientRect().width, icons: host.querySelectorAll('[id^="icon-"]').length }));
+      assert.equal(result.pageFits, true); assert.equal(result.scrolls, true); assert.equal(result.width, 800);
+      if (renderer === 'svg') assert.ok(result.icons >= 16);
+    } finally { await page.setViewportSize({ width: 900, height: 600 }); }
+  }
+});
+
+test('Gallery manual previews measure visible hosts, center content and restore card views', async () => {
+  try {
+    for (const renderer of ['svg', 'canvas']) {
+      await page.setViewportSize({ width: 1400, height: 1000 });
+      await goto(`/playground/project-gallery.html?case=flow-soft&renderer=${renderer}`);
+      const state = async selector => JSON.parse(await page.locator(selector).textContent()).state;
+      const before = await state('[data-output]');
+      await page.locator('[data-preview]').click();
+      const inspect = async () => page.locator('#dialogChart > .chart').evaluate(host => {
+        const report = JSON.parse(document.querySelector('#dialogOutput').textContent), surface = host.querySelector('svg,canvas');
+        const holder = document.querySelector('#dialogChart');
+        return { width: host.clientWidth, height: host.clientHeight, specWidth: report.state.width, specHeight: report.state.height, view: report.state.view, viewport: surface.getBoundingClientRect().toJSON(), host: host.getBoundingClientRect().toJSON(), holder: holder.getBoundingClientRect().toJSON(), scrolls: holder.scrollWidth > holder.clientWidth };
+      });
+      const enlarged = await inspect();
+      assert.equal(enlarged.specWidth, enlarged.width); assert.equal(enlarged.specHeight, enlarged.height);
+      assert.ok(enlarged.view.scale > 1.3);
+      assert.ok(enlarged.view.offsetX > 0, 'aspect-ratio space is centered, not left aligned');
+      if (renderer === 'svg' && process.env.PREVIEW_SCREENSHOT) await page.screenshot({ path: process.env.PREVIEW_SCREENSHOT });
+      await page.locator('#chart-flow-soft .ichart-preferences__button').click();
+      await page.locator('.ichart-preferences__panel[data-open="true"] [data-key="scale"]').selectOption('1.15');
+      assert.equal((await state('#dialogOutput')).warnings.length, 2);
+      assert.equal(await page.locator('[data-status]').textContent(), 'ready · 2 warnings');
+      await page.locator('.ichart-preferences__panel[data-open="true"] [data-key="scale"]').selectOption('1');
+      assert.equal((await state('#dialogOutput')).warnings.length, 0);
+      await page.locator('#chart-flow-soft .ichart-preferences__button').click();
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.waitForFunction(() => document.querySelector('#dialogChart').scrollWidth > document.querySelector('#dialogChart').clientWidth);
+      const narrow = await inspect();
+      assert.equal(narrow.specWidth, narrow.width); assert.equal(narrow.specHeight, narrow.height);
+      assert.ok(narrow.view.scale >= 1, 'manual content scrolls instead of shrinking readable labels');
+      assert.equal(narrow.scrolls, true); assert.ok(narrow.holder.right <= 390);
+      assert.ok(narrow.viewport.right <= narrow.host.right + 1);
+      await page.locator('#dialogClose').click();
+      await page.setViewportSize({ width: 1400, height: 1000 });
+      await page.waitForFunction(() => JSON.parse(document.querySelector('[data-output]').textContent).state.width > 500);
+      const restored = await state('[data-output]');
+      assert.equal(restored.height, before.height); assert.equal(restored.view, before.view);
+      assert.deepEqual(restored.layout.diagram.nodes, before.layout.diagram.nodes);
+      await page.locator('#size').selectOption('390');
+      assert.deepEqual((await state('[data-output]')).warnings.map(warning => warning.code), ['ICON_SUPPRESSED', 'ICON_SUPPRESSED']);
+      assert.match(await page.locator('[data-status]').getAttribute('title'), /ICON_SUPPRESSED/);
+      await page.locator('[data-preview]').click(); await page.locator('#dialogClose').click();
+      assert.deepEqual((await state('[data-output]')).warnings.map(warning => warning.code), ['ICON_SUPPRESSED', 'ICON_SUPPRESSED']);
+      await page.locator('#size').selectOption('560');
+      assert.equal(await page.locator('[data-status]').textContent(), 'ready');
+      assert.equal((await state('[data-output]')).warnings.length, 0);
+      await page.locator('#chart-flow-soft .ichart-preferences__button').click();
+      await page.locator('.ichart-preferences__panel[data-open="true"] [data-key="scale"]').selectOption('1.15');
+      assert.equal((await state('[data-output]')).warnings.length, 2);
+      assert.equal(await page.locator('[data-status]').textContent(), 'ready · 2 warnings');
+      await page.locator('.ichart-preferences__panel[data-open="true"] [data-key="scale"]').selectOption('1');
+      assert.equal((await state('[data-output]')).warnings.length, 0);
+      assert.equal(await page.locator('[data-status]').textContent(), 'ready');
+      await page.locator('#chart-flow-soft .ichart-preferences__button').click();
+    }
+  } finally { await page.setViewportSize({ width: 900, height: 600 }); }
+});
+
 test('Iteration 31: host resizing, late data, failure cleanup and repeated mounting', async () => {
   await goto('/examples/consumer-browser.html');
   const entries = { root: `${baseUrl}/src/index.mjs`, standard: `${baseUrl}/src/standard.mjs`, project: `${baseUrl}/src/project-profile.mjs`, diagram: `${baseUrl}/src/diagram-profile.mjs`, board: `${baseUrl}/src/board-profile.mjs` };
@@ -98,7 +211,7 @@ test('Iteration 31: browser consumer controls keep late data and remounting host
       await page.locator('#theme').click(); await page.locator('#reject').click();
       assert.match(await page.locator('#status').textContent(), /Spec unchanged/);
       assert.equal(await page.evaluate(() => window.consumerChart.getSpec().background), '#0f172a');
-      assert.equal(await page.locator('#png').isDisabled(), entry !== 'root' && renderer === 'svg');
+      assert.equal(await page.locator('#png').isDisabled(), false);
     }
     await page.setViewportSize({ width: 390, height: 844 });
     await goto('/examples/consumer-browser.html?entry=diagram');
@@ -963,8 +1076,8 @@ test('Diagram Editor preserves a connector after two successive segment drags', 
 });
 
 test('Iteration 25 editor completes valid/rejected drags, routing recovery, Spec reload, and clean SVG delivery', async () => {
-  for (const renderer of ['svg', 'canvas']) {
-    await goto(`/playground/diagram-editor.html?scenario=editor&renderer=${renderer}`);
+  for (const appearance of ['classic', 'soft']) for (const renderer of ['svg', 'canvas']) {
+    await goto(`/playground/diagram-editor.html?scenario=editor&renderer=${renderer}&appearance=${appearance}`);
     assert.equal(await page.locator('#auto-route').isDisabled(), true);
     await page.locator('#select-edge').click();
     const save = async () => {
@@ -976,6 +1089,7 @@ test('Iteration 25 editor completes valid/rejected drags, routing recovery, Spec
       return spec;
     };
     let saved = await save();
+    if (appearance === 'soft') assert.equal(saved.diagram.appearance, 'soft');
     const dragHandle = async delta => {
       await page.locator('#chart').scrollIntoViewIfNeeded();
       const position = await page.evaluate(async ({ saved, delta }) => {
@@ -1184,6 +1298,64 @@ test('applies Gallery top-level theme controls over stored chart preferences', a
   style = await readLineStyle();
   assert.equal(style.preset, 'dashboard');
   assert.equal(style.palette, 'sequential');
+});
+
+test('Iteration 32: five entries deliver strict formats without changing SVG/Canvas display', async () => {
+  await goto('/examples/consumer-browser.html');
+  await page.waitForFunction(() => Boolean(window.consumerChart));
+  const entries = { root: '/src/index.mjs', standard: '/src/standard.mjs', project: '/src/project-profile.mjs', diagram: '/src/diagram-profile.mjs', board: '/src/board-profile.mjs' };
+  const reports = await page.evaluate(verifyExportDelivery, entries);
+  assert.equal(reports.length, 20);
+  for (const report of reports) for (const [check, passed] of Object.entries(report.checks)) assert.equal(passed, true, `${report.entry}/${report.renderer}/DPR${report.ratio}: ${check} ${JSON.stringify(report.artifacts)}`);
+});
+
+test('Iteration 32: existing consumer downloads carry the requested file bytes', async () => {
+  for (const entry of ['root', 'standard', 'project', 'diagram', 'board']) {
+    await goto(`/examples/consumer-browser.html?entry=${entry}`);
+    await page.waitForFunction(() => Boolean(window.consumerChart));
+    for (const type of ['png', 'jpeg', 'svg', 'json']) {
+      const event = page.waitForEvent('download'); await page.locator(`#${type}`).click();
+      const download = await event, bytes = await readFile(await download.path());
+      assert.equal(download.suggestedFilename(), `consumer.${type}`);
+      if (type === 'png') assert.deepEqual([...bytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+      else if (type === 'jpeg') assert.deepEqual([...bytes.subarray(0, 2)], [255, 216]);
+      else if (type === 'svg') assert.match(bytes.toString(), /<svg/);
+      else assert.ok(JSON.parse(bytes.toString()));
+    }
+  }
+});
+
+test('Iteration 32: real image CORS failures, taint and clean retry are diagnosed', async () => {
+  await goto('/examples/consumer-browser.html?entry=board');
+  const png = await page.evaluate(() => {
+    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 4;
+    canvas.getContext('2d').fillRect(0, 0, 4, 4); return canvas.toDataURL().split(',')[1];
+  });
+  const assets = createServer((request, response) => {
+    if (request.url.startsWith('/cors')) response.setHeader('Access-Control-Allow-Origin', '*');
+    response.setHeader('Content-Type', 'image/png'); response.end(Buffer.from(png, 'base64'));
+  });
+  await new Promise(resolve => assets.listen(0, '127.0.0.1', resolve));
+  try {
+    const evidence = await page.evaluate(async origin => {
+      const { createBoard } = await import('/src/board-profile.mjs');
+      const board = createBoard({ renderer: 'svg', assets: [{ id: 'asset', type: 'image', src: `${origin}/blocked.png` }], items: [{ id: 'image', kind: 'image', assetId: 'asset', position: { x: 20, y: 20 }, size: { width: 40, height: 40 } }] });
+      try {
+        await board.ready();
+        const blocked = board.getState().assets[0].status === 'failed' && board.export({ type: 'png' }).code === 'EXPORT_ASSET_UNAVAILABLE';
+        board.update({ assets: [{ id: 'asset', type: 'image', src: `${origin}/cors.png` }] }); await board.ready();
+        const allowed = board.export({ type: 'png', as: 'blob' }) instanceof Blob;
+        const unsafe = new Image(); await new Promise((resolve, reject) => { unsafe.onload = resolve; unsafe.onerror = reject; unsafe.src = `${origin}/unsafe.png`; });
+        board._images.set('asset', unsafe); board._rebuild();
+        const before = JSON.stringify({ spec: board.getSpec(), state: board.getState() });
+        const taint = board.export({ type: 'png' }).code === 'EXPORT_TAINTED_CANVAS';
+        const atomic = before === JSON.stringify({ spec: board.getSpec(), state: board.getState() });
+        board.update({ assets: [{ id: 'asset', type: 'image', src: `${origin}/cors-retry.png` }] }); await board.ready();
+        return { blocked, allowed, taint, atomic, retry: board.export({ type: 'png', as: 'blob' }) instanceof Blob };
+      } finally { board.destroy(); }
+    }, `http://127.0.0.1:${assets.address().port}`);
+    assert.deepEqual(evidence, { blocked: true, allowed: true, taint: true, atomic: true, retry: true });
+  } finally { await new Promise(resolve => assets.close(resolve)); }
 });
 
 test('mounts and exports the installed browser consumer through SVG and Canvas', async () => {

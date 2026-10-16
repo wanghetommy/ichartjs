@@ -55,54 +55,39 @@ iChart.js 默认在所有图表右下角显示低对比度的品牌署名（`Pow
 
 ### 一致性保证
 
-署名开关由 `buildScene()` 内统一总闸判定，以下四个面必然同步：
-1. 浏览器 Canvas/SVG 画面渲染。
-2. `chart.export({ type:'png|jpeg' })` 光栅导出。
-3. `chart.export({ type:'svg' })` 矢量导出。
-4. `chart.export({ type:'json' })` 中 `spec.branding` + `state` 持久化状态。
+共享场景统一处理画面、SVG、位图和 JSON 中的署名；`branding:false` 同时取消署名及底部预留空间。
 
-关闭 `branding:false` 时，画面和所有导出产物都不会出现署名文字，同时不会再额外预留底部 padding。
-
-## 导出与下载
-
-iChart.js 导出采用**双底层单源架构**，所有产物共享 `buildScene()` 生成的同一份 Scene Graph，**画面显示用的 renderer 和导出底层完全解耦**：
-1. **PNG/JPEG（光栅）**：底层用 `CanvasRenderer` 重绘 Scene Graph；浏览器同步输出真光栅文件，无头环境通过 `exportAsync()` 加载可选的 `canvas` npm 包。
-2. **SVG（矢量）**：底层用 `SVGRenderer` DOM 序列化（浏览器）或纯字符串拼装（无头零依赖），支持 XML 1.0 头部、字体拆分、无障碍属性。
-3. **JSON（可重建）**：序列化当前 `spec` + `getState()` 结果，用于持久化、Agent 自检和跨端重建。
-
-### Branding 一致性
-
-开关由 `buildScene()` 内统一总闸判定，画面渲染 / SVG 导出 / PNG 导出 / JSON state 必然同步。
-
-### Headless 支持矩阵
-
-| 类型       | 浏览器环境（任意 renderer） | Node 无头零依赖 | Node 无头 + `canvas` 依赖 |
-|------------|----------------------------|----------------|--------------------------|
-| JSON       | ✅                          | ✅              | ✅                        |
-| SVG        | ✅                          | ✅              | ✅                        |
-| PNG / JPEG | ✅ 同步真光栅               | ❌ 返回结构化 `HEADLESS_EXPORT_UNSUPPORTED` | ✅ 通过 `exportAsync()` |
-
-### Freeform Board 事务
+## Freeform Board 事务
 
 根入口与 `/board` 提供 `validateBoardCommand()`，Board 实例提供 `previewEdit(command)` / `applyEdit(command, {preview, confirmed:true, expectedRevision?})`；命令使用 `type: board-edit`。成功批次增加一次 revision 与一条历史记录；无效、过期或未经确认的命令不提交。预览返回 `spec`、画布坐标 `layout`、受影响元素/资源 ID 和诊断。Agent 操作受显式编辑/结构权限及锁定项约束，旧的直接 Board API 仍是可信宿主接口。
 
-状态提供 `revision`、`lastChange`、`layout.items/text`、`assetsReady` 和资源状态。`subscribe(listener)` 返回取消订阅函数，通知 `edit`、`history`、`assets`；资源事件不增加 revision。图片修改后调用 `ready()`，JSON 保存 BoardSpec 而非历史/已解码图片。Board 不自动重排已有坐标；位图输出仍需已挂载 Canvas。详见 [Freeform Board 场景](canvas-scenario.md)。
+状态提供 `revision`、`lastChange`、`layout.items/text`、`assetsReady` 和资源状态。`subscribe(listener)` 返回取消订阅函数，通知 `edit`、`history`、`assets`；资源事件不增加 revision。图片修改后调用 `ready()`，JSON 保存 BoardSpec 而非历史/已解码图片。Board 不自动重排已有坐标；浏览器位图导出与显示 renderer 解耦。详见 [Freeform Board 场景](canvas-scenario.md)。
 
-### 公共导出 API
+## 导出与下载
 
-- `chart.toDataURL(type='image/png')` → data URL 字符串或结构化 ExportError。
-- `chart.toBlob(type='image/png')` → Blob 或 ExportError（无头同步路径不提供光栅 Blob）。
-- `chart.export({ type, as })` → 同步返回字符串 / JSON 对象 / Blob / ExportError，`as` 支持 `string`、`dataurl`、`blob`、`object`（仅 JSON）。
-- `chart.exportAsync({ type, as })` → Promise 导出路径；Node 无头环境可通过可选 `canvas` 依赖生成 PNG/JPEG。
-- `chart.download({ type })` / `downloadPNG()` / `downloadSVG()` / `downloadJSON()` → 触发浏览器保存（无头回落到返回字符串或结构化错误）。
+五个入口提供 `export({type,as})`，接受 `svg`、`json`、`png`、`jpeg`/`jpg` 及对应 MIME（大小写不敏感）。未知格式返回 `EXPORT_TYPE_UNSUPPORTED`，不替换文件。契约见 `getCapabilities().export.delivery` / `boardCapabilities.export.delivery`。
 
-### 错误结构
+| 类型 | 支持的 as | 默认 |
+| --- | --- | --- |
+| SVG | string、dataurl、blob | string |
+| JSON | string、object、dataurl、blob | Chart 字符串；Board 对象 |
+| PNG/JPEG | dataurl、string、blob | dataurl；string 同样是 Data URL |
 
-所有导出/下载方法失败时统一返回 `{ valid:false, code, message?, suggestion?, rasterCode? }` 稳定结构，便于 Agent 自动化判断，常见 `code`：
-- `HEADLESS_EXPORT_UNSUPPORTED`：当前无头环境缺少光栅所需依赖（`canvas`）。
-- `BLOB_HEADLESS`：同步 `toBlob` 无法在当前无头 renderer 上生成光栅 Blob；Node 光栅场景改用 `exportAsync()`。
-- `DOWNLOAD_HEADLESS`：`chart.download*()` 仅在浏览器有 DOM 时可用，无头用 `export`。
-- `EXPORT_TYPE_UNSUPPORTED`：不支持的导出类型。
+root 默认 PNG（Canvas）或 SVG；Profile/Board 默认 SVG。JSON 结构保持：root `{version,spec,state}`，Profile `{spec,state}`，Board 裸 Spec。object 是 JSON 安全副本；Chart 从 `payload.spec` 重建，Board 从整个对象重建。
+
+### 浏览器与无头环境
+
+SVG/JSON 零依赖。浏览器位图重绘到独立 Canvas，不依赖显示 renderer 或挂载；像素尺寸等于 Spec width/height，不随 DPR 放大。PNG 保留透明度，JPEG 合成白底；显示、选择、历史、署名不变，图类编辑手柄不导出。
+
+Board 图片更新后先 `await board.ready()` 并检查 health。未就绪的可见图片阻止位图导出，隐藏/未使用图片不阻塞。SVG 保留图片链接；宿主准备资源和字体，导出不打包它们。
+
+Node 位图仅 root Chart `exportAsync()` 配合可选 `canvas`；其余入口使用 SVG/JSON。无浏览器同步位图返回 `HEADLESS_EXPORT_UNSUPPORTED`。SVG Blob 需浏览器，JSON Blob 使用当前环境的 Blob。
+
+### 根入口便捷 API 与错误
+
+root 另提供 `toDataURL(type='image/png')`、浏览器 `toBlob(type)`、`download({type})` / `downloadPNG()` / `downloadSVG()` / `downloadJSON()`。无头下载返回 SVG/JSON 字符串或 `DOWNLOAD_HEADLESS`；Profile/Board 仅提供 `export()`。
+
+失败返回 `{valid:false,code,message,suggestion}`：`EXPORT_CONTEXT_UNAVAILABLE`、`EXPORT_ASSET_UNAVAILABLE`、`EXPORT_TAINTED_CANVAS`、`BLOB_HEADLESS`、`EXPORT_DESTROYED`、`EXPORT_FAILED`。保存前检查；失败保留状态，可修复后重试或明确交付 SVG，不绕过浏览器跨域策略。
 
 所有状态变更都经过同一校验边界。成功的 `update()` 和 `setData()` 返回当前 Chart；无效输入抛出 `ChartValidationError`，包含稳定的 `code`、`details`、`path`、`expected`、`received` 和 `suggestion`。拒绝变更后，原 Spec、Scene、选择状态、revision 和历史记录保持不变。`applyPatch()` 是高级 JSON Pointer 接口，也会在提交前校验。
 

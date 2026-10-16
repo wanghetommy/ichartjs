@@ -44,7 +44,6 @@ async function mount() {
   else chart = api.createChart({ ...input, container: '#chart', theme: dark ? 'dark' : 'light' });
   window.consumerChart = chart;
   document.querySelectorAll('.toolbar button').forEach(button => { button.disabled = false; });
-  document.querySelector('#png').disabled = entry !== 'root' && rendererSelect.value === 'svg';
   if (entry === 'root') chart.on('resize', () => { if (current === generation && chart) report('parent resized'); });
   if (entry !== 'root') {
     observer = new ResizeObserver(entries => {
@@ -83,13 +82,13 @@ document.querySelector('#reject').onclick = () => run(() => {
   catch (error) { if (before !== JSON.stringify(chart.getSpec())) throw new Error('Rejected update changed the Spec.'); report('invalid update rejected; Spec unchanged'); }
 });
 document.querySelector('#remount').onclick = () => run(mount);
-for (const type of ['svg', 'png']) document.querySelector(`#${type}`).onclick = () => run(() => {
-  const value = chart.export({ type });
-  if (typeof value !== 'string') throw new Error(value.message || 'Export failed.');
-  const link = document.createElement('a'), url = type === 'svg' ? URL.createObjectURL(new Blob([value], { type: 'image/svg+xml' })) : value;
+for (const type of ['svg', 'png', 'jpeg', 'json']) document.querySelector(`#${type}`).onclick = () => run(() => {
+  const value = chart.export({ type, as: 'blob' });
+  if (!(value instanceof Blob)) throw new Error(value.message || 'Export failed.');
+  const link = document.createElement('a'), url = URL.createObjectURL(value);
   link.href = url; link.download = `consumer.${type}`; link.click();
-  if (type === 'svg') setTimeout(() => URL.revokeObjectURL(url), 1000);
-  report(`${type.toUpperCase()} exported at current dimensions`);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  report(`${type.toUpperCase()} exported; ${value.size} bytes; display unchanged`);
 });
 window.addEventListener('pagehide', dispose);
 window.hostDemo = { mount, load, dispose, get revision() { return revision; } };

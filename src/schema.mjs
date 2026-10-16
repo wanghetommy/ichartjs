@@ -2,6 +2,7 @@
  * JSON-safe schema utilities and built-in Agent business data contracts.
  * Defines editable fields, validation constraints, and structured issues.
  */
+import { diagramTones } from './diagram-style.mjs';
 export const schemaVersion = '1.0';
 export const fieldTypes = ['string', 'number', 'boolean', 'date', 'enum', 'array', 'object'];
 const forbiddenKeys = new Set(['__proto__', 'prototype', 'constructor']);
@@ -43,6 +44,9 @@ const dependency = { anyOf: [
   } }
 ] };
 const schema = (name, fields, rules = []) => ({ name, version: schemaVersion, key: 'id', fields: { id: identifier, ...fields }, rules });
+const nodeSize = { type: 'object', editable: true, properties: { width: { type: 'number', required: true, min: 1 }, height: { type: 'number', required: true, min: 1 } } };
+const nodePorts = { type: 'array', editable: false, items: { type: 'object', properties: { id: { type: 'string', required: true }, side: { type: 'enum', values: ['left', 'right', 'top', 'bottom'] }, offset: { type: 'number', min: 0, max: 1 } } } };
+const edgeWaypoints = { type: 'array', editable: true, items: { type: 'object', properties: { x: { type: 'number', required: true }, y: { type: 'number', required: true } } } };
 const models = {
   'project-task': schema('project-task', {
     name: { type: 'string', required: true, editable: true },
@@ -72,7 +76,7 @@ const models = {
   'timeline-event': schema('timeline-event', { title: { type: 'string', required: true, editable: true }, date: { type: 'date', required: true, editable: true }, description: { type: 'string', editable: true }, status }),
   milestone: schema('milestone', { title: { type: 'string', required: true, editable: true }, date: { type: 'date', required: true, editable: true }, status }),
   'burndown-sample': schema('burndown-sample', { date: { type: 'date', required: true, editable: true }, remaining: { type: 'number', min: 0, required: true, editable: true }, scopeChange: { type: 'number', default: 0, editable: true }, forecast: { type: 'date', nullable: true, editable: false } }),
-  'flow-node': schema('flow-node', { label: { type: 'string', required: true, editable: true }, kind: { type: 'enum', values: ['start', 'end', 'process', 'decision', 'io', 'connector'], default: 'process', editable: true }, position, size: { type: 'object', editable: true, properties: { width: { type: 'number', required: true, min: 1 }, height: { type: 'number', required: true, min: 1 } } }, laneId: { type: 'string', references: 'swimlane', editable: true }, groupId: { type: 'string', editable: false }, ports: { type: 'array', editable: false, items: { type: 'object', properties: { id: { type: 'string', required: true }, side: { type: 'enum', values: ['left', 'right', 'top', 'bottom'] }, offset: { type: 'number', min: 0, max: 1 } } } }, description: { type: 'string', editable: true }, status }),
+  'flow-node': schema('flow-node', { label: { type: 'string', required: true, editable: true }, kind: { type: 'enum', values: ['start', 'end', 'process', 'decision', 'io', 'connector'], default: 'process', editable: true }, position, size: nodeSize, laneId: { type: 'string', references: 'swimlane', editable: true }, groupId: { type: 'string', editable: false }, ports: nodePorts, description: { type: 'string', editable: true }, status }),
   'flow-edge': schema('flow-edge', {
     from: { type: 'string', references: 'flow-node', required: true, editable: true },
     to: { type: 'string', references: 'flow-node', required: true, editable: true },
@@ -84,14 +88,17 @@ const models = {
     routingMode: { type: 'enum', values: ['auto', 'manual'], editable: true },
     lineStyle: { type: 'enum', values: ['solid', 'dashed', 'dotted'], default: 'solid', editable: true },
     curveTension: { type: 'number', min: 0.2, max: 0.8, editable: true },
-    waypoints: { type: 'array', editable: true, items: { type: 'object', properties: { x: { type: 'number', required: true }, y: { type: 'number', required: true } } } }
+    waypoints: edgeWaypoints
   }),
   swimlane: schema('swimlane', { label: { type: 'string', required: true, editable: true } }),
-  'architecture-node': schema('architecture-node', { label: { type: 'string', required: true, editable: true }, layerId: { type: 'string', editable: true }, boundaryId: { type: 'string', editable: true }, position, size: { type: 'object', editable: true, properties: { width: { type: 'number', required: true, min: 1 }, height: { type: 'number', required: true, min: 1 } } }, ports: { type: 'array', editable: false, items: { type: 'object', properties: { id: { type: 'string', required: true }, side: { type: 'enum', values: ['left', 'right', 'top', 'bottom'] }, offset: { type: 'number', min: 0, max: 1 } } } }, description: { type: 'string', editable: true }, status }),
-'architecture-edge': schema('architecture-edge', { from: { type: 'string', required: true, editable: true }, to: { type: 'string', required: true, editable: true }, fromPort: { type: 'string', editable: true }, toPort: { type: 'string', editable: true }, label: { type: 'string', editable: true }, relation: { type: 'string', editable: true }, routing: { type: 'enum', values: ['auto', 'straight', 'orthogonal', 'curved'], editable: true }, routingMode: { type: 'enum', values: ['auto', 'manual'], editable: true }, lineStyle: { type: 'enum', values: ['solid', 'dashed', 'dotted'], editable: true }, curveTension: { type: 'number', min: 0.2, max: 0.8, editable: true }, waypoints: { type: 'array', editable: true, items: { type: 'object', properties: { x: { type: 'number', required: true }, y: { type: 'number', required: true } } } }, status }),
-  'mindmap-edge': schema('mindmap-edge', { from: { type: 'string', required: true, editable: true }, to: { type: 'string', required: true, editable: true }, fromPort: { type: 'string', editable: true }, toPort: { type: 'string', editable: true }, label: { type: 'string', editable: true }, routing: { type: 'enum', values: ['auto', 'straight', 'orthogonal', 'curved'], editable: true }, routingMode: { type: 'enum', values: ['auto', 'manual'], editable: true }, lineStyle: { type: 'enum', values: ['solid', 'dashed', 'dotted'], editable: true }, curveTension: { type: 'number', min: 0.2, max: 0.8, editable: true }, waypoints: { type: 'array', editable: true, items: { type: 'object', properties: { x: { type: 'number', required: true }, y: { type: 'number', required: true } } } }, status }),
-  'mindmap-node': schema('mindmap-node', { label: { type: 'string', required: true, editable: true }, parentId: { type: 'string', editable: true }, position, size: { type: 'object', editable: true, properties: { width: { type: 'number', required: true, min: 1 }, height: { type: 'number', required: true, min: 1 } } }, branch: { type: 'string', editable: true }, description: { type: 'string', editable: true }, status })
+  'architecture-node': schema('architecture-node', { label: { type: 'string', required: true, editable: true }, layerId: { type: 'string', editable: true }, boundaryId: { type: 'string', editable: true }, position, size: nodeSize, ports: nodePorts, description: { type: 'string', editable: true }, status }),
+'architecture-edge': schema('architecture-edge', { from: { type: 'string', required: true, editable: true }, to: { type: 'string', required: true, editable: true }, fromPort: { type: 'string', editable: true }, toPort: { type: 'string', editable: true }, label: { type: 'string', editable: true }, relation: { type: 'string', editable: true }, routing: { type: 'enum', values: ['auto', 'straight', 'orthogonal', 'curved'], editable: true }, routingMode: { type: 'enum', values: ['auto', 'manual'], editable: true }, lineStyle: { type: 'enum', values: ['solid', 'dashed', 'dotted'], editable: true }, curveTension: { type: 'number', min: 0.2, max: 0.8, editable: true }, waypoints: edgeWaypoints, status }),
+  'mindmap-edge': schema('mindmap-edge', { from: { type: 'string', required: true, editable: true }, to: { type: 'string', required: true, editable: true }, fromPort: { type: 'string', editable: true }, toPort: { type: 'string', editable: true }, label: { type: 'string', editable: true }, routing: { type: 'enum', values: ['auto', 'straight', 'orthogonal', 'curved'], editable: true }, routingMode: { type: 'enum', values: ['auto', 'manual'], editable: true }, lineStyle: { type: 'enum', values: ['solid', 'dashed', 'dotted'], editable: true }, curveTension: { type: 'number', min: 0.2, max: 0.8, editable: true }, waypoints: edgeWaypoints, status }),
+  'mindmap-node': schema('mindmap-node', { label: { type: 'string', required: true, editable: true }, parentId: { type: 'string', editable: true }, position, size: nodeSize, branch: { type: 'string', editable: true }, description: { type: 'string', editable: true }, status })
 };
+
+for (const name of ['flow-node', 'architecture-node', 'mindmap-node']) Object.assign(models[name].fields, { icon: { type: 'string', editable: true }, tone: { type: 'enum', values: diagramTones, editable: true } });
+for (const name of ['flow-edge', 'architecture-edge', 'mindmap-edge']) models[name].fields.tone = { type: 'enum', values: diagramTones, editable: true };
 
 export function getBusinessSchema(name) {
   if (!Object.hasOwn(models, name)) throw new Error(`Unknown business model: ${name}`);

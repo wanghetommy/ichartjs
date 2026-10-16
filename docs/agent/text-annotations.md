@@ -60,7 +60,7 @@ For a browser component, add `container: '#chart'`. Recipe `@taylorwong/ichartjs
 - Callouts require a **string** `data.values[].id`, resolved against transformed, visible data. `field` selects a measure when multiple series exist; omission selects the first visible matching mark. Reordering does not change the target.
 - `offset.x/y` is a preferred chart-pixel offset from the mark. Text boxes fit the plot, at most three lines; callouts have a leader and dedicated background plate. Nearby vertical placements avoid numeric/annotation labels when possible; unresolved collisions report `ANNOTATION_LABEL_OVERLAP`. Inspect dense previews.
 - Domains are not expanded. Omitted out-of-domain lines report `ANNOTATION_OUT_OF_VIEW`; missing/filtered records or unavailable measures report `ANNOTATION_TARGET_MISSING`; crowded text reports `ANNOTATION_TEXT_TRUNCATED`.
-- `ChartSpec.annotations` survives `getSpec()` / JSON reconstruction and appears in SVG/Canvas exports. `/standard` PNG needs a mounted Canvas renderer; root follows the [full export contract](runtime-contract.md).
+- `ChartSpec.annotations` survives JSON reconstruction and SVG/Canvas export. Browser raster delivery is independent of display renderer; see the [export contract](runtime-contract.md).
 - No range bands, rich text, independent annotation editor or natural-language parser.
 
 ## Agent Changes and Self-Check

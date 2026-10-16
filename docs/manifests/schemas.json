@@ -86,7 +86,9 @@
         "size",
         "laneId",
         "description",
-        "status"
+        "status",
+        "icon",
+        "tone"
       ]
     },
     "flow-edge": {
@@ -107,7 +109,8 @@
         "routingMode",
         "lineStyle",
         "curveTension",
-        "waypoints"
+        "waypoints",
+        "tone"
       ]
     },
     "swimlane": {
@@ -133,7 +136,9 @@
         "position",
         "size",
         "description",
-        "status"
+        "status",
+        "icon",
+        "tone"
       ]
     },
     "architecture-edge": {
@@ -155,7 +160,8 @@
         "lineStyle",
         "curveTension",
         "waypoints",
-        "status"
+        "status",
+        "tone"
       ]
     },
     "mindmap-edge": {
@@ -176,7 +182,8 @@
         "lineStyle",
         "curveTension",
         "waypoints",
-        "status"
+        "status",
+        "tone"
       ]
     },
     "mindmap-node": {
@@ -192,7 +199,9 @@
         "size",
         "branch",
         "description",
-        "status"
+        "status",
+        "icon",
+        "tone"
       ]
     }
   }

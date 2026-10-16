@@ -6,9 +6,9 @@ iChart.js 应作为普通 JavaScript UI 组件运行在浏览器应用中。数�
 npm install @taylorwong/ichartjs@^2
 ```
 
-需要可复现构建时，请显式固定版本：`npm install @taylorwong/ichartjs@2.0.31`。
+需要可复现构建时，请显式固定版本：`npm install @taylorwong/ichartjs@2.0.32`。
 
-无法访问 npm Registry 的环境请用 GitHub 源作为后备：`npm install github:wanghetommy/ichartjs#v2.0.31`。
+无法访问 npm Registry 的环境请用 GitHub 源作为后备：`npm install github:wanghetommy/ichartjs#v2.0.32`。
 
 <!-- docs-check: frontend-chart -->
 ```js
@@ -78,7 +78,7 @@ Board 使用 `board.update({ width, height })`，而不是图表的 `resize()` /
 
 ## 输出与响应速度
 
-所有入口支持 SVG。根入口支持浏览器挂载后的位图导出；图表 Profile 和 Board 需要挂载 Canvas 才能导出 PNG。不要承诺 Profile 的 SVG 表面可直接导出 PNG，应显式选 Canvas 或交付 SVG。
+所有入口支持 SVG/JSON，浏览器 PNG/JPEG 不再受显示 renderer 或挂载限制。使用 `chart.export({type:'png', as:'blob'})`，检查结果后再保存，无需切换显示。含图片时先 `await board.ready()`；详见[格式矩阵与诊断](runtime-contract.md#导出与下载)。
 
 同步 API 耗时和浏览器呈现机会应分开测量。Performance Lab 在更新后等待两次动画帧，但这不是精确 GPU 绘制延迟、FPS 或真机认证。DOM 零残留也不等于 JavaScript 内存完全无泄漏。
 

@@ -38,7 +38,7 @@ chart.update({ annotations });
 - Callout 引用字符串 `data.values[].id`，按转换后、当前可见数据找标记；`field` 选择系列，省略时选择首个匹配标记。排序不改变指向。
 - `offset.x/y` 是相对标记的首选图表像素偏移。文本盒子适配绘图区，最多三行；Callout 有引导线和专用背景。尝试附近的垂直位置避开数值 / 标注标签，无解时报告 `ANNOTATION_LABEL_OVERLAP`，需检查密集图预览。
 - 不扩展坐标轴。越界参考线省略并报告 `ANNOTATION_OUT_OF_VIEW`；记录不存在、被过滤或度量不可用报告 `ANNOTATION_TARGET_MISSING`；文字空间不足报告 `ANNOTATION_TEXT_TRUNCATED`。
-- `ChartSpec.annotations` 可通过 `getSpec()` / JSON 保存重建，SVG / Canvas 导出一致；`/standard` PNG 需挂载 Canvas，root 按[导出契约](runtime-contract.md)执行。
+- `ChartSpec.annotations` 可通过 JSON 重建，SVG/Canvas 导出一致；浏览器位图交付不依赖显示 renderer，见[导出契约](runtime-contract.md)。
 - 不新增色带、富文本、独立标注编辑器或自然语言解析器。
 
 ## Agent 调整与验收

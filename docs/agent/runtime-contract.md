@@ -59,56 +59,41 @@ Control via the `branding` field on Spec or Theme:
 
 ### Consistency Guarantee
 
-The on/off decision is resolved once inside `buildScene()` via a single gate, so these four surfaces are always synchronized:
-1. Browser Canvas / SVG live rendering.
-2. `chart.export({ type:'png|jpeg' })` raster output.
-3. `chart.export({ type:'svg' })` vector output.
-4. `chart.export({ type:'json' })` persisted `spec.branding` + `state`.
-
-When `branding:false`, no signature text appears on the chart or any exported artifact, and the extra bottom padding is not reserved.
+The shared scene applies branding once to display, SVG, raster and JSON state. `branding:false` removes the signature and its extra bottom padding.
 
 ## Freeform Board transactions
 
 Both root and `/board` expose `validateBoardCommand()` and Board `previewEdit(command)` / `applyEdit(command, {preview, confirmed:true, expectedRevision?})` for `type: board-edit`. Successful semantic batches produce one revision/history entry; stale, invalid or unconfirmed commands do not publish. Preview results include `spec`, board-space `layout`, affected item/asset IDs, errors and warnings. Agent commands honor opt-in editing/structural permissions and locked items; existing direct Board APIs are trusted host operations.
 
-Board `getState()` exposes `revision`, `lastChange`, `layout.items/text`, `assetsReady` and per-asset status. `subscribe(listener)` returns an unsubscribe function and emits `edit`, `history` and `assets`; asset readiness does not advance revision. `ready()` loads current images, and JSON stores the BoardSpec, not history or decoded images. Unlike Flow, existing Board positions are not automatically rearranged. Board raster export still requires a mounted Canvas renderer. See [Freeform Board Scenario](canvas-scenario.md) for the complete contract and renderer-profile limits.
+Board `getState()` exposes `revision`, `lastChange`, `layout.items/text`, `assetsReady` and per-asset status. `subscribe(listener)` returns an unsubscribe function and emits `edit`, `history` and `assets`; asset readiness does not advance revision. `ready()` loads current images, and JSON stores the BoardSpec, not history or decoded images. Existing Board positions are not automatically rearranged. See [Freeform Board Scenario](canvas-scenario.md).
 
 ## Exports and Downloads
 
-iChart.js exports use a **dual-engine single-source architecture**. Every artifact shares the same Scene Graph produced by `buildScene()`, and the on-screen renderer is fully decoupled from the export backend:
-1. **PNG / JPEG (raster)**: always drawn by a `CanvasRenderer` replaying the shared Scene Graph. Browser export is synchronous; Node headless export uses `exportAsync()` with the optional `canvas` npm package.
-2. **SVG (vector)**: serialized from an `SVGRenderer` DOM tree (browser) or assembled as a pure string with zero dependencies (headless). Includes XML 1.0 header, expanded font properties, and accessibility attributes.
-3. **JSON (reconstructable)**: serializes the current `spec` plus `getState()`, used for persistence, agent self-check, and cross-environment rebuild.
+All entries provide `export({type,as})`. Exact types: `svg`, `json`, `png`, `jpeg`/`jpg` or corresponding MIME (case-insensitive). Unknown formats return `EXPORT_TYPE_UNSUPPORTED`, never a substitute. Discover `getCapabilities().export.delivery` or `boardCapabilities.export.delivery`.
 
-### Branding Consistency
+| Type | Supported as | Default |
+| --- | --- | --- |
+| SVG | string, dataurl, blob | string |
+| JSON | string, object, dataurl, blob | Chart string; Board object |
+| PNG/JPEG | dataurl, string, blob | dataurl; string is an alias |
 
-The signature gate inside `buildScene()` guarantees that live rendering, SVG export, PNG export, and JSON state are 100% aligned.
+Root defaults to PNG for Canvas display, SVG otherwise; Profiles/Board default SVG. JSON shapes remain root `{version,spec,state}`, Profile `{spec,state}`, Board bare Spec. Objects are detached JSON-safe copies. Reconstruct Charts from `payload.spec`, Board from the whole payload.
 
-### Headless Support Matrix
+### Browser and Headless
 
-| Type        | Browser (any renderer) | Node headless, zero deps | Node headless + `canvas` dep |
-|-------------|------------------------|--------------------------|------------------------------|
-| JSON        | ✅                      | ✅                        | ✅                            |
-| SVG         | ✅                      | ✅                        | ✅                            |
-| PNG / JPEG  | ✅ true raster, sync    | ❌ structured `HEADLESS_EXPORT_UNSUPPORTED` | ✅ via `exportAsync()` |
+SVG/JSON are zero-dependency. Browser PNG/JPEG replays the scene on detached Canvas, independent of display renderer or mounting. Pixels equal Spec width/height, not screen DPR. PNG preserves transparency; JPEG uses white matte. Display, selection/history and branding are preserved; diagram editing handles are excluded.
+
+For visible Board images, `await board.ready()` and inspect asset health; pending/failed images reject raster export. Hidden/unused assets do not block it. SVG links images rather than embedding them. The host must prepare fonts/resources; export does not package them.
+
+Node raster is root Chart `exportAsync()` only, with optional `canvas`. Profiles/Board use SVG/JSON. Sync raster without a browser returns `HEADLESS_EXPORT_UNSUPPORTED`. SVG Blob requires a browser; JSON Blob uses the runtime Blob implementation.
 
 ### Public Export APIs
 
-- `chart.toDataURL(type='image/png')` → data URL string or structured ExportError.
-- `chart.toBlob(type='image/png')` → Blob or ExportError (headless returns `BLOB_HEADLESS`).
-- `chart.export({ type, as })` → sync string / JSON object / Blob / ExportError. `as` accepts `string`, `dataurl`, `blob`, `object` (JSON only).
-- `chart.exportAsync({ type, as })` → Promise export path; enables optional Node `canvas` raster output.
-- `chart.download({ type })` / `downloadPNG()` / `downloadSVG()` / `downloadJSON()` → triggers a browser save-as. In headless, falls back to returning the raw string or structured error.
-
-`chart.export({ type: 'svg' })` returns an XML-declared SVG string. `chart.export({ type: 'json' })` returns a JSON string containing `{ version, spec, state }`; use `as: 'object'` when the host wants the parsed object.
+Root Chart additionally provides `toDataURL(type='image/png')`, browser `toBlob(type)`, `download({type})`, `downloadPNG()`, `downloadSVG()`, `downloadJSON()`. Headless downloads return SVG/JSON strings or `DOWNLOAD_HEADLESS`. Profiles/Board only provide `export()`.
 
 ### Structured Error Shape
 
-All export/download methods return a stable `{ valid:false, code, message?, suggestion?, rasterCode? }` object on failure for reliable agent automation. Common `code` values:
-- `HEADLESS_EXPORT_UNSUPPORTED`: synchronous raster export in headless, or raster export without a usable canvas adapter.
-- `BLOB_HEADLESS`: synchronous `toBlob` or headless SVG `as=blob` has no mounted/browser serialization surface; use `exportAsync()` for Node raster or `as=dataurl`/`as=string`.
-- `DOWNLOAD_HEADLESS`: `chart.download*()` in headless; use `chart.export()` instead.
-- `EXPORT_TYPE_UNSUPPORTED`: unrecognized export type.
+Check `{valid:false,code,message,suggestion}` before saving. Codes include `EXPORT_TYPE_UNSUPPORTED`, `HEADLESS_EXPORT_UNSUPPORTED`, `BLOB_HEADLESS`, `EXPORT_CONTEXT_UNAVAILABLE`, `EXPORT_ASSET_UNAVAILABLE`, `EXPORT_TAINTED_CANVAS`, `EXPORT_DESTROYED`, `EXPORT_FAILED`. Failures preserve live state; repair context/assets and retry or explicitly deliver SVG. The library cannot bypass browser origin policy.
 
 ## Common APIs
 
