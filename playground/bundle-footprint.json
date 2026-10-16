@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "packageVersion": "2.0.32",
+  "packageVersion": "2.0.33",
   "source": "local-tarball",
   "bundler": {
     "name": "esbuild",
@@ -18,8 +18,8 @@
     "root": {
       "import": "@taylorwong/ichartjs",
       "factory": "createChart",
-      "minifiedBytes": 315653,
-      "gzipBytes": 99830,
+      "minifiedBytes": 316467,
+      "gzipBytes": 100298,
       "modules": [
         "src/annotation.mjs",
         "src/board-contract.mjs",
@@ -70,8 +70,8 @@
     "standard": {
       "import": "@taylorwong/ichartjs/standard",
       "factory": "createChart",
-      "minifiedBytes": 133860,
-      "gzipBytes": 43347,
+      "minifiedBytes": 134309,
+      "gzipBytes": 43518,
       "modules": [
         "src/annotation.mjs",
         "src/capabilities.mjs",
@@ -105,8 +105,8 @@
     "project": {
       "import": "@taylorwong/ichartjs/project",
       "factory": "createChart",
-      "minifiedBytes": 155902,
-      "gzipBytes": 52219,
+      "minifiedBytes": 156647,
+      "gzipBytes": 52506,
       "modules": [
         "src/annotation.mjs",
         "src/capabilities.mjs",
@@ -141,8 +141,8 @@
     "diagram": {
       "import": "@taylorwong/ichartjs/diagram",
       "factory": "createChart",
-      "minifiedBytes": 155900,
-      "gzipBytes": 52216,
+      "minifiedBytes": 156645,
+      "gzipBytes": 52503,
       "modules": [
         "src/annotation.mjs",
         "src/capabilities.mjs",
@@ -177,8 +177,8 @@
     "board": {
       "import": "@taylorwong/ichartjs/board",
       "factory": "createBoard",
-      "minifiedBytes": 163606,
-      "gzipBytes": 53131,
+      "minifiedBytes": 164055,
+      "gzipBytes": 53293,
       "modules": [
         "src/annotation.mjs",
         "src/board-contract.mjs",

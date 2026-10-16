@@ -1,148 +1,96 @@
 ---
 name: ichartjs
-description: Plan, validate, render, explain, and safely edit iChart.js visualizations from tabular, project, or diagram data. Use when Codex needs to choose a chart, create or repair an iChart.js Spec, build a browser preview, produce Gantt or project analytics, create Flow or Swimlane diagrams, or verify visualization accessibility, diagnostics, lineage, and runtime state.
+description: Create, explain, and safely edit iChart.js charts, diagrams, and Freeform Boards from user data. Use for chart selection, Specs, browser integration, exported artifacts, incremental construction, and visualization diagnostics or readability review.
 ---
 
 # iChart.js
 
-Use the public Agent contract as the source of truth. Do not infer capabilities from renderer internals or duplicate chart-selection logic in generated code.
+Use public capabilities and contracts, not renderer internals or invented options. Prioritize semantic correctness, clear structure, readable text, compact composition, then decoration. Validation and `health.renderable` alone do not prove a usable result.
 
-Read the [usage scenarios](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/usage-scenarios.md) when the request is ambiguous about whether the output should be a live project component, a Coding Agent change, a Skill-generated artifact, or a scheduled report.
-Read the [conversational workflow](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/conversational-workflow.md) when the user asks to change an existing chart in natural language.
-For **Agent-driven Incremental Construction** (visible step-by-step Flow or Board building), read its shared turn contract in that guide. First verify a persistent mounted JavaScript host, preview URL and command update channel exist. A Skill or final file alone cannot show live progress; disclose the limitation and offer artifacts or integration code instead. Submit complete semantic batches, show changes/diagnostics, obtain host approval for each exact preview, then commit and self-check. Do not equate Agent-generated `confirmed: true`, a template counter, or `health.renderable` with user approval or task completion.
+## Setup and Output
 
-## Source and Runtime Setup
-
-- Official repository: `https://github.com/wanghetommy/ichartjs`
-- Official Skill source: `https://github.com/wanghetommy/ichartjs/tree/master/skills/ichartjs`
-- Supported Skill hosts include Codex, WorkBuddy, and other Agent Skills-compatible environments.
-
-Recommended installation:
+The Skill guides an Agent; it is not the JavaScript runtime or a live update channel. It supports Codex, WorkBuddy, and other Agent Skills-compatible hosts.
 
 ```bash
 npx skills add wanghetommy/ichartjs --skill ichartjs
 ```
 
-Use `--agent codex --global --yes` for global non-interactive Codex installation. Use the tagged directory `https://github.com/wanghetommy/ichartjs/tree/v2.0.32/skills/ichartjs` when reproducibility matters. WorkBuddy can import the same directory through its Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it.
+For global non-interactive Codex installation add `--agent codex --global --yes`. For reproducibility use `https://github.com/wanghetommy/ichartjs/tree/v2.0.33/skills/ichartjs`. WorkBuddy can import that directory; do not assume a CLI adapter unless declared by the installed CLI.
 
-The Skill is a workflow adapter, not the chart runtime. If the current JavaScript or TypeScript project does not already depend on iChart.js, install the matching runtime from npm:
+Reuse the host's package manager and installed runtime. If missing, install `@taylorwong/ichartjs@^2`, not unscoped `ichartjs`. Installed capabilities override online examples; do not silently upgrade.
 
-```bash
-npm install @taylorwong/ichartjs@^2
-```
+Use independent `/standard`, `/project`, `/diagram`, or `/board` for known families; root supplies cross-family discovery and Chart preview/commit/history absent from rendering Profiles. Setup: [Quickstart](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/quickstart.md).
 
-Do not install the unscoped npm registry package named `ichartjs`; it is currently a security holding package and is not this project.
-
-## Workflow
-
-1. Locate the package or repository root. Read `docs/agent/quickstart.md` when available.
-   For delivery-oriented work, also read `docs/agent/task-validation.md`; for mobile loading, read `docs/agent/runtime-footprint.md`.
-   If the host knows the capability family, use `@taylorwong/ichartjs/standard`, `/project`, `/diagram`, or `/board`; use the root package when full discovery or cross-family composition is required.
-2. Call `getCapabilities()` before selecting a chart or interaction.
-3. Call `inspectData()` and preserve stable record IDs.
-4. Discover `getCapabilities().intents`; map natural-language requests to an exact registered token before calling `planChart(data, { intent, renderer, context })`.
-5. Inspect the complete planning result, including `styleRecommendation`, warnings, and fallback status; then call `getChartContract(plan.primary)` for the selected chart's channels, limits, renderers, exports, and defaults.
-6. Stop when `requiredFields` is non-empty; request data or explain a supported alternative.
-7. Build a JSON-serializable Spec using `suggestedEncodings`, the selected contract, and an applicable recipe.
-8. Use chart-specific channels: Cartesian `x`/`y`, Pie/Funnel `category`/`value`, Gauge `value`, Heatmap `x`/`y`/`color`, and Radar `indicators[].field`. Funnel stage text comes from `encoding.category` (default `name`) and `labels.enabled` additionally renders values; narrow stages may report `FUNNEL_LABEL_TRUNCATED`, so increase width or shorten the stage name. For Flow, use top-level `nodes` and `edges`, `nodes[].kind` from `getCapabilities().diagram.flowNodeKinds`, and edge `label` for decision branches. `connector` uses explicit `from`/`to` edges and loops are allowed. To discover recipes, import `@taylorwong/ichartjs/recipes/manifest`; recipes are declarative starting templates, not executable tasks. Copy one, inject host data, run its declared validator, and then render or preview. The `diagrams/workflow` entry is an edit template and is not directly renderable until nodes and edges are populated.
-9. Keep titles/formats under `xAxis`/`yAxis`, labels under `labels`, and legend under `legend`; do not place them inside `encoding`.
-10. Call `validateSpec()` before rendering and repair its preflight errors, warnings, and normalizations. After `createChart()`, inspect `chart.getState()` or `chart.explain()` for render-time diagnostics such as `FUNNEL_LABEL_TRUNCATED`, `VALUE_CLAMPED`, `LABELS_SUPPRESSED`, `LABEL_TRUNCATED`, `NEGATIVE_VALUE_DROPPED`, and `ZERO_TOTAL`; also inspect `getState().layout.labels` for wrapped, scaled, inline-edge, offset-edge, and diagram edge-label background counts. Ordinary chart labels do not use background plates. Do not assume every layout warning is available during preflight.
-11. Call `createChart()` only after validation succeeds. Gauge Specs must declare a meaningful `domain`.
-12. Self-check with `chart.explain()`, `chart.getState()`, `health.renderable`, `dataQuality`, and JSON export. Treat `VALUE_CLAMPED`, `LABELS_SUPPRESSED`, `NEGATIVE_VALUE_DROPPED`, `FUNNEL_LABEL_TRUNCATED`, and `ZERO_TOTAL` as material diagnostics to report. Treat duplicate stable IDs and mixed inferred units as data-quality warnings that require host review.
-13. Provide an exact preview URL or artifact path and report assumptions, warnings, data-quality issues, and deferred checks.
-14. Prefer `theme: { mode: 'auto', preset, palette }`; preserve explicit user style choices and use `chart.setTheme()` for live switching.
-15. For post-creation visual changes, call `getPreferenceCapabilities(chartType, { locale })`, validate the patch with `validatePreferences()`, apply it with `chart.setPreferences(..., { source: 'agent' })`, and verify `chart.getState().preferences`.
-16. For natural-language changes, classify the request before mutating: visual → `setPreferences()`/`setTheme()`, complete data replacement → `setData()`, business or Diagram edit → `previewEdit()`/`applyEdit()`, normal Spec change → `update()`, exact JSON path → `applyPatch()`. Verify `chart.getState().preferenceResolution` and `chart.explain()` after commit.
-
-Common type-specific placements:
-
-For titles, labels or annotations, read [Chart Text and Annotations](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/text-annotations.md). Discover `getCapabilities().text` / `.annotations`; use JSON `annotations` for numeric reference lines or stable-ID callouts on Cartesian charts, not ephemeral pixel plugins. Bar/Column support explicit inside/outside labels. Inspect fitting/target diagnostics and preserve existing annotation IDs when replacing the array. Host approval and natural-language interpretation remain outside the runtime.
-
-| Type | Required data contract |
+| Deliverable | Host and output |
 | --- | --- |
-| Scatter | `encoding.x` and `encoding.y` must reference quantitative fields. |
-| Gantt | Put dependencies on `data.values[].dependencies`, not top-level `dependencies`. |
-| Swimlane | Use top-level `lanes[].label` for lane display text. |
-| Flow / Architecture / Mindmap | Keep `nodes`, `edges`, `layers`, and `boundaries` at Spec top level. |
-| Freeform Board | Board item `position`/`size` use pixels; path and polygon points are normalized inside the item box. |
+| Existing product | Reuse its framework, lifecycle and dev server; return changed files and its actual preview URL. |
+| One-off chart/report | Return the requested SVG, PNG/JPEG, JSON or HTML artifact path; no server required for file delivery. |
+| iChart.js repository demo | Only here use `npm run playground` and a maintained Playground URL. |
+| Visible construction | Requires a persistent mounted host, preview URL and command update channel, not merely a final file. |
 
-Use top-level `width` and `height` for chart dimensions. `size: { width, height }` is not a chart Spec option and returns `UNSUPPORTED_SIZE_OPTION`.
+For unclear delivery modes read [usage scenarios](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/usage-scenarios.md); ask only consequential questions.
 
-Theme values are discoverable from `getCapabilities().styleSystem` or `getPreferenceCapabilities()`. The current values are `mode: auto | light | dark | contrast`, `preset: auto | analysis | dashboard | report | presentation | project | diagram`, and `palette: auto | categorical | sequential | diverging | status | soft`.
+## Choose the Workflow
 
-Optional diagram visuals are discoverable from `getCapabilities().diagram.visuals`: `diagram.appearance: 'soft'` is independent of `theme.palette: 'soft'`. Use its sixteen icon names in `nodes[].icon` (or Board shape `items[].icon`), and explicit node/edge `tone` values only when requested. Do not infer risk or business status from labels. Icons are decorative and may be suppressed in small nodes to preserve readable labels; inspect `ICON_SUPPRESSED` / `UNKNOWN_ICON` diagnostics. Existing semantic shapes, routes and static defaults remain authoritative.
+### New chart or Board
 
-## Freeform Board
+1. Discover `getCapabilities()` and `getChartContract(type)` or Board `canvasComposition`. Honor supported user-selected types. Only for tabular selection use `inspectData()` / `planChart()` with a registered intent; review required fields, fallback, warnings and style recommendation. Missing required fields stop creation. See [chart selection](references/chart-selection.md).
+2. Build a JSON-safe Spec. Templates from `@taylorwong/ichartjs/recipes/manifest` require data and validation, not execution; populate `diagrams/workflow` nodes/edges before rendering.
+3. Use `validateSpec()` before `createChart()`, or `validateBoardSpec()` before `createBoard()`. Stop on invalid structure or missing required inputs. Inspect normalizations and preflight diagnostics; after rendering inspect `getState()`, `explain()`, health, lineage and layout diagnostics. Await Board `ready()` for images.
+4. Apply the diagnostic and visual acceptance rules below, then deliver. Keep mounted instances alive; destroy replaced or temporary instances after export.
 
-Editing signatures are not interchangeable: prefer Chart instance `chart.validateEdit(command)` / `chart.previewEdit(command)`; exported `validateEdit(command, options)` takes an explicit editing context, not a Spec. Board uses single-argument `validateBoardCommand(command)` with `operations: [{ op, ... }]`; `boardCapabilities` is an object. Host permissions belong in the instance Spec, never generated commands. See the scenario examples for complete initialization and operation fields.
+### Change an existing visualization
 
-For visible multi-turn Board construction, discover `boardCapabilities.incrementalBuilding` and use `validateBoardCommand()` with `type: 'board-edit'`, not chart edit commands. Reuse one Board, explicitly enable editing/structural changes, preview each complete batch, obtain host confirmation, then `applyEdit(preview.command, { preview, confirmed: true })`. Await `ready()` for changed images and inspect asset status/health. Preserve existing positions and locked items; only explicitly requested layout changes move content. Root and `/board` both support transactions; `/board` embeds standard charts only. See the Board scenario below and `@taylorwong/ichartjs/recipes/boards/incremental-board` for ordered starting templates.
+Inspect current Spec, preferences, IDs, locks and revision; preserve meaning, manual layout and unrelated settings.
 
-Use Freeform Board when the output is a bounded whiteboard composition rather than one chart: images, text, simple drawings, connectors, and embedded charts can share one SVG or Canvas surface. Simple drawing is a whiteboard capability, not a separate chart type. Discover the contract first:
+- Visual changes: discover `getPreferenceCapabilities(type, { locale })`, use `validatePreferences()` and `setPreferences(patch, { source: 'agent' })`; use `setTheme()` for theme switching.
+- Complete data replacement: `setData()`; ordinary Spec changes: `update()`; exact JSON paths: `applyPatch()`.
+- Business/Diagram edits: instance `validateEdit()` / `previewEdit()` / `applyEdit()`. Exported `validateEdit(command, options)` needs editing context, not a Spec.
 
-```js
-const capabilities = getCapabilities();
-const boardContract = capabilities.canvasComposition;
-```
+Follow the [conversational workflow](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/conversational-workflow.md) for host interpretation, permissions, preview/confirmation and revisions. Verify effective `preferences`, `preferenceResolution`, diagnostics and changed output; do not restart selection.
 
-Supported board items are `image`, `text`, `shape`, `path`, `connector`, and embedded `chart`. Board item `position` and `size` are pixels; shape and path geometry points are normalized inside each item box. Shape options are `rectangle`, `ellipse`, `diamond`, `hexagon`, normalized-point `polygon`, open `arc`, and filled `sector`; `path` supports normalized linear points or exactly four points for a cubic Bezier. Do not send arbitrary SVG path data. Text automatically fits by wrapping, bounded font reduction, and last-resort ellipsis; inspect `board.getState().layout.text`. Connectors use explicit `from`/`to` item IDs and `straight` or `orthogonal` routing. Images are declared in `assets`, referenced by `assetId`, and should include `alt` text.
+### Agent-driven Incremental Construction
 
-Use `validateBoardSpec()` before `createBoard()`, then mount, await `ready()`, and inspect `board.getState()` and `board.explain()`. Boards are static by default; explicitly enable `editing` or `interaction.drag`, `interaction.zoom`, and `interaction.pan` only when the host requests them. Export JSON for persistence, SVG for vector delivery, and browser-mounted Canvas as PNG/JPEG.
+When requested, follow the conversational turn contract and [Diagram](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/diagram-scenario.md) or [Board](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/canvas-scenario.md) scenario. Without a persistent host/update channel, offer artifacts or integration code, not live progress.
 
-Read the [Freeform Board Scenario](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/canvas-scenario.md) for the complete BoardSpec workflow. Use `agent-recipes/drawings/cat.json` as a validated simple-drawing starting point and preview the unified Freeform Board at `http://localhost:3000/playground/canvas-board.html`.
+- Flow: discover `getChartContract('flow').incrementalBuilding`; batch node/edge commands into one preview/commit transaction per semantic turn. Repeated `update()` replacements are not a substitute for history. Node removal defaults to rejecting incident edges; explicit `policy: 'cascade'` removes only incident edges.
+- Board: discover `boardCapabilities.incrementalBuilding`; `boardCapabilities` is an object. Use `validateBoardCommand(command)` with `type: 'board-edit'` and `operations: [{ op, ... }]`, not Chart commands. Root and `/board` support Board transactions; `/board` embeds standard charts only.
+- Explicitly enable required editing permissions in the host Spec, never in commands. Show each exact preview, obtain host approval and commit atomically; preserve revision/history, locks, positions and manual waypoints. Await changed assets and self-check. Agent-generated `confirmed: true`, a step counter or healthy state is not user approval or task completion.
 
-Use `@taylorwong/ichartjs` for package imports. Use `examples/agent-workflow.mjs` as the executable baseline when working in the repository.
+## Type-Specific Contracts
 
-## Task Routing
+| Type | Important placement |
+| --- | --- |
+| Cartesian / Scatter | `encoding.x` / `y`; Scatter requires quantitative fields. Axis titles/formats belong under `xAxis` / `yAxis`, not encoding. |
+| Pie / Funnel | `encoding.category` / `value`; Funnel category supplies stage text, `labels.enabled` additionally enables values. Preserve stage names when fitting fails. |
+| Gauge / Heatmap / Radar | Gauge: `value` and meaningful `domain`; Heatmap: `x` / `y` / `color`; Radar: `indicators[].field` with explicit domains when units differ. |
+| Gantt | Row `dependencies`, not top-level or `dependsOn`; preserve stable IDs and calendar assumptions. |
+| Diagrams | Top-level `nodes` / `edges` and applicable `lanes` / `layers` / `boundaries`; display text is `label`, endpoints `from` / `to`. Discover Flow node kinds; label decision branches. |
+| Freeform Board | Item `position` / `size` are pixels; polygon/path points are normalized within the item box. |
 
-Route by requested output:
+Use chart `width` / `height`, not `size`; `title: { text, subtitle }`, top-level `labels` and `legend`. For text or annotations read [Chart Text and Annotations](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/text-annotations.md); discover `getCapabilities().text` / `.annotations` and preserve annotation IDs.
 
-- **Live product component**: modify the host JavaScript project and mount `createChart()`; return changed files and the host preview URL.
-- **Coding Agent change**: inspect the repository, use the Runtime, run focused checks, and return the validated Spec plus changed files.
-- **One-off artifact**: all entries export browser PNG/JPEG regardless of SVG/Canvas display. Inspect `export.delivery` for type/as and errors; await Board images. Node raster uses root `exportAsync()` with optional `canvas`, not Profiles/Board.
-- **Project or Diagram workflow**: load the matching scenario guide and preserve all stable IDs.
-- **CI/report output**: keep JSON as the reproducible checkpoint and SVG/PNG as presentation artifacts.
-- **Visible incremental construction**: use the shared workflow and matching Flow/Board contract; preserve manual content, support cancellation/history, and review final requirements before delivery. Report committed steps, unresolved warnings, revision and the live preview URL; do not force this mode for simple one-off work.
+Board `canvasComposition` declares images, text, shapes, paths, connectors and charts. Use declared geometry, not arbitrary SVG paths. Images reference `assets` by `assetId`; include alt text and inspect asset health / `.layout.text`.
 
-- For standard data analysis, read `references/chart-selection.md` and use foundational recipes.
-- For Gantt, Timeline, Milestone, Burndown, capacity, release, risk, or aging, use project capabilities and `agent-recipes/project-management.json`.
-- For Flow or Swimlane, preserve node, edge, lane, group, and port IDs; use diagram recipes and validated edit commands. `agent-recipes/drawings/cat.json` is a BoardSpec starting template for Freeform Board, not a separate chart type.
-- For multi-turn Flow building, discover `getChartContract('flow').incrementalBuilding` and read the [Diagram Scenario](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/diagram-scenario.md). Use `addNode` / `removeNode` and existing node/edge commands in one preview/commit transaction per turn, not repeated `update()` replacements that clear history. `layered` layout reflows nodes without explicit positions; never erase manual positions or waypoints silently. Inspect `preview.layout` and warnings, obtain host confirmation for structural changes, and inspect `getState().layout.diagram` after commit. Default node removal rejects incident edges; `policy: 'cascade'` explicitly removes only incident edges. The incremental-flow recipe is an ordered starting template, not a task executor or natural-language parser.
-- For diagram readability, keep node labels inside their shapes; edge labels stay inline when space permits and move aside only after a collision. Use `getState().layout.labels.diagram` to detect wrapping, scaling, truncation, suppression, and edge-label offsets instead of shortening source labels in the Agent.
-- For business edits, preview first, preserve the preview ID and revision, require confirmation when declared, then commit or reject atomically.
-- For browser deliverables, start `npm run playground` and return the exact maintained Playground URL.
-- Release workflow (npm publish + develop→master merge) is **AUTHOR ONLY**. Read the [release SOP](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/development/release-sop.md). Never initiate any release step unless the author explicitly instructs.
+## Style and Readability
 
-## Guardrails
+Preserve user choices. Discover `styleSystem` or preference capabilities; prefer `theme: { mode: 'auto', preset, palette }`. Palettes follow data semantics, not inferred status; never rely on color alone.
 
-- Never invent fields, units, dates, dependencies, calendar rules, domains, or forecast confidence.
-- Never silently drop validation errors, warnings, assumptions, normalizations, or unsupported requests.
-- Treat `getCapabilities().intents` as an allowlist; never pass a natural-language sentence as `planChart().intent`.
-- If planning returns `fallbackUsed: true`, use `intentSuggestions` to remap or ask for confirmation; never silently accept the fallback chart.
-- Keep axis titles/formats under `xAxis`/`yAxis`, labels under `labels`, and legend settings under `legend`.
-- Use `title: { text, subtitle }`; string titles and `title.label` are compatibility forms and are reported as normalizations.
-- Use diagram `label`, edge `from`/`to`, and Gantt `dependencies`; do not substitute `name`, `source`/`target`, or `dependsOn`.
-- Repair `UNKNOWN_INTENT`, misplaced-option, and unsupported-axis warnings before presenting a chart. For numeric y-axes, prefer the default readable domain; use `yAxis.domain: [min, max]` for an explicit range, `yAxis.nice: false` for raw boundaries, and `yAxis.ticks` for a stable label count.
-- Add stable string `id` values to tabular rows when lineage or linked updates are part of the deliverable.
-- Avoid Pie for high-cardinality categories; prefer Bar for comparison.
-- Require explicit Radar domains when units differ.
-- Distinguish missing Heatmap values from zero.
-- Set `locale` explicitly when output needs localization; the default is `en-US`, and input dates must be ISO-8601 strings.
-- Use categorical, sequential, diverging, or status palettes by data semantics; do not invent arbitrary color sets or rely on color alone.
-- Surface theme contrast diagnostics and high-cardinality color warnings.
-- Do not generate Map or 3D Specs unless capabilities explicitly add them.
-- Prefer SVG for accessibility, DOM interaction, and diagram editing; prefer Canvas for larger mark counts when supported.
-- Destroy replaced charts and verify lifecycle cleanup.
+`diagram.appearance: 'soft'` is independent of palette `soft`; discover icons/tones through `getCapabilities().diagram.visuals`. Report `ICON_SUPPRESSED` or `UNKNOWN_ICON`. Prefer bounded runtime line widths and coordinated arrows; verify proportions at delivery size.
 
-## Deliverable
+Read [readability acceptance](references/readability.md) when creating a visual deliverable or changing layout, text or style. Prefer compact automatic Flow `layered` layout without unnecessary manual positions; do not stretch nodes to fill a canvas or erase existing manual layouts. Inspect label fitting and diagram geometry, then review the actual delivery size when visual tools are available. Do not shorten business text, hide diagnostics, shrink fonts or enable navigation to disguise space limits.
 
-Return:
+## Diagnostics and Safety
 
-- the selected chart and reasons;
-- the validated Spec or structured repair request;
-- assumptions, warnings, and unsupported requests;
-- explanation lineage and runtime self-check;
-- changed files when coding;
-- the exact preview URL and acceptance actions.
+Read [Agent contract](references/agent-contract.md) for self-checks and stop conditions. Invalid structure, missing required inputs and non-renderable results block usable delivery. Resolve unknown intents/fallbacks, ignored requested options and data distortion before claiming success; an alternative needs explicit agreement. Review fitting/contrast issues in context. Decorative degradation may be accepted with its impact disclosed; warnings and harmless normalizations do not all require blocking or repeated retries.
 
-Read `references/agent-contract.md` for the required API sequence and response checklist. Read `references/chart-selection.md` only when selecting or challenging a chart type.
+- Preserve stable IDs, units, dates, dependencies and source labels; never invent missing data. Distinguish missing Heatmap cells from zero and require a positive Pie total.
+- Set `locale` explicitly when localization is requested; default is `en-US`. Input dates use ISO-8601.
+- Remain static by default: zoom, pan, drag and editing require explicit host enablement. Prefer SVG for accessible DOM interaction/diagram editing, Canvas for larger supported mark counts.
+- Do not invent unsupported chart types, APIs, layout knobs or exports. Release actions are author-only and require an explicit request; see the [release SOP](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/development/release-sop.md).
+
+## Delivery
+
+Return the actual preview URL/artifact path, relevant chart choice, changed files, assumptions and unresolved diagnostics/impact. Separate runtime from visual checks, disclosing unverified sizes/environments. Keep Spec/JSON checkpoints without dumping diagnostics into the summary.
+
+All entries support browser PNG/JPEG export regardless of SVG/Canvas display. Discover `export.delivery` type/as options; Node raster uses root `exportAsync()` with optional `canvas`, not rendering Profiles/Board. Do not claim unavailable bitmap output. For task-result checks read the [task validation guide](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/task-validation.md).

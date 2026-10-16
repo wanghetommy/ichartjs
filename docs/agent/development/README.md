@@ -32,7 +32,7 @@ Current policies use English. Chinese guidance is in [the companion Development 
 
 Earlier iteration plans are linked from the Roadmap. An implemented plan is not proof of publication; read its status and evidence.
 
-Iterations 32–33 are implemented for release `v2.0.32`. Use the iteration records for scope and acceptance evidence.
+Current release: `v2.0.33`, adding bounded stroke sizing, compact layouts and Skill readability acceptance. Iterations 32–33 shipped in `v2.0.32`; see their records for scope and evidence.
 
 ## Historical records
 

@@ -55,6 +55,8 @@ When `mode` is `auto`, mounted charts follow `prefers-color-scheme` changes. Exp
 
 ## Accessibility
 
+Default data/connector strokes adapt to the plot and average non-connector node height, bounded to 0.8–1.35 times the preset width. Empty canvas alone cannot thicken diagram edges. Borders stay subordinate; arrows and dash spacing follow connector width, while hit tolerance and grid widths remain independent. Explicit `theme: { tokens: { marks: { lineWidth: 2 } } }` fixes the main width across resize. Resolved `automaticLineWidth` records the automatic baseline (null for explicit widths), not a preference setting. SVG/Canvas/export share the scene; DPR does not change logical width, and view zoom does not reapply stroke sizing.
+
 Built-in modes expose text, muted text, axis, grid, focus, selection, missing-value, and status tokens. Call `validateThemeContrast(theme)` for custom token overrides. Do not suppress contrast warnings in Agent output.
 
 Preview and acceptance: `http://localhost:3000/playground/theme-gallery.html`.

@@ -19,6 +19,6 @@
 | Process | Flow | Preserve node and edge IDs; validate endpoints and ports. |
 | Responsibility | Swimlane | Require valid lane membership. |
 
-Always prefer `planChart()` over this table when runtime capability output is available. Treat alternatives as tradeoffs, not automatic fallbacks.
+When selecting a type, prefer `planChart()` over this table if available. If the user specifies a supported type, inspect its contract directly; do not force planning. Treat alternatives as tradeoffs, not automatic fallbacks.
 
 `planChart()` accepts the exact registered intent token, not the user's full sentence. For example, map “show the sales trend over time” to `trend`; if an unknown token is passed, inspect and surface the returned `UNKNOWN_INTENT` warning instead of accepting the fallback silently.

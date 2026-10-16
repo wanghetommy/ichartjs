@@ -71,6 +71,41 @@ after(async () => {
   server?.kill('SIGTERM');
 });
 
+test('stroke sizing survives mounted resize and produces identical SVG/Canvas exports', async () => {
+  await goto('/playground/index.html');
+  const reports = await page.evaluate(async () => {
+    const { createChart } = await import('/src/index.mjs');
+    const host = document.createElement('div');
+    host.style.display = 'inline-block';
+    document.body.append(host);
+    const reports = [];
+    try {
+      for (const type of ['line', 'area', 'flow']) {
+        const images = new Map();
+        for (const renderer of ['svg', 'canvas']) {
+          host.style.width = '320px';
+          const chart = createChart({ container: host, type, renderer, width: 320, height: 240, data: [{ name: 'A', value: 1 }, { name: 'B', value: 3 }], ...(type === 'flow' ? { nodes: [{ id: 'a', kind: 'start', label: 'Start' }, { id: 'b', kind: 'end', label: 'End' }], edges: [{ id: 'next', from: 'a', to: 'b' }], diagram: { appearance: 'soft' } } : {}) });
+          try {
+            const id = type === 'flow' ? 'edge-0' : 'series-0-line';
+            const small = chart.model.scene.find(id).style.strokeWidth;
+            host.style.width = '900px';
+            chart.resize(900, 520);
+            const large = chart.model.scene.find(id).style.strokeWidth;
+            const xml = new DOMParser().parseFromString(chart.export({ type: 'svg' }), 'image/svg+xml');
+            const png = chart.export({ type: 'png' });
+            if (!images.has(type)) images.set(type, png);
+            const mountedWidth = renderer === 'svg' ? Number(host.querySelector(`[id="${id}"]`).getAttribute('stroke-width')) : large;
+            reports.push({ type, renderer, grows: large > small, bounded: large <= chart.getTheme().marks.lineWidth * 1.35, mounted: mountedWidth === large, exported: Number(xml.querySelector(`[id="${id}"]`).getAttribute('stroke-width')) === large, rasterParity: png === images.get(type) });
+          } finally { chart.destroy(); }
+        }
+      }
+    } finally { host.remove(); }
+    return reports;
+  });
+  assert.equal(reports.length, 6);
+  for (const report of reports) for (const key of ['grows', 'bounded', 'mounted', 'exported', 'rasterParity']) assert.equal(report[key], true, `${report.type}/${report.renderer}: ${key}`);
+});
+
 test('Iteration 33: soft diagram geometry, icons and browser delivery share both renderers and entries', async () => {
   await goto('/playground/index.html');
   const reports = await page.evaluate(async () => {

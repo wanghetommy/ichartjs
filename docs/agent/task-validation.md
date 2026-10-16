@@ -18,7 +18,7 @@ Every task should return:
 }
 ```
 
-The host Agent supplies `chartType`, `warnings`, and `output` from the runtime. Do not report success only because `validateSpec().valid` is true.
+The host Agent supplies `chartType`, `warnings`, and `output` from the runtime. Do not report success only because `validateSpec().valid` is true. When the user specifies a supported type, discover its contract directly; planning is for chart selection, not a prerequisite for every task. Existing-chart edits inspect current state and verify the affected output rather than restarting selection.
 
 ## Safe task loop
 
@@ -55,6 +55,14 @@ try {
 - `NEGATIVE_VALUE_DROPPED`, `ZERO_TOTAL`, `VALUE_CLAMPED`, `LABEL_TRUNCATED`, and `LABELS_SUPPRESSED` remain visible in the result.
 - A warning may be accepted only when the host explains the impact and the requested output remains fit for purpose.
 - Preserve `recordIds` across transforms and edits; do not silently replace missing or duplicate IDs.
+
+Resolve data distortion and ignored requested options before claiming usable delivery; alternatives need agreement. Review fitting/contrast warnings; harmless normalizations or decorative suppression can be accepted with their impact disclosed. Do not blindly retry warnings or shorten business labels to hide them.
+
+## Visual and Host Acceptance
+
+The loop above verifies health, not visual acceptance. Apply the Skill's [readability checklist](../../skills/ichartjs/references/readability.md) at delivery size. Report runtime and visual checks separately, including unavailable tools or untested sizes.
+
+Use the consumer project's server/URL, not this repository's `npm run playground`. File delivery needs an artifact path. Keep delivered live instances mounted; destroy temporary/replaced ones.
 
 ## Output choice
 

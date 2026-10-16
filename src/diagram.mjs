@@ -147,7 +147,7 @@ export function layoutArchitectureNodes(spec, bounds = { x: 0, y: 0, width: 640,
     const widest = Math.max(72, ...members.map(node => Number(node.size?.width) || 112));
     const columns = Math.max(1, Math.min(members.length, Math.floor((bounds.width + 12) / (widest + 12))));
     const rows = Math.ceil(members.length / columns);
-    const slotWidth = bounds.width / columns, slotHeight = layerHeight / rows;
+    const slotWidth = Math.min(widest + 48, bounds.width / columns), slotHeight = layerHeight / rows;
     members.forEach((node, index) => {
       const row = Math.floor(index / columns), column = index % columns;
       const count = row === rows - 1 ? members.length - row * columns : columns;
@@ -237,13 +237,16 @@ export function layoutDiagram(spec, bounds = { x: 0, y: 0, width: 640, height: 3
       const totalWidth = columnWidths.reduce((sum, width) => sum + width, 0);
       const availableGap = columns.length > 1 ? (bounds.width - totalWidth) / (columns.length - 1) : 0;
       const columnGap = columns.length > 1 ? Math.max(8, Math.min(32, availableGap)) : 0;
-      let x = bounds.x;
+      let x = bounds.x + Math.max(0, (bounds.width - totalWidth - columnGap * (columns.length - 1)) / 2);
       columns.forEach(([depth, items], columnIndex) => {
         const columnWidth = columnWidths[columnIndex];
+        const heights = items.map(item => nodeSize(graph.nodes.find(node => node.id === item.id)).height);
+        const height = heights.reduce((sum, value) => sum + value, 0), gap = Math.max(0, Math.min(24, (bounds.height - height) / Math.max(1, items.length - 1)));
+        let y = bounds.y + Math.max(0, (bounds.height - height - gap * (items.length - 1)) / 2);
         items.forEach((item, index) => {
           const node = graph.nodes.find(candidate => candidate.id === item.id), size = nodeSize(node);
-          const centerY = bounds.y + (index + 1) * bounds.height / (items.length + 1);
-          positions.set(item.id, { x, y: Math.max(bounds.y, Math.min(bounds.y + bounds.height - size.height, centerY - size.height / 2)), width: size.width, height: size.height });
+          positions.set(item.id, { x, y, width: size.width, height: size.height });
+          y += size.height + gap;
         });
         x += columnWidth + columnGap;
       });

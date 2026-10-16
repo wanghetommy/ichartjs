@@ -1,42 +1,30 @@
 # Agent Contract
 
-## Required sequence
+## Task-specific sequence
 
 ```text
-getCapabilities → inspectData → planChart → build Spec → validateSpec → createChart → explain/getState/export → destroy
+New chart: capabilities/contract → optional tabular inspect/plan → Spec → validate → create → inspect → visual acceptance → deliver
+Existing chart: inspect current state → supported change/preview → commit as authorized → inspect affected output
+Board: board contract → validateBoardSpec → createBoard → ready → inspect → deliver
 ```
+
+Plan only when selecting a type. Follow scenario confirmation rules for incremental construction; keep delivered live instances mounted.
 
 ## Public APIs
 
-- `getCapabilities()`: global and per-chart discoverability.
-- `getChartCapability(type)`: required roles, interactions, renderers, features, exports, and limits.
-- `inspectData(input)`: field roles, identifiers, cardinality, missingness, temporal coverage, and warnings.
-- `planChart(input, options)`: primary type, alternatives, confidence, reasons, required fields, suggested encodings, assumptions, warnings, unsupported requests, next actions, and `intentKnown`/`intentSuggestions`/`fallbackUsed` metadata.
-- `validateSpec(spec)`: errors, warnings, normalizations, and normalized Spec.
-- `createChart(spec)`: headless or mounted chart lifecycle.
-- `chart.explain()`: semantics, encodings, interactions, lineage, warnings, and accessibility summary.
-- `chart.getState()`: renderer, dimensions, warnings, assumptions, selection, view, project analytics, linked state, and `health`.
-- `chart.export({ type: 'json' })`: JSON-safe Spec and state.
+- Discovery: `getCapabilities()`, `getChartContract(type)`, `getChartCapability(type)`.
+- Selection: `inspectData(input)`, `planChart(input, options)`; inspect `requiredFields`, `intentKnown`, `intentSuggestions`, `fallbackUsed`, warnings and suggested encodings.
+- Creation: `validateSpec(spec)` returns errors, warnings, normalizations and Spec; `createChart(spec)` mounts or renders headlessly.
+- Inspection: `chart.explain()` / `getState()` expose health, semantics, lineage, layout and diagnostics; `chart.export({ type: 'json' })` preserves Spec/state.
 
 ## Stop conditions
 
-Do not render when:
-
-- `plan.requiredFields` is non-empty;
-- `validateSpec().valid` is false;
-- chart-specific encoding channels are unsupported or reference missing fields;
-- a Gauge has no explicit `domain`;
-- the requested chart, renderer, interaction, or export is not declared;
-- required project dates, diagram endpoints, ports, lanes, or business schema rules are invalid.
+Stop for missing required fields, invalid Spec/encodings, missing Gauge domain, unsupported requested capabilities, or invalid dates, endpoints, ports, lanes and business structure.
 
 ## Self-check
 
-Verify that:
+Verify declared type, valid Spec, preserved source IDs, renderable health/status, actual output URL/path and lifecycle cleanup. Report warnings/assumptions, including `VALUE_CLAMPED`, `LABELS_SUPPRESSED`, `NEGATIVE_VALUE_DROPPED` and `ZERO_TOTAL`.
 
-- the chosen type exists in `getCapabilities().chartTypes`;
-- validation passed without ignored errors;
-- explanation lineage preserves stable source IDs;
-- warnings and assumptions are visible in the response;
-- `health.renderable` is true and `health.status` is reported; `VALUE_CLAMPED`, `LABELS_SUPPRESSED`, `NEGATIVE_VALUE_DROPPED`, and `ZERO_TOTAL` are not hidden;
-- the preview uses a maintained URL;
-- replaced charts are destroyed.
+## Acceptance and diagnostics
+
+Invalid inputs/non-renderable output block delivery. Resolve fallback, ignored options and distortion; alternatives need agreement. Review fitting/contrast; disclose accepted decoration/normalization effects. Follow [readability acceptance](readability.md), reporting runtime versus visual checks and unavailable tools. Consumer projects use their own URL, not Playground.

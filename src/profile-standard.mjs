@@ -343,6 +343,7 @@ export function buildStandardScene(input) {
   const series = Array.isArray(spec.encoding.y) ? spec.encoding.y : [{ ...spec.encoding.y, name: spec.encoding.y?.name || spec.encoding.y?.field }];
   const entries = legendEntries(spec, data, series, colors);
   const state = layout(spec, data, entries, { axisFreeBottomPadding });
+  spec.theme = { ...spec.theme, marks: { ...spec.theme.marks, lineWidth: markWidth(spec, state.plot) } };
   if (state.chrome.legend.truncatedCount) data.warnings.push({ code: 'LEGEND_OVERFLOW', path: 'legend', count: state.chrome.legend.truncatedCount, message: `${state.chrome.legend.truncatedCount} legend label${state.chrome.legend.truncatedCount === 1 ? '' : 's'} exceeded the available width and was truncated.`, suggestion: 'Use shorter category names or a wider chart.' });
   state.axisTitleWarnings.forEach(({ path, title, availableWidth }) => data.warnings.push({ code: 'TITLE_TRUNCATED', path, availableWidth, message: `Axis title "${title}" exceeded the available vertical plot space and was truncated.`, suggestion: 'Use a taller chart or a shorter axis title.' }));
   scene._labelArea = state.plot;
