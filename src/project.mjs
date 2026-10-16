@@ -190,8 +190,8 @@ function edgeLabelLayout(edge, spec, positions, occupied = []) {
   return { ...candidate, anchor: midpoint.point, box: { x: candidate.x - block.width / 2, y: candidate.y - block.height / 2, width: block.width, height: block.height }, block, suppressed: false };
 }
 
-function connectorGeometry(points, curve = null) {
-  const tip = points.at(-1), previous = points.at(-2), nominalDepth = 7 * Math.cos(Math.PI / 6);
+function connectorGeometry(points, curve = null, width = 2, scale = 1) {
+  const tip = points.at(-1), previous = points.at(-2), nominalDepth = Math.max(4, width * 3.5) * Math.cos(Math.PI / 6) * scale;
   let renderPoints;
   if (curve === 'cubic' && points.length === 4) {
     const middle = cubicBezierPoint(points, 0.5), depth = Math.min(nominalDepth, Math.hypot(tip.x - middle.x, tip.y - middle.y) / 2);
@@ -215,11 +215,12 @@ function connectorGeometry(points, curve = null) {
 
 function arrow(scene, id, points, reference, critical = false, curve = null, visual = {}) {
   const color = critical ? scene.theme?.status?.danger || '#dc2626' : visual.color || scene.theme?.axis || '#64748b';
-  const { renderPoints, arrowPoints } = connectorGeometry(points, curve);
+  const width = (scene.theme?.marks?.lineWidth || 2) * (critical ? 1.4 : 1);
+  const { renderPoints, arrowPoints } = connectorGeometry(points, curve, width);
   const open = visual.arrow === 'open', body = open ? points : renderPoints;
-  const lineDash = reference?.lineStyle === 'dashed' ? [7, 5] : reference?.lineStyle === 'dotted' ? [2, 4] : [];
-  scene.add({ id, type: 'path', geometry: { points, renderPoints: body, ...(curve ? { curve } : {}), ...(!curve && visual.radius ? { cornerRadii: safeCornerRadii(body, visual.radius, visual.obstacles) } : {}) }, style: { fill: 'none', stroke: color, strokeWidth: critical ? 2.5 : visual.arrow ? 2 : 1.5, lineDash, ...(open ? { lineCap: 'round', lineJoin: 'round' } : {}) }, dataRef: { ...reference, ...(visual.arrow ? { arrow: visual.arrow } : {}), ...(visual.radius ? { radius: visual.radius } : {}) }, interactive: Boolean(reference?.edgeId), hitTolerance: 8, zIndex: 1 });
-  scene.add({ id: id.startsWith('dependency-') ? id.replace('dependency-', 'dependency-arrow-') : `${id}-arrow`, type: 'path', geometry: { points: open ? [arrowPoints[1], arrowPoints[0], arrowPoints[2]] : arrowPoints }, style: { fill: open ? 'none' : color, stroke: color, ...(open ? { strokeWidth: 2, lineCap: 'round', lineJoin: 'round' } : {}) }, zIndex: 3 });
+  const lineDash = (reference?.lineStyle === 'dashed' ? [3.5, 2.5] : reference?.lineStyle === 'dotted' ? [1, 2] : []).map(length => length * width);
+  scene.add({ id, type: 'path', geometry: { points, renderPoints: body, ...(curve ? { curve } : {}), ...(!curve && visual.radius ? { cornerRadii: safeCornerRadii(body, visual.radius, visual.obstacles) } : {}) }, style: { fill: 'none', stroke: color, strokeWidth: width, lineDash, ...(open ? { lineCap: 'round', lineJoin: 'round' } : {}) }, dataRef: { ...reference, ...(visual.arrow ? { arrow: visual.arrow } : {}), ...(visual.radius ? { radius: visual.radius } : {}) }, interactive: Boolean(reference?.edgeId), hitTolerance: 8, zIndex: 1 });
+  scene.add({ id: id.startsWith('dependency-') ? id.replace('dependency-', 'dependency-arrow-') : `${id}-arrow`, type: 'path', geometry: { points: open ? [arrowPoints[1], arrowPoints[0], arrowPoints[2]] : arrowPoints }, style: { fill: open ? 'none' : color, stroke: color, strokeWidth: open ? width : 0.5, ...(open ? { lineCap: 'round', lineJoin: 'round' } : {}) }, zIndex: 3 });
 }
 
 function timeAxis(scene, plot, min, max, locale = 'en-US') {
@@ -492,7 +493,7 @@ function diagramScene(scene, spec, rows, state) {
     const kind = mode === 'process' && spec.type === 'flow' ? flowNodeKind(row) : 'process', visual = flowNodeVisual(kind, geometry);
     const accent = toneColor(spec.theme, spec.colors, row.tone || 'accent'), fill = visualStyle.soft ? tintedFill(accent, spec.theme) : row.tone ? accent : spec.colors[colorIndex];
     if (visual.type === 'rect' && visualStyle.radius) visual.geometry = { ...visual.geometry, radius: Math.min(visualStyle.radius, geometry.width / 2, geometry.height / 2, ...(row.ports || []).map(port => Math.min(port.offset ?? 0.5, 1 - (port.offset ?? 0.5)) * (port.side === 'top' || port.side === 'bottom' ? geometry.width : geometry.height))) };
-    scene.add({ id: `node-${row.id}`, type: visual.type, geometry: visual.geometry, bounds: { ...geometry }, style: { fill, stroke: visualStyle.soft ? accent : row.root || mode === 'mindmap' && !row.parentId ? spec.theme.focus : spec.theme.background, strokeWidth: visualStyle.soft ? 1.5 : row.root || mode === 'mindmap' && !row.parentId ? 2 : 1 }, dataRef: { nodeId: row.id, kind, dataIndex: index, datum: row, groupId: row.groupId || null, layerId: row.layerId || null, parentId: row.parentId || null }, interactive: true, zIndex: 2 });
+    scene.add({ id: `node-${row.id}`, type: visual.type, geometry: visual.geometry, bounds: { ...geometry }, style: { fill, stroke: visualStyle.soft ? accent : row.root || mode === 'mindmap' && !row.parentId ? spec.theme.focus : spec.theme.background, strokeWidth: markWidth(spec) * (visualStyle.soft ? 0.8 : row.root || mode === 'mindmap' && !row.parentId ? 1 : 0.5) }, dataRef: { nodeId: row.id, kind, dataIndex: index, datum: row, groupId: row.groupId || null, layerId: row.layerId || null, parentId: row.parentId || null }, interactive: true, zIndex: 2 });
     if (spec.editing?.enabled && spec.interaction?.portConnect) (row.ports || []).forEach(port => {
       const point = port.side === 'left' ? { x: geometry.x, y: geometry.y + geometry.height * (port.offset ?? 0.5) } : port.side === 'top' ? { x: geometry.x + geometry.width * (port.offset ?? 0.5), y: geometry.y } : port.side === 'bottom' ? { x: geometry.x + geometry.width * (port.offset ?? 0.5), y: geometry.y + geometry.height } : { x: geometry.x + geometry.width, y: geometry.y + geometry.height * (port.offset ?? 0.5) };
       scene.add({ id: `port-${row.id}-${port.id}`, type: 'circle', geometry: { cx: point.x, cy: point.y, r: 4 }, bounds: { x: point.x - 6, y: point.y - 6, width: 12, height: 12 }, style: { fill: spec.theme.background, stroke: spec.theme.text, strokeWidth: 1.5 }, dataRef: { nodeId: row.id, portId: port.id, groupId: row.groupId || null }, interactive: true, zIndex: 4 });
@@ -529,7 +530,7 @@ function diagramScene(scene, spec, rows, state) {
     groupContents.set(group.id, boxes);
     const geometry = diagramGroupBox(group, boxes), { x: left, y: top, width } = geometry;
     groupBoxes.set(group.id, geometry);
-    scene.add({ id: `group-${group.id}`, type: 'rect', geometry, bounds: { ...geometry }, style: { fill: group.collapsed ? spec.theme.surface : 'none', stroke: group.collapsed ? spec.theme.focus : spec.theme.axis, strokeWidth: group.collapsed ? 2 : 1.5, opacity: 0.9 }, dataRef: { groupId: group.id, collapsed: Boolean(group.collapsed) }, interactive: false, zIndex: 0 });
+    scene.add({ id: `group-${group.id}`, type: 'rect', geometry, bounds: { ...geometry }, style: { fill: group.collapsed ? spec.theme.surface : 'none', stroke: group.collapsed ? spec.theme.focus : spec.theme.axis, strokeWidth: markWidth(spec) * (group.collapsed ? 1 : 0.75), opacity: 0.9 }, dataRef: { groupId: group.id, collapsed: Boolean(group.collapsed) }, interactive: false, zIndex: 0 });
     text(scene, `group-label-${group.id}`, group.collapsed ? `${group.label || group.id} (${boxes.length})` : group.label || group.id, left + 8, top + 15, { font: spec.theme.typography.legend.font });
     const label = scene.find(`group-label-${group.id}`);
     if (label) { label.bounds = { x: left, y: top, width, height: 20 }; label.dataRef = { groupId: group.id, collapsed: Boolean(group.collapsed) }; label.interactive = true; }
@@ -539,7 +540,7 @@ function diagramScene(scene, spec, rows, state) {
       const boxes = rows.filter(row => (boundary.nodeIds || []).includes(row.id)).map(row => positions.get(row.id)).filter(Boolean);
       if (!boxes.length) return;
       const padding = Number(boundary.padding) || 16, left = Math.min(...boxes.map(box => box.x)) - padding, top = Math.min(...boxes.map(box => box.y)) - padding, right = Math.max(...boxes.map(box => box.x + box.width)) + padding, bottom = Math.max(...boxes.map(box => box.y + box.height)) + padding;
-      scene.add({ id: `boundary-${boundary.id || boundaryIndex}`, type: 'rect', geometry: { x: left, y: top, width: right - left, height: bottom - top }, bounds: { x: left, y: top, width: right - left, height: bottom - top }, style: { fill: 'none', stroke: boundary.color || spec.theme.focus, strokeWidth: 1.5, opacity: 0.8 }, dataRef: { boundaryId: boundary.id || `boundary-${boundaryIndex}` }, interactive: false, zIndex: -1 });
+      scene.add({ id: `boundary-${boundary.id || boundaryIndex}`, type: 'rect', geometry: { x: left, y: top, width: right - left, height: bottom - top }, bounds: { x: left, y: top, width: right - left, height: bottom - top }, style: { fill: 'none', stroke: boundary.color || spec.theme.focus, strokeWidth: markWidth(spec) * 0.75, opacity: 0.8 }, dataRef: { boundaryId: boundary.id || `boundary-${boundaryIndex}` }, interactive: false, zIndex: -1 });
       text(scene, `boundary-label-${boundary.id || boundaryIndex}`, boundary.label || boundary.id || `Boundary ${boundaryIndex + 1}`, left + 8, top + 15, { font: spec.theme.typography.legend.font, fill: boundary.color || spec.theme.focus });
     });
   }
@@ -639,6 +640,8 @@ export function buildProjectScene(spec) {
     domainISO: dateDomain.map(value => new Date(value).toISOString())
   } : null;
   const state = { plot: { x: left, y: plotTop, width: plotWidth, height: Math.max(1, spec.height - plotTop - bottomReserve) }, xLabels, compact: spec.width < 360 || spec.height < 240, recommendedSize: { minWidth: 280, minHeight: 220 }, linked, projectAnalytics: { linked }, timeDomain: temporalProject ? [...dateDomain] : null, timeAxis };
+  spec.theme = { ...spec.theme, marks: { ...spec.theme.marks, lineWidth: markWidth(spec, state.plot) } };
+  scene.theme = spec.theme;
   scene.xLabelLayout = xLabels;
   if (spec.type === 'gantt') {
     state.schedule = analyzeSchedule(data.rows, { calendar: projectConfig(spec).calendar || {} });
@@ -664,6 +667,7 @@ export function buildProjectScene(spec) {
     suggestion: 'Increase the chart height or reduce the number of events.'
   });
   const view = projectView(spec), mapX = value => value * view.scale + view.offsetX, mapY = value => value * view.scale + view.offsetY;
+  scene.viewScale = view.scale;
   scene.walk(node => {
     const geometry = node.geometry;
     ['x', 'x1', 'x2', 'cx'].forEach(key => { if (geometry[key] != null) geometry[key] = mapX(geometry[key]); });
@@ -733,7 +737,7 @@ export function rerouteDiagramScene(scene) {
     node.geometry.points = path.points;
     if (path.curve) node.geometry.curve = path.curve;
     else delete node.geometry.curve;
-    const { renderPoints, arrowPoints } = connectorGeometry(path.points, path.curve);
+    const { renderPoints, arrowPoints } = connectorGeometry(path.points, path.curve, node.style.strokeWidth, scene.viewScale);
     node.geometry.renderPoints = node.dataRef.arrow === 'open' ? path.points : renderPoints;
     if (node.dataRef.radius && !path.curve) node.geometry.cornerRadii = safeCornerRadii(node.geometry.renderPoints, node.dataRef.radius, [...obstacles, source, destination]);
     else delete node.geometry.cornerRadii;

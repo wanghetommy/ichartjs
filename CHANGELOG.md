@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.33 - 2026-10-16
+
+- Added bounded shared stroke sizing, proportional arrows/dashes, preserved explicit widths and consistent resize, rerouting and SVG/Canvas exports.
+- Compacted Architecture/Mindmap auto layouts and streamlined Skill workflows, readability acceptance and bilingual guidance.
+
 ## 2.0.32 - 2026-10-16
 
 - Added optional soft palette/diagram appearance, rounded node and obstacle-safe edge geometry, open arrows and sixteen discoverable vector icons shared by SVG and Canvas; default diagrams remain unchanged.

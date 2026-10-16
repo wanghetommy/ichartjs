@@ -209,6 +209,7 @@ export function resolveTheme(theme, options = {}) {
     warnings: [...plan.warnings]
   };
   const output = merge(resolved, request.overrides);
+  output.automaticLineWidth = request.overrides.automaticLineWidth ?? (request.overrides.marks?.lineWidth == null ? output.marks.lineWidth : null);
   output.warnings = [...(output.warnings || []), ...validateThemeContrast(output)];
   return output;
 }

@@ -137,6 +137,10 @@ Current limitations:
 
 ## Agent Workflow
 
+### Readability acceptance
+
+New Flow uses bounded `layered` spacing; Architecture rows and Mindmap trees use compact, centered content. Preserve manual positions/routes; do not spread nodes to fill the canvas. For spacing diagnosis and target-size checks use the Skill's [readability checklist](../../skills/ichartjs/references/readability.md); for diagnostics and delivery use [task validation](task-validation.md).
+
 ### Incremental Flow building
 
 This is the Flow specialization of [Agent-driven Incremental Construction](conversational-workflow.md#agent-driven-incremental-construction). Read that guide for host prerequisites, complete semantic turns, confirmation UI and final task acceptance.

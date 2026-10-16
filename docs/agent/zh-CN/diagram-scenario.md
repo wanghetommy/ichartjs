@@ -124,6 +124,10 @@ Mindmap 默认使用曲线父子连线。`diagram.curveTension` 支持 `0.2` 到
 
 ## Agent 流程
 
+### 可读性验收
+
+新建 Flow 优先有界间距的 `layered`；Architecture 行、Mindmap 树紧凑居中。不为填满画布拉开节点，保留人工位置与路线。间距与实际尺寸检查见 Skill 的[可读性清单](../../../skills/ichartjs/references/readability.md)，诊断与交付见[任务验收](task-validation.md)。
+
 ### 对话式增量构建 Flow
 
 这是 [Agent-driven Incremental Construction](conversational-workflow.md#agent-driven-incremental-construction) 的 Flow 实现；宿主前提、完整语义步骤、确认界面和最终任务验收见统一指南。

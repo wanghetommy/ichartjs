@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "packageVersion": "2.0.32",
+  "packageVersion": "2.0.33",
   "generatedFrom": "npm pack --dry-run --json",
   "policy": "source-module-graph-baseline",
   "budget": {
@@ -31,39 +31,39 @@
   },
   "entry": "src/index.mjs",
   "files": 44,
-  "moduleRawBytes": 613296,
-  "moduleGzipBytes": 152440,
-  "packageBytes": 405348,
-  "unpackedBytes": 1437262,
-  "entryCount": 159,
+  "moduleRawBytes": 614719,
+  "moduleGzipBytes": 152857,
+  "packageBytes": 405645,
+  "unpackedBytes": 1437027,
+  "entryCount": 160,
   "treeShaking": "profile entries are available; root entry remains the complete runtime",
   "profiles": {
     "standard": {
       "files": 27,
-      "rawBytes": 299587,
-      "gzipBytes": 77575
+      "rawBytes": 300585,
+      "gzipBytes": 77875
     },
     "project": {
       "files": 28,
-      "rawBytes": 332218,
-      "gzipBytes": 86982
+      "rawBytes": 333535,
+      "gzipBytes": 87342
     },
     "diagram": {
       "files": 28,
-      "rawBytes": 332329,
-      "gzipBytes": 86978
+      "rawBytes": 333646,
+      "gzipBytes": 87338
     },
     "board": {
       "files": 30,
-      "rawBytes": 344576,
-      "gzipBytes": 89014
+      "rawBytes": 345574,
+      "gzipBytes": 89317
     }
   },
   "resources": {
     "groups": {
       "README + changelog": {
         "files": 2,
-        "bytes": 37928
+        "bytes": 38228
       },
       "other": {
         "files": 6,
@@ -75,33 +75,33 @@
       },
       "English guides": {
         "files": 17,
-        "bytes": 153528
+        "bytes": 155634
       },
       "development docs": {
         "files": 37,
-        "bytes": 217957
+        "bytes": 217137
       },
       "Chinese guides": {
         "files": 19,
-        "bytes": 125487
+        "bytes": 127374
       },
       "capability manifests": {
         "files": 3,
         "bytes": 135486
       },
       "Skill": {
-        "files": 4,
-        "bytes": 22084
+        "files": 5,
+        "bytes": 16917
       },
       "runtime source": {
         "files": 50,
-        "bytes": 628407
+        "bytes": 629830
       },
       "TypeScript declarations": {
         "files": 7,
-        "bytes": 53215
+        "bytes": 53251
       }
     },
-    "totalBytes": 1437262
+    "totalBytes": 1437027
   }
 }
