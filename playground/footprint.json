@@ -1,47 +1,73 @@
 {
   "version": "1.0",
-  "packageVersion": "2.0.31",
+  "packageVersion": "2.0.32",
   "generatedFrom": "npm pack --dry-run --json",
   "policy": "source-module-graph-baseline",
+  "budget": {
+    "baseline": {
+      "moduleRawBytes": 535216,
+      "moduleGzipBytes": 129561,
+      "packageBytes": 344082,
+      "unpackedBytes": 1231449
+    },
+    "allowedGrowth": 1.15,
+    "featureAllowance": {
+      "iteration": 33,
+      "reviewed": "2026-10-16",
+      "reason": "User-approved full 33A–33E: shared rounded geometry, sixteen vector glyphs, visual contracts and bilingual guidance.",
+      "bytes": {
+        "moduleRawBytes": 0,
+        "moduleGzipBytes": 4096,
+        "packageBytes": 10240,
+        "unpackedBytes": 24576
+      }
+    },
+    "limits": {
+      "moduleRawBytes": 615499,
+      "moduleGzipBytes": 153092,
+      "packageBytes": 405935,
+      "unpackedBytes": 1440743
+    }
+  },
   "entry": "src/index.mjs",
-  "files": 39,
-  "moduleRawBytes": 608579,
-  "moduleGzipBytes": 148961,
-  "packageBytes": 395584,
-  "unpackedBytes": 1415657,
-  "entryCount": 152,
+  "files": 44,
+  "moduleRawBytes": 613296,
+  "moduleGzipBytes": 152440,
+  "packageBytes": 405348,
+  "unpackedBytes": 1437262,
+  "entryCount": 159,
   "treeShaking": "profile entries are available; root entry remains the complete runtime",
   "profiles": {
     "standard": {
-      "files": 22,
-      "rawBytes": 291365,
-      "gzipBytes": 73900
+      "files": 27,
+      "rawBytes": 299587,
+      "gzipBytes": 77575
     },
     "project": {
-      "files": 23,
-      "rawBytes": 320161,
-      "gzipBytes": 82277
+      "files": 28,
+      "rawBytes": 332218,
+      "gzipBytes": 86982
     },
     "diagram": {
-      "files": 23,
-      "rawBytes": 320149,
-      "gzipBytes": 82239
+      "files": 28,
+      "rawBytes": 332329,
+      "gzipBytes": 86978
     },
     "board": {
-      "files": 25,
-      "rawBytes": 334537,
-      "gzipBytes": 84937
+      "files": 30,
+      "rawBytes": 344576,
+      "gzipBytes": 89014
     }
   },
   "resources": {
     "groups": {
       "README + changelog": {
         "files": 2,
-        "bytes": 37300
+        "bytes": 37928
       },
       "other": {
         "files": 6,
-        "bytes": 33361
+        "bytes": 33302
       },
       "Recipes": {
         "files": 14,
@@ -49,33 +75,33 @@
       },
       "English guides": {
         "files": 17,
-        "bytes": 152312
+        "bytes": 153528
       },
       "development docs": {
-        "files": 35,
-        "bytes": 209791
+        "files": 37,
+        "bytes": 217957
       },
       "Chinese guides": {
         "files": 19,
-        "bytes": 124180
+        "bytes": 125487
       },
       "capability manifests": {
         "files": 3,
-        "bytes": 132596
+        "bytes": 135486
       },
       "Skill": {
         "files": 4,
-        "bytes": 21406
+        "bytes": 22084
       },
       "runtime source": {
-        "files": 45,
-        "bytes": 623411
+        "files": 50,
+        "bytes": 628407
       },
       "TypeScript declarations": {
         "files": 7,
-        "bytes": 51432
+        "bytes": 53215
       }
     },
-    "totalBytes": 1415657
+    "totalBytes": 1437262
   }
 }

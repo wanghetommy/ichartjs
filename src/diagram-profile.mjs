@@ -1,9 +1,11 @@
 /** Public flow/diagram profile entry. */
 import { createProfileChart, ProfileChart, normalizeSpec, validateSpec, normalizeData, inspectData, binData, applyTransforms, ChartValidationError } from './profile-runtime.mjs';
+import { exportContract } from './export.mjs';
+import { diagramVisualContract } from './diagram-style.mjs';
 import { buildProjectScene, projectTypes, projectTooltip } from './project.mjs';
 
 export const profile = 'diagram';
 export const chartTypes = projectTypes.slice(4);
 export function createChart(spec = {}) { return createProfileChart(spec, { profile, types: chartTypes, buildScene: buildProjectScene }); }
 export { ProfileChart, normalizeSpec, validateSpec, normalizeData, inspectData, binData, applyTransforms, ChartValidationError, projectTooltip };
-export function getCapabilities() { return { version: '2.0', profile, chartTypes: [...chartTypes], renderers: ['svg', 'canvas'], exports: ['svg', 'png', 'json'], defaults: { renderer: 'auto', navigation: false, editing: false } }; }
+export function getCapabilities() { return { version: '2.0', profile, chartTypes: [...chartTypes], diagram: { visuals: structuredClone(diagramVisualContract) }, renderers: ['svg', 'canvas'], exports: ['svg', 'png', 'jpeg', 'json'], export: { delivery: structuredClone(exportContract) }, defaults: { renderer: 'auto', navigation: false, editing: false } }; }

@@ -1,5 +1,15 @@
 # 场景：交互式 Diagram
 
+## 可选柔和样式
+
+`theme: {palette:'soft'}` 使用八色配色；`diagram: {appearance:'soft'}` 独立开启浅底节点、圆角处理框、安全圆角正交线和开放箭头。默认仍是 classic，流程语义形状及静态交互默认值不变；支持 dark/contrast，不按标签猜测风险。
+
+可配置 `cornerRadius`（0–24）、`arrow`（open/filled）、`iconPosition`（left/top）、`iconBadge`（布尔）。角部端口可限制节点圆角；不安全折角保留直角，不修改 waypoints 或编辑手柄；Mindmap 原有贝塞尔策略不变。
+
+`nodes[].icon` 使用 `getCapabilities().diagram.visuals.icons` 的 16 个名称，root 和 `/diagram` 一致。节点/边 `tone` 显式指定 accent、secondary、neutral、success、warning、danger。图标仅装饰，参与文字布局；空间不足返回 `ICON_SUPPRESSED` 并保留文字，未知名称返回 `UNKNOWN_ICON`。JSON、Schema 和编辑支持这些字段；top 布局应增加高度，不以图标替代标签。
+
+验收：Gallery 的 Flow · Soft visuals；`diagram-editor.html?scenario=editor&appearance=soft`；`canvas-board.html?scenario=icons`。SVG/Canvas 共用几何，外观不隐式开启交互。
+
 用于流程建模、责任分工和可编辑 Diagram。
 
 ## 类型

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.32 - 2026-10-16
+
+- Added optional soft palette/diagram appearance, rounded node and obstacle-safe edge geometry, open arrows and sixteen discoverable vector icons shared by SVG and Canvas; default diagrams remain unchanged.
+- Unified strict export formats/representations and browser scene-based raster delivery across entries; fixed Canvas background pixels, with asset/security diagnostics and unchanged JSON defaults.
+- Fixed Gallery preview sizing after the dialog becomes visible, centered manual compositions, preserved readable sizes through local scrolling, and synchronized live warning badges and diagnostics.
+
 ## 2.0.31 - 2026-10-15
 
 - Hardened shared mount ownership: missing requested selectors reject, Element bindings stay outside portable Specs, destroy removes runtime-created surfaces and retains caller-owned SVG/Canvas elements.

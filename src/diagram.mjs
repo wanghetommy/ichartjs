@@ -5,6 +5,7 @@
 import { copyJSON } from './schema.mjs';
 import { sampleCubicBezier } from './scene.mjs';
 import { flowNodeKinds } from './contract-registry.mjs';
+import { diagramTones, diagramVisualContract } from './diagram-style.mjs';
 
 export const diagramLayoutModes = ['manual', 'layered', 'tree', 'radial'];
 export const edgeRoutingModes = ['auto', 'straight', 'orthogonal', 'curved'];
@@ -26,13 +27,23 @@ export function normalizeDiagramSpec(spec = {}) {
   const mode = spec.diagram?.mode || (spec.type === 'architecture' ? 'architecture' : spec.type === 'mindmap' ? 'mindmap' : 'process');
   const defaultLayout = mode === 'mindmap' ? 'tree' : 'layered';
   const defaultRouting = mode === 'mindmap' ? 'curved' : 'orthogonal';
-  return { ...copyJSON(spec), nodes, edges, lanes, layers: copyJSON(spec.layers ?? data.layers ?? []), boundaries: copyJSON(spec.boundaries ?? data.boundaries ?? []), groups: copyJSON(spec.groups ?? data.groups ?? []), diagram: { layout: spec.diagram?.layout || defaultLayout, routing: spec.diagram?.routing || defaultRouting, curveTension: spec.diagram?.curveTension ?? 0.4, mode, snap: spec.diagram?.snap ?? true, grid: spec.diagram?.grid ?? 8 } };
+  return { ...copyJSON(spec), nodes, edges, lanes, layers: copyJSON(spec.layers ?? data.layers ?? []), boundaries: copyJSON(spec.boundaries ?? data.boundaries ?? []), groups: copyJSON(spec.groups ?? data.groups ?? []), diagram: { ...copyJSON(spec.diagram || {}), layout: spec.diagram?.layout || defaultLayout, routing: spec.diagram?.routing || defaultRouting, curveTension: spec.diagram?.curveTension ?? 0.4, mode, snap: spec.diagram?.snap ?? true, grid: spec.diagram?.grid ?? 8 } };
 }
 
 export function validateDiagram(spec = {}) {
   const errors = [], warnings = [], normalized = normalizeDiagramSpec(spec), nodes = normalized.nodes, edges = normalized.edges, lanes = normalized.lanes, layers = normalized.layers;
   const nodeIds = new Set(), laneIds = new Set(lanes.map(lane => lane.id));
   const groupIds = new Set();
+  const visual = normalized.diagram;
+  for (const [key, values] of Object.entries({ appearance: diagramVisualContract.appearances, arrow: ['open', 'filled'], iconPosition: diagramVisualContract.iconPosition })) if (visual[key] !== undefined && !values.includes(visual[key])) errors.push({ code: 'DIAGRAM_STYLE', path: `diagram.${key}`, message: `Use ${values.join(', ')}.` });
+  if (visual.cornerRadius !== undefined && (!finite(visual.cornerRadius) || visual.cornerRadius < 0 || visual.cornerRadius > 24)) errors.push({ code: 'DIAGRAM_STYLE', path: 'diagram.cornerRadius', message: 'Use a radius between 0 and 24.' });
+  if (visual.iconBadge !== undefined && typeof visual.iconBadge !== 'boolean') errors.push({ code: 'DIAGRAM_STYLE', path: 'diagram.iconBadge', message: 'Use a boolean.' });
+  [...nodes.map((node, index) => [node, `nodes.${index}`]), ...edges.map((edge, index) => [edge, `edges.${index}`])].forEach(([item, path]) => {
+    if (item?.tone !== undefined && !diagramTones.includes(item.tone)) errors.push({ code: 'DIAGRAM_TONE', path: `${path}.tone`, message: `Use ${diagramTones.join(', ')}.` });
+    if (item?.icon !== undefined && path.startsWith('edges.')) errors.push({ code: 'DIAGRAM_ICON', path: `${path}.icon`, message: 'Icons belong to nodes, not edges.' });
+    else if (item?.icon !== undefined && typeof item.icon !== 'string') errors.push({ code: 'DIAGRAM_ICON', path: `${path}.icon`, message: 'Use an icon name string.' });
+    else if (item?.icon !== undefined && !diagramVisualContract.icons.includes(item.icon)) warnings.push({ code: 'UNKNOWN_ICON', path: `${path}.icon`, message: 'Unknown icon; the label is retained.', suggestion: 'Use a name from diagram.visuals.icons.' });
+  });
   const layerIds = new Set(layers.map(layer => layer.id));
   if (!diagramModes.includes(normalized.diagram.mode)) errors.push({ code: 'DIAGRAM_MODE', path: 'diagram.mode', message: `Unsupported diagram mode: ${normalized.diagram.mode}.`, suggestion: `Use ${diagramModes.join(', ')}.` });
   layers.forEach((layer, index) => {
@@ -369,6 +380,18 @@ function segmentIntersectsObstacle(first, second, obstacle, padding = 0) {
 
 function pathHitsObstacles(points, obstacles, padding = 0) {
   return points.some((point, index) => index > 0 && obstacles.some(obstacle => segmentIntersectsObstacle(points[index - 1], point, obstacle, padding)));
+}
+
+export function safeCornerRadii(points, radius, obstacles = []) {
+  return points.map((corner, index) => {
+    const previous = points[index - 1], next = points[index + 1];
+    if (!previous || !next || !radius || !((previous.x === corner.x && next.y === corner.y) || (previous.y === corner.y && next.x === corner.x))) return 0;
+    const before = Math.hypot(corner.x - previous.x, corner.y - previous.y), after = Math.hypot(next.x - corner.x, next.y - corner.y), cut = Math.min(radius, before / 2, after / 2);
+    if (!cut) return 0;
+    const entry = { x: corner.x + (previous.x - corner.x) * cut / before, y: corner.y + (previous.y - corner.y) * cut / before }, exit = { x: corner.x + (next.x - corner.x) * cut / after, y: corner.y + (next.y - corner.y) * cut / after };
+    const hull = { x: Math.min(entry.x, corner.x, exit.x) - 1, y: Math.min(entry.y, corner.y, exit.y) - 1, right: Math.max(entry.x, corner.x, exit.x) + 1, bottom: Math.max(entry.y, corner.y, exit.y) + 1 };
+    return obstacles.some(obstacle => { const box = obstacleBounds(obstacle); return box.x < hull.right && box.x + box.width > hull.x && box.y < hull.bottom && box.y + box.height > hull.y; }) ? 0 : cut;
+  });
 }
 
 function pathIntersectsItself(points) {

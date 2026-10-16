@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>iChart.js Freeform Board</title><link rel="stylesheet" href="./shared.css"><style>#board{min-height:240px;border:1px solid #dbe2ea;border-radius:14px;overflow:auto;background:#fff}#board svg{display:block;max-width:100%;height:auto}.meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.meta pre{white-space:pre-wrap;word-break:break-word}</style></head>
-<body><main class="shell"><header class="topbar"><div><h1>Freeform Board</h1></div><div id="nav"></div></header><section id="simple-construction" class="panel"></section><section id="board" aria-label="Freeform board preview"></section><details id="developer-tools" class="panel"><summary>Developer tools</summary><section class="toolbar"><button class="primary" id="render">Render full composition</button><button id="svg">Export SVG</button><button id="json">Export JSON</button><span id="status" class="status">waiting</span></section><section class="meta" style="margin-top:16px"><article class="panel"><h2>State</h2><pre id="state"></pre></article><article class="panel"><h2>Explanation</h2><pre id="explain"></pre></article><article class="panel"><h2>Contract</h2><pre id="contract"></pre></article></section></details></main>
+<body><main class="shell"><header class="topbar"><div><h1>Freeform Board</h1></div><div id="nav"></div></header><p><a href="?scenario=icons">Built-in icon catalog</a> · <a href="?">Chart + logo + drawing composition</a></p><section id="simple-construction" class="panel"></section><section id="board" aria-label="Freeform board preview"></section><details id="developer-tools" class="panel"><summary>Developer tools</summary><section class="toolbar"><button class="primary" id="render">Render full composition</button><button id="svg">Export SVG</button><button id="json">Export JSON</button><span id="status" class="status">waiting</span></section><section class="meta" style="margin-top:16px"><article class="panel"><h2>State</h2><pre id="state"></pre></article><article class="panel"><h2>Explanation</h2><pre id="explain"></pre></article><article class="panel"><h2>Contract</h2><pre id="contract"></pre></article></section></details></main>
 <script type="module">
 import { createBoard, getCapabilities } from './runtime.mjs';
 import { mountBoardBuilder } from './board-builder.mjs';
@@ -8,8 +8,10 @@ import { mountSimpleConstruction, getConstructionExample } from './simple-constr
 import { pageNav, setStatus, json } from './playground.mjs';
 import logoSpec from '../agent-recipes/logo-spec.json' with { type: 'json' };
 import { createBoardComposition } from './board-composition.mjs';
+import { createIconBoard } from './diagram-visuals.mjs';
 document.querySelector('#nav').innerHTML=pageNav('canvas-board.html');
-const spec=createBoardComposition(logoSpec);
+const iconDemo=new URLSearchParams(location.search).get('scenario')==='icons';
+const spec=iconDemo?createIconBoard(new URLSearchParams(location.search).get('mode')||'light'):createBoardComposition(logoSpec);
 const controls=document.createElement('details');
 controls.id='board-builder';controls.className='panel';controls.style.marginBottom='16px';
 const builderStyle=document.createElement('style');
@@ -24,7 +26,7 @@ function refresh(message='ready'){if(!board)return;builder?.synchronize();simple
 function replaceBoard(input){const next=createBoard(input);builder?.clearPreview();unsubscribe?.();board?.destroy();board=next.mount('#board');unsubscribe=board.subscribe(event=>{if(event.type!=='assets')builder?.clearPreview();refresh();});board.ready().then(()=>{if(board===next)refresh();}).catch(error=>setStatus(document.querySelector('#status'),'error',error.message));refresh();}
 function render(){try{replaceBoard(spec);}catch(error){document.querySelector('#state').textContent=json({message:error.message,details:error.details||[]});setStatus(document.querySelector('#status'),'error',error.message);}}
 document.querySelector('#render').onclick=render;document.querySelector('#svg').onclick=()=>board&&download('board.svg',board.export({type:'svg'}),'image/svg+xml');document.querySelector('#json').onclick=()=>board&&download('board.json',board.export({type:'json',as:'string'}),'application/json');function download(name,value,type){const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([value],{type}));link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),0);}
-if(['advanced','composition'].includes(new URLSearchParams(location.search).get('scenario')))render();else replaceBoard(getConstructionExample('board',spec).spec);
+if(iconDemo||['advanced','composition'].includes(new URLSearchParams(location.search).get('scenario')))render();else replaceBoard(getConstructionExample('board',spec).spec);
 try{builder=await mountBoardBuilder({getBoard:()=>board,replaceBoard,refresh});}catch(error){setStatus(document.querySelector('#status'),'error',error.message);}
-simple=mountSimpleConstruction({kind:'board',composition:spec,getRuntime:()=>board,reset:input=>replaceBoard({...input,renderer:spec.renderer}),refresh});
+if(iconDemo){document.querySelector('#simple-construction').hidden=true;document.querySelector('#developer-tools').open=true;controls.hidden=true;const style=document.createElement('style');style.textContent='#board svg,#board canvas{max-width:none!important;width:800px!important}';document.head.append(style);document.querySelector('#board').tabIndex=0;}else simple=mountSimpleConstruction({kind:'board',composition:spec,getRuntime:()=>board,reset:input=>replaceBoard({...input,renderer:spec.renderer}),refresh});
 </script></body></html>

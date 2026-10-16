@@ -147,6 +147,35 @@
     "png": "Node headless PNG requires the optional `canvas` npm package and chart.exportAsync({type:\"png\"}). Otherwise use chart.export({type:\"svg\"})."
   },
   "export": {
+    "delivery": {
+      "representations": {
+        "svg": [
+          "string",
+          "dataurl",
+          "blob"
+        ],
+        "json": [
+          "string",
+          "object",
+          "dataurl",
+          "blob"
+        ],
+        "png": [
+          "dataurl",
+          "string",
+          "blob"
+        ],
+        "jpeg": [
+          "dataurl",
+          "string",
+          "blob"
+        ]
+      },
+      "browserRaster": "Spec pixel size; independent of display, DPR and mounting",
+      "nodeRaster": "root exportAsync only; optional canvas",
+      "assets": "await board.ready(); reject unavailable/tainted images",
+      "defaults": "root: renderer-based; Profiles/Board: SVG; JSON: Chart string, Board bare Spec object"
+    },
     "types": [
       "png",
       "jpeg",
@@ -172,14 +201,14 @@
       "json": true
     },
     "methods": {
-      "exportPNG": "chart.export({ type:\"png\" }) returns a browser data URL. In Node headless use chart.exportAsync({ type:\"png\" }) after installing the optional canvas package, or fall back to SVG.",
-      "exportSVG": "chart.export({ type:\"svg\" }) returns the SVG string in both browser and headless; as:\"dataurl\" for embeds, as:\"blob\" for a Blob (browser).",
-      "exportJSON": "chart.export({ type:\"json\" }) returns pretty JSON; use as:\"object\", as:\"dataurl\", or as:\"blob\" for the corresponding representation.",
-      "downloadPNG": "chart.downloadPNG() triggers a browser save-as dialog (filename derived from title + timestamp).",
-      "downloadSVG": "chart.downloadSVG() same semantics as downloadPNG but for SVG.",
-      "downloadJSON": "chart.downloadJSON() saves {version,spec,state} as a .json document.",
-      "toDataURL": "chart.toDataURL(\"image/png\"|\"image/svg+xml\") returns a data URL string.",
-      "toBlob": "chart.toBlob(\"image/png\"|\"image/svg+xml\") returns a Blob (browser-only)."
+      "exportPNG": "export({type:\"png\"}); browser Data URL; root exportAsync for Node",
+      "exportSVG": "export({type:\"svg\"}); browser/headless string",
+      "exportJSON": "export({type:\"json\"}); string; as:\"object\" for payload",
+      "downloadPNG": "root browser PNG download",
+      "downloadSVG": "root browser SVG download",
+      "downloadJSON": "root browser JSON download",
+      "toDataURL": "root data URL; exact type/MIME",
+      "toBlob": "root browser Blob; exact type/MIME"
     },
     "options": {
       "as": [
@@ -189,7 +218,7 @@
         "blob"
       ]
     },
-    "branding": "By default PNG/SVG exports include the Powered by iChart.js branding watermark. Pass branding: { enabled: false } or branding: false to remove it for white-label output."
+    "branding": "PNG/SVG honor Spec branding; use branding:false for white-label output."
   },
   "gallery": "playground/project-gallery.html",
   "playgroundHome": "playground/index.html",
@@ -264,8 +293,18 @@
       "categorical",
       "sequential",
       "diverging",
-      "status"
-    ]
+      "status",
+      "soft"
+    ],
+    "switchable": true,
+    "automatic": true,
+    "contrast": {
+      "normalText": 4.5,
+      "largeText": 3,
+      "essentialGraphics": 3
+    },
+    "minimumTextSize": 12,
+    "recommendedCategoricalColors": 6
   },
   "branding": {
     "defaultEnabled": true,
@@ -283,8 +322,8 @@
       "Short form `branding: false` and object form `branding: { enabled: false }` are both supported. Custom text, link, position, or font are intentionally NOT exposed in the current iteration."
     ]
   },
-  "packageVersion": "2.0.31",
-  "runtimeVersion": "2.0.31",
+  "packageVersion": "2.0.32",
+  "runtimeVersion": "2.0.32",
   "chartTypes": [
     "line",
     "area",
@@ -1566,7 +1605,8 @@
             "startAngle",
             "endAngle",
             "innerRadius",
-            "points"
+            "points",
+            "icon"
           ],
           "path": [
             "position",
@@ -1689,6 +1729,58 @@
       "png",
       "jpeg"
     ],
+    "icons": {
+      "names": [
+        "user",
+        "agent",
+        "shield",
+        "bolt",
+        "check",
+        "edit",
+        "close",
+        "arrow-up-right",
+        "document",
+        "database",
+        "server",
+        "cloud",
+        "globe",
+        "folder",
+        "lock",
+        "clock"
+      ],
+      "field": "items[].icon on shape items; decorative; no new item kind"
+    },
+    "export": {
+      "delivery": {
+        "representations": {
+          "svg": [
+            "string",
+            "dataurl",
+            "blob"
+          ],
+          "json": [
+            "string",
+            "object",
+            "dataurl",
+            "blob"
+          ],
+          "png": [
+            "dataurl",
+            "string",
+            "blob"
+          ],
+          "jpeg": [
+            "dataurl",
+            "string",
+            "blob"
+          ]
+        },
+        "browserRaster": "Spec pixel size; independent of display, DPR and mounting",
+        "nodeRaster": "root exportAsync only; optional canvas",
+        "assets": "await board.ready(); reject unavailable/tainted images",
+        "defaults": "root: renderer-based; Profiles/Board: SVG; JSON: Chart string, Board bare Spec object"
+      }
+    },
     "imageMimeTypes": [
       "image/png",
       "image/jpeg",
@@ -4781,6 +4873,62 @@
     }
   },
   "diagram": {
+    "visuals": {
+      "appearances": [
+        "classic",
+        "soft"
+      ],
+      "icons": [
+        "user",
+        "agent",
+        "shield",
+        "bolt",
+        "check",
+        "edit",
+        "close",
+        "arrow-up-right",
+        "document",
+        "database",
+        "server",
+        "cloud",
+        "globe",
+        "folder",
+        "lock",
+        "clock"
+      ],
+      "iconPosition": [
+        "left",
+        "top"
+      ],
+      "tones": [
+        "accent",
+        "secondary",
+        "neutral",
+        "success",
+        "warning",
+        "danger"
+      ],
+      "fields": [
+        "appearance",
+        "cornerRadius",
+        "arrow",
+        "iconPosition",
+        "iconBadge"
+      ],
+      "defaults": {
+        "appearance": "classic",
+        "cornerRadius": 0,
+        "arrow": "filled",
+        "iconPosition": "left",
+        "iconBadge": false
+      },
+      "soft": {
+        "cornerRadius": 10,
+        "arrow": "open",
+        "iconBadge": true
+      },
+      "activation": "diagram.appearance; theme.palette independently; nodes[].icon/tone and edges[].tone are explicit"
+    },
     "incrementalBuilding": {
       "commands": [
         "addNode",

@@ -6,7 +6,9 @@ iChart.js 2.0 内置轻量、与 Renderer 无关的样式系统。Agent 应表�
 
 - `mode`：`auto`、`light`、`dark`、`contrast`。
 - `preset`：`auto`、`analysis`、`dashboard`、`report`、`presentation`、`project`、`diagram`。
-- `palette`：`auto`、`categorical`、`sequential`、`diverging`、`status`。
+- `palette`：`auto`、`categorical`、`sequential`、`diverging`、`status`、`soft`。
+
+`soft` 是可选配色，不会改变节点或连线几何。`diagram.appearance: 'soft'` 独立控制浅色节点、圆角和开放箭头；两者可以分别使用。明暗模式使用对应颜色，`contrast` 保留高对比度颜色。详见[流程图指南](diagram-scenario.md)。
 
 推荐默认使用 `auto`。系统根据图表家族、用户意图、数据语义和宿主明暗模式进行确定性匹配。解析结果可通过 `planStyle()`、`planChart().styleRecommendation`、`chart.getTheme()`、`chart.getState().style` 和 `chart.explain().style` 查看。
 

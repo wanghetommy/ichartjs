@@ -6,6 +6,7 @@ import { normalizeSpec, validateSpec } from './spec.mjs';
 import { normalizeData, inspectData, binData, applyTransforms } from './data.mjs';
 import { CanvasRenderer, SVGRenderer, resolveContainer } from './renderer.mjs';
 import { sceneToSvgString } from './scene-svg.mjs';
+import { resolveExport, encodeExport, exportRaster, exportError } from './export.mjs';
 import { resolveRenderer } from './renderer-policy.mjs';
 import { resolveTheme } from './theme.mjs';
 import { ChartValidationError } from './errors.mjs';
@@ -167,14 +168,13 @@ export class ProfileChart {
   }
 
   export(options = {}) {
-    const type = String(options.type || 'svg').toLowerCase();
-    if (type === 'json' || type === 'application/json') return options.as === 'object' ? { spec: this.getSpec(), state: this.getState() } : JSON.stringify({ spec: this.getSpec(), state: this.getState() }, null, 2);
-    if (type.includes('svg')) {
-      const svg = this.renderer instanceof SVGRenderer && this.renderer.container ? this.renderer.exportString() : sceneToSvgString(this.model.scene, this.spec);
-      return options.as === 'dataurl' ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}` : svg;
-    }
-    if (this.renderer instanceof CanvasRenderer && this.renderer.canvas) return this.renderer.exportImage(type.includes('jpeg') ? 'image/jpeg' : 'image/png');
-    return { valid: false, code: 'PROFILE_RASTER_UNSUPPORTED', message: 'Raster export requires a mounted Canvas renderer.', suggestion: 'Use export({ type: "svg" }) or mount the profile with renderer: "canvas".' };
+    const request = resolveExport(options);
+    if (request.valid === false) return request;
+    if (this._destroyed) return exportError('EXPORT_DESTROYED', 'Chart has been destroyed.');
+    if (request.kind === 'json') return encodeExport({ spec: this.getSpec(), state: this.getState() }, request);
+    if (request.kind !== 'svg') return exportRaster(this.spec, this.model.scene, request);
+    const svg = this.renderer instanceof SVGRenderer && this.renderer.container ? this.renderer.exportString() : sceneToSvgString(this.model.scene, this.spec);
+    return encodeExport(svg, request);
   }
 
   destroy() { this.renderer.destroy(); this.container = null; this.model = null; this._destroyed = true; }

@@ -13,6 +13,13 @@ export const baseline = {
   unpackedBytes: 1231449
 };
 export const allowedGrowth = 1.15;
+export const featureAllowance = {
+  iteration: 33,
+  reviewed: '2026-10-16',
+  reason: 'User-approved full 33A–33E: shared rounded geometry, sixteen vector glyphs, visual contracts and bilingual guidance.',
+  bytes: { moduleRawBytes: 0, moduleGzipBytes: 4096, packageBytes: 10240, unpackedBytes: 24576 }
+};
+export const footprintLimits = Object.fromEntries(Object.entries(baseline).map(([key, value]) => [key, Math.ceil(value * allowedGrowth) + featureAllowance.bytes[key]]));
 
 async function moduleGraph(entry) {
   const seen = new Set();
@@ -99,6 +106,7 @@ export async function buildFootprintReport() {
     packageVersion,
     generatedFrom: 'npm pack --dry-run --json',
     policy: 'source-module-graph-baseline',
+    budget: { baseline, allowedGrowth, featureAllowance, limits: footprintLimits },
     entry: 'src/index.mjs',
     files: rootStats.files,
     moduleRawBytes: rootStats.rawBytes,
@@ -119,6 +127,6 @@ export async function buildFootprintReport() {
 
 export function footprintFailures(report) {
   return Object.entries(baseline)
-    .filter(([key, value]) => report[key] > Math.ceil(value * allowedGrowth))
-    .map(([key, value]) => `${key} ${report[key]} exceeds ${Math.ceil(value * allowedGrowth)} (baseline ${value})`);
+    .filter(([key]) => report[key] > footprintLimits[key])
+    .map(([key, value]) => `${key} ${report[key]} exceeds ${footprintLimits[key]} (baseline ${value}; reviewed feature allowance ${featureAllowance.bytes[key]})`);
 }

@@ -1,5 +1,7 @@
 # Freeform Board Scenario
 
+Shape items optionally accept `icon` from `boardCapabilities.icons.names`, with no new item kind. Glyphs are decorative, preserve item opacity/visibility/history and use `style.color` (or stroke) for color. Sizes below 24 hide the glyph with `ICON_SUPPRESSED`; unknown names report `UNKNOWN_ICON`. Preview `canvas-board.html?scenario=icons` (`renderer=canvas`, `mode=dark` are optional); narrow hosts scroll the catalog instead of shrinking labels.
+
 Use the Freeform Board when a page needs a bounded whiteboard surface that composes images, text, simple drawings, connectors, and embedded iChart.js charts. Simple drawing is a capability of the whiteboard, not a separate chart type. It is intentionally not a full Illustrator or Figma replacement.
 
 ## Minimal workflow
@@ -106,7 +108,7 @@ Images are declared in `assets` and referenced by `assetId`; this keeps the Boar
 
 - `board.export({ type: 'json' })` returns the reproducible BoardSpec.
 - `board.export({ type: 'svg' })` returns a headless SVG string and works without a DOM.
-- Mounted Canvas boards can export PNG/JPEG in a browser.
+- Browser PNG/JPEG export replays the scene independently of mounting or SVG/Canvas display. Await `ready()` for images and check errors; see the [export contract](runtime-contract.md#exports-and-downloads).
 - Always inspect `board.getState().health`, `board.getState().rendererSelection`, and `board.explain()` before delivery.
 
 ## Text and simple drawings

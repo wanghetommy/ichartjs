@@ -4,7 +4,9 @@
  */
 import { Scene, cubicBezierPoint } from './scene.mjs';
 import { normalizeData } from './data.mjs';
-import { layoutArchitectureNodes, layoutDiagram, normalizeDiagramData, routeEdgePath } from './diagram.mjs';
+import { layoutArchitectureNodes, layoutDiagram, normalizeDiagramData, routeEdgePath, safeCornerRadii } from './diagram.mjs';
+import { diagramVisuals, tintedFill, toneColor } from './diagram-style.mjs';
+import { iconNames, iconNodes } from './icons.mjs';
 import { analyzeBurndownSeries, analyzeSchedule } from './project-analytics.mjs';
 import { createLinkedProjectState, filterProjectRows, linkedRecordId } from './project-linking.mjs';
 import { contrastRatio } from './theme.mjs';
@@ -59,13 +61,13 @@ const dependencyType = dependency => typeof dependency === 'object' && dependenc
 const markText = (theme, background) => (contrastRatio(theme.text, background) || 0) >= (contrastRatio(theme.background, background) || 0) ? theme.text : theme.background;
 const flowNodeKind = node => node?.kind || 'process';
 
-function diagramNodeLabelLayout(row, kind, geometry, spec, font = null) {
+function diagramNodeLabelLayout(row, kind, geometry, spec, font = null, wordWrap = false) {
   const size = font ? Number(String(font).match(/(\d+(?:\.\d+)?)px/)?.[1]) || fontSize(spec, 'label', 12) : fontSize(spec, 'label', 12);
   const minDimension = Math.min(geometry.width, geometry.height);
   const horizontalPadding = kind === 'decision' ? size * 1.8 : size * 1.25;
   const maxWidth = Math.max(0, geometry.width - horizontalPadding * 2);
   if (minDimension < Math.max(24, size * 2) || maxWidth < size * 2.4) return null;
-  return fitTextBlock(row.label || row.id, { maxWidth, maxHeight: Math.max(size, geometry.height - size * 0.45), size, minSize: Math.max(10, Math.min(size, size - 2)), maxLines: 2, font: font || spec.theme.typography.label.font });
+  return fitTextBlock(row.label || row.id, { maxWidth, maxHeight: Math.max(size, geometry.height - size * 0.45), size, minSize: Math.max(10, Math.min(size, size - 2)), maxLines: 2, wordWrap, font: font || spec.theme.typography.label.font });
 }
 
 function flowNodeVisual(kind, box) {
@@ -211,12 +213,13 @@ function connectorGeometry(points, curve = null) {
   return { renderPoints, arrowPoints };
 }
 
-function arrow(scene, id, points, reference, critical = false, curve = null) {
-  const color = critical ? scene.theme?.status?.danger || '#dc2626' : scene.theme?.axis || '#64748b';
+function arrow(scene, id, points, reference, critical = false, curve = null, visual = {}) {
+  const color = critical ? scene.theme?.status?.danger || '#dc2626' : visual.color || scene.theme?.axis || '#64748b';
   const { renderPoints, arrowPoints } = connectorGeometry(points, curve);
+  const open = visual.arrow === 'open', body = open ? points : renderPoints;
   const lineDash = reference?.lineStyle === 'dashed' ? [7, 5] : reference?.lineStyle === 'dotted' ? [2, 4] : [];
-  scene.add({ id, type: 'path', geometry: { points, renderPoints, ...(curve ? { curve } : {}) }, style: { fill: 'none', stroke: color, strokeWidth: critical ? 2.5 : 1.5, lineDash }, dataRef: reference, interactive: Boolean(reference?.edgeId), hitTolerance: 8, zIndex: 1 });
-  scene.add({ id: id.startsWith('dependency-') ? id.replace('dependency-', 'dependency-arrow-') : `${id}-arrow`, type: 'path', geometry: { points: arrowPoints }, style: { fill: color, stroke: color }, zIndex: 3 });
+  scene.add({ id, type: 'path', geometry: { points, renderPoints: body, ...(curve ? { curve } : {}), ...(!curve && visual.radius ? { cornerRadii: safeCornerRadii(body, visual.radius, visual.obstacles) } : {}) }, style: { fill: 'none', stroke: color, strokeWidth: critical ? 2.5 : visual.arrow ? 2 : 1.5, lineDash, ...(open ? { lineCap: 'round', lineJoin: 'round' } : {}) }, dataRef: { ...reference, ...(visual.arrow ? { arrow: visual.arrow } : {}), ...(visual.radius ? { radius: visual.radius } : {}) }, interactive: Boolean(reference?.edgeId), hitTolerance: 8, zIndex: 1 });
+  scene.add({ id: id.startsWith('dependency-') ? id.replace('dependency-', 'dependency-arrow-') : `${id}-arrow`, type: 'path', geometry: { points: open ? [arrowPoints[1], arrowPoints[0], arrowPoints[2]] : arrowPoints }, style: { fill: open ? 'none' : color, stroke: color, ...(open ? { strokeWidth: 2, lineCap: 'round', lineJoin: 'round' } : {}) }, zIndex: 3 });
 }
 
 function timeAxis(scene, plot, min, max, locale = 'en-US') {
@@ -439,6 +442,7 @@ function diagramGroupBox(group, boxes) {
 
 function diagramScene(scene, spec, rows, state) {
   const diagramSpec = normalizeDiagramData(spec);
+  const visualStyle = diagramVisuals(spec);
   const plot = state.plot, mode = diagramSpec.diagram.mode, edges = diagramSpec.edges, lanes = diagramSpec.lanes, layers = diagramSpec.layers, groups = diagramSpec.groups, layout = layoutDiagram(diagramSpec, plot);
   const architectureLayout = mode === 'architecture' && layers.length ? layoutArchitectureNodes(diagramSpec, plot) : {};
   rows = diagramSpec.nodes;
@@ -486,15 +490,29 @@ function diagramScene(scene, spec, rows, state) {
     const depth = row.parentId ? (ranks.get(row.id) || 0) : 0;
     const colorIndex = mode === 'mindmap' ? depth % spec.colors.length : lane >= 0 ? lane % spec.colors.length : index % spec.colors.length;
     const kind = mode === 'process' && spec.type === 'flow' ? flowNodeKind(row) : 'process', visual = flowNodeVisual(kind, geometry);
-    scene.add({ id: `node-${row.id}`, type: visual.type, geometry: visual.geometry, bounds: { ...geometry }, style: { fill: spec.colors[colorIndex], stroke: row.root || mode === 'mindmap' && !row.parentId ? spec.theme.focus : spec.theme.background, strokeWidth: row.root || mode === 'mindmap' && !row.parentId ? 2 : 1 }, dataRef: { nodeId: row.id, kind, dataIndex: index, datum: row, groupId: row.groupId || null, layerId: row.layerId || null, parentId: row.parentId || null }, interactive: true, zIndex: 2 });
+    const accent = toneColor(spec.theme, spec.colors, row.tone || 'accent'), fill = visualStyle.soft ? tintedFill(accent, spec.theme) : row.tone ? accent : spec.colors[colorIndex];
+    if (visual.type === 'rect' && visualStyle.radius) visual.geometry = { ...visual.geometry, radius: Math.min(visualStyle.radius, geometry.width / 2, geometry.height / 2, ...(row.ports || []).map(port => Math.min(port.offset ?? 0.5, 1 - (port.offset ?? 0.5)) * (port.side === 'top' || port.side === 'bottom' ? geometry.width : geometry.height))) };
+    scene.add({ id: `node-${row.id}`, type: visual.type, geometry: visual.geometry, bounds: { ...geometry }, style: { fill, stroke: visualStyle.soft ? accent : row.root || mode === 'mindmap' && !row.parentId ? spec.theme.focus : spec.theme.background, strokeWidth: visualStyle.soft ? 1.5 : row.root || mode === 'mindmap' && !row.parentId ? 2 : 1 }, dataRef: { nodeId: row.id, kind, dataIndex: index, datum: row, groupId: row.groupId || null, layerId: row.layerId || null, parentId: row.parentId || null }, interactive: true, zIndex: 2 });
     if (spec.editing?.enabled && spec.interaction?.portConnect) (row.ports || []).forEach(port => {
       const point = port.side === 'left' ? { x: geometry.x, y: geometry.y + geometry.height * (port.offset ?? 0.5) } : port.side === 'top' ? { x: geometry.x + geometry.width * (port.offset ?? 0.5), y: geometry.y } : port.side === 'bottom' ? { x: geometry.x + geometry.width * (port.offset ?? 0.5), y: geometry.y + geometry.height } : { x: geometry.x + geometry.width, y: geometry.y + geometry.height * (port.offset ?? 0.5) };
       scene.add({ id: `port-${row.id}-${port.id}`, type: 'circle', geometry: { cx: point.x, cy: point.y, r: 4 }, bounds: { x: point.x - 6, y: point.y - 6, width: 12, height: 12 }, style: { fill: spec.theme.background, stroke: spec.theme.text, strokeWidth: 1.5 }, dataRef: { nodeId: row.id, portId: port.id, groupId: row.groupId || null }, interactive: true, zIndex: 4 });
     });
-    const label = diagramNodeLabelLayout(row, kind, geometry, spec, nodeFont);
+    let label = diagramNodeLabelLayout(row, kind, geometry, spec, nodeFont), labelBox = geometry;
+    if (row.icon && iconNames.includes(row.icon)) {
+      const content = kind === 'decision' ? { x: geometry.x + geometry.width / 4, y: geometry.y + geometry.height / 4, width: geometry.width / 2, height: geometry.height / 2 } : kind === 'start' || kind === 'end' ? { x: geometry.x + geometry.width * 0.15, y: geometry.y + geometry.height * 0.15, width: geometry.width * 0.7, height: geometry.height * 0.7 } : geometry;
+      const top = visualStyle.iconPosition === 'top', size = Math.min(24, content.height - 12), gap = size + 10;
+      const candidate = top ? { ...content, y: content.y + gap, height: content.height - gap } : { ...content, x: content.x + gap, width: content.width - gap };
+      const fitted = diagramNodeLabelLayout(row, kind, candidate, spec, nodeFont, true);
+      if (kind !== 'connector' && size >= 16 && fitted && (!fitted.truncated || label?.truncated)) {
+        label = fitted; labelBox = candidate;
+        const box = { x: top ? content.x + (content.width - size) / 2 : content.x + 10, y: top ? content.y + 8 : content.y + (content.height - size) / 2, width: size, height: size };
+        if (visualStyle.iconBadge) scene.add({ id: `icon-badge-${row.id}`, type: 'circle', geometry: { cx: box.x + size / 2, cy: box.y + size / 2, r: size / 2 + 4 }, style: { fill: tintedFill(accent, spec.theme, 0.24) }, decorative: true, zIndex: 3 });
+        iconNodes(row.icon, box, visualStyle.soft || visualStyle.iconBadge ? accent : markText(spec.theme, fill), `icon-${row.id}`).forEach(node => scene.add(node));
+      } else state.labelWarnings.push({ code: 'ICON_SUPPRESSED', path: `nodes.${index}.icon`, nodeId: row.id, message: 'Icon hidden to preserve readable text.', suggestion: 'Increase node size or use left icon placement.' });
+    }
     if (label) {
       const rawLabel = String(row.label || row.id), labelFont = fontAtSize(nodeFont || spec.theme.typography.label.font, label.size);
-      textBlock(scene, `node-label-${row.id}`, label, geometry.x + geometry.width / 2, geometry.y + geometry.height / 2, { fill: markText(spec.theme, spec.colors[lane % spec.colors.length]), font: labelFont }, { nodeId: row.id, rawLabel, renderedLabel: label.lines.join('\n'), truncated: label.truncated });
+      textBlock(scene, `node-label-${row.id}`, label, labelBox.x + labelBox.width / 2, labelBox.y + labelBox.height / 2, { fill: markText(spec.theme, fill), font: labelFont }, { nodeId: row.id, rawLabel, renderedLabel: label.lines.join('\n'), truncated: label.truncated });
       labelLayout.visible += 1;
       if (label.wrapped) labelLayout.wrapped += 1;
       if (label.scaled) labelLayout.scaled += 1;
@@ -545,7 +563,7 @@ function diagramScene(scene, spec, rows, state) {
     (path.warnings || (path.warning ? [path.warning] : [])).forEach(warning => state.routingWarnings.push({ ...warning, edgeId: edge.id || `edge-${index}`, path: warning.code === 'EDGE_MANUAL_ROUTE_INVALID' ? `edges.${index}.waypoints` : `edges.${index}` }));
     const points = path.points;
     if (points.length < 2) return;
-    arrow(scene, `edge-${index}`, points, { from: edge.from, to: edge.to, edgeId: edge.id || `edge-${index}`, status: edge.status, diagramPoints: points, routing, routingMode: effectiveRoutingMode, requestedRoutingMode, lineStyle: edge.lineStyle || 'solid', curveTension: edge.curveTension ?? diagramSpec.diagram.curveTension, waypoints: edge.waypoints || [], fromPortDefinition, toPortDefinition, fromGroupId: fromNode.groupId || null, toGroupId: toNode.groupId || null }, edge.critical === true, path.curve);
+    arrow(scene, `edge-${index}`, points, { from: edge.from, to: edge.to, edgeId: edge.id || `edge-${index}`, status: edge.status, diagramPoints: points, routing, routingMode: effectiveRoutingMode, requestedRoutingMode, lineStyle: edge.lineStyle || 'solid', curveTension: edge.curveTension ?? diagramSpec.diagram.curveTension, waypoints: edge.waypoints || [], fromPortDefinition, toPortDefinition, fromGroupId: fromNode.groupId || null, toGroupId: toNode.groupId || null }, edge.critical === true, path.curve, { ...visualStyle, radius: visualStyle.radius, color: edge.tone ? toneColor(spec.theme, spec.colors, edge.tone) : visualStyle.soft ? spec.colors[0] : undefined, arrow: visualStyle.soft || diagramSpec.diagram.arrow ? visualStyle.arrow : undefined, obstacles: [...obstacles, from, to] });
     const groupContent = fromNode.groupId && fromNode.groupId === toNode.groupId ? groupContents.get(fromNode.groupId) : null;
     if (groupContent) {
       const routePoints = [...points, ...scene.find(`edge-${index}-arrow`).geometry.points], stroke = (edge.critical === true ? 2.5 : 1.5) / 2;
@@ -650,7 +668,8 @@ export function buildProjectScene(spec) {
     const geometry = node.geometry;
     ['x', 'x1', 'x2', 'cx'].forEach(key => { if (geometry[key] != null) geometry[key] = mapX(geometry[key]); });
     ['y', 'y1', 'y2', 'cy'].forEach(key => { if (geometry[key] != null) geometry[key] = mapY(geometry[key]); });
-    ['width', 'height', 'r', 'rx', 'ry'].forEach(key => { if (geometry[key] != null) geometry[key] *= view.scale; });
+    ['width', 'height', 'r', 'rx', 'ry', 'radius'].forEach(key => { if (geometry[key] != null) geometry[key] *= view.scale; });
+    if (geometry.cornerRadii) geometry.cornerRadii = geometry.cornerRadii.map(radius => radius * view.scale);
     if (geometry.points) geometry.points = geometry.points.map(point => ({ x: mapX(point.x), y: mapY(point.y) }));
     if (geometry.renderPoints) geometry.renderPoints = geometry.renderPoints.map(point => ({ x: mapX(point.x), y: mapY(point.y) }));
     if (node.bounds) node.bounds = { x: mapX(node.bounds.x), y: mapY(node.bounds.y), width: node.bounds.width * view.scale, height: node.bounds.height * view.scale };
@@ -715,10 +734,12 @@ export function rerouteDiagramScene(scene) {
     if (path.curve) node.geometry.curve = path.curve;
     else delete node.geometry.curve;
     const { renderPoints, arrowPoints } = connectorGeometry(path.points, path.curve);
-    node.geometry.renderPoints = renderPoints;
+    node.geometry.renderPoints = node.dataRef.arrow === 'open' ? path.points : renderPoints;
+    if (node.dataRef.radius && !path.curve) node.geometry.cornerRadii = safeCornerRadii(node.geometry.renderPoints, node.dataRef.radius, [...obstacles, source, destination]);
+    else delete node.geometry.cornerRadii;
     const arrowNode = scene.find(`${node.id}-arrow`);
     if (arrowNode) arrowNode.visible = true;
-    if (arrowNode) arrowNode.geometry.points = arrowPoints;
+    if (arrowNode) arrowNode.geometry.points = node.dataRef.arrow === 'open' ? [arrowPoints[1], arrowPoints[0], arrowPoints[2]] : arrowPoints;
     const edgeIndex = Number(node.id.slice(5)), label = scene.find(`edge-label-${edgeIndex}`), labelPoint = node.geometry.curve === 'cubic' ? cubicBezierPoint(node.geometry.points, 0.5) : node.geometry.points[Math.floor(node.geometry.points.length / 2)];
     scene.walk(item => { if (item.id === `edge-label-${edgeIndex}` || item.id.startsWith(`edge-label-${edgeIndex}-`)) item.visible = true; });
     if (label && labelPoint) {

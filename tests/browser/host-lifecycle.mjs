@@ -58,8 +58,7 @@ export async function verifyHostLifecycle(entries) {
           const svg = new DOMParser().parseFromString(chart.export({ type: 'svg' }), 'image/svg+xml').documentElement;
           checks.svgDimensions = Number(svg.getAttribute('width')) === 520 && Number(svg.getAttribute('height')) === 320;
           const png = chart.export({ type: 'png' });
-          if (renderer === 'svg' && entry !== 'root') checks.rasterBoundary = png.code === (entry === 'board' ? 'BOARD_RASTER_EXPORT_UNSUPPORTED' : 'PROFILE_RASTER_UNSUPPORTED');
-          else {
+          {
             const image = new Image();
             await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; image.src = png; });
             checks.pngDimensions = image.width === 520 && image.height === 320;

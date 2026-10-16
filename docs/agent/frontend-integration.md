@@ -10,9 +10,9 @@ This is the production component path. For one-off files or Agent-led repository
 npm install @taylorwong/ichartjs@^2
 ```
 
-For reproducible builds, pin the release explicitly: `npm install @taylorwong/ichartjs@2.0.31`.
+For reproducible builds, pin the release explicitly: `npm install @taylorwong/ichartjs@2.0.32`.
 
-For environments without npm registry access, install from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.31`.
+For environments without npm registry access, install from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.32`.
 
 Use the package through a bundler or another environment that resolves npm ESM imports:
 
@@ -93,7 +93,7 @@ For Board, use `board.update({ width, height })` instead of chart `resize()` / `
 
 ### Output and responsiveness
 
-All entries can export SVG. Root supports mounted browser raster export; Chart Profiles and Board require a mounted Canvas renderer for PNG. Do not promise PNG from a Profile's SVG surface; select Canvas explicitly or deliver SVG.
+All entries export SVG/JSON and browser PNG/JPEG regardless of display renderer. Use `chart.export({type:'png', as:'blob'})`; validate the result before saving. No display switch or mounting is required. Await `board.ready()` for images. See the [format matrix and diagnostics](runtime-contract.md#exports-and-downloads).
 
 Measure synchronous API time separately from browser presentation opportunities. Performance Lab waits for two animation frames after updates, but this is not exact GPU paint latency, FPS or physical-device certification. Never use a zero-DOM-residue check as proof of no JavaScript memory leaks.
 

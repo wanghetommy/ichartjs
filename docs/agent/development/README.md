@@ -27,10 +27,12 @@ Current policies use English. Chinese guidance is in [the companion Development 
 - [29](iteration-29.md): unified chart component layout, readability and renderer-independent output.
 - [30](iteration-30.md): atomic updates, renderer lifecycle and measured responsiveness.
 - [31](iteration-31.md): host integration, presentation measurement and production bundle evidence.
+- [32](iteration-32.md): strict formats and renderer-independent browser delivery, included in v2.0.32.
+- [33](iteration-33.md): optional diagram visual language, safe rounded geometry and built-in vector icons; accepted for v2.0.32 with a separately reviewed feature allowance.
 
 Earlier iteration plans are linked from the Roadmap. An implemented plan is not proof of publication; read its status and evidence.
 
-Iteration 31 is implemented for release `v2.0.31`. Use the iteration record for scope and acceptance evidence.
+Iterations 32–33 are implemented for release `v2.0.32`. Use the iteration records for scope and acceptance evidence.
 
 ## Historical records
 

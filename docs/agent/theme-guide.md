@@ -8,7 +8,9 @@ The system composes three independent choices:
 
 - `mode`: `auto`, `light`, `dark`, or `contrast`.
 - `preset`: `auto`, `analysis`, `dashboard`, `report`, `presentation`, `project`, or `diagram`.
-- `palette`: `auto`, `categorical`, `sequential`, `diverging`, or `status`.
+- `palette`: `auto`, `categorical`, `sequential`, `diverging`, `status`, or `soft`.
+
+`soft` is an opt-in eight-color palette for any chart, with light/dark variants and contrast-safe fallback. It does not enable diagram rounding or icons; those belong to the [diagram visual contract](diagram-scenario.md#optional-soft-visuals).
 
 `auto` is the recommended default. It uses chart family, intent, data semantics, and the host color scheme. Resolution is deterministic and exposed through `planStyle()`, `planChart().styleRecommendation`, `chart.getTheme()`, `chart.getState().style`, and `chart.explain().style`.
 

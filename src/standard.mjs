@@ -1,5 +1,6 @@
 /** Public standard-chart profile entry. */
 import { createProfileChart, ProfileChart, normalizeSpec, validateSpec, normalizeData, inspectData, binData, applyTransforms, ChartValidationError } from './profile-runtime.mjs';
+import { exportContract } from './export.mjs';
 import { buildStandardScene, standardChartTypes } from './profile-standard.mjs';
 import { annotationContract, textContract } from './contract-registry.mjs';
 
@@ -7,4 +8,4 @@ export const profile = 'standard';
 export const chartTypes = standardChartTypes;
 export function createChart(spec = {}) { return createProfileChart(spec, { profile, types: chartTypes, buildScene: buildStandardScene }); }
 export { ProfileChart, normalizeSpec, validateSpec, normalizeData, inspectData, binData, applyTransforms, ChartValidationError };
-export function getCapabilities() { return { version: '2.0', profile, chartTypes: [...chartTypes], renderers: ['svg', 'canvas'], exports: ['svg', 'png', 'json'], text: structuredClone(textContract), annotations: structuredClone(annotationContract), defaults: { renderer: 'auto', navigation: false, editing: false } }; }
+export function getCapabilities() { return { version: '2.0', profile, chartTypes: [...chartTypes], renderers: ['svg', 'canvas'], exports: ['svg', 'png', 'jpeg', 'json'], export: { delivery: structuredClone(exportContract) }, text: structuredClone(textContract), annotations: structuredClone(annotationContract), defaults: { renderer: 'auto', navigation: false, editing: false } }; }

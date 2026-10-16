@@ -1,10 +1,16 @@
 /**
  * Renderer-neutral visual style presets, palettes, and resolution helpers.
  */
+import { clone, merge } from './json.mjs';
 
 export const themeModes = ['auto', 'light', 'dark', 'contrast'];
 export const themePresets = ['auto', 'analysis', 'dashboard', 'report', 'presentation', 'project', 'diagram'];
-export const themePalettes = ['auto', 'categorical', 'sequential', 'diverging', 'status'];
+export const themePalettes = ['auto', 'categorical', 'sequential', 'diverging', 'status', 'soft'];
+
+const softColors = {
+  light: ['#008080', '#5155a6', '#c14f49', '#376d9b', '#8b5a8e', '#47783c', '#946a22', '#586d80'],
+  dark: ['#5dd5c5', '#b4b0ff', '#ffa49a', '#8dc7ed', '#e1a3d7', '#a0d38b', '#efc577', '#b3c5d6']
+};
 
 const fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 
@@ -69,16 +75,6 @@ const projectTypes = new Set(['gantt', 'timeline', 'milestone', 'burndown']);
 const diagramTypes = new Set(['flow', 'swimlane', 'architecture', 'mindmap']);
 const structuredKeys = new Set(['preset', 'mode', 'palette', 'tokens']);
 
-function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
-
-function merge(base, extra) {
-  const result = clone(base) || {};
-  Object.entries(extra || {}).forEach(([key, value]) => {
-    if (value && typeof value === 'object' && !Array.isArray(value) && result[key] && typeof result[key] === 'object' && !Array.isArray(result[key])) result[key] = merge(result[key], value);
-    else if (value !== undefined) result[key] = clone(value);
-  });
-  return result;
-}
 
 function role(values) {
   const [size, weight, lineHeight] = values;
@@ -149,7 +145,7 @@ export function planStyle(spec = {}, options = {}) {
   const reasons = [`${preset} matches the ${spec.type || 'general'} visualization context.`, `${palette} matches the detected data semantics.`, `${resolvedMode} is the resolved color mode.`];
   const warnings = [];
   const categories = categoryCount(spec);
-  if (palette === 'categorical' && categories > 6) warnings.push({ code: 'HIGH_CARDINALITY_COLOR', path: 'theme.palette', message: `${categories} categories exceed the recommended six-color comparison set.`, suggestion: 'Group categories or add labels, shapes, or line patterns.' });
+  if (['categorical', 'soft'].includes(palette) && categories > 6) warnings.push({ code: 'HIGH_CARDINALITY_COLOR', path: 'theme.palette', message: `${categories} categories exceed the recommended six-color comparison set.`, suggestion: 'Group categories or add labels, shapes, or line patterns.' });
   return { version: '1.0', preset, mode, resolvedMode, palette, reasons, warnings, userOverride: request.preset !== 'auto' || request.mode !== 'auto' || request.palette !== 'auto' };
 }
 
@@ -203,9 +199,9 @@ export function resolveTheme(theme, options = {}) {
     border: mode.border,
     focus: mode.focus,
     selection: mode.selection,
-    colors: [...colors],
+    colors: [...(plan.palette === 'soft' && softColors[plan.resolvedMode] || colors)],
     palettes: { categorical: [...mode.categorical], sequential: [...mode.sequential], diverging: [...mode.diverging], status: { ...mode.status }, missing: mode.missing },
-    status: { ...mode.status },
+    status: { ...mode.status, ...(plan.palette === 'soft' && softColors[plan.resolvedMode] ? { info: softColors[plan.resolvedMode][0], danger: softColors[plan.resolvedMode][2] } : {}) },
     typography,
     layout: clone(preset.layout),
     marks: clone(preset.marks),

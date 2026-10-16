@@ -18,7 +18,7 @@ export declare class ProfileChart {
   getData(): unknown;
   getState(): ProfileState;
   explain(): ProfileExplanation;
-  export(options?: { type?: ExportKind; as?: ExportAs }): string | Record<string, unknown>;
+  export(options?: { type?: ExportKind; as?: ExportAs }): string | Blob | Record<string, unknown>;
   destroy(): void;
 }
 export declare function createChart(spec?: ChartSpec): ProfileChart;

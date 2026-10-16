@@ -4,6 +4,7 @@
  * complete chart runtime.
  */
 import { FreeformBoard as FreeformBoardRuntime, validateBoardSpec, planCanvas } from './board.mjs';
+import { exportContract } from './export.mjs';
 import { boardCapabilities } from './board-contract.mjs';
 import { normalizeSpec } from './spec.mjs';
 import { resolveTheme } from './theme.mjs';
@@ -23,4 +24,4 @@ export class FreeformBoard extends FreeformBoardRuntime {
 export function createBoard(spec = {}) { return new FreeformBoard(spec); }
 export { validateBoardSpec, planCanvas, boardCapabilities };
 export { validateBoardCommand } from './board-edit.mjs';
-export function getCapabilities() { return { version: '2.0', profile, boardCapabilities, renderers: ['svg', 'canvas'], exports: ['svg', 'png', 'json'], defaults: { navigation: false, editing: false } }; }
+export function getCapabilities() { return { version: '2.0', profile, boardCapabilities, renderers: ['svg', 'canvas'], exports: ['svg', 'png', 'jpeg', 'json'], export: { delivery: structuredClone(exportContract) }, defaults: { navigation: false, editing: false } }; }
