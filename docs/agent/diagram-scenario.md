@@ -85,6 +85,18 @@ Flow `start` and `end` nodes render as true ellipse shapes; `process` nodes are 
 
 Unspecified node sizes adapt to text, shape and icons before fitting; explicit dimensions and positions remain authoritative. Node labels are centered, wrap at word boundaries to at most two lines, reduce to a bounded minimum font size, and truncate only as a last resort. Small connectors suppress unreadable internal text; full labels remain in data/accessibility. Edge labels stay inline when space permits and move aside for node/label collisions. Final text bounds, not the inline/offset flag, determine line protection: render-only gaps and locally matched opaque plates prevent line bleed; transparent backgrounds use gaps without white patches. Saved routes and hit geometry are unchanged. Ordinary chart labels do not get plates. `getState().layout.labels` and `explain().warnings` expose fitting limits; see [default visual quality](theme-guide.md#default-visual-quality).
 
+Node fitting uses the visible, zoomed shape dimensions, not only saved node dimensions. Font size and multiline spacing remain display-sized: enlarging a manual diagram can reveal labels that did not fit in its small card, and closing the preview recalculates the original layout. Ellipses and diamonds use their inscribed text area without subtracting rectangular side padding twice. Explicit node sizes, positions and the viewport are not rewritten to make text fit.
+
+## Layout and Diagnostic Recovery
+
+Read `getCapabilities().diagram.layoutModes` for the canonical `manual`, `layered`, `tree`, `radial` choices. Prefer `layered` for automatic Flow, `manual` plus explicit `nodes[].position` for hand placement, and `tree`/`radial` for Mindmap. `vertical` is not an alias: `LAYOUT_MODE` reports `received`, supported `expected` values and recovery guidance rather than silently changing direction.
+
+When present, `size` must be `{ width, height }` with positive finite numbers, `position` must contain finite numeric `{ x, y }`, and `ports` must be an array such as `[{ id: 'out', side: 'right' }]` or `[]`. Omit optional fields to use defaults; `size: 150`, `size: 0`, `position: false`, `ports: ''` and `null` are not omission. `NODE_SIZE`, `NODE_POSITION` and `NODE_PORTS` retain a separate diagnostic per affected node/field, with `nodeId`, precise `path`, `expected`, `received` where available and a correct example. Do not collapse different node paths into one error.
+
+`FLOW_LAYOUT_OVERFLOW` / `DIAGRAM_LAYOUT_OVERFLOW` include `currentSize`, an estimated `recommendedSize: { width, height }`, `estimated: true`, and affected `nodeIds`. Estimates use actual placed-node bounds, existing minimum gaps and reserved chart space, not node count multiplied by a constant. They are node-fit estimates in the current layout coordinates, not guarantees for every connector, label, pinned position or viewport. Hosts may explicitly resize and then recheck; no node size, saved position, route or view is silently changed. Automatic gaps already contract to readable minimums.
+
+Node `LABELS_SUPPRESSED` includes `nodeId`, logical `nodeSize` and the requested `fontSize`. Increase the named node's `size.width`/`size.height`, omit its explicit size for content sizing, or use its tooltip/accessibility text. Increasing chart width alone does not enlarge a fixed-size node. Disclose accepted text loss instead of suppressing warnings.
+
 ## Current Capabilities
 
 Supported:

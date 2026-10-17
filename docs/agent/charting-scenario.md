@@ -32,7 +32,7 @@ Agent usage and development guide for generic data analysis and metric visualiza
 - Gauge keeps its primary value inside the gauge body and adapts its metric font to the available radius; it does not create per-segment labels.
 - Use per-series `mark: "column"` or `mark: "line"` and optional `axis: "right"` for Combo charts.
 - Use `transform: { type: "bin", field, thresholds | step, extent }` for Histogram workflows.
-- Heatmap treats missing values separately from numeric zero through `colorScale.missing`.
+- Heatmap uses a continuous sequential/diverging scale, not Soft categorical swatches. Set custom endpoints with `colorScale.range`; distinguish missing cells from zero through `colorScale.missing`.
 - Radar should declare `min` and `max` for every indicator; omitted or mixed-unit domains produce warnings.
 
 ## Configuration Placement

@@ -1,5 +1,5 @@
 /**
- * Project-management and process visualization scene builders.
+ * Project-management and process scenes with display-space Diagram text fitting.
  * Covers Gantt, timeline, milestone, burndown, flow, and swimlane views.
  */
 import { Scene, cubicBezierPoint } from './scene.mjs';
@@ -64,12 +64,15 @@ const flowNodeKind = node => node?.kind || 'process';
 
 function diagramNodeLabelLayout(row, kind, geometry, spec, font = null, wordWrap = true) {
   const size = font ? Number(String(font).match(/(\d+(?:\.\d+)?)px/)?.[1]) || fontSize(spec, 'label', 12) : fontSize(spec, 'label', 12);
-  const minDimension = Math.min(geometry.width, geometry.height);
+  const scale = projectView(spec).scale, width = geometry.width * scale, height = geometry.height * scale, minDimension = Math.min(width, height);
   const horizontalPadding = kind === 'decision' ? size * 1.8 : size * 1.25;
-  const ellipse = ['start', 'end'].includes(kind), maxWidth = Math.max(0, Math.min(geometry.width - horizontalPadding * 2, geometry.width * (kind === 'decision' ? 0.65 : ellipse ? 0.85 : 1)));
-  const maxHeight = Math.min(geometry.height - size * 0.45, geometry.height * (kind === 'decision' ? 0.35 : ellipse ? 0.5 : 1));
+  const ellipse = ['start', 'end'].includes(kind), maxWidth = Math.max(0, kind === 'decision' ? width * 0.65 : ellipse ? width * 0.85 : width - horizontalPadding * 2);
+  const maxHeight = Math.min(height - size * 0.45, height * (kind === 'decision' ? 0.35 : ellipse ? 0.5 : 1));
   if (minDimension < Math.max(24, size * 2) || maxWidth < size * 2.4 || maxHeight < 12) return null;
-  return fitTextBlock(row.label || row.id, { maxWidth, maxHeight, size, minSize: Math.max(10, Math.min(size, size - 2)), maxLines: 2, wordWrap, font: font || spec.theme.typography.label.font });
+  const block = fitTextBlock(row.label || row.id, { maxWidth, maxHeight, size, minSize: Math.max(10, Math.min(size, size - 2)), maxLines: 2, wordWrap, font: font || spec.theme.typography.label.font });
+  if (block.overflowed) return null;
+  for (const key of ['width', 'height', 'lineHeight']) block[key] /= scale;
+  return block;
 }
 
 function flowNodeVisual(kind, box) {
@@ -549,7 +552,7 @@ function diagramScene(scene, spec, rows, state) {
       if (label.truncated) { labelLayout.truncated += 1; state.labelWarnings.push({ code: 'LABEL_TRUNCATED', path: `nodes.${index}.label`, nodeId: row.id, rawLabel, renderedLabel: label.lines.join('\n'), message: `Node label "${rawLabel}" was truncated to fit its shape.`, suggestion: 'Increase node size or shorten the label.' }); }
     } else if (kind !== 'connector') {
       labelLayout.suppressed += 1;
-      state.labelWarnings.push({ code: 'LABELS_SUPPRESSED', path: `nodes.${index}.label`, count: 1, nodeId: row.id, message: `Node label for "${row.label || row.id}" was hidden because the node is too small.`, suggestion: 'Increase node size or use the node tooltip/accessibility text.' });
+      state.labelWarnings.push({ code: 'LABELS_SUPPRESSED', path: `nodes.${index}.label`, count: 1, nodeId: row.id, nodeSize: { width: geometry.width, height: geometry.height }, fontSize: fontSize(spec, 'label', 12), message: `Node label for "${row.label || row.id}" was hidden because the node is too small.`, suggestion: `Increase nodes[${index}].size.width and size.height, omit size for content-driven sizing, or use tooltip/accessibility text. A wider chart alone does not enlarge an explicitly sized node.` });
     }
   });
   const groupBoxes = new Map(), groupContents = new Map();
@@ -635,7 +638,14 @@ function diagramScene(scene, spec, rows, state) {
       const box = positions.get(row.id);
       return box.x < plot.x - 1e-6 || box.y < plot.y - 1e-6 || box.x + box.width > plot.x + plot.width + 1e-6 || box.y + box.height > plot.y + plot.height + 1e-6;
     }).map(row => row.id);
-    if (overflow.length) state.diagramWarnings.push({ code: spec.type === 'flow' ? 'FLOW_LAYOUT_OVERFLOW' : 'DIAGRAM_LAYOUT_OVERFLOW', path: 'diagram.layout', nodeIds: overflow, message: 'Diagram nodes exceed the available plot area; node sizes and the viewport were preserved.', suggestion: 'Increase chart width/height or simplify the visible diagram.' });
+    if (overflow.length) {
+      const boxes = visible.map(row => positions.get(row.id)), recommendedSize = { width: spec.width, height: spec.height };
+      for (const [axis, dimension] of [['x', 'width'], ['y', 'height']]) {
+        const start = Math.min(...boxes.map(box => box[axis])), end = Math.max(...boxes.map(box => box[axis] + box[dimension]));
+        recommendedSize[dimension] = Math.ceil(spec[dimension] + Math.max(0, plot[axis] - start) + Math.max(0, end - plot[axis] - plot[dimension]));
+      }
+      state.diagramWarnings.push({ code: spec.type === 'flow' ? 'FLOW_LAYOUT_OVERFLOW' : 'DIAGRAM_LAYOUT_OVERFLOW', path: 'diagram.layout', nodeIds: overflow, currentSize: { width: spec.width, height: spec.height }, recommendedSize, estimated: true, message: 'Diagram nodes exceed the available plot area; node sizes and the viewport were preserved.', suggestion: `Estimated node-fit size: at least ${recommendedSize.width} x ${recommendedSize.height}px. Increase width/height or simplify the diagram; pinned nodes may also need explicit position changes. Recheck labels and routes after resizing.` });
+    }
     const overlaps = [];
     visible.forEach((row, index) => visible.slice(index + 1).forEach(other => { if (boxesOverlap(positions.get(row.id), positions.get(other.id))) overlaps.push([row.id, other.id]); }));
     if (overlaps.length) state.diagramWarnings.push({ code: spec.type === 'flow' ? 'FLOW_NODE_OVERLAP' : 'DIAGRAM_NODE_OVERLAP', path: 'nodes', pairs: overlaps, message: 'Diagram nodes overlap, including explicitly positioned nodes.', suggestion: 'Adjust explicit positions or increase the available chart area.' });

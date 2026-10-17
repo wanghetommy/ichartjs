@@ -81,6 +81,43 @@ test('Iteration 35: default visuals protect real text and transparent PNG pixels
   for (const [check, passed] of Object.entries(report.checks)) assert.equal(passed, true, `${check} ${JSON.stringify(report.difference || {})}`);
 });
 
+test('Agent diagnostic guidance stays current across root, Profiles, SVG and Canvas', async () => {
+  await goto('/playground/index.html');
+  const reports = await page.evaluate(async () => {
+    const runtime = await import('/src/index.mjs'), standard = await import('/src/standard.mjs'), diagram = await import('/src/diagram-profile.mjs');
+    const host = document.createElement('div'); host.style.width = '760px'; document.body.append(host);
+    const reports = [], rows = Array.from({ length: 12 }, (_, index) => ({ id: `r${index}`, name: `Month ${index}`, value: index + 1 }));
+    try {
+      for (const renderer of ['svg', 'canvas']) {
+        for (const [entry, api] of [['root', runtime], ['standard', standard]]) {
+          const line = api.createChart({ type: 'line', renderer, width: 760, height: 300, container: host, data: rows, theme: { palette: 'soft' } });
+          const quiet = !line.getState().warnings.some(warning => warning.code === 'HIGH_CARDINALITY_COLOR'); line.destroy();
+          const pie = api.createChart({ type: 'pie', renderer, width: 760, height: 300, container: host, data: rows.slice(0, 7), theme: { palette: 'soft' } });
+          const warned = pie.getState().warnings.find(warning => warning.code === 'HIGH_CARDINALITY_COLOR')?.count === 7;
+          pie.update({ data: rows.slice(0, 6) });
+          const refreshed = !pie.explain().warnings.some(warning => warning.code === 'HIGH_CARDINALITY_COLOR');
+          const saved = pie.export({ type: 'json', as: 'object' });
+          reports.push({ entry, renderer, quiet, warned, refreshed, portable: !saved.state.warnings.some(warning => warning.code === 'HIGH_CARDINALITY_COLOR') }); pie.destroy();
+        }
+        for (const [entry, api] of [['root', runtime], ['diagram', diagram]]) {
+          const nodes = Array.from({ length: 6 }, (_, index) => ({ id: `n${index}`, label: `Step ${index + 1}` })), edges = nodes.slice(1).map((node, index) => ({ from: nodes[index].id, to: node.id }));
+          const chart = api.createChart({ type: 'flow', nodes, edges, renderer, width: 760, height: 300, container: host });
+          const warning = chart.getState().warnings.find(item => item.code === 'FLOW_LAYOUT_OVERFLOW');
+          const measured = warning?.estimated === true && warning.recommendedSize.width > warning.currentSize.width;
+          chart.resize(warning.recommendedSize.width, warning.recommendedSize.height);
+          const recovered = !chart.getState().warnings.some(item => item.code === 'FLOW_LAYOUT_OVERFLOW'), before = JSON.stringify(chart.getSpec());
+          let rejected = false;
+          try { chart.update({ nodes: nodes.map((node, index) => index ? node : { ...node, size: 0 }) }); } catch (error) { rejected = error.errors?.some(item => item.code === 'NODE_SIZE' && item.nodeId === 'n0' && item.path === 'nodes.0.size'); }
+          reports.push({ entry, renderer, measured, recovered, rejected, atomic: JSON.stringify(chart.getSpec()) === before, labels: chart.export({ type: 'svg' }).includes('>Step 1</text>') }); chart.destroy();
+        }
+      }
+    } finally { host.remove(); }
+    return reports;
+  });
+  assert.equal(reports.length, 8);
+  for (const report of reports) for (const [check, passed] of Object.entries(report)) if (!['entry', 'renderer'].includes(check)) assert.equal(passed, true, `${report.entry}/${report.renderer}/${check}`);
+});
+
 test('Agent delivery tasks preserve trend data and incremental Flow semantics', async () => {
   await goto('/playground/index.html');
   const tasks = await page.evaluate(verifyAgentTasks, { root: '/src/index.mjs', standard: '/src/standard.mjs' });
@@ -316,8 +353,9 @@ test('Gallery manual previews measure visible hosts, center content and restore 
       if (renderer === 'svg' && process.env.PREVIEW_SCREENSHOT) await page.screenshot({ path: process.env.PREVIEW_SCREENSHOT });
       await page.locator('#chart-flow-soft .ichart-preferences__button').click();
       await page.locator('.ichart-preferences__panel[data-open="true"] [data-key="scale"]').selectOption('1.15');
-      assert.equal((await state('#dialogOutput')).warnings.length, 2);
-      assert.equal(await page.locator('[data-status]').textContent(), 'ready · 2 warnings');
+      assert.equal((await state('#dialogOutput')).warnings.length, 0);
+      assert.equal((await state('#dialogOutput')).layout.labels.diagram.visible, 6);
+      assert.equal(await page.locator('[data-status]').textContent(), 'ready');
       await page.locator('.ichart-preferences__panel[data-open="true"] [data-key="scale"]').selectOption('1');
       assert.equal((await state('#dialogOutput')).warnings.length, 0);
       await page.locator('#chart-flow-soft .ichart-preferences__button').click();
@@ -1449,6 +1487,45 @@ test('re-renders Flow content at the enlarged Gallery preview size', async () =>
   assert.ok(after > before * 1.1, `Flow preview geometry did not scale: before=${before}, after=${after}`);
   await page.locator('#dialogClose').click();
   assert.equal(await page.locator('#chart-flow #node-load').evaluate(node => node.getBBox().width), before);
+});
+
+test('Gallery Flow keeps Start and End visible after font preferences and enlarged preview in both renderers', async () => {
+  const context = await browser.newContext({ viewport: { width: 1800, height: 1100 } }), isolated = await context.newPage();
+  try {
+    for (const renderer of ['svg', 'canvas']) {
+      await isolated.goto(`${baseUrl}/playground/project-gallery.html?case=flow&renderer=${renderer}`);
+      const card = isolated.locator('[data-case="flow"]');
+      await card.locator('[data-preview]').waitFor();
+      for (const scale of ['1.15', '1.3']) {
+        await card.locator('.ichart-preferences__button').click();
+        await isolated.locator('.ichart-preferences__panel[data-open="true"] [data-key="scale"]').selectOption(scale);
+        await isolated.keyboard.press('Escape');
+        await card.locator('[data-preview]').click();
+        const report = JSON.parse(await isolated.locator('#dialogOutput').textContent());
+        assert.equal(report.state.warnings.some(warning => ['LABELS_SUPPRESSED', 'LABEL_TRUNCATED'].includes(warning.code) && warning.nodeId && warning.nodeId !== 'retry'), false, `${renderer}/${scale}`);
+        assert.ok(report.state.layout.labels.diagram.visible >= 5, `${renderer}/${scale}`);
+        if (renderer === 'svg') for (const [id, label] of [['start', 'Start'], ['load', 'Load data'], ['valid', 'Valid?'], ['output', 'Output'], ['end', 'End']]) {
+          const node = isolated.locator(`#dialogChart #node-label-${id}`);
+          assert.equal(await node.textContent(), label); assert.equal(await node.isVisible(), true);
+        }
+        else {
+          const pixels = await isolated.locator('#dialogChart canvas').evaluate((canvas, state) => {
+            const context = canvas.getContext('2d'), ratio = canvas.width / state.width, view = state.view;
+            return ['start', 'end'].map(id => {
+              const node = state.layout.diagram.nodes[id], width = node.width * view.scale, height = node.height * view.scale;
+              const centerX = (node.x + node.width / 2) * view.scale + view.offsetX, centerY = (node.y + node.height / 2) * view.scale + view.offsetY;
+              const rgba = context.getImageData(Math.round((centerX - width / 4) * ratio), Math.round((centerY - height / 6) * ratio), Math.round(width / 2 * ratio), Math.round(height / 3 * ratio)).data;
+              let white = 0; for (let index = 0; index < rgba.length; index += 4) if (Math.min(rgba[index], rgba[index + 1], rgba[index + 2]) > 220 && rgba[index + 3] > 220) white += 1;
+              return { id, white };
+            });
+          }, report.state);
+          for (const result of pixels) assert.ok(result.white > 5, `${renderer}/${scale}/${result.id}: no text pixels`);
+        }
+        await isolated.locator('#dialogClose').click();
+        if (renderer === 'svg' && scale === '1.3') for (const id of ['start', 'end']) assert.equal(await card.locator(`#node-label-${id}`).isVisible(), true);
+      }
+    }
+  } finally { await context.close(); }
 });
 
 test('enlarges automatically fitted Mindmap content without applying a second view scale', async () => {

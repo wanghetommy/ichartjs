@@ -12,6 +12,10 @@ iChart.js 2.0 内置轻量、与 Renderer 无关的样式系统。Agent 应表�
 
 `soft` 是可选配色，不会改变节点或连线几何。`diagram.appearance: 'soft'` 独立控制浅色节点、圆角和开放箭头；两者可以分别使用。明暗模式使用对应颜色，`contrast` 保留高对比度颜色。详见[流程图指南](diagram-scenario.md)。
 
+`HIGH_CARDINALITY_COLOR` 统计同时用颜色区分的系列/分组，不统计 X 轴类别数量。单系列 Line/Area/Bar/Column 的十二个点不代表需要十二种颜色；Radar 即使只用稳定 ID 命名，也按数据行统计系列。告警提供 `count` 与 `recommendedMaximum`（六），属于建议而非校验失败；root/Profile 的 `getState()`、`explain()` 均可读取。更新数据或重新加载 Spec 时会重新计算主题告警，不沿用保存的历史告警快照。
+
+Heatmap 默认使用连续顺序色阶，`theme.palette: 'diverging'` 使用发散色阶；选择 `soft` 不会将单元格改为循环分类色。自定义连续颜色请用 `colorScale: { range: ['#f0fdfa', '#0f766e'] }`，数值范围用 `colorScale.domain`，缺失值颜色用 `colorScale.missing`。缺失值不等于数值零。
+
 推荐默认使用 `auto`。系统根据图表家族、用户意图、数据语义和宿主明暗模式进行确定性匹配。解析结果可通过 `planStyle()`、`planChart().styleRecommendation`、`chart.getTheme()`、`chart.getState().style` 和 `chart.explain().style` 查看。
 
 ## Agent 使用方式

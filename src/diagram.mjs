@@ -1,5 +1,5 @@
 /**
- * Diagram data model, validation, deterministic layout, and edge routing.
+ * Diagram validation with node/field repair guidance, deterministic layout, and edge routing.
  * Supports nodes, edges, lanes, groups, ports, and separated reciprocal routes.
  */
 import { copyJSON } from './schema.mjs';
@@ -28,7 +28,7 @@ export function normalizeDiagramSpec(spec = {}) {
   const mode = spec.diagram?.mode || (spec.type === 'architecture' ? 'architecture' : spec.type === 'mindmap' ? 'mindmap' : 'process');
   const defaultLayout = mode === 'mindmap' ? 'tree' : 'layered';
   const defaultRouting = mode === 'mindmap' ? 'curved' : 'orthogonal';
-  return { ...copyJSON(spec), nodes, edges, lanes, layers: copyJSON(spec.layers ?? data.layers ?? []), boundaries: copyJSON(spec.boundaries ?? data.boundaries ?? []), groups: copyJSON(spec.groups ?? data.groups ?? []), diagram: { ...copyJSON(spec.diagram || {}), layout: spec.diagram?.layout || defaultLayout, routing: spec.diagram?.routing || defaultRouting, curveTension: spec.diagram?.curveTension ?? 0.4, mode, snap: spec.diagram?.snap ?? true, grid: spec.diagram?.grid ?? 8 } };
+  return { ...copyJSON(spec), nodes, edges, lanes, layers: copyJSON(spec.layers ?? data.layers ?? []), boundaries: copyJSON(spec.boundaries ?? data.boundaries ?? []), groups: copyJSON(spec.groups ?? data.groups ?? []), diagram: { ...copyJSON(spec.diagram || {}), layout: spec.diagram?.layout === undefined ? defaultLayout : spec.diagram.layout, routing: spec.diagram?.routing || defaultRouting, curveTension: spec.diagram?.curveTension ?? 0.4, mode, snap: spec.diagram?.snap ?? true, grid: spec.diagram?.grid ?? 8 } };
 }
 
 export function validateDiagram(spec = {}) {
@@ -68,14 +68,20 @@ export function validateDiagram(spec = {}) {
     else nodeIds.add(node.id);
     if (node?.name !== undefined && node?.label === undefined) warnings.push({ code: 'UNSUPPORTED_DIAGRAM_LABEL_FIELD', path: `nodes.${index}.name`, message: 'Node display text uses label, not name.', suggestion: 'Rename nodes[].name to nodes[].label.' });
     if (normalized.type === 'flow' && node.kind !== undefined && !flowNodeKinds.includes(node.kind)) errors.push({ code: 'FLOW_NODE_KIND', path: `nodes.${index}.kind`, message: `Unsupported Flow node kind: ${node.kind}.`, expected: flowNodeKinds, suggestion: `Use one of: ${flowNodeKinds.join(', ')}.` });
-    if (node.position && (!finite(node.position.x) || !finite(node.position.y))) errors.push({ code: 'NODE_POSITION', path: `nodes.${index}.position`, message: 'Node positions must contain finite x and y.' });
+    for (const [key, fields] of [['position', ['x', 'y']], ['size', ['width', 'height']]]) {
+      if (node[key] === undefined) continue;
+      const value = node[key], code = key === 'size' ? 'NODE_SIZE' : 'NODE_POSITION', path = `nodes.${index}.${key}`;
+      const expected = key === 'size' ? '{ width: positive finite number, height: positive finite number }' : '{ x: finite number, y: finite number }';
+      const suggestion = key === 'size' ? 'Use size: { width: 150, height: 48 }, or omit size for content-driven sizing.' : 'Use position: { x: 0, y: 0 }, or omit position for automatic layout.';
+      if (!value || typeof value !== 'object' || Array.isArray(value)) errors.push({ code, path, nodeId: node.id, received: value, expected, message: `Node "${node.id}" ${key} must be an object: ${expected}.`, suggestion });
+      else for (const field of fields) if (!finite(value[field]) || key === 'size' && value[field] <= 0) errors.push({ code, path: `${path}.${field}`, nodeId: node.id, received: value[field], expected: key === 'size' ? 'positive finite number' : 'finite number', message: `Node "${node.id}" ${key}.${field} must be ${key === 'size' ? 'positive and finite' : 'finite'}.`, suggestion });
+    }
     if (node.laneId && lanes.length && !laneIds.has(node.laneId)) errors.push({ code: 'MISSING_LANE', path: `nodes.${index}.laneId`, message: `Unknown lane ID: ${node.laneId}.` });
-    if (node.size && (!finite(node.size.width) || !finite(node.size.height) || node.size.width <= 0 || node.size.height <= 0)) errors.push({ code: 'NODE_SIZE', path: `nodes.${index}.size`, message: 'Node sizes must be finite and positive.' });
     if (node.groupId && !groupIds.has(node.groupId)) errors.push({ code: 'MISSING_GROUP', path: `nodes.${index}.groupId`, message: `Unknown group ${node.groupId}.` });
     if (node.layerId && layers.length && !layerIds.has(node.layerId)) errors.push({ code: 'MISSING_LAYER', path: `nodes.${index}.layerId`, message: `Unknown layer ${node.layerId}.` });
     if (node.parentId && !nodes.some(parent => parent.id === node.parentId)) errors.push({ code: 'MISSING_PARENT', path: `nodes.${index}.parentId`, message: `Unknown parent node ${node.parentId}.` });
     if (node.parentId === node.id) errors.push({ code: 'SELF_PARENT', path: `nodes.${index}.parentId`, message: 'Mindmap nodes cannot parent themselves.' });
-    if (node.ports && (!Array.isArray(node.ports) || node.ports.some(port => !port || typeof port.id !== 'string' || !port.id))) errors.push({ code: 'NODE_PORTS', path: `nodes.${index}.ports`, message: 'Ports must be an array with stable string IDs.' });
+    if (node.ports !== undefined && (!Array.isArray(node.ports) || node.ports.some(port => !port || typeof port.id !== 'string' || !port.id))) errors.push({ code: 'NODE_PORTS', path: `nodes.${index}.ports`, nodeId: node.id, received: node.ports, expected: 'array of ports with stable string ids', message: `Node "${node.id}" ports must be an array with stable string IDs.`, suggestion: 'Use ports: [{ id: "out", side: "right" }], use [], or omit ports.' });
     const portIds = new Set();
     if (Array.isArray(node.ports)) node.ports.forEach((port, portIndex) => {
       if (!port) return;
@@ -119,7 +125,7 @@ export function validateDiagram(spec = {}) {
       if (!semanticNodes.some(node => node.kind === 'end')) warnings.push({ code: 'FLOW_MISSING_END', path: 'nodes', message: 'Semantic Flow has no end node.', suggestion: 'Add one node with kind: "end", or use explicit kind: "process" for a process-only Flow.' });
     }
   }
-  if (!diagramLayoutModes.includes(normalized.diagram.layout)) errors.push({ code: 'LAYOUT_MODE', path: 'diagram.layout', message: `Unsupported layout: ${normalized.diagram.layout}.` });
+  if (!diagramLayoutModes.includes(normalized.diagram.layout)) errors.push({ code: 'LAYOUT_MODE', path: 'diagram.layout', received: normalized.diagram.layout, expected: [...diagramLayoutModes], message: `Unsupported layout: ${normalized.diagram.layout}. Supported layouts: ${diagramLayoutModes.join(', ')}.`, suggestion: 'Use layered for automatic Flow layout, manual with nodes[].position for explicit placement, or tree/radial for Mindmap. See https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/diagram-scenario.md#layout-and-diagnostic-recovery.' });
   if (!finite(normalized.diagram.grid) || normalized.diagram.grid <= 0) errors.push({ code: 'DIAGRAM_GRID', path: 'diagram.grid', message: 'Grid must be a positive finite number.' });
   if (!finite(normalized.diagram.curveTension) || normalized.diagram.curveTension < 0.2 || normalized.diagram.curveTension > 0.8) errors.push({ code: 'CURVE_TENSION', path: 'diagram.curveTension', message: 'Curve tension must be a finite number between 0.2 and 0.8.' });
   if (!edgeRoutingModes.includes(normalized.diagram.routing)) errors.push({ code: 'ROUTING_MODE', path: 'diagram.routing', message: `Unsupported routing: ${normalized.diagram.routing}.` });

@@ -30,11 +30,11 @@ Current policies use English. Chinese guidance is in [the companion Development 
 - [32](iteration-32.md): strict formats and renderer-independent browser delivery, included in v2.0.32.
 - [33](iteration-33.md): optional diagram visual language, safe rounded geometry and built-in vector icons; accepted for v2.0.32 with a separately reviewed feature allowance.
 - [34](iteration-34.md): consumer acceptance, Profile type/Skill boundaries, npm documentation cleanup, reciprocal Flow routing, group-boundary clearance and reviewed fixed footprint limits; included in v2.0.34.
-- [35](iteration-35.md): default visual quality, final-geometry edge-text protection, content-sized nodes, foreground contrast and default-first acceptance; implemented and accepted for v2.0.35, publication authorized.
+- [35](iteration-35.md): default visual quality shipped in v2.0.35; enlarged Diagram labels and diagnostic guidance follow-ups accepted for v2.0.36, publication authorized.
 
 Earlier iteration plans are linked from the Roadmap. An implemented plan is not proof of publication; read its status and evidence.
 
-Current release line: `v2.0.35`, covering Iteration 35 default visual quality on top of Iteration 34 consumer delivery and routing fixes. Existing footprint limits are unchanged. Iterations 32–33 shipped in `v2.0.32`; see their records for scope and evidence.
+Current release line: `v2.0.36`, hardening enlarged Diagram labels and actionable diagnostics on top of Iteration 35 default visual quality and Iteration 34 consumer delivery and routing fixes. Existing footprint limits are unchanged. Iterations 32–33 shipped in `v2.0.32`; see their records for scope and evidence.
 
 ## Historical records
 

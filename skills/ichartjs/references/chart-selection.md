@@ -10,7 +10,7 @@
 | Relationship | Scatter | Require two quantitative measures. |
 | Conversion stages | Funnel | Preserve stage order. |
 | Single bounded KPI | Gauge | Declare the domain. |
-| Matrix | Heatmap | Distinguish missing cells from zero. |
+| Matrix | Heatmap | Use a continuous sequential/diverging scale; set `colorScale.range` for custom endpoints, not Soft categorical swatches. Distinguish missing cells from zero. |
 | Multidimensional profile | Radar | Require at least three explicit indicator domains. |
 | Schedule and dependency analysis | Gantt | Require stable IDs, dates, and explicit calendar assumptions. |
 | Events | Timeline | Require valid dates and labels. |

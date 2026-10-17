@@ -26,7 +26,13 @@ export interface PreferencesStore { version: '1.0'; storageKey: string; storage:
 export interface PreferencesStorage { getItem(key: string): string | null; setItem(key: string, value: string): void; removeItem?(key: string): void; }
 export interface StyleRecommendation { version: '1.0'; preset: Exclude<ThemePreset, 'auto'>; mode: ThemeMode; resolvedMode: Exclude<ThemeMode, 'auto'>; palette: Exclude<ThemePalette, 'auto'>; reasons: string[]; warnings: Diagnostic[]; userOverride: boolean; }
 export interface ResolvedTheme extends ThemeConfig { name: string; resolvedMode: Exclude<ThemeMode, 'auto'>; background: string; surface: string; text: string; muted: string; axis: string; grid: string; border: string; focus: string; selection: string; colors: string[]; palettes: Record<string, unknown>; status: Record<string, string>; typography: Record<string, { size: number; weight: number; lineHeight: number; font: string }>; layout: Record<string, unknown>; marks: Record<string, unknown>; automaticLineWidth?: number | null; reasons: string[]; warnings: Diagnostic[]; }
-export interface Diagnostic { code: string; path?: string; message: string; expected?: unknown; suggestion?: string; [key: string]: unknown; }
+export interface Diagnostic {
+  code: string; path?: string; message: string; expected?: unknown; received?: unknown; suggestion?: string;
+  nodeId?: string; nodeIds?: string[]; count?: number; recommendedMaximum?: number;
+  currentSize?: { width: number; height: number }; recommendedSize?: { width: number; height: number }; estimated?: boolean;
+  nodeSize?: { width: number; height: number }; fontSize?: number;
+  [key: string]: unknown;
+}
 export class ChartValidationError extends Error { name: 'ChartValidationError'; code: 'CHART_VALIDATION_FAILED'; operation: string; details: Diagnostic[]; errors: Diagnostic[]; path?: string; expected?: unknown; received?: unknown; suggestion?: string; toJSON(): Record<string, unknown>; }
 export interface DataFieldInfo { name: string; type: 'quantitative' | 'temporal' | 'category' | 'unknown'; role: 'identifier' | 'measure' | 'temporal-dimension' | 'dimension'; unit: string | null; cardinality: number; validCount: number; nullCount: number; min?: number; max?: number; temporalMin?: string; temporalMax?: string; }
 export interface DataQuality { version: '1.0'; status: 'ready' | 'degraded'; issues: string[]; metrics: { rows: number; fields: number; missingValues: number; warnings: number }; }
