@@ -10,7 +10,7 @@ export const bundlerVersion = '0.28.2';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const factories = { root: 'createChart', standard: 'createChart', project: 'createChart', diagram: 'createChart', board: 'createBoard' };
 
-export async function buildConsumerBundles({ publishedVersion, outputDirectory } = {}) {
+export async function buildConsumerBundles({ publishedVersion, outputDirectory, extraExports = {} } = {}) {
   const work = mkdtempSync(join(tmpdir(), 'ichartjs-browser-consumer-'));
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
   const env = { ...process.env, npm_config_cache: join(work, 'cache') };
@@ -29,7 +29,7 @@ export async function buildConsumerBundles({ publishedVersion, outputDirectory }
     for (const [name, factory] of Object.entries(factories)) {
       const packageEntry = `@taylorwong/ichartjs${name === 'root' ? '' : `/${name}`}`;
       const result = await build({
-        stdin: { contents: `export { ${factory} } from '${packageEntry}';`, resolveDir: work, sourcefile: `${name}-consumer.mjs` },
+        stdin: { contents: `export { ${[factory, ...(extraExports[name] || [])].join(', ')} } from '${packageEntry}';`, resolveDir: work, sourcefile: `${name}-consumer.mjs` },
         bundle: true, minify: true, treeShaking: true, platform: 'browser', format: 'esm', target: 'es2022',
         external: ['canvas'], metafile: true, write: false, logLevel: 'silent'
       });

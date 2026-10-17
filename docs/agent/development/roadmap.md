@@ -1,8 +1,10 @@
 # iChart.js 2.0 Roadmap
 
-> Roadmap baseline: 2026-09-14. Current release line: `v2.0.33` adds bounded stroke sizing, compact automatic layouts and Skill readability acceptance to the Iteration 32–33 export and diagram capabilities.
+> Roadmap baseline: 2026-09-14. Current release line: `v2.0.34` hardens consumer delivery, Profile declarations and automatic diagram routing, with reviewed fixed footprint limits.
 
 ## Current Status
+
+- Iteration 34 is included in `v2.0.34`: reciprocal Flow return channels, group-boundary clearance, zoom-aware connector labels, installed-package acceptance, Profile type/Skill boundaries and npm documentation cleanup. Root source budgets are fixed at 640 KiB raw / 160 KiB gzip; npm ceilings are unchanged. See [scope and evidence](iteration-34.md).
 
 - Iteration 32: export delivery consistency implemented for `v2.0.32`; see [scope and evidence](iteration-32.md).
 - Iteration 33: optional soft diagram visuals and vector icons implemented and [accepted for v2.0.32](iteration-33.md), retaining the original footprint baseline with an explicitly reviewed feature allowance. Publication is explicitly authorized by the author.

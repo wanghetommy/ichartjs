@@ -8,7 +8,11 @@ import { createChart } from '@taylorwong/ichartjs';
 
 根入口包含 Agent 规划、校验、全部图表、项目和 Diagram、Freeform Board、SVG/Canvas、编辑、偏好、导出和能力发现。
 
-Iteration 26 增量 Flow 的预览、提交及历史使用根入口，轻量 `/diagram` Profile 仅侧重渲染和 Spec 更新。新增命令、布局算法、发现元数据进入 Runtime；Recipe、Skill、文档仍是 Agent 资源，不会自动进入浏览器。新增 Iteration 25–26 指南和配方后更新包资源基线，浏览器模块 raw/gzip 基线及 15% 增长门槛不变，实际体积见 `playground/footprint.json`。
+Profile 只提供精简能力，不导出根入口的 `planChart/getChartContract`。图表渲染 Profile 不含根入口的 Chart 编辑、偏好 API；`/board` 保留独立的 Board 编辑契约。可在 Agent 的 Node 环境规划，或读取包内 Manifest/Recipe，再让浏览器仅引入渲染 Profile，不必把 root 打进应用。
+
+npm 保留消费指南、Skill、Recipe、Manifest、类型声明；维护/迭代记录和 TypeScript 测试夹具仅保留在 Git。维护资料使用 GitHub 链接；包检查按实际打包文件校验本地文档、图片链接。这降低安装包体积，不代表浏览器 JavaScript 变小，也不调整 Runtime 源码预算。
+
+Iteration 26 增量 Flow 的预览、提交及历史使用根入口，轻量 `/diagram` Profile 仅侧重渲染和 Spec 更新。新增命令、布局算法、发现元数据进入 Runtime；Recipe、Skill、文档仍是 Agent 资源，不会自动进入浏览器。该迭代为新增指南和配方更新了包资源基线，当时保留浏览器模块 raw/gzip 基线及 15% 增长门槛。当前采用下述固定上限，实际体积见 `playground/footprint.json`。
 
 虽然 npm 包是 ESM 并声明了 `sideEffects: false`，根入口仍然是完整 Runtime；同时提供按能力拆分的公开入口。不要直接引用未公开的 `src/` 深层路径来做移动端优化。
 
@@ -19,6 +23,17 @@ npm run footprint:check
 ```
 
 它会检查根 ESM 模块图、gzip 体积、npm tarball 和解包后体积；`npm run profiles:check` 会验证四个 Profile 的模块边界和实际 SVG 输出。
+
+2026-10-17 用户批准统一采用以下固定上限：
+
+| 指标 | 上限（字节） | 上限（KiB） |
+| --- | ---: | ---: |
+| Root 源码模块图 | 655,360 | 640 |
+| Root 源码图 gzip | 163,840 | 160 |
+| npm tarball | 405,935 | 396.42（不变） |
+| npm 解包体积 | 1,440,743 | 1,406.98（不变） |
+
+1 KiB＝1,024 字节。Root 指标衡量源码图，不是压缩混淆后的生产 bundle 或浏览器实际传输量。生成报告中的 `budget.history` 保留原始基线 × 1.15、Iteration 33 功能增量，以及 Iteration 34 分组间距修复的实测增量（1,432 raw / 493 gzip 字节），仅作历史审核记录，不再叠加到固定上限上。预算不随发布自动增长；每次变更报告实测增量，提高上限须说明价值并获得明确批准，不为节省少量字节删除必要校验或牺牲可维护性。
 
 移动端当前建议：
 

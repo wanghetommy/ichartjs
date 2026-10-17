@@ -19,7 +19,19 @@ export const featureAllowance = {
   reason: 'User-approved full 33A–33E: shared rounded geometry, sixteen vector glyphs, visual contracts and bilingual guidance.',
   bytes: { moduleRawBytes: 0, moduleGzipBytes: 4096, packageBytes: 10240, unpackedBytes: 24576 }
 };
-export const footprintLimits = Object.fromEntries(Object.entries(baseline).map(([key, value]) => [key, Math.ceil(value * allowedGrowth) + featureAllowance.bytes[key]]));
+export const fixAllowance = {
+  iteration: 34,
+  reviewed: '2026-10-17',
+  reason: 'User-approved measured group boundary clearance fix: final frames, safe exit/entry spacing, constrained fallback and zoom-aware label clearance.',
+  measuredAgainst: { moduleRawBytes: 615162, moduleGzipBytes: 153062 },
+  bytes: { moduleRawBytes: 1432, moduleGzipBytes: 493, packageBytes: 0, unpackedBytes: 0 }
+};
+export const footprintLimits = {
+  moduleRawBytes: 640 * 1024,
+  moduleGzipBytes: 160 * 1024,
+  packageBytes: 405935,
+  unpackedBytes: 1440743
+};
 
 async function moduleGraph(entry) {
   const seen = new Set();
@@ -105,8 +117,13 @@ export async function buildFootprintReport() {
     version: '1.0',
     packageVersion,
     generatedFrom: 'npm pack --dry-run --json',
-    policy: 'source-module-graph-baseline',
-    budget: { baseline, allowedGrowth, featureAllowance, limits: footprintLimits },
+    policy: 'source-module-graph-fixed-limits',
+    budget: {
+      reviewed: '2026-10-17',
+      reason: 'User-approved fixed root limits of 640 KiB raw / 160 KiB gzip; npm package and unpacked ceilings unchanged. Historical allowances are not added to these limits.',
+      limits: footprintLimits,
+      history: { baseline, allowedGrowth, featureAllowance, fixAllowance }
+    },
     entry: 'src/index.mjs',
     files: rootStats.files,
     moduleRawBytes: rootStats.rawBytes,
@@ -126,7 +143,7 @@ export async function buildFootprintReport() {
 }
 
 export function footprintFailures(report) {
-  return Object.entries(baseline)
-    .filter(([key]) => report[key] > footprintLimits[key])
-    .map(([key, value]) => `${key} ${report[key]} exceeds ${footprintLimits[key]} (baseline ${value}; reviewed feature allowance ${featureAllowance.bytes[key]})`);
+  return Object.entries(footprintLimits)
+    .filter(([key, limit]) => report[key] > limit)
+    .map(([key, limit]) => `${key} ${report[key]} exceeds fixed reviewed limit ${limit}`);
 }

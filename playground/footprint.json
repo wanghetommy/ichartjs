@@ -1,73 +1,92 @@
 {
   "version": "1.0",
-  "packageVersion": "2.0.33",
+  "packageVersion": "2.0.34",
   "generatedFrom": "npm pack --dry-run --json",
-  "policy": "source-module-graph-baseline",
+  "policy": "source-module-graph-fixed-limits",
   "budget": {
-    "baseline": {
-      "moduleRawBytes": 535216,
-      "moduleGzipBytes": 129561,
-      "packageBytes": 344082,
-      "unpackedBytes": 1231449
-    },
-    "allowedGrowth": 1.15,
-    "featureAllowance": {
-      "iteration": 33,
-      "reviewed": "2026-10-16",
-      "reason": "User-approved full 33A–33E: shared rounded geometry, sixteen vector glyphs, visual contracts and bilingual guidance.",
-      "bytes": {
-        "moduleRawBytes": 0,
-        "moduleGzipBytes": 4096,
-        "packageBytes": 10240,
-        "unpackedBytes": 24576
-      }
-    },
+    "reviewed": "2026-10-17",
+    "reason": "User-approved fixed root limits of 640 KiB raw / 160 KiB gzip; npm package and unpacked ceilings unchanged. Historical allowances are not added to these limits.",
     "limits": {
-      "moduleRawBytes": 615499,
-      "moduleGzipBytes": 153092,
+      "moduleRawBytes": 655360,
+      "moduleGzipBytes": 163840,
       "packageBytes": 405935,
       "unpackedBytes": 1440743
+    },
+    "history": {
+      "baseline": {
+        "moduleRawBytes": 535216,
+        "moduleGzipBytes": 129561,
+        "packageBytes": 344082,
+        "unpackedBytes": 1231449
+      },
+      "allowedGrowth": 1.15,
+      "featureAllowance": {
+        "iteration": 33,
+        "reviewed": "2026-10-16",
+        "reason": "User-approved full 33A–33E: shared rounded geometry, sixteen vector glyphs, visual contracts and bilingual guidance.",
+        "bytes": {
+          "moduleRawBytes": 0,
+          "moduleGzipBytes": 4096,
+          "packageBytes": 10240,
+          "unpackedBytes": 24576
+        }
+      },
+      "fixAllowance": {
+        "iteration": 34,
+        "reviewed": "2026-10-17",
+        "reason": "User-approved measured group boundary clearance fix: final frames, safe exit/entry spacing, constrained fallback and zoom-aware label clearance.",
+        "measuredAgainst": {
+          "moduleRawBytes": 615162,
+          "moduleGzipBytes": 153062
+        },
+        "bytes": {
+          "moduleRawBytes": 1432,
+          "moduleGzipBytes": 493,
+          "packageBytes": 0,
+          "unpackedBytes": 0
+        }
+      }
     }
   },
   "entry": "src/index.mjs",
   "files": 44,
-  "moduleRawBytes": 614719,
-  "moduleGzipBytes": 152857,
-  "packageBytes": 405645,
-  "unpackedBytes": 1437027,
-  "entryCount": 160,
+  "moduleRawBytes": 616594,
+  "moduleGzipBytes": 153556,
+  "packageBytes": 329986,
+  "unpackedBytes": 1218630,
+  "entryCount": 120,
   "treeShaking": "profile entries are available; root entry remains the complete runtime",
   "profiles": {
     "standard": {
       "files": 27,
-      "rawBytes": 300585,
-      "gzipBytes": 77875
+      "rawBytes": 301405,
+      "gzipBytes": 78204
     },
     "project": {
       "files": 28,
-      "rawBytes": 333535,
-      "gzipBytes": 87342
+      "rawBytes": 335410,
+      "gzipBytes": 87982
     },
     "diagram": {
       "files": 28,
-      "rawBytes": 333646,
-      "gzipBytes": 87338
+      "rawBytes": 335521,
+      "gzipBytes": 87969
     },
     "board": {
       "files": 30,
-      "rawBytes": 345574,
-      "gzipBytes": 89317
+      "rawBytes": 346394,
+      "gzipBytes": 89656
     }
   },
   "resources": {
     "groups": {
       "README + changelog": {
         "files": 2,
-        "bytes": 38228
+        "bytes": 39374
       },
       "other": {
         "files": 6,
-        "bytes": 33302
+        "bytes": 33381
       },
       "Recipes": {
         "files": 14,
@@ -75,15 +94,11 @@
       },
       "English guides": {
         "files": 17,
-        "bytes": 155634
-      },
-      "development docs": {
-        "files": 37,
-        "bytes": 217137
+        "bytes": 159804
       },
       "Chinese guides": {
-        "files": 19,
-        "bytes": 127374
+        "files": 17,
+        "bytes": 122099
       },
       "capability manifests": {
         "files": 3,
@@ -91,17 +106,17 @@
       },
       "Skill": {
         "files": 5,
-        "bytes": 16917
+        "bytes": 17514
       },
       "runtime source": {
         "files": 50,
-        "bytes": 629830
+        "bytes": 631705
       },
       "TypeScript declarations": {
-        "files": 7,
-        "bytes": 53251
+        "files": 6,
+        "bytes": 49399
       }
     },
-    "totalBytes": 1437027
+    "totalBytes": 1218630
   }
 }

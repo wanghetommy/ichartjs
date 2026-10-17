@@ -5,7 +5,7 @@ iChart.js 2.0 is an Agent-first, renderer-independent visualization runtime. An 
 Use it in one of three ways: integrate the Runtime into a web project, let a Coding Agent modify a project, or install the official Skill so an Agent can orchestrate chart selection and delivery. The Runtime produces interactive pages, SVG/PNG/JPEG artifacts, JSON checkpoints, and integration code; the Skill does not replace the Runtime.
 
 <p align="center">
-  <img src="docs/assets/github-promo.gif" alt="iChart.js Agent-first chart workflow" width="1280">
+  <img src="https://raw.githubusercontent.com/wanghetommy/ichartjs/master/docs/assets/github-promo.gif" alt="iChart.js Agent-first chart workflow" width="1280">
 </p>
 
 ## For AI Agents
@@ -58,9 +58,9 @@ For **Agent-driven Incremental Construction**, keep a live JavaScript host and b
 npm install @taylorwong/ichartjs@^2
 ```
 
-If the npm registry is unavailable, install directly from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.33`.
+If the npm registry is unavailable, install directly from GitHub as a fallback: `npm install github:wanghetommy/ichartjs#v2.0.34`.
 
-For a reproducible release-pinned install, use `npm install @taylorwong/ichartjs@2.0.33` instead of the moving `@^2` range.
+For a reproducible release-pinned install, use `npm install @taylorwong/ichartjs@2.0.34` instead of the moving `@^2` range.
 
 ### Optional Agent Skill
 
@@ -82,7 +82,7 @@ For a non-interactive global Codex installation:
 npx skills add wanghetommy/ichartjs --skill ichartjs --agent codex --global --yes
 ```
 
-For a release-pinned installation, use `npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.33/skills/ichartjs --agent codex --global --yes`. WorkBuddy users can import the same tagged `skills/ichartjs` URL through the host's Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it. Package consumers can still copy `node_modules/@taylorwong/ichartjs/skills/ichartjs` as a manual fallback. After installation, invoke `$ichartjs` when named Skill invocation is supported, or select `ichartjs` in the host UI.
+For a release-pinned installation, use `npx skills add https://github.com/wanghetommy/ichartjs/tree/v2.0.34/skills/ichartjs --agent codex --global --yes`. WorkBuddy users can import the same tagged `skills/ichartjs` URL through the host's Skill interface; do not assume a `--agent workbuddy` adapter unless the installed CLI declares it. Package consumers can still copy `node_modules/@taylorwong/ichartjs/skills/ichartjs` as a manual fallback. After installation, invoke `$ichartjs` when named Skill invocation is supported, or select `ichartjs` in the host UI.
 
 ### Agent workflow
 
@@ -249,8 +249,8 @@ Contributors should:
 2. Ensure `npm run agent:check` and `npm test` are green
 
 Full author-only release SOP (preconditions, release sequence, must-not rules, and rollback procedure):
-👉 [`docs/agent/development/release-sop.md`](docs/agent/development/release-sop.md)
+👉 [Release SOP](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/development/release-sop.md)
 
 Start with [`docs/agent/quickstart.md`](docs/agent/quickstart.md). Detailed runtime, charting, project, diagram, and editing contracts live in [`docs/agent/`](docs/agent/).
 
-Contribution requirements are in [`CONTRIBUTING.md`](CONTRIBUTING.md). Report vulnerabilities privately according to [`SECURITY.md`](SECURITY.md).
+Contribution requirements are in [CONTRIBUTING.md](https://github.com/wanghetommy/ichartjs/blob/master/CONTRIBUTING.md). Report vulnerabilities privately according to [SECURITY.md](https://github.com/wanghetommy/ichartjs/blob/master/SECURITY.md).

@@ -109,16 +109,19 @@ Canvas 与 SVG 共用 Scene Graph 命中、`waypoints`、命令、历史和交�
 
 自动折线路由在两端保留足够的直线段，拒绝原路折返或自交候选，节点边缘接近或对齐时同样适用。线身绘制到箭头底边中心，逻辑终点仍是目标端口；曲线裁剪后保留原有形状，短的显式线段会缩小箭头。这仅影响绘制，不改变保存的折点或编辑手柄。
 
-[Diagram Editor](../../../playground/diagram-editor.html) 提供恢复自动路由、保存 Spec JSON、重新加载、导出 SVG，支持 SVG/Canvas。保存 `chart.getSpec()` 后由宿主重新绑定或移除 `container`；JSON 导出是包含 `spec` 和 `state` 的信封，重新加载只取 `payload.spec`，不恢复运行时历史。SVG 导出不包含编辑手柄、Port 和选中样式，不改变当前图表。文件或存储仍由宿主管理，不新增库内持久化层。
+[Diagram Editor](https://github.com/wanghetommy/ichartjs/blob/master/playground/diagram-editor.html) 提供恢复自动路由、保存 Spec JSON、重新加载、导出 SVG，支持 SVG/Canvas。保存 `chart.getSpec()` 后由宿主重新绑定或移除 `container`；JSON 导出是包含 `spec` 和 `state` 的信封，重新加载只取 `payload.spec`，不恢复运行时历史。SVG 导出不包含编辑手柄、Port 和选中样式，不改变当前图表。文件或存储仍由宿主管理，不新增库内持久化层。
 
 Mindmap 默认使用曲线父子连线。`diagram.curveTension` 支持 `0.2` 到 `0.8`；显式边可以覆盖 `routing` 或 `curveTension`。需要自动避障时使用 `routing: 'auto'`；需要持久化人工折线时使用 `routingMode: 'manual'` 和 `waypoints`。人工路径穿过任意可见节点形状时不会提交。`lineStyle` 支持 `solid`、`dashed`、`dotted`，当前不支持直接拖动贝塞尔控制点。
 
 自动路由优先正交折线：只有连接点同轴（水平或垂直）、端口朝向正确且无遮挡时才直连；其他情况仅使用水平和垂直线段，同时兼顾路径长度和较少转折。反向连接也避开源节点与目标节点内部。找不到安全正交路径时不退化为斜线，而是隐藏该连线，在 `getState().warnings` 和 `explain().warnings` 中返回 `EDGE_ROUTE_BLOCKED`，提示调整节点位置或端口。合法人工路径遵守指定线型：`auto`/`orthogonal` 要求正交；显式 `straight`、`curved` 不因消除斜线而自动改写。
 
+同一对节点存在往返边时，无显式端口约束的 `auto`/`orthogonal` 路由让一个方向保持常规路径，返回方向使用外侧通道；即使前向边需要绕开障碍，也会拒绝与其完全反向重合的路径。候选通道优先利用可用绘图区，避免贴近边缘时不必要的裁切。连接点不变，因此端口附近的短接入段可以共用。这不是全图交叉最小化：显式端口、合法人工折点和指定的直线/曲线仍优先遵守。返回通道使用相同的节点形状避障；找不到安全候选时仍返回 `EDGE_ROUTE_BLOCKED`。在 Diagram Editor 使用 `?scenario=editor&loop=1` 预览，追加 `&renderer=canvas` 可切换 Canvas。
+
 当前限制：
 
 - Group 只支持平级 Group，不支持嵌套。
 - 展开的 Group 边界包含成员节点、内部连线路径、箭头和连线标签，并应用 `group.padding`；跨组连线不撑大组框。折叠时仍按成员节点计算边界，外部连线接到组框上。`resizeGroup` 会缩放成员位置和尺寸，不持久化第二个 Group 矩形。
+- 跨组自动 `auto`/`orthogonal` 路由按最终内部内容组框计算，优先让组框与外部首个/末个折弯保持 12 个图表坐标单位间距。必要的垂直穿越边框是允许的，Group 不被视作实心障碍。有界候选搜索找不到满足间距的安全路线时，才可缩小间距并报告 `EDGE_GROUP_CLEARANCE_REDUCED`；节点避障绝不放宽。显式端口、合法人工路线和指定的直线/曲线仍优先遵守。连线标签布局也检查组框，文字测量考虑缩放；空间不足时保留原有的有界回退。
 - Canvas 提供基础无障碍文本，SVG 提供更丰富的 Diagram 语义。
 - Architecture 混用手工坐标与自动坐标时可能发生重叠；运行时会保留手工坐标，不会静默搬动节点。
 

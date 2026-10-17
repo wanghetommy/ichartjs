@@ -29,10 +29,11 @@ Current policies use English. Chinese guidance is in [the companion Development 
 - [31](iteration-31.md): host integration, presentation measurement and production bundle evidence.
 - [32](iteration-32.md): strict formats and renderer-independent browser delivery, included in v2.0.32.
 - [33](iteration-33.md): optional diagram visual language, safe rounded geometry and built-in vector icons; accepted for v2.0.32 with a separately reviewed feature allowance.
+- [34](iteration-34.md): consumer acceptance, Profile type/Skill boundaries, npm documentation cleanup, reciprocal Flow routing, group-boundary clearance and reviewed fixed footprint limits; included in v2.0.34.
 
 Earlier iteration plans are linked from the Roadmap. An implemented plan is not proof of publication; read its status and evidence.
 
-Current release: `v2.0.33`, adding bounded stroke sizing, compact layouts and Skill readability acceptance. Iterations 32–33 shipped in `v2.0.32`; see their records for scope and evidence.
+Current release line: `v2.0.34`, covering Iteration 34 consumer delivery, routing fixes and reviewed footprint limits. Iterations 32–33 shipped in `v2.0.32`; see their records for scope and evidence.
 
 ## Historical records
 

@@ -1,10 +1,10 @@
 # 开发指南
 
-适用于维护者和 Coding Agent 修改 iChart.js 本身。使用组件先读 [Agent 指南](README.md)；规划和历史证据见[开发文档索引](../development/README.md)。
+适用于维护者和 Coding Agent 修改 iChart.js 本身。使用组件先读 [Agent 指南](README.md)；规划和历史证据见[开发文档索引](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/development/README.md)。
 
 ## 开发前必读
 
-按根目录 `AGENTS.md` 的要求，阅读并遵守[七条开发原则](../development/development-principles.md)，然后读取相关场景及迭代计划。原则只在该英文文件维护，不在这里重复。
+按根目录 `AGENTS.md` 的要求，阅读并遵守[七条开发原则](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/development/development-principles.md)，然后读取相关场景及迭代计划。原则只在该英文文件维护，不在这里重复。
 
 ## 选择修改范围
 
@@ -20,10 +20,10 @@
 
 1. 确认任务和迭代范围，必要时复现问题，定位最小的共同修改层。
 2. 补充针对性回归测试并实现，不修改无关问题。
-3. 同步受影响的 API/类型、Manifest、双语指南、Recipe 和维护中的 Demo；通过 [Playground 策略](../development/playground-plan.md)选择负责该场景的页面。
+3. 同步受影响的 API/类型、Manifest、双语指南、Recipe 和维护中的 Demo；通过 [Playground 策略](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/development/playground-plan.md)选择负责该场景的页面。
 4. 先运行针对性测试，再运行 `npm run agent:check` 和 `git diff --check`。Agent 检查覆盖契约、类型、依赖、配方、文档、安装包消费者、体积、Profile、语法和单测，不证明翻译语义或浏览器行为正确。
 5. 布局或交互变更运行 `npm run test:browser` 并检查 SVG/Canvas 实际预览；README/Quickstart 示例运行 `npm run docs:snippets`；性能相关变更运行 `npm run performance:check`。包内容或源码体积变化时运行 `npm run footprint:generate` 和 `npm run footprint:check`，不能提高预算掩盖回归。
-6. 交付实际变更、测试结果、剩余限制、准确 HTTP 预览地址和验收步骤。提交或发布需明确授权；发布遵循[作者专用 SOP](../development/release-sop.md)。
+6. 交付实际变更、测试结果、剩余限制、准确 HTTP 预览地址和验收步骤。提交或发布需明确授权；发布遵循[作者专用 SOP](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/development/release-sop.md)。
 
 ## 文档与源码规则
 

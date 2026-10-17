@@ -9,6 +9,7 @@ import { readDocumentSnippets, quickstartWorkflowSource } from '../../scripts/ch
 import { measureMountedLifecycle } from './lifecycle-benchmark.mjs';
 import { verifyHostLifecycle } from './host-lifecycle.mjs';
 import { verifyExportDelivery } from './export-delivery.mjs';
+import { verifyAgentTasks } from './task-acceptance.mjs';
 
 const root = new URL('../../', import.meta.url);
 const browserPort = Number(process.env.BROWSER_PORT || 34567);
@@ -70,6 +71,133 @@ after(async () => {
   await browser?.close();
   server?.kill('SIGTERM');
 });
+
+test('Agent delivery tasks preserve trend data and incremental Flow semantics', async () => {
+  await goto('/playground/index.html');
+  const tasks = await page.evaluate(verifyAgentTasks, { root: '/src/index.mjs', standard: '/src/standard.mjs' });
+  assert.equal(tasks.length, 4);
+  for (const task of tasks) for (const [name, passed] of Object.entries(task.checks)) assert.equal(passed, true, `${task.task}/${task.renderer}: ${name}`);
+});
+
+for (const renderer of ['svg', 'canvas']) {
+  test(`Diagram Editor ${renderer}: group clearance respects room, actual zoomed labels and constrained fallback`, async () => {
+    await page.setViewportSize({ width: 658, height: 900 });
+    try {
+      await goto(`/playground/diagram-editor.html?scenario=editor&loop=1&renderer=${renderer}`);
+      await page.locator('#save-spec').click();
+      const spec = JSON.parse(await page.locator('#spec-text').inputValue());
+      spec.view = { scale: 0.64, offsetX: 0, offsetY: 0 };
+      const positions = { review: { x: 320, y: 160 }, qa: { x: 400, y: 376 }, done: { x: 672, y: 152 } };
+      spec.nodes = spec.nodes.map(node => ({ ...node, position: positions[node.id] || node.position }));
+      const load = async value => {
+        await page.locator('#spec-text').fill(JSON.stringify(value));
+        await page.locator('#load-spec').click();
+        return JSON.parse(await page.locator('#output').textContent()).state;
+      };
+      const measure = async () => {
+        const downloading = page.waitForEvent('download');
+        await page.locator('#export-svg').click();
+        const download = await downloading, source = await readFile(await download.path(), 'utf8');
+        return page.evaluate(source => {
+          const host = document.createElement('div');
+          Object.assign(host.style, { position: 'fixed', left: '-10000px' });
+          host.innerHTML = source;
+          document.body.append(host);
+          try {
+            const frame = host.querySelector('#group-delivery').getBBox(), label = host.querySelector('#edge-label-2').getBBox();
+            const path = host.querySelector('#edge-2').getAttribute('d').match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi).map(Number);
+            return { path, gap: path[2] - frame.x - frame.width, labelGap: label.x - frame.x - frame.width, text: host.querySelector('#edge-label-2').textContent };
+          } finally { host.remove(); }
+        }, source);
+      };
+      const ready = await load(spec), normal = await measure();
+      assert.equal(ready.warnings.some(warning => warning.code === 'EDGE_GROUP_CLEARANCE_REDUCED'), false);
+      assert.ok(normal.gap >= 12 * 0.64 - 0.001);
+      assert.ok(normal.labelGap >= 12 * 0.64 - 0.5, `${normal.labelGap}`);
+      assert.equal(normal.text, 'release');
+      const constrained = { ...spec, nodes: [...spec.nodes, { id: 'blocker', label: 'Blocker', position: { x: 568, y: 300 }, size: { width: 32, height: 180 } }] };
+      const reduced = await load(constrained), tight = await measure();
+      assert.ok(reduced.warnings.some(warning => warning.code === 'EDGE_GROUP_CLEARANCE_REDUCED' && warning.edgeId === 'qa-done'));
+      assert.ok(tight.gap < 12 * 0.64);
+      const recovered = await load(spec), restored = await measure();
+      assert.equal(recovered.warnings.some(warning => warning.code === 'EDGE_GROUP_CLEARANCE_REDUCED'), false);
+      assert.deepEqual(restored, normal);
+    } finally { await page.setViewportSize({ width: 900, height: 600 }); }
+  });
+}
+
+for (const renderer of ['svg', 'canvas']) {
+  test(`Diagram Editor ${renderer}: reciprocal return channels survive repeated pointer edits and node movement`, async () => {
+    await goto(`/playground/diagram-editor.html?scenario=editor&loop=1&renderer=${renderer}`);
+    const surface = page.locator('#chart svg, #chart canvas').first();
+    const save = async () => {
+      await page.locator('#save-spec').click();
+      return JSON.parse(await page.locator('#spec-text').inputValue());
+    };
+    const inspect = async spec => page.evaluate(async spec => {
+      const { createChart } = await import('/src/index.mjs');
+      const chart = createChart({ ...spec, container: undefined });
+      try {
+        chart.selectEdges(['qa-review']);
+        const path = chart.model.scene.find('edge-3').geometry.points;
+        let handle;
+        chart.model.scene.walk(node => {
+          if (node.dataRef?.edgeId !== 'qa-review' || node.dataRef.edgeHandle !== 'segment') return;
+          const points = node.dataRef.routePoints, index = node.dataRef.segmentIndex;
+          if (points[index].y === points[index + 1].y && (points[index].y < 160 || points[index].y > 224)) handle = { x: node.geometry.x + 5, y: node.geometry.y + 5 };
+        });
+        return { path, handle, route: chart.getState().edgeRoutes.find(route => route.edgeId === 'qa-review') };
+      } finally { chart.destroy(); }
+    }, spec);
+    const position = async (point, spec) => {
+      await surface.scrollIntoViewIfNeeded();
+      const box = await surface.boundingBox();
+      return { x: box.x + point.x * box.width / spec.width, y: box.y + point.y * box.height / spec.height };
+    };
+    const original = await save();
+    let current = original;
+    for (let iteration = 0; iteration < 2; iteration += 1) {
+      const before = await inspect(current);
+      assert.ok(before.handle);
+      const start = await position(before.handle, current);
+      await page.mouse.click(start.x, start.y);
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      const shift = before.handle.y < 160 ? -24 : 24;
+      const end = await position({ ...before.handle, y: before.handle.y + shift }, current);
+      await page.mouse.move(end.x, end.y, { steps: 6 });
+      await page.mouse.up();
+      const next = await save(), route = next.edges.find(edge => edge.id === 'qa-review');
+      assert.equal(route.routingMode, 'manual');
+      assert.notDeepEqual(route.waypoints, current.edges.find(edge => edge.id === 'qa-review').waypoints);
+      assert.equal((await inspect(next)).route.effectiveRoutingMode, 'manual');
+      current = next;
+    }
+    const edited = current.edges.find(edge => edge.id === 'qa-review');
+    const node = current.nodes.find(node => node.id === 'qa');
+    const start = await position({ x: node.position.x + node.size.width / 2, y: node.position.y + node.size.height / 2 }, current);
+    const end = await position({ x: node.position.x + node.size.width / 2 + 32, y: node.position.y + node.size.height / 2 }, current);
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(end.x, end.y, { steps: 6 });
+    await page.mouse.up();
+    const moved = await save();
+    assert.notDeepEqual(moved.nodes.find(node => node.id === 'qa').position, node.position);
+    assert.equal(moved.edges.find(edge => edge.id === 'qa-review').waypoints[1].y, edited.waypoints[1].y);
+    assert.equal((await inspect(moved)).route.effectiveRoutingMode, 'manual');
+    await page.locator('#undo').click();
+    assert.deepEqual((await save()).edges, current.edges);
+    await page.locator('#redo').click();
+    assert.deepEqual((await save()).edges, moved.edges);
+    await page.locator('#load-spec').click();
+    assert.match(await page.locator('#status').textContent(), /Spec reloaded/);
+    assert.equal((await inspect(await save())).route.effectiveRoutingMode, 'manual');
+    await page.locator('#reset').click();
+    const reset = await save();
+    assert.deepEqual(reset.nodes, original.nodes);
+    assert.deepEqual(reset.edges, original.edges);
+  });
+}
 
 test('stroke sizing survives mounted resize and produces identical SVG/Canvas exports', async () => {
   await goto('/playground/index.html');

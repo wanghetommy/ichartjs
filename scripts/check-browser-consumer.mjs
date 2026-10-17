@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -8,11 +8,19 @@ import { chromium } from 'playwright-core';
 import { buildConsumerBundles } from './consumer-bundle-lib.mjs';
 import { verifyHostLifecycle } from '../tests/browser/host-lifecycle.mjs';
 import { verifyExportDelivery } from '../tests/browser/export-delivery.mjs';
+import { verifyAgentTasks } from '../tests/browser/task-acceptance.mjs';
+
+const options = Object.fromEntries(process.argv.slice(2).map(argument => {
+  const match = argument.match(/^--(published|artifacts)=(.+)$/);
+  if (!match) throw new Error(`Unknown argument: ${argument}`);
+  return [match[1], match[2]];
+}));
+if (options.published && !/^\d+\.\d+\.\d+$/.test(options.published)) throw new Error('Published version must be an explicit stable semver.');
 
 const work = mkdtempSync(join(tmpdir(), 'ichartjs-mounted-consumer-'));
 let server, browser;
 try {
-  const report = await buildConsumerBundles({ outputDirectory: work });
+  const report = await buildConsumerBundles({ publishedVersion: options.published, outputDirectory: work, extraExports: { root: ['getCapabilities', 'inspectData', 'planChart', 'getChartContract', 'validateSpec'] } });
   const imports = Object.fromEntries(Object.entries(report.entries).map(([name, entry]) => [entry.import, `/bundles/${name}.mjs`]));
   const html = (await readFile(new URL('../examples/consumer-browser.html', import.meta.url), 'utf8')).replace(/<script type="importmap">[\s\S]*?<\/script>/, `<script type="importmap">${JSON.stringify({ imports })}</script>`);
   server = createServer(async (request, response) => {
@@ -37,10 +45,21 @@ try {
   const entries = Object.fromEntries(Object.keys(report.entries).map(name => [name, `${base}/bundles/${name}.mjs`]));
   const results = await page.evaluate(verifyHostLifecycle, entries);
   const delivery = await page.evaluate(verifyExportDelivery, entries);
+  const tasks = await page.evaluate(verifyAgentTasks, entries);
+  for (const result of tasks) for (const [name, passed] of Object.entries(result.checks)) assert.equal(passed, true, `${result.task}/${result.renderer}: ${name}`);
+  if (options.artifacts) {
+    await mkdir(options.artifacts, { recursive: true });
+    for (const result of tasks) {
+      const prefix = join(options.artifacts, `${result.task}-${result.renderer}`);
+      await writeFile(`${prefix}.svg`, result.artifacts.svg);
+      await writeFile(`${prefix}.png`, Buffer.from(result.artifacts.png.split(',')[1], 'base64'));
+      await writeFile(`${prefix}.json`, JSON.stringify(result.artifacts.json, null, 2));
+    }
+  }
   for (const result of delivery) for (const [name, passed] of Object.entries(result.checks)) assert.equal(passed, true, `${result.entry}/${result.renderer}/DPR${result.ratio}: ${name}`);
   for (const result of results) for (const [name, passed] of Object.entries(result.checks)) assert.equal(passed, true, `${result.entry}/${result.renderer}: ${name}`);
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ source: 'installed local npm tarball through minified browser bundles', packageVersion: report.packageVersion, scenarios: results, delivery }, null, 2));
+  console.log(JSON.stringify({ source: report.source, packageVersion: report.packageVersion, scenarios: results, delivery, tasks: tasks.map(({ artifacts, ...result }) => result) }, null, 2));
 } finally {
   await browser?.close();
   if (server?.listening) await new Promise(resolve => server.close(resolve));

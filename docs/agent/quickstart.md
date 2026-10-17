@@ -10,7 +10,7 @@ For a new JavaScript or TypeScript project, install the runtime before importing
 npm install @taylorwong/ichartjs@^2
 ```
 
-Pin `@taylorwong/ichartjs@2.0.33` for a reproducible release. Use the package root when the Agent needs discovery and cross-family APIs; use `/standard`, `/project`, `/diagram`, or `/board` when the chart family is already known and the host wants a smaller entry.
+Pin `@taylorwong/ichartjs@2.0.34` for a reproducible release. Use the package root when the Agent needs discovery and cross-family APIs; use `/standard`, `/project`, `/diagram`, or `/board` when the chart family is already known and the host wants a smaller entry.
 
 Profile entries are independent public entry points and do not require importing the root entry first. The root entry is the complete cross-family runtime; it is not a prerequisite or a plugin registry for the focused entries. Run `node examples/consumer-quickstart.mjs` to verify the root, all Profiles, SVG output, and Board output from one consumer fixture.
 
@@ -72,6 +72,8 @@ For coding environments such as Codex, read [Coding Agent Integration](coding-ag
 For delivery-oriented tasks, read [Task Validation](task-validation.md). For mobile loading and bundle boundaries, read [Runtime Footprint](runtime-footprint.md). Use a documented profile entry for mobile or focused applications; use the root entry when the complete API is required. Profile imports are `@taylorwong/ichartjs/standard`, `/project`, `/diagram`, and `/board`.
 
 ## Standard Workflow
+
+`planChart()`, `getChartContract()` and preference discovery are root-only, not Profile exports. Agent-side Node planning can produce a Spec for a browser that imports only `/standard`, `/project` or `/diagram`. A known Spec can instead use the packaged manifest/recipes and Profile validation. Profile `getCapabilities()` is reduced (no root `intents`/`charts`); Chart rendering Profile data/style changes use `update()`/`setTheme()`, not root-only Chart editing or preference methods. `/board` has its own Board capabilities and editing APIs.
 
 ```text
 discover → inspect → plan → build → validate → render → explain, export, self-check
