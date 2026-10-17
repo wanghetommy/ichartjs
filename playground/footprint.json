@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "packageVersion": "2.0.36",
+  "packageVersion": "2.0.37",
   "generatedFrom": "npm pack --dry-run --json",
   "policy": "source-module-graph-fixed-limits",
   "budget": {
@@ -50,39 +50,39 @@
   },
   "entry": "src/index.mjs",
   "files": 44,
-  "moduleRawBytes": 631980,
-  "moduleGzipBytes": 158049,
-  "packageBytes": 340680,
-  "unpackedBytes": 1249602,
+  "moduleRawBytes": 636763,
+  "moduleGzipBytes": 159359,
+  "packageBytes": 344679,
+  "unpackedBytes": 1260380,
   "entryCount": 120,
   "treeShaking": "profile entries are available; root entry remains the complete runtime",
   "profiles": {
     "standard": {
       "files": 27,
-      "rawBytes": 312116,
-      "gzipBytes": 81326
+      "rawBytes": 312207,
+      "gzipBytes": 81345
     },
     "project": {
       "files": 28,
-      "rawBytes": 347688,
-      "gzipBytes": 91634
+      "rawBytes": 352471,
+      "gzipBytes": 92923
     },
     "diagram": {
       "files": 28,
-      "rawBytes": 347799,
-      "gzipBytes": 91595
+      "rawBytes": 352582,
+      "gzipBytes": 92910
     },
     "board": {
       "files": 30,
-      "rawBytes": 357563,
-      "gzipBytes": 92917
+      "rawBytes": 357654,
+      "gzipBytes": 92936
     }
   },
   "resources": {
     "groups": {
       "README + changelog": {
         "files": 2,
-        "bytes": 41273
+        "bytes": 42231
       },
       "other": {
         "files": 6,
@@ -94,11 +94,11 @@
       },
       "English guides": {
         "files": 17,
-        "bytes": 165764
+        "bytes": 167952
       },
       "Chinese guides": {
         "files": 17,
-        "bytes": 127901
+        "bytes": 129745
       },
       "capability manifests": {
         "files": 3,
@@ -106,17 +106,17 @@
       },
       "Skill": {
         "files": 5,
-        "bytes": 19074
+        "bytes": 20079
       },
       "runtime source": {
         "files": 50,
-        "bytes": 647156
+        "bytes": 651939
       },
       "TypeScript declarations": {
         "files": 6,
         "bytes": 49699
       }
     },
-    "totalBytes": 1249602
+    "totalBytes": 1260380
   }
 }

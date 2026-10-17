@@ -14,7 +14,7 @@ test('fits diagram labels by wrapping and bounded font reduction before truncati
   assert.equal(compact.truncated, true);
 });
 
-test('keeps diagram node labels centered and protects inline text while allowing collision offsets', () => {
+test('keeps diagram node labels centered and adjacent edge labels unmasked while allowing collision offsets', () => {
   const chart = createChart({
     type: 'flow', renderer: 'svg', width: 560, height: 300,
     nodes: [
@@ -28,9 +28,9 @@ test('keeps diagram node labels centered and protects inline text while allowing
   chart.model.scene.walk(item => { if (item.id?.startsWith('node-label-check')) labels.push(item); });
   assert.equal((labels[0].geometry.y + labels.at(-1).geometry.y) / 2, node.bounds.y + node.bounds.height / 2);
   assert.equal(state.layout.labels.diagram.edgeOnLine + state.layout.labels.diagram.edgeOffset, 2);
-  assert.ok(chart.model.scene.find('edge-label-0-background'));
-  assert.equal(chart.model.scene.find('edge-label-0-background').style.opacity, 1);
-  assert.equal(state.layout.labels.diagram.backgrounded, 1);
+  assert.equal(chart.model.scene.find('edge-label-0-background'), undefined);
+  assert.equal(chart.model.scene.find('edge-0').geometry.exclusions, undefined);
+  assert.equal(state.layout.labels.diagram.backgrounded, 0);
   assert.equal(chart.model.scene.find('edge-label-1').geometry.text, 'approved');
   chart.destroy();
 });

@@ -15,7 +15,7 @@ The Skill guides an Agent; it is not the JavaScript runtime or a live update cha
 npx skills add wanghetommy/ichartjs --skill ichartjs
 ```
 
-For global non-interactive Codex installation add `--agent codex --global --yes`. For reproducibility use `https://github.com/wanghetommy/ichartjs/tree/v2.0.36/skills/ichartjs`. WorkBuddy can import that directory; do not assume a CLI adapter unless declared by the installed CLI.
+For global non-interactive Codex installation add `--agent codex --global --yes`. For reproducibility use `https://github.com/wanghetommy/ichartjs/tree/v2.0.37/skills/ichartjs`. WorkBuddy can import that directory; do not assume a CLI adapter unless declared by the installed CLI.
 
 Reuse the host's package manager and installed runtime. If missing, install `@taylorwong/ichartjs@^2`, not unscoped `ichartjs`. Installed capabilities override online examples; do not silently upgrade.
 

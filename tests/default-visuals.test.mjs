@@ -10,6 +10,7 @@ import { pathCommands, pathIntersectsBox, samplePath } from '../src/path.mjs';
 import { cubicBezierPoint } from '../src/scene.mjs';
 import { createSoftFlow } from '../playground/diagram-visuals.mjs';
 import { galleryCases } from '../playground/gallery-cases.mjs';
+import { crossingEdgeLabelSpec } from './fixtures/edge-label-layout.mjs';
 
 function renderedSamples(geometry) {
   const samples = [];
@@ -55,9 +56,9 @@ for (const renderer of ['svg', 'canvas']) {
           for (const edge of edges) assert.ok(renderedSamples(edge.geometry).every(point => !inside(point, box)), `${width}/${mode}/${label.geometry.text}`);
         }
         if (width === 768) {
-          assert.equal(scene.find('edge-label-3').dataRef.onLine, false);
-          assert.equal(scene.find('edge-label-3-background').style.opacity, 1);
-          assert.ok(scene.find('edge-3').geometry.exclusions.length);
+          assert.equal(scene.find('edge-label-3').dataRef.onLine, true);
+          assert.equal(scene.find('edge-label-3-background'), undefined);
+          assert.equal(scene.find('edge-3').geometry.exclusions, undefined);
         }
         const restored = factory(chart.export({ type: 'json', as: 'object' }).spec);
         assert.equal(restored.export({ type: 'svg' }), chart.export({ type: 'svg' })); restored.destroy();
@@ -70,13 +71,12 @@ for (const renderer of ['svg', 'canvas']) {
       const spec = { type, renderer, width: 640, height: 400, background: 'transparent', view: { scale: 0.64, offsetX: 20, offsetY: 10 }, diagram: { layout: 'manual', routing: 'orthogonal' }, nodes: [{ id: 'source', label: 'Source', position: { x: 200, y: 40 }, size: { width: 120, height: 40 }, ports: [{ id: 'out', side: 'bottom' }] }, { id: 'target', label: 'Target', position: { x: 200, y: 260 }, size: { width: 120, height: 40 }, ports: [{ id: 'in', side: 'top' }] }], edges: [{ id: 'link', from: 'source', to: 'target', fromPort: 'out', toPort: 'in', label: 'Release' }], ...(type === 'swimlane' ? { lanes: [{ id: 'team', label: 'Team' }] } : {}) };
       const chart = createChart(spec);
       const background = chart.model.scene.find('edge-label-0-background');
-      if (type === 'swimlane') { assert.equal(background.style.fill, chart.spec.theme.background); assert.equal(background.style.opacity, 1); }
-      else assert.equal(background, undefined);
+      assert.equal(background, undefined);
       const edge = chart.model.scene.find('edge-0');
-      assert.ok(edge.geometry.exclusions?.length);
+      assert.equal(edge.geometry.exclusions, undefined);
       const middle = { x: edge.geometry.points[0].x, y: (edge.geometry.points[0].y + edge.geometry.points.at(-1).y) / 2 };
       assert.equal(chart.model.scene.hit(middle.x, middle.y)?.dataRef.edgeId, 'link');
-      chart.resize(768, 450); assert.ok(chart.model.scene.find('edge-0').geometry.exclusions?.length);
+      chart.resize(768, 450); assert.equal(chart.model.scene.find('edge-0').geometry.exclusions, undefined);
       chart.destroy();
     }
   });
@@ -189,12 +189,14 @@ test('diagram gutters have no axis reservation, but explicit padding and node si
   }
 });
 
-test('zero-padding group frames enclose display-sized label plates at non-unit zoom', () => {
+test('zero-padding group frames enclose display-sized labels without requiring plates at non-unit zoom', () => {
   for (const scale of [0.64, 1, 1.5]) {
     const chart = createChart({ type: 'flow', width: 800, height: 500, view: { scale }, diagram: { layout: 'manual', routing: 'orthogonal' }, groups: [{ id: 'team', padding: 0 }], nodes: [{ id: 'from', label: 'From', groupId: 'team', size: { width: 112, height: 36 }, position: { x: 200, y: 50 }, ports: [{ id: 'out', side: 'bottom' }] }, { id: 'to', label: 'To', groupId: 'team', size: { width: 112, height: 36 }, position: { x: 200, y: 280 }, ports: [{ id: 'in', side: 'top' }] }], edges: [{ from: 'from', to: 'to', fromPort: 'out', toPort: 'in', label: 'Approve international release' }] });
-    const frame = chart.model.scene.find('group-team').geometry, plate = chart.model.scene.find('edge-label-0-background')?.geometry;
-    assert.ok(plate);
-    assert.ok(plate.x >= frame.x - 1e-8 && plate.x + plate.width <= frame.x + frame.width + 1e-8, `${scale}`);
+    const frame = chart.model.scene.find('group-team').geometry, label = chart.model.scene.find('edge-label-0');
+    const size = fontPixels(label.style.font), width = estimateTextWidth(label.geometry.text, size, label.style.font);
+    const box = { x: label.geometry.x - width / 2 - 2, y: label.geometry.y - size * .6 - 2, width: width + 4, height: size * 1.2 + 4 };
+    assert.ok(box.x >= frame.x - 1e-8 && box.x + box.width <= frame.x + frame.width + 1e-8, `${scale}`);
+    assert.ok(box.y >= frame.y - 1e-8 && box.y + box.height <= frame.y + frame.height + 1e-8, `${scale}`);
     chart.destroy();
   }
 });
@@ -236,17 +238,17 @@ test('physically constrained label fallback is diagnosed without changing geomet
 });
 
 test('embedded Diagram line gaps follow Board translation and do not change chart checkpoints', () => {
-  const spec = { ...createSoftFlow(768), background: 'transparent', theme: { mode: 'light', palette: 'soft', marks: { lineWidth: 2 } } }, chart = createChart(spec);
-  const original = chart.model.scene.find('edge-3').geometry.exclusions;
+  const spec = crossingEdgeLabelSpec(), chart = createChart(spec);
+  const original = chart.model.scene.find('edge-1').geometry.exclusions;
   const board = createBoard({ width: 1000, height: 600, items: [{ id: 'workflow', kind: 'chart', position: { x: 70, y: 40 }, size: { width: 768, height: 450 }, spec }] });
   const paths = []; board.scene.walk(node => { if (node.geometry.exclusions?.length) paths.push(node); });
   assert.ok(paths.length);
-  const embedded = paths.find(node => node.id.endsWith('edge-3'));
-  assert.ok(embedded); assert.equal(embedded.geometry.exclusions[0].x, original[0].x + 70);
-  assert.equal(embedded.geometry.exclusions[0].y, original[0].y + 40);
+  const embedded = paths.find(node => node.id.endsWith('edge-1'));
+  assert.ok(embedded); assert.ok(Math.abs(embedded.geometry.exclusions[0].x - original[0].x - 70) < 1e-8);
+  assert.ok(Math.abs(embedded.geometry.exclusions[0].y - original[0].y - 40) < 1e-8);
   assert.deepEqual(board.getSpec().items[0].spec.edges, chart.getSpec().edges);
   board.update({ items: [{ ...board.getSpec().items[0], size: { width: 384, height: 225 } }] });
-  const scaled = []; board.scene.walk(node => { if (node.id.endsWith('edge-3')) scaled.push(node); });
+  const scaled = []; board.scene.walk(node => { if (node.id.endsWith('edge-1')) scaled.push(node); });
   assert.equal(scaled[0].geometry.exclusions[0].width, original[0].width);
   assert.equal(scaled[0].geometry.exclusions[0].height, original[0].height);
   assert.ok(Math.abs(scaled[0].geometry.exclusions[0].x + original[0].width / 2 - ((original[0].x + original[0].width / 2) * 0.5 + 70)) < 1e-8);

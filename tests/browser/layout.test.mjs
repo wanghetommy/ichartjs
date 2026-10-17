@@ -11,6 +11,7 @@ import { verifyHostLifecycle } from './host-lifecycle.mjs';
 import { verifyExportDelivery } from './export-delivery.mjs';
 import { verifyAgentTasks } from './task-acceptance.mjs';
 import { verifyDefaultVisuals } from './default-visuals.mjs';
+import { verifyEdgeLabelGaps } from './edge-label-gap.mjs';
 
 const root = new URL('../../', import.meta.url);
 const browserPort = Number(process.env.BROWSER_PORT || 34567);
@@ -79,6 +80,60 @@ test('Iteration 35: default visuals protect real text and transparent PNG pixels
   assert.equal(report.softCases, 48);
   assert.equal(report.defaultCases, 432);
   for (const [check, passed] of Object.entries(report.checks)) assert.equal(passed, true, `${check} ${JSON.stringify(report.difference || {})}`);
+});
+
+test('Diagram line-adjacent labels preserve adaptive CSS pixel gaps and continuous lines at DPR 1 and 2', async () => {
+  for (const deviceScaleFactor of [1, 2]) {
+    const context = await browser.newContext({ viewport: { width: 1100, height: 800 }, deviceScaleFactor });
+    try {
+      const gapPage = await context.newPage();
+      await gapPage.goto(`${baseUrl}/playground/index.html`);
+      const report = await gapPage.evaluate(verifyEdgeLabelGaps);
+      assert.equal(report.cases, 64);
+      for (const [check, passed] of Object.entries(report.checks)) assert.equal(passed, true, `${deviceScaleFactor}/${check}`);
+    } finally { await context.close(); }
+  }
+});
+
+test('Diagram edge labels use compact safe offsets with stable sides and real SVG/Canvas text', async () => {
+  await goto('/playground/index.html');
+  const reports = await page.evaluate(async () => {
+    const root = await import('/src/index.mjs'), diagram = await import('/src/diagram-profile.mjs');
+    const { edgeLabelLayoutSpec, manualEdgeLabelSpec } = await import('/tests/fixtures/edge-label-layout.mjs');
+    const host = document.createElement('div'); host.style.width = '960px'; document.body.append(host);
+    const reports = [];
+    try {
+      for (const [entry, factory] of [['root', root.createChart], ['diagram', diagram.createChart]]) for (const renderer of ['svg', 'canvas']) {
+        const spec = edgeLabelLayoutSpec(renderer), chart = factory({ ...spec, container: host, responsive: false });
+        try {
+          const label = chart.model.scene.find('edge-label-1'), before = JSON.stringify(chart.getSpec());
+          const report = { entry, renderer, compact: label.dataRef.offsetY > 0 && label.dataRef.offsetY < 37, complete: label.geometry.text === '进入风控', quiet: chart.getState().warnings.length === 0 };
+          const bitmap = await createImageBitmap(chart.export({ type: 'png', as: 'blob' })), canvas = document.createElement('canvas');
+          canvas.width = bitmap.width; canvas.height = bitmap.height;
+          const context = canvas.getContext('2d'); context.drawImage(bitmap, 0, 0); bitmap.close();
+          const ratio = canvas.width / spec.width, pixels = context.getImageData(Math.floor((label.geometry.x - 24) * ratio), Math.floor((label.geometry.y - 8) * ratio), Math.ceil(48 * ratio), Math.ceil(16 * ratio)).data;
+          report.visiblePixels = pixels.some((value, index) => index % 4 === 0 && value < 100 && pixels[index + 1] < 100 && pixels[index + 2] < 140 && pixels[index + 3] > 200);
+          if (renderer === 'svg') {
+            const text = host.querySelector('#edge-label-1'), bounds = text.getBBox(), plate = host.querySelector('#edge-label-1-background')?.getBBox();
+            report.svgText = text.textContent === '进入风控' && bounds.width > 0 && (!plate || bounds.x >= plate.x - 0.1 && bounds.x + bounds.width <= plate.x + plate.width + 0.1);
+          }
+          report.unchanged = JSON.stringify(chart.getSpec()) === before;
+          chart.resize(1200, 520);
+          report.resized = chart.model.scene.find('edge-label-1').dataRef.offsetY > 0 && chart.model.scene.find('edge-label-1').dataRef.offsetY < 37;
+          const restored = factory({ ...chart.getSpec(), container: undefined });
+          report.portable = JSON.stringify(restored.model.scene.find('edge-label-1').geometry) === JSON.stringify(chart.model.scene.find('edge-label-1').geometry) && spec.edges.every(edge => restored.export({ type: 'svg' }).includes(`>${edge.label}</text>`)); restored.destroy();
+          reports.push(report);
+        } finally { chart.destroy(); }
+        for (const reverse of [false, true]) {
+          const chart = factory({ ...manualEdgeLabelSpec('flow', reverse), renderer, container: host, responsive: false });
+          reports.push({ entry, renderer, sameSide: chart.model.scene.find('edge-label-0').dataRef.offsetY < 0 }); chart.destroy();
+        }
+      }
+    } finally { host.remove(); }
+    return reports;
+  });
+  assert.equal(reports.length, 12);
+  for (const report of reports) for (const [check, passed] of Object.entries(report)) if (!['entry', 'renderer'].includes(check)) assert.equal(passed, true, `${report.entry}/${report.renderer}/${check}`);
 });
 
 test('Agent diagnostic guidance stays current across root, Profiles, SVG and Canvas', async () => {

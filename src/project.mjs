@@ -1,5 +1,5 @@
 /**
- * Project-management and process scenes with display-space Diagram text fitting.
+ * Project/process scenes with bounded adaptive label gaps and actual-overlap protection.
  * Covers Gantt, timeline, milestone, burndown, flow, and swimlane views.
  */
 import { Scene, cubicBezierPoint } from './scene.mjs';
@@ -11,7 +11,7 @@ import { analyzeBurndownSeries, analyzeSchedule } from './project-analytics.mjs'
 import { createLinkedProjectState, filterProjectRows, linkedRecordId } from './project-linking.mjs';
 import { compositeColor, readableTextColor } from './theme.mjs';
 import { pathIntersectsBox } from './path.mjs';
-import { prepareChartChrome, addBranding, addEmptyState, markRadius, markStyle, markWidth } from './chart-chrome.mjs';
+import { prepareChartChrome, addBranding, addEmptyState, markRadius, markStyle, markWidth, visualScale } from './chart-chrome.mjs';
 import { axisLabelLayout, boxesOverlap, diagramNodeSize, estimateTextWidth, fitTextBlock, fontAtSize, fontPixels, fontSize, titleLayout, truncateText } from './layout.mjs';
 import { addTitleText } from './text-scene.mjs';
 
@@ -139,25 +139,30 @@ function textBlock(scene, id, block, x, y, style = {}, dataRef = null) {
 function protectDiagramLabels(scene) {
   scene.root.children = scene.root.children.filter(node => !/^edge-label-.*-background$/.test(node.id));
   const edges = [], labels = [], surfaces = [], protectedLabels = new Set();
+  const intersects = (edge, box, inset = 0) => {
+    const padding = edge.style.strokeWidth / 2 - inset;
+    return pathIntersectsBox(edge.geometry, { x: box.x - padding, y: box.y - padding, width: box.width + padding * 2, height: box.height + padding * 2 });
+  };
   scene.walk(node => {
     if (!node.visible) return;
     if (node.type === 'path' && node.dataRef?.edgeId && node.dataRef.from) { delete node.geometry.exclusions; edges.push(node); }
     if (node.type === 'text' && node.dataRef?.edgeId) {
       const size = fontPixels(node.style.font), width = estimateTextWidth(node.geometry.text, size, node.style.font);
-      labels.push({ node, box: { x: node.geometry.x - width / 2 - 3, y: node.geometry.y - size * 0.6 - 2, width: width + 6, height: size * 1.2 + 4 } });
+      const bounds = { x: node.geometry.x - width / 2, y: node.geometry.y - size * 0.6, width, height: size * 1.2 };
+      labels.push({ node, bounds, box: { x: bounds.x - 2, y: bounds.y - 2, width: width + 4, height: bounds.height + 4 } });
     }
     if (node.type === 'rect' && /^(lane-|layer-|group-)/.test(node.id) && node.style.fill !== 'none') surfaces.push(node);
   });
   for (const edge of edges) {
-    const boxes = labels.filter(({ box }) => pathIntersectsBox(edge.geometry, { x: box.x - edge.style.strokeWidth / 2, y: box.y - edge.style.strokeWidth / 2, width: box.width + edge.style.strokeWidth, height: box.height + edge.style.strokeWidth }));
+    const boxes = labels.filter(({ bounds }) => intersects(edge, bounds, 1e-6));
     if (boxes.length) edge.geometry.exclusions = boxes.map(({ node, box }) => { protectedLabels.add(node.id); return { x: box.x - edge.style.strokeWidth / 2, y: box.y - edge.style.strokeWidth / 2, width: box.width + edge.style.strokeWidth, height: box.height + edge.style.strokeWidth }; });
   }
   const backgrounds = new Set();
-  for (const { node, box } of labels) {
+  for (const { node, bounds, box } of labels) {
     let fill = compositeColor(scene.background, scene.background);
     for (const surface of surfaces) if (box.x >= surface.geometry.x && box.y >= surface.geometry.y && box.x + box.width <= surface.geometry.x + surface.geometry.width && box.y + box.height <= surface.geometry.y + surface.geometry.height) fill = compositeColor(surface.style.fill, fill || 'transparent', surface.style.opacity ?? 1);
     node.style.fill = readableTextColor(scene.theme, fill || scene.background, scene.labelColor, scene.textWarnings);
-    if (fill && (node.dataRef.onLine || protectedLabels.has(node.id))) { scene.add({ id: `${node.id}-background`, type: 'rect', geometry: box, style: { fill, opacity: 1, stroke: 'none' }, zIndex: 3.5, decorative: true }); backgrounds.add(node.dataRef.edgeId); }
+    if (fill && protectedLabels.has(node.id) && edges.every(edge => intersects(edge, bounds, 1e-6) || !intersects(edge, box, 1e-6))) { scene.add({ id: `${node.id}-background`, type: 'rect', geometry: box, style: { fill, opacity: 1, stroke: 'none' }, zIndex: 3.5, decorative: true }); backgrounds.add(node.dataRef.edgeId); }
   }
   if (scene.diagramLabelStats) scene.diagramLabelStats.backgrounded = backgrounds.size;
 }
@@ -179,11 +184,19 @@ function polylineMidpoint(points) {
   return { point: points.at(-1), start: points.at(-2), end: points.at(-1) };
 }
 
-function edgeLabelLayout(edge, spec, positions, occupied = []) {
+function edgeLabelLayout(edge, spec, positions, occupied = [], otherRoutes = []) {
   const points = edge.points, midpoint = edge.curve === 'cubic' ? { point: cubicBezierPoint(points, 0.5), start: cubicBezierPoint(points, 0.45), end: cubicBezierPoint(points, 0.55) } : polylineMidpoint(points);
   if (!midpoint) return null;
-  const angle = Math.atan2(midpoint.end.y - midpoint.start.y, midpoint.end.x - midpoint.start.x), normal = { x: Math.abs(Math.sin(angle)) < 1e-10 ? 0 : -Math.sin(angle), y: Math.abs(Math.cos(angle)) < 1e-10 ? 0 : Math.cos(angle) }, size = fontSize(spec, 'axis', 12);
+  const normalFor = segment => {
+    const angle = Math.atan2(segment.end.y - segment.start.y, segment.end.x - segment.start.x), axis = { x: Math.abs(Math.sin(angle)) < 1e-10 ? 0 : -Math.sin(angle), y: Math.abs(Math.cos(angle)) < 1e-10 ? 0 : Math.cos(angle) };
+    if (axis.y > 0 || axis.y === 0 && axis.x < 0) { axis.x *= -1; axis.y *= -1; }
+    return axis;
+  };
+  const normal = normalFor(midpoint), size = fontSize(spec, 'axis', 12);
   const nodeBoxes = [...positions.values()], view = projectView(spec);
+  const strokeWidth = edge.strokeWidth || 2;
+  const preferredGap = block => Math.max(2, Math.min(10, (block.size / 4 + strokeWidth / 2) * edge.visualScale));
+  const separation = (block, axis = normal, gap = preferredGap(block)) => (Math.abs(axis.x) * block.width + Math.abs(axis.y) * block.height) / 2 + (strokeWidth / 2 + gap) / view.scale;
   const fit = (maxWidth, maxLines) => {
     const block = fitTextBlock(edge.label, { maxWidth: maxWidth * view.scale, maxHeight: size * 2.6, size, minSize: 10, maxLines, wordWrap: true, font: spec.theme.typography.axis.font });
     for (const key of ['width', 'height', 'lineHeight']) block[key] /= view.scale;
@@ -191,17 +204,51 @@ function edgeLabelLayout(edge, spec, positions, occupied = []) {
   };
   let fallback;
   for (const maxLines of [1, 2]) {
-    const height = size * 1.2 * maxLines / view.scale, inlineOffset = 8 / view.scale;
-    const candidates = [
-      { x: midpoint.point.x, y: midpoint.point.y - inlineOffset, onLine: true },
-      ...[1, -1, 2, -2].map(step => ({ x: midpoint.point.x + normal.x * (inlineOffset + Math.abs(step) * (height + 6 / view.scale)) * Math.sign(step), y: midpoint.point.y + normal.y * (inlineOffset + Math.abs(step) * (height + 6 / view.scale)) * Math.sign(step), onLine: false }))
-    ];
-    for (const candidate of candidates) {
+    let crossingFallback;
+    const height = size * 1.2 * maxLines / view.scale;
+    function* candidates() {
+      const desired = fit((spec.width - 8) / view.scale, maxLines);
+      const inlineOffset = separation(desired, normal, 2);
+      const anchors = [midpoint];
+      if (!edge.curve) anchors.push(...points.slice(1).map((end, index) => ({ start: points[index], end, point: { x: (points[index].x + end.x) / 2, y: (points[index].y + end.y) / 2 }, length: Math.hypot(end.x - points[index].x, end.y - points[index].y) })).sort((first, second) => second.length - first.length).slice(0, 3));
+      for (const anchor of anchors) for (const gap of new Set([preferredGap(desired), 2])) {
+        const axis = normalFor(anchor), distance = separation(desired, axis, gap);
+        yield { x: anchor.point.x + axis.x * distance, y: anchor.point.y + axis.y * distance, onLine: true, gap };
+      }
+      const nearest = sign => {
+        const intervals = [];
+        for (const box of [...nodeBoxes, ...occupied]) {
+          let enter = -Infinity, exit = Infinity;
+          for (const [axis, dimension] of [['x', 'width'], ['y', 'height']]) {
+            const direction = normal[axis] * sign, half = desired[dimension] / 2 + 5;
+            const start = box[axis] - half - midpoint.point[axis], end = box[axis] + box[dimension] + half - midpoint.point[axis];
+            if (Math.abs(direction) < 1e-10) { if (start >= 0 || end <= 0) { exit = -Infinity; break; } }
+            else { enter = Math.max(enter, Math.min(start / direction, end / direction)); exit = Math.min(exit, Math.max(start / direction, end / direction)); }
+          }
+          if (enter < exit) intervals.push([enter, exit]);
+        }
+        let distance = inlineOffset;
+        for (const [enter, exit] of intervals.sort((first, second) => first[0] - second[0])) if (enter <= distance && distance <= exit) distance = exit + 1e-6 / view.scale;
+        return distance * sign;
+      };
+      const offsets = [nearest(1), nearest(-1), ...[1, -1, 2, -2].map(step => (inlineOffset + Math.abs(step) * (height + 6 / view.scale)) * Math.sign(step))];
+      offsets.sort((first, second) => Math.abs(first) - Math.abs(second) || second - first);
+      for (const offset of offsets) yield { x: midpoint.point.x + normal.x * offset, y: midpoint.point.y + normal.y * offset, onLine: false };
+      if (maxLines === 2) {
+        for (const gap of [1, 0]) for (const anchor of anchors) {
+          const axis = normalFor(anchor), distance = separation(desired, axis, gap);
+          yield { x: anchor.point.x + axis.x * distance, y: anchor.point.y + axis.y * distance, onLine: true, gap, height: desired.height };
+        }
+        yield { x: midpoint.point.x, y: midpoint.point.y, onLine: true, embedded: true, height: desired.height };
+      }
+    }
+    for (const candidate of candidates()) {
       const top = (4 - view.offsetY) / view.scale, bottom = (spec.height - 4 - view.offsetY) / view.scale;
-      if (candidate.y - height / 2 < top || candidate.y + height / 2 > bottom) continue;
+      const candidateHeight = candidate.height ?? height;
+      if (candidate.y - candidateHeight / 2 < top || candidate.y + candidateHeight / 2 > bottom) continue;
       let left = (4 - view.offsetX) / view.scale, right = (spec.width - 4 - view.offsetX) / view.scale;
       for (const box of [...nodeBoxes, ...occupied]) {
-        if (box.y + box.height + 5 <= candidate.y - height / 2 || box.y - 5 >= candidate.y + height / 2) continue;
+        if (box.y + box.height + 5 <= candidate.y - candidateHeight / 2 || box.y - 5 >= candidate.y + candidateHeight / 2) continue;
         if (box.x + box.width < candidate.x) left = Math.max(left, box.x + box.width + 5);
         else if (box.x > candidate.x) right = Math.min(right, box.x - 5);
         else { left = candidate.x; right = candidate.x; break; }
@@ -210,14 +257,21 @@ function edgeLabelLayout(edge, spec, positions, occupied = []) {
       if (maxWidth < 10 / view.scale) continue;
       const block = fit(maxWidth, maxLines);
       const box = { x: candidate.x - block.width / 2, y: candidate.y - block.height / 2, width: block.width, height: block.height };
+      if (box.y < top || box.y + box.height > bottom) continue;
       const placement = { ...candidate, anchor: midpoint.point, box, block };
       if (!fallback || block.lines.join('').length > fallback.block.lines.join('').length) fallback = placement;
-      if (!block.truncated && !nodeBoxes.some(node => boxesOverlap(box, node, 2)) && !occupied.some(item => boxesOverlap(box, item, 3)) && (edge.groupBounds || []).every(frame => !frame || !boxesOverlap(box, frame, 14) || box.x >= frame.x + 14 && box.y >= frame.y + 14 && box.x + box.width <= frame.x + frame.width - 14 && box.y + box.height <= frame.y + frame.height - 14)) return placement;
+      if (!block.truncated && !nodeBoxes.some(node => boxesOverlap(box, node, 2)) && !occupied.some(item => boxesOverlap(box, item, 3)) && (edge.groupBounds || []).every(frame => !frame || !boxesOverlap(box, frame, 14) || box.x >= frame.x + 14 && box.y >= frame.y + 14 && box.x + box.width <= frame.x + frame.width - 14 && box.y + box.height <= frame.y + frame.height - 14)) {
+        const margin = (strokeWidth / 2 + (candidate.gap ?? 2) - 1e-6) / view.scale;
+        if (!candidate.embedded && pathIntersectsBox(edge.geometry || { points, curve: edge.curve }, { x: box.x - margin, y: box.y - margin, width: box.width + margin * 2, height: box.height + margin * 2 })) continue;
+        if (candidate.onLine || !otherRoutes.some(route => pathIntersectsBox(route, { x: box.x - 3 / view.scale, y: box.y - 2 / view.scale, width: box.width + 6 / view.scale, height: box.height + 4 / view.scale }))) return placement;
+        crossingFallback ??= placement;
+      }
     }
+    if (crossingFallback) return crossingFallback;
   }
   if (fallback) return { ...fallback, constrained: true };
   const block = fit(36 / view.scale, 2);
-  const candidate = { x: midpoint.point.x, y: midpoint.point.y - 8 / view.scale, onLine: true };
+  const offset = separation(block), candidate = { x: midpoint.point.x + normal.x * offset, y: midpoint.point.y + normal.y * offset, onLine: true };
   return { ...candidate, anchor: midpoint.point, box: { x: candidate.x - block.width / 2, y: candidate.y - block.height / 2, width: block.width, height: block.height }, block, suppressed: false, constrained: true };
 }
 
@@ -475,7 +529,7 @@ function diagramGroupBox(group, boxes) {
 function diagramScene(scene, spec, rows, state) {
   const diagramSpec = normalizeDiagramData(spec);
   const visualStyle = diagramVisuals(spec);
-  const plot = state.plot, mode = diagramSpec.diagram.mode, edges = diagramSpec.edges, lanes = diagramSpec.lanes, layers = diagramSpec.layers, groups = diagramSpec.groups, layout = layoutDiagram(diagramSpec, plot);
+  const plot = state.plot, mode = diagramSpec.diagram.mode, edges = diagramSpec.edges, lanes = diagramSpec.lanes, layers = diagramSpec.layers, groups = diagramSpec.groups, layout = layoutDiagram(diagramSpec, plot), layoutScale = visualScale(diagramSpec, plot);
   const architectureLayout = mode === 'architecture' && layers.length ? layoutArchitectureNodes(diagramSpec, plot) : {};
   rows = diagramSpec.nodes;
   const collapsedGroups = new Set(groups.filter(group => group.collapsed).map(group => group.id));
@@ -576,52 +630,60 @@ function diagramScene(scene, spec, rows, state) {
       text(scene, `boundary-label-${boundary.id || boundaryIndex}`, boundary.label || boundary.id || `Boundary ${boundaryIndex + 1}`, left + 8, top + 15, { font: spec.theme.typography.legend.font, fill: boundary.color || spec.theme.focus });
     });
   }
-  for (const internalPhase of [true, false]) edges.forEach((edge, index) => {
-    const fromNode = rows.find(row => row.id === edge.from), toNode = rows.find(row => row.id === edge.to);
-    if (!fromNode || !toNode) return;
-    if (Boolean(fromNode.groupId && fromNode.groupId === toNode.groupId) !== internalPhase) return;
-    if (fromNode.groupId && fromNode.groupId === toNode.groupId && collapsedGroups.has(fromNode.groupId)) return;
-    const from = fromNode.groupId && collapsedGroups.has(fromNode.groupId) ? groupBoxes.get(fromNode.groupId) : positions.get(edge.from);
-    const to = toNode.groupId && collapsedGroups.has(toNode.groupId) ? groupBoxes.get(toNode.groupId) : positions.get(edge.to);
-    if (!from || !to) return;
-    const obstacles = [...positions.entries()]
-      .filter(([id]) => id !== edge.from && id !== edge.to && !collapsedGroups.has(rows.find(row => row.id === id)?.groupId))
-      .map(([id, box]) => { const row = rows.find(item => item.id === id); return diagramObstacle(mode === 'process' && spec.type === 'flow' ? flowNodeKind(row) : 'process', box, id); });
-    groupBoxes.forEach((box, groupId) => { if (collapsedGroups.has(groupId) && groupId !== fromNode.groupId && groupId !== toNode.groupId) obstacles.push({ id: groupId, shape: 'rect', geometry: box, bounds: { ...box }, obstacle: true }); });
-    const fromPortDefinition = fromNode.groupId && collapsedGroups.has(fromNode.groupId) ? null : fromNode?.ports?.find(port => port.id === edge.fromPort);
-    const toPortDefinition = toNode.groupId && collapsedGroups.has(toNode.groupId) ? null : toNode?.ports?.find(port => port.id === edge.toPort);
-    const routing = edge.routing || diagramSpec.diagram.routing;
-    const reciprocal = edges.some(other => other.from === edge.to && other.to === edge.from);
-    const groupBounds = internalPhase ? null : [fromNode.groupId, toNode.groupId].map(id => collapsedGroups.has(id) ? null : groupBoxes.get(id));
-    const path = routeEdgePath({ ...edge, reciprocal, plot, groupBounds, curveTension: edge.curveTension ?? diagramSpec.diagram.curveTension, grid: diagramSpec.diagram.grid, obstacles, fromPortDefinition, toPortDefinition, preserveSides: mode === 'architecture' }, from, to, routing);
-    const requestedRoutingMode = edge.routingMode || (edge.waypoints?.length ? 'manual' : 'auto'), effectiveRoutingMode = path.routingMode || 'auto';
-    state.edgeRoutes[index] = { edgeId: edge.id || `edge-${index}`, requestedRoutingMode, effectiveRoutingMode, visible: path.points.length >= 2, reason: path.warning?.reason || path.warning?.code || null };
-    (path.warnings || (path.warning ? [path.warning] : [])).forEach(warning => state.routingWarnings.push({ ...warning, edgeId: edge.id || `edge-${index}`, path: warning.code === 'EDGE_MANUAL_ROUTE_INVALID' ? `edges.${index}.waypoints` : `edges.${index}` }));
-    const points = path.points;
-    if (points.length < 2) return;
-    arrow(scene, `edge-${index}`, points, { from: edge.from, to: edge.to, reciprocal, plot, groupBounds, edgeId: edge.id || `edge-${index}`, status: edge.status, diagramPoints: points, routing, routingMode: effectiveRoutingMode, requestedRoutingMode, lineStyle: edge.lineStyle || 'solid', curveTension: edge.curveTension ?? diagramSpec.diagram.curveTension, waypoints: edge.waypoints || [], fromPortDefinition, toPortDefinition, fromGroupId: fromNode.groupId || null, toGroupId: toNode.groupId || null }, edge.critical === true, path.curve, { ...visualStyle, radius: visualStyle.radius, color: edge.tone ? toneColor(spec.theme, spec.colors, edge.tone) : visualStyle.soft ? spec.colors[0] : undefined, arrow: visualStyle.soft || diagramSpec.diagram.arrow ? visualStyle.arrow : undefined, obstacles: [...obstacles, from, to] });
-    const groupContent = fromNode.groupId && fromNode.groupId === toNode.groupId ? groupContents.get(fromNode.groupId) : null;
-    if (groupContent) {
-      const routePoints = [...points, ...scene.find(`edge-${index}-arrow`).geometry.points], stroke = (edge.critical === true ? 2.5 : 1.5) / 2;
-      const left = Math.min(...routePoints.map(point => point.x)) - stroke, top = Math.min(...routePoints.map(point => point.y)) - stroke, right = Math.max(...routePoints.map(point => point.x)) + stroke, bottom = Math.max(...routePoints.map(point => point.y)) + stroke;
-      groupContent.push({ x: left, y: top, width: right - left, height: bottom - top });
-    }
-    if (edge.label) {
-      const placement = edgeLabelLayout({ ...edge, groupBounds, points, curve: path.curve }, spec, positions, edgeLabelBoxes);
-      if (placement) {
-        edgeLabelBoxes.push(placement.box);
-        if (groupContent) { const scale = projectView(spec).scale; groupContent.push({ x: placement.box.x - 3 / scale, y: placement.box.y - 2 / scale, width: placement.box.width + 6 / scale, height: placement.box.height + 4 / scale }); }
-        const rawLabel = String(edge.label), labelFont = fontAtSize(spec.theme.typography.axis.font, placement.block.size);
-        if (placement.constrained) state.labelWarnings.push({ code: 'LABEL_LAYOUT_CONSTRAINED', path: `edges.${index}.label`, edgeId: edge.id || `edge-${index}`, message: 'No bounded edge-label candidate avoids all node, label and frame constraints; a best-effort placement is displayed.', suggestion: 'Increase the available space or simplify the visible diagram; the route and viewport are preserved.' });
-        if (placement.onLine) labelLayout.edgeOnLine += 1; else labelLayout.edgeOffset += 1;
-        if (placement.block.wrapped) labelLayout.wrapped += 1;
-        if (placement.block.scaled) labelLayout.scaled += 1;
-        if (placement.block.truncated) { labelLayout.truncated += 1; state.labelWarnings.push({ code: 'LABEL_TRUNCATED', path: `edges.${index}.label`, edgeId: edge.id || `edge-${index}`, rawLabel, renderedLabel: placement.block.lines.join('\n'), message: `Edge label "${rawLabel}" was truncated to fit the available label space.`, suggestion: 'Increase the space around the connector or shorten the label.' }); }
-        textBlock(scene, `edge-label-${index}`, placement.block, placement.x, placement.y, { fill: spec.theme.text, font: labelFont }, { edgeId: edge.id || `edge-${index}`, rawLabel, renderedLabel: placement.block.lines.join('\n'), onLine: placement.onLine, offsetX: placement.x - placement.anchor.x, offsetY: placement.y - placement.anchor.y });
+  for (const internalPhase of [true, false]) {
+    const pendingLabels = [];
+    edges.forEach((edge, index) => {
+      const fromNode = rows.find(row => row.id === edge.from), toNode = rows.find(row => row.id === edge.to);
+      if (!fromNode || !toNode) return;
+      if (Boolean(fromNode.groupId && fromNode.groupId === toNode.groupId) !== internalPhase) return;
+      if (fromNode.groupId && fromNode.groupId === toNode.groupId && collapsedGroups.has(fromNode.groupId)) return;
+      const from = fromNode.groupId && collapsedGroups.has(fromNode.groupId) ? groupBoxes.get(fromNode.groupId) : positions.get(edge.from);
+      const to = toNode.groupId && collapsedGroups.has(toNode.groupId) ? groupBoxes.get(toNode.groupId) : positions.get(edge.to);
+      if (!from || !to) return;
+      const obstacles = [...positions.entries()]
+        .filter(([id]) => id !== edge.from && id !== edge.to && !collapsedGroups.has(rows.find(row => row.id === id)?.groupId))
+        .map(([id, box]) => { const row = rows.find(item => item.id === id); return diagramObstacle(mode === 'process' && spec.type === 'flow' ? flowNodeKind(row) : 'process', box, id); });
+      groupBoxes.forEach((box, groupId) => { if (collapsedGroups.has(groupId) && groupId !== fromNode.groupId && groupId !== toNode.groupId) obstacles.push({ id: groupId, shape: 'rect', geometry: box, bounds: { ...box }, obstacle: true }); });
+      const fromPortDefinition = fromNode.groupId && collapsedGroups.has(fromNode.groupId) ? null : fromNode?.ports?.find(port => port.id === edge.fromPort);
+      const toPortDefinition = toNode.groupId && collapsedGroups.has(toNode.groupId) ? null : toNode?.ports?.find(port => port.id === edge.toPort);
+      const routing = edge.routing || diagramSpec.diagram.routing;
+      const reciprocal = edges.some(other => other.from === edge.to && other.to === edge.from);
+      const groupBounds = internalPhase ? null : [fromNode.groupId, toNode.groupId].map(id => collapsedGroups.has(id) ? null : groupBoxes.get(id));
+      const path = routeEdgePath({ ...edge, reciprocal, plot, groupBounds, curveTension: edge.curveTension ?? diagramSpec.diagram.curveTension, grid: diagramSpec.diagram.grid, obstacles, fromPortDefinition, toPortDefinition, preserveSides: mode === 'architecture' }, from, to, routing);
+      const requestedRoutingMode = edge.routingMode || (edge.waypoints?.length ? 'manual' : 'auto'), effectiveRoutingMode = path.routingMode || 'auto';
+      state.edgeRoutes[index] = { edgeId: edge.id || `edge-${index}`, requestedRoutingMode, effectiveRoutingMode, visible: path.points.length >= 2, reason: path.warning?.reason || path.warning?.code || null };
+      (path.warnings || (path.warning ? [path.warning] : [])).forEach(warning => state.routingWarnings.push({ ...warning, edgeId: edge.id || `edge-${index}`, path: warning.code === 'EDGE_MANUAL_ROUTE_INVALID' ? `edges.${index}.waypoints` : `edges.${index}` }));
+      const points = path.points;
+      if (points.length < 2) return;
+      arrow(scene, `edge-${index}`, points, { from: edge.from, to: edge.to, reciprocal, plot, groupBounds, edgeId: edge.id || `edge-${index}`, status: edge.status, diagramPoints: points, routing, routingMode: effectiveRoutingMode, requestedRoutingMode, lineStyle: edge.lineStyle || 'solid', curveTension: edge.curveTension ?? diagramSpec.diagram.curveTension, waypoints: edge.waypoints || [], fromPortDefinition, toPortDefinition, fromGroupId: fromNode.groupId || null, toGroupId: toNode.groupId || null }, edge.critical === true, path.curve, { ...visualStyle, radius: visualStyle.radius, color: edge.tone ? toneColor(spec.theme, spec.colors, edge.tone) : visualStyle.soft ? spec.colors[0] : undefined, arrow: visualStyle.soft || diagramSpec.diagram.arrow ? visualStyle.arrow : undefined, obstacles: [...obstacles, from, to] });
+      const groupContent = fromNode.groupId && fromNode.groupId === toNode.groupId ? groupContents.get(fromNode.groupId) : null;
+      if (groupContent) {
+        const routePoints = [...points, ...scene.find(`edge-${index}-arrow`).geometry.points], stroke = (edge.critical === true ? 2.5 : 1.5) / 2;
+        const left = Math.min(...routePoints.map(point => point.x)) - stroke, top = Math.min(...routePoints.map(point => point.y)) - stroke, right = Math.max(...routePoints.map(point => point.x)) + stroke, bottom = Math.max(...routePoints.map(point => point.y)) + stroke;
+        groupContent.push({ x: left, y: top, width: right - left, height: bottom - top });
       }
-    }
-    if (groupContent) groupBoxes.set(fromNode.groupId, diagramGroupBox(groups.find(group => group.id === fromNode.groupId), groupContent));
-  });
+      if (edge.label) pendingLabels.push(() => {
+        const otherRoutes = [];
+        scene.walk(node => { if (node.type === 'path' && node.dataRef?.from && node.id !== `edge-${index}`) otherRoutes.push(node.geometry); });
+        const line = scene.find(`edge-${index}`);
+        const placement = edgeLabelLayout({ ...edge, groupBounds, points, curve: path.curve, geometry: line.geometry, strokeWidth: line.style.strokeWidth, visualScale: layoutScale }, spec, positions, edgeLabelBoxes, otherRoutes);
+        if (placement) {
+          edgeLabelBoxes.push(placement.box);
+          if (groupContent) { const scale = projectView(spec).scale; groupContent.push({ x: placement.box.x - 3 / scale, y: placement.box.y - 2 / scale, width: placement.box.width + 6 / scale, height: placement.box.height + 4 / scale }); }
+          const rawLabel = String(edge.label), labelFont = fontAtSize(spec.theme.typography.axis.font, placement.block.size);
+          if (placement.constrained) state.labelWarnings.push({ code: 'LABEL_LAYOUT_CONSTRAINED', path: `edges.${index}.label`, edgeId: edge.id || `edge-${index}`, message: 'No bounded edge-label candidate avoids all node, label and frame constraints; a best-effort placement is displayed.', suggestion: 'Increase the available space or simplify the visible diagram; the route and viewport are preserved.' });
+          if (placement.onLine) labelLayout.edgeOnLine += 1; else labelLayout.edgeOffset += 1;
+          if (placement.block.wrapped) labelLayout.wrapped += 1;
+          if (placement.block.scaled) labelLayout.scaled += 1;
+          if (placement.block.truncated) { labelLayout.truncated += 1; state.labelWarnings.push({ code: 'LABEL_TRUNCATED', path: `edges.${index}.label`, edgeId: edge.id || `edge-${index}`, rawLabel, renderedLabel: placement.block.lines.join('\n'), message: `Edge label "${rawLabel}" was truncated to fit the available label space.`, suggestion: 'Increase the space around the connector or shorten the label.' }); }
+          textBlock(scene, `edge-label-${index}`, placement.block, placement.x, placement.y, { fill: spec.theme.text, font: labelFont }, { edgeId: edge.id || `edge-${index}`, rawLabel, renderedLabel: placement.block.lines.join('\n'), onLine: placement.onLine, offsetX: placement.x - placement.anchor.x, offsetY: placement.y - placement.anchor.y });
+        }
+        if (groupContent) groupBoxes.set(fromNode.groupId, diagramGroupBox(groups.find(group => group.id === fromNode.groupId), groupContent));
+      });
+      if (groupContent) groupBoxes.set(fromNode.groupId, diagramGroupBox(groups.find(group => group.id === fromNode.groupId), groupContent));
+    });
+    pendingLabels.forEach(place => place());
+  }
   state.edgeRoutes = state.edgeRoutes.filter(Boolean);
   groups.filter(group => !group.collapsed && groupContents.has(group.id)).forEach(group => {
     const geometry = diagramGroupBox(group, groupContents.get(group.id)), frame = scene.find(`group-${group.id}`), label = scene.find(`group-label-${group.id}`);
