@@ -84,6 +84,18 @@ Flow 的 `start` 和 `end` 节点使用真正的椭圆图元；`process` 使用�
 
 未指定的节点尺寸先按文字、形状和图标适配，显式尺寸与位置优先保留。节点文字居中，优先保持字号，必要时按英文单词边界最多换成两行，再有限缩字，最后才截断。小型 Connector 可隐藏不可读文字，完整标签仍保留在数据和无障碍语义中。连线文字优先在线上，遇到节点/标签碰撞才偏移；是否遮线依据最终文字范围与实际连线相交，而非 inline/offset 标记。仅显示层的断线与匹配局部背景的不透明底板防止线条透出，透明背景只断线、不涂白。保存路线和命中几何不变；普通图表标签不增加底板。`getState().layout.labels` 和 `explain().warnings` 暴露适配限制，详见[默认视觉质量](theme-guide.md#默认视觉质量)。
 
+节点文字按缩放后实际可见的形状尺寸适配，而不是只按保存的节点尺寸判断。字号和多行间距保持显示像素尺寸：手动图放大后可重新显示小卡片中放不下的文字，关闭预览时重新计算原尺寸布局。椭圆和菱形使用内接文字区域，不再重复扣除矩形侧边距。不会为容纳文字而改写显式节点大小、位置或视图。
+
+## 布局与诊断恢复
+
+通过 `getCapabilities().diagram.layoutModes` 获取规范枚举：`manual`、`layered`、`tree`、`radial`。自动 Flow 优先用 `layered`，人工布局用 `manual` 并提供 `nodes[].position`，Mindmap 使用 `tree`/`radial`。`vertical` 不是别名；`LAYOUT_MODE` 会给出 `received`、支持的 `expected` 枚举和修正建议，不静默改变方向。
+
+提供 `size` 时必须使用 `{ width, height }`，两者均为正有限数；`position` 使用有限数值 `{ x, y }`；`ports` 使用数组，如 `[{ id: 'out', side: 'right' }]` 或 `[]`。省略可选字段才表示使用默认值；`size: 150`、`size: 0`、`position: false`、`ports: ''` 和 `null` 都不等于省略。`NODE_SIZE`、`NODE_POSITION`、`NODE_PORTS` 按受影响节点/字段分别返回诊断，包含 `nodeId`、准确的 `path`、`expected`、可提供的 `received` 和正确写法。不要将不同节点路径合并成一条错误而丢失定位。
+
+`FLOW_LAYOUT_OVERFLOW` / `DIAGRAM_LAYOUT_OVERFLOW` 提供 `currentSize`、估算的 `recommendedSize: { width, height }`、`estimated: true` 和受影响的 `nodeIds`。建议尺寸依据实际布局后的节点范围、既有最小间距及图表预留空间计算，不使用“节点数乘固定宽度”。这是当前布局坐标下的节点容纳估算，不保证所有连线、文字、固定位置或视图均适配。宿主可显式调整尺寸后重新检查；Runtime 不会静默修改节点尺寸、保存的位置、路线或视图。自动间距本身已会收缩到可读的最小值。
+
+节点 `LABELS_SUPPRESSED` 提供 `nodeId`、布局坐标下的 `nodeSize` 和请求的 `fontSize`。应调整指定节点的 `size.width`/`size.height`，省略显式尺寸以启用内容适配，或使用 Tooltip/无障碍文字；仅扩大画布宽度不会放大固定尺寸节点。接受文字损失时应明确告知，不得吞掉告警。
+
 ## 当前能力
 
 已支持节点、边、泳道、Group、Port、Flow 语义图形、四种布局、`auto`/直线/折线/曲线路由、形状级避障、Mindmap 三次贝塞尔曲线、节点拖动、多选、对齐、网格吸附、键盘移动、Copy/Paste、Group 折叠展开、Port 键盘连线、边选择、折点/正交线段手柄、持久化 `waypoints`、边删除和 Undo/Redo。

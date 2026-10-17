@@ -1,5 +1,5 @@
 /**
- * Renderer-neutral visual style presets, palettes, and resolution helpers.
+ * Renderer-neutral visual styles and palette diagnostics based on color-coded groups, not axis density.
  */
 import { clone, merge } from './json.mjs';
 
@@ -130,10 +130,12 @@ function automaticPalette(spec = {}) {
   return 'categorical';
 }
 
-function categoryCount(spec = {}) {
+function colorGroupCount(spec = {}) {
   const rows = sourceRows(spec);
-  const field = spec.encoding?.x?.field || spec.encoding?.category?.field || 'name';
-  return new Set(rows.map(row => row?.[field]).filter(value => value != null)).size;
+  if (['line', 'area', 'bar', 'column'].includes(spec.type)) return Array.isArray(spec.encoding?.y) ? spec.encoding.y.length : 1;
+  if (['pie', 'funnel', 'radar', 'gantt', 'timeline', 'milestone'].includes(spec.type)) return rows.length;
+  if (spec.type === 'swimlane' && spec.diagram?.appearance !== 'soft') return new Set(rows.filter(node => !node.tone).map(node => node.laneId || node.lane || spec.lanes?.[0]?.id)).size;
+  return 0;
 }
 
 export function planStyle(spec = {}, options = {}) {
@@ -144,8 +146,8 @@ export function planStyle(spec = {}, options = {}) {
   const resolvedMode = preferredMode(mode, options);
   const reasons = [`${preset} matches the ${spec.type || 'general'} visualization context.`, `${palette} matches the detected data semantics.`, `${resolvedMode} is the resolved color mode.`];
   const warnings = [];
-  const categories = categoryCount(spec);
-  if (['categorical', 'soft'].includes(palette) && categories > 6) warnings.push({ code: 'HIGH_CARDINALITY_COLOR', path: 'theme.palette', message: `${categories} categories exceed the recommended six-color comparison set.`, suggestion: 'Group categories or add labels, shapes, or line patterns.' });
+  const groups = colorGroupCount(spec);
+  if (['categorical', 'soft'].includes(palette) && groups > 6) warnings.push({ code: 'HIGH_CARDINALITY_COLOR', path: 'theme.palette', count: groups, recommendedMaximum: 6, message: `${groups} color-coded groups exceed the recommended six-group comparison set.`, suggestion: 'Reduce simultaneously color-coded groups or series, or add labels, shapes, or line patterns.' });
   return { version: '1.0', preset, mode, resolvedMode, palette, reasons, warnings, userOverride: request.preset !== 'auto' || request.mode !== 'auto' || request.palette !== 'auto' };
 }
 
@@ -229,7 +231,7 @@ export function resolveTheme(theme, options = {}) {
   };
   const output = merge(resolved, request.overrides);
   output.automaticLineWidth = request.overrides.automaticLineWidth ?? (request.overrides.marks?.lineWidth == null ? output.marks.lineWidth : null);
-  output.warnings = [...(output.warnings || []), ...validateThemeContrast(output)];
+  output.warnings = [...plan.warnings, ...validateThemeContrast(output)];
   return output;
 }
 

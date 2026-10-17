@@ -10,7 +10,7 @@ The system composes three independent choices:
 - `preset`: `auto`, `analysis`, `dashboard`, `report`, `presentation`, `project`, or `diagram`.
 - `palette`: `auto`, `categorical`, `sequential`, `diverging`, `status`, or `soft`.
 
-`soft` is an opt-in eight-color palette for any chart, with light/dark variants and contrast-safe fallback. It does not enable diagram rounding or icons; those belong to the [diagram visual contract](diagram-scenario.md#optional-soft-visuals).
+`soft` is an opt-in eight-color palette for categorical color mappings, with light/dark variants and contrast-safe fallback. It does not enable diagram rounding or icons; those belong to the [diagram visual contract](diagram-scenario.md#optional-soft-visuals). Heatmap uses a continuous numeric scale instead of cycling through these colors.
 
 `auto` is the recommended default. It uses chart family, intent, data semantics, and the host color scheme. Resolution is deterministic and exposed through `planStyle()`, `planChart().styleRecommendation`, `chart.getTheme()`, `chart.getState().style`, and `chart.explain().style`.
 
@@ -54,6 +54,10 @@ When `mode` is `auto`, mounted charts follow `prefers-color-scheme` changes. Exp
 - Do not use color as the only carrier of meaning. Keep labels, shapes, line patterns, or text status where applicable.
 
 ## Accessibility
+
+`HIGH_CARDINALITY_COLOR` counts simultaneously color-coded series/groups, not the number of X-axis categories. A single-series Line/Area/Bar/Column does not need twelve colors for twelve points; Radar counts series rows even when only stable IDs name them. The warning includes `count` and `recommendedMaximum` (six), is advisory rather than a validation failure, and remains visible in root/Profile `getState()` and `explain()`. Theme diagnostics are recomputed on updates and Spec reload, not restored from saved warning snapshots.
+
+Heatmap uses the built-in sequential scale, or the diverging scale when `theme.palette` is `diverging`. Selecting `soft` does not turn cells into categorical swatches. To set continuous colors explicitly, use `colorScale: { range: ['#f0fdfa', '#0f766e'] }`; use `colorScale.domain` for numeric bounds and `colorScale.missing` for missing cells. Missing values are not numeric zero.
 
 ### Default visual quality
 

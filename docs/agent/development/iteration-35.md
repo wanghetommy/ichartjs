@@ -59,3 +59,47 @@ Inspect `High risk`, then switch width/mode, enlarge and export SVG/PNG. Edge te
 ## Boundaries
 
 Physical space is finite; visible overflow, overlap, constrained placement and suppression diagnostics still require review at the intended output size. The color helper supports common hex and comma RGB/RGBA forms, not all CSS color syntaxes; an unknown transparent host background cannot receive a contrast guarantee. Ordinary chart labels never receive Diagram plates. Browser evidence is local Chrome, not Safari/Firefox, physical mobile devices or certification of every possible Spec. The 18-fixture matrix excludes the separately tested optional Soft Flow fixture; it does not introduce another chart type.
+
+## Post-release Follow-up — Enlarged Manual Diagram Labels
+
+Status: follow-up accepted for `v2.0.36`; publication explicitly authorized on 2026-10-17. The following evidence was collected locally before the release metadata update.
+
+User screenshot review confirmed missing Start/End labels and a truncated Load data label in the enlarged Delivery flow. A larger label font reproduces this even though the default 12px card looks correct. Node fitting used saved, unscaled dimensions before the viewport transform; ellipse/diamond width also subtracted rectangular padding on top of the inscribed-area limit. Multiline spacing was subsequently scaled even though glyph sizes stayed in display pixels.
+
+The shared Diagram fitting helper now measures visible shape dimensions and converts fitted block metrics back to logical coordinates before the common Scene transform. Semantic shapes use their inscribed text area, and blocks below the bounded readable height are suppressed rather than overflowing. Spec geometry, routes and view values are preserved. The change applies to Flow, Architecture, Mindmap and Swimlane through root/Diagram Profile and both renderers; it does not enlarge the demo nodes or lower the font minimum.
+
+The earlier Gallery preview regression checked node enlargement, not text content after font preferences; the default-first matrix also removed manual node sizes. New regressions retain the actual Gallery fixture, combine larger fonts with preview/restore, assert full labels and display-sized multiline spacing, and inspect real SVG text and Canvas text pixels in an isolated preferences context. Follow-up acceptance is recorded separately from the published v2.0.35 results above.
+
+- Reproduced the failure before the fix: 15px node text hid Start/End despite a 3x viewport, and multiline spacing was multiplied by view scale. Both new unit regressions failed on the old helper and pass after the fix.
+- Final `npm run agent:check`: **499/499 unit tests** and all contract/type/docs/package/footprint/Profile checks passed. Focused Flow/Diagram suites passed **29/29**. Existing performance smoke and `git diff --check` passed.
+- Full Chrome run: **59/60 passed**; the one failure was the older Soft Flow preview assertion expecting two `ICON_SUPPRESSED` warnings after enlargement. With correct visible-space fitting, all six labels/icons now fit. Updated that assertion to require zero warnings, six visible labels and `ready`; retained the narrow-card suppression and restore assertions. The unchanged runtime then passed the two affected browser tests **2/2**, including real SVG text and Canvas pixels, menu font changes and close/restore. No timeout or visual constraint was relaxed; the complete suite was not rerun after this test-only expectation update.
+- Source graph: **629,229 bytes raw / 157,167 bytes gzip** (only **192 / 49 bytes** above v2.0.35); root production bundle **323,996 bytes minified / 103,550 bytes gzip**. npm candidate **336,700 bytes**, unpacked **1,238,752 bytes**. Budgets are unchanged and pass.
+- Manually inspected the actual Gallery preview with the menu's `1.3` (extra-large) text setting: Start, End and Load data are complete; restored the prior font preference afterward. Proof: `/tmp/ichart-delivery-flow-enlarged-fixed.jpg`.
+
+## Post-release Follow-up — Diagnostic Guidance
+
+Status: follow-up implemented and accepted for `v2.0.36`; publication explicitly authorized on 2026-10-17. Includes the preceding manual-label fix. The following evidence preceded the release metadata update.
+
+- Count color-coded groups/series instead of X categories for `HIGH_CARDINALITY_COLOR`; cover false positives in single-series Cartesian charts, Scatter and Heatmap, and missed Radar series identified only by IDs. Preserve genuine high-cardinality warnings with machine-readable counts.
+- Reject explicitly supplied falsy scalar `size`, `position` and `ports` values. Retain per-node/field errors and add stable IDs, precise paths, expected/received values and correct examples; do not merge different paths into one generic error.
+- Attach current and estimated recommended chart sizes to Diagram overflow, measuring placed node bounds and existing reserves rather than assuming equal node widths. Keep existing minimum gaps, explicit geometry and static viewport defaults. Diagnose small fixed nodes separately from chart size.
+- Make `LAYOUT_MODE` list the canonical choices, received value and manual-layout guidance. Do not add a direction/layout alias. Clarify continuous Heatmap scales and `colorScale.range` across bilingual guides and Skill references.
+- Related issue found during root/Profile regression: Profiles omitted resolved theme diagnostics, and resolving an exported theme could preserve stale warning snapshots. Include current theme warnings in Profile state/explanation and recompute derived theme diagnostics on every resolution.
+
+### Follow-up Acceptance
+
+- Added nine focused regression tests and synchronized optional diagnostic metadata in TypeScript declarations and the consumer fixture. Explicit falsy/null layout values are rejected rather than silently replaced with the default. Swimlane color counts resolve default-lane aliases and exclude unused lanes.
+- `npm run agent:check`: **508/508 unit tests** passed, together with contracts, TypeScript, documentation, recipes, package/consumer checks, footprint, profiles and syntax. Focused diagnostic tests passed **9/9**; existing performance smoke passed without changing thresholds.
+- Complete Chrome browser suite: **61/61 passed**, with no skips. The added diagnostic test covers eight root/Profile and SVG/Canvas combinations, warning refresh, resize recovery, atomic rejection of malformed updates and SVG text preservation. This complete run also closes the earlier manual-label follow-up's full-suite verification gap; its initial 59/60 result remains recorded above.
+- Refreshed reports: root source graph **631,980 bytes raw / 158,050 bytes gzip**, leaving **5,790 gzip bytes** under the unchanged 640/160 KiB limits. Production root bundle is **326,006 bytes minified / 104,367 bytes gzip**. npm candidate is **340,392 bytes**, unpacked **1,248,721 bytes**, within existing ceilings. Development acceptance records are excluded from the npm package.
+- Boundary: the minimal six-node Flow at 760px reproduced layout overflow, not six suppressed labels; all six labels were visible. Its measured recommendation is 786px with current chrome reserves, and resizing clears the overflow. The reporter's exact all-label suppression cannot be confirmed without the original Spec. Recommendations remain estimates, not automatic resizing or guarantees for arbitrary pinned positions/routes; small explicit nodes require node-size repair instead.
+- Preview diagnostics in the existing Diagram Editor Spec import/output area: `http://localhost:3000/playground/diagram-editor.html?scenario=editor`. Existing Gallery defaults and enlarged labels remain available at `http://localhost:3000/playground/project-gallery.html`. No new preview page, dependency, layout mode or public method was added.
+
+## Release Acceptance — v2.0.36
+
+- Publication explicitly authorized by the author on 2026-10-17. The release includes both post-release follow-ups above, without adding chart types, changing static interaction defaults or raising budgets.
+- Synchronized package/lockfile, runtime, Playground, capability manifest and release-pinned bilingual Agent/Skill instructions to `2.0.36`; updated the Changelog, Roadmap and development index.
+- Re-ran `npm run agent:check`: **508/508 unit tests** plus contract, type, documentation, recipes, package/consumer, footprint, profile and syntax checks passed. `npm run docs:snippets` passed nine Node scenarios and tracked 19 blocks; existing performance smoke passed.
+- Complete release-candidate Chrome suite: **61/61 passed**, no skips, about 678 seconds. Installed local-tarball browser acceptance passed **10 lifecycle, 20 delivery and four Agent-task** combinations; task artifacts are in `/tmp/ichart-2.0.36-consumer`.
+- Refreshed final reports: root source graph **631,980 bytes raw / 158,049 bytes gzip**; production root **326,006 bytes minified / 104,367 bytes gzip**; npm tarball **340,680 bytes**, unpacked **1,249,602 bytes**. Existing fixed budgets are unchanged and pass. Development acceptance records are excluded from npm packaging.
+- Verified the npm author identity is `taylorwong`, the registry is npmjs, and `2.0.36` was not already published. Push the matching develop commit/tag before npm publication, then merge develop into master with `--no-ff`, following the Release SOP.

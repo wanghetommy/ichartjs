@@ -34,7 +34,7 @@
 - Gauge 的主数值会保持在仪表主体内，并根据半径自适应字号；Gauge 不生成每个分段的标签。
 - Combo 使用每个系列的 `mark: "column"` 或 `mark: "line"`，并可设置 `axis: "right"`。
 - Histogram 使用 `transform: { type: "bin", field, thresholds | step, extent }`。
-- Heatmap 通过 `colorScale.missing` 区分缺失值和数值零。
+- Heatmap 使用连续顺序/发散色阶，不循环使用 Soft 分类色；自定义端点用 `colorScale.range`，通过 `colorScale.missing` 区分缺失值和数值零。
 - Radar 应为每个指标声明 `min` 和 `max`；缺失域或混合单位会产生告警。
 
 ## 配置项位置

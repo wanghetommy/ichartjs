@@ -100,6 +100,35 @@ test('unspecified Diagram sizes fit content while explicit geometry and fonts re
   assert.ok(chart.getState().warnings.some(warning => ['LABEL_TRUNCATED', 'LABELS_SUPPRESSED', 'ICON_SUPPRESSED'].includes(warning.code))); chart.destroy();
 });
 
+test('manual Flow labels fit the visible zoomed shape instead of the unscaled node dimensions', () => {
+  const spec = galleryCases.find(item => item.id === 'flow').spec;
+  for (const factory of [createChart, createDiagram]) for (const renderer of ['svg', 'canvas']) for (const size of [12, 15, 18]) {
+    const chart = factory({ ...spec, renderer, width: 1800, height: 900, theme: { typography: { label: { size, font: `550 ${size}px system-ui` } } }, view: { scale: 3, offsetX: 20, offsetY: 10 } });
+    for (const node of spec.nodes.filter(node => node.kind !== 'connector')) {
+      const lines = []; chart.model.scene.walk(item => { if (item.type === 'text' && item.dataRef?.nodeId === node.id) lines.push(item.geometry.text); });
+      assert.equal(lines.join(' '), node.label, `${renderer}/${size}/${node.id}`);
+      assert.equal(chart.model.scene.find(`node-label-${node.id}`).style.font.includes(`${size}px`), true);
+    }
+    assert.equal(chart.getState().warnings.some(warning => ['LABELS_SUPPRESSED', 'LABEL_TRUNCATED'].includes(warning.code) && warning.nodeId), false);
+    assert.deepEqual(chart.getSpec().nodes.map(node => node.size), spec.nodes.map(node => node.size));
+    chart.update({ view: { scale: 1, offsetX: 0, offsetY: 0 } });
+    if (size <= 15) for (const id of ['start', 'end']) assert.equal(chart.model.scene.find(`node-label-${id}`)?.geometry.text, spec.nodes.find(node => node.id === id).label);
+    assert.equal(chart.model.scene.find('node-label-retry'), undefined);
+    chart.destroy();
+  }
+});
+
+test('Diagram multiline label spacing stays in display pixels across zoom, modes and icons', () => {
+  for (const factory of [createChart, createDiagram]) for (const type of ['flow', 'architecture', 'mindmap', 'swimlane']) for (const scale of [0.75, 1, 2, 3]) for (const icon of [undefined, 'user']) {
+    const chart = factory({ type, width: 900, height: 600, nodes: [{ id: 'step', label: 'Review\nrequest', icon, size: { width: 160, height: 100 }, position: { x: 32, y: 56 } }], ...(type === 'swimlane' ? { lanes: [{ id: 'team', label: 'Team' }] } : {}), diagram: { layout: 'manual' }, view: { scale, offsetX: 10, offsetY: 20 } });
+    const first = chart.model.scene.find('node-label-step'), second = chart.model.scene.find('node-label-step-1');
+    assert.ok(first && second, `${type}/${scale}/${icon}`);
+    assert.equal(first.geometry.text, 'Review'); assert.equal(second.geometry.text, 'request');
+    assert.ok(Math.abs(second.geometry.y - first.geometry.y - fontPixels(first.style.font) * 1.2) < 0.001, `${type}/${scale}/${icon}`);
+    chart.destroy();
+  }
+});
+
 test('shared foreground selection composites alpha and diagnoses rather than changes explicit colors', () => {
   assert.equal(compositeColor('#000000', '#ffffff', 0.1), '#e6e6e6');
   assert.equal(compositeColor('rgba(0,0,0,0.1)', '#ffffff'), '#e6e6e6');

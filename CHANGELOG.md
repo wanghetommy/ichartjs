@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.36 - 2026-10-17
+
+- Fixed missing and prematurely truncated Diagram node labels after enlargement or font changes by fitting against visible shape dimensions, preserving explicit geometry, routes, display-sized multiline spacing and SVG/Canvas parity.
+- Corrected high-cardinality color diagnostics to count actual color-coded groups rather than X categories; restored current theme diagnostics in Profiles and removed stale warnings after updates or Spec reloads.
+- Added node-specific geometry/ports repair guidance, canonical layout choices and measured Diagram overflow size estimates without automatically resizing nodes or changing the viewport.
+- Synchronized optional diagnostic TypeScript metadata, bilingual guides, Skill guidance and continuous Heatmap color-scale explanations; added regression coverage and refreshed footprint reports within unchanged budgets.
+
 ## 2.0.35 - 2026-10-17
 
 - Protected inline and offset Diagram edge labels against all crossing connectors using final text geometry, opaque local plates and transparent-safe render-only gaps, preserving routes, arrows, hit targets and manual waypoints across SVG, Canvas and Board composition.

@@ -28,3 +28,7 @@ Verify declared type, valid Spec, preserved source IDs, renderable health/status
 ## Acceptance and diagnostics
 
 Invalid inputs/non-renderable output block delivery. Resolve fallback, ignored options and distortion; alternatives need agreement. Review fitting/contrast; disclose accepted decoration/normalization effects. Follow [readability acceptance](readability.md), reporting runtime versus visual checks and unavailable tools. Consumer projects use their own URL, not Playground.
+
+Color-cardinality warnings concern color-coded groups/series, not X-axis point count; they are advisory, not failed validation. For Diagram overflow, inspect `currentSize`, estimated `recommendedSize` and `nodeIds`; host-authorized resizing must be followed by another check, not automatic zoom or node shrinking. For hidden node text, inspect `nodeSize`/`fontSize`: wider charts do not repair fixed node dimensions.
+
+Repair invalid node fields from each diagnostic's `nodeId`, `path`, `expected` and `suggestion`; retain distinct node errors rather than discarding them as duplicates. Use `size: { width, height }`, `position: { x, y }`, array `ports`, or omit optional fields. Read `diagram.layoutModes`; do not invent a `vertical` alias or coerce scalar dimensions.

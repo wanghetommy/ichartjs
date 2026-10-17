@@ -1,5 +1,5 @@
 /**
- * Render-focused profile runtime with atomic updates and renderer replacement.
+ * Render-focused profile runtime with atomic updates, renderer replacement and current theme diagnostics.
  * The complete interaction and editing runtime remains in index.mjs.
  */
 import { normalizeSpec, validateSpec } from './spec.mjs';
@@ -135,7 +135,7 @@ export class ProfileChart {
   getSpec() { return clone(this.spec); }
   getData() { return clone(this.model?.data || normalizeData(this.spec.data)); }
   getState() {
-    const warnings = [...(this._diagnostics.warnings || []), ...(this.model?.data?.warnings || [])];
+    const warnings = [...(this._diagnostics.warnings || []), ...(this.model?.data?.warnings || []), ...(this.spec.theme?.warnings || [])];
     const empty = isEmptyOrZero(this.model || { data: { rows: [] } });
     return {
       version: '1.0',

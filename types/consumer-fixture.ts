@@ -27,6 +27,12 @@ createChart({ ...spec, container: containerElement }).destroy();
 createProfileChart({ ...spec, container: containerElement }).destroy();
 
 const chart: Chart = createChart({ ...spec, type: spec.type || 'line', data: [{ id: 'row-1', name: 'A', value: 1 }] });
+chart.getState().warnings.forEach(warning => {
+  warning.nodeId?.toUpperCase(); warning.nodeIds?.map(id => id.toUpperCase());
+  warning.currentSize?.width.toFixed(); warning.recommendedSize?.height.toFixed();
+  warning.nodeSize?.width.toFixed(); warning.fontSize?.toFixed();
+  warning.count?.toFixed(); warning.recommendedMaximum?.toFixed(); warning.estimated?.valueOf();
+});
 const listener = (event: ChartEvent) => event.chart.getState().revision;
 chart.on('render', listener).off('render', listener);
 chart.update({ labels: { enabled: true } }).setData([{ id: 'row-2', name: 'B', value: 2 }]);
