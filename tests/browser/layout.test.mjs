@@ -10,6 +10,7 @@ import { measureMountedLifecycle } from './lifecycle-benchmark.mjs';
 import { verifyHostLifecycle } from './host-lifecycle.mjs';
 import { verifyExportDelivery } from './export-delivery.mjs';
 import { verifyAgentTasks } from './task-acceptance.mjs';
+import { verifyDefaultVisuals } from './default-visuals.mjs';
 
 const root = new URL('../../', import.meta.url);
 const browserPort = Number(process.env.BROWSER_PORT || 34567);
@@ -70,6 +71,14 @@ async function goto(path, options = {}) {
 after(async () => {
   await browser?.close();
   server?.kill('SIGTERM');
+});
+
+test('Iteration 35: default visuals protect real text and transparent PNG pixels across renderers', async () => {
+  await goto('/playground/index.html');
+  const report = await page.evaluate(verifyDefaultVisuals);
+  assert.equal(report.softCases, 48);
+  assert.equal(report.defaultCases, 432);
+  for (const [check, passed] of Object.entries(report.checks)) assert.equal(passed, true, `${check} ${JSON.stringify(report.difference || {})}`);
 });
 
 test('Agent delivery tasks preserve trend data and incremental Flow semantics', async () => {
@@ -1140,15 +1149,25 @@ test('Diagram Editor keeps auto routes orthogonal after dragging Done left of QA
   const result = await page.evaluate(() => {
     const done = document.querySelector('#node-done'), qa = document.querySelector('#node-qa');
     const edges = [...document.querySelectorAll('path[data-data-ref]')].filter(element => JSON.parse(element.getAttribute('data-data-ref')).edgeId);
-    const routes = edges.map(element => ({ id: JSON.parse(element.getAttribute('data-data-ref')).edgeId, points: element.getAttribute('d').match(/-?\d+(?:\.\d+)?/g).map(Number) }));
+    const routes = edges.map(element => {
+      const reference = JSON.parse(element.getAttribute('data-data-ref'));
+      const commands = (element.getAttribute('d').match(/[MLCZ][^MLCZ]*/g) || []).map(command => ({ kind: command[0], values: (command.slice(1).match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi) || []).map(Number) }));
+      return { id: reference.edgeId, points: reference.diagramPoints, commands };
+    });
     return { doneX: Number(done.getAttribute('x')), qaX: Number(qa.getAttribute('x')), routes };
   });
   assert.ok(result.doneX < result.qaX);
   assert.equal(result.routes.length, 3);
   for (const route of result.routes) {
-    for (let index = 2; index < route.points.length; index += 2) assert.ok(route.points[index] === route.points[index - 2] || route.points[index + 1] === route.points[index - 1], `${route.id} has a diagonal segment`);
+    for (let index = 1; index < route.points.length; index += 1) assert.ok(route.points[index].x === route.points[index - 1].x || route.points[index].y === route.points[index - 1].y, `${route.id} has a logical diagonal segment`);
+    let previous;
+    for (const command of route.commands) {
+      assert.ok(['M', 'L'].includes(command.kind)); assert.equal(command.values.length, 2);
+      if (command.kind === 'L') assert.ok(Math.abs(command.values[0] - previous[0]) < 1e-7 || Math.abs(command.values[1] - previous[1]) < 1e-7, `${route.id} draws a diagonal segment`);
+      previous = command.values;
+    }
   }
-  assert.ok(result.routes.find(route => route.id === 'qa-done').points.length > 4);
+  assert.ok(result.routes.find(route => route.id === 'qa-done').points.length > 2);
 });
 
 test('Diagram Editor encloses internal connector geometry and labels in the group frame', async () => {

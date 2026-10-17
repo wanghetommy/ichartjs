@@ -46,6 +46,7 @@ function transformGeometry(geometry, bounds, target) {
   if (geometry.cornerRadii) result.cornerRadii = geometry.cornerRadii.map(radius => radius * Math.min(sx, sy));
   if (Array.isArray(geometry.points)) result.points = geometry.points.map(point);
   if (Array.isArray(geometry.renderPoints)) result.renderPoints = geometry.renderPoints.map(point);
+  if (geometry.exclusions) result.exclusions = geometry.exclusions.map(box => { const center = point({ x: box.x + box.width / 2, y: box.y + box.height / 2 }); return { x: center.x - box.width / 2, y: center.y - box.height / 2, width: box.width, height: box.height }; });
   return result;
 }
 
@@ -53,6 +54,7 @@ function flattenChartScene(source, target, prefix, output) {
   source.walk(node => {
     if (node.type === 'group' || node.id === 'root') return;
     const geometry = transformGeometry(node.geometry || {}, { x: 0, y: 0, width: source.width, height: source.height }, target);
+    if (/^edge-label-.*-background$/.test(node.id)) { geometry.x += (geometry.width - node.geometry.width) / 2; geometry.y += (geometry.height - node.geometry.height) / 2; geometry.width = node.geometry.width; geometry.height = node.geometry.height; }
     const bounds = node.bounds ? transformGeometry(node.bounds, { x: 0, y: 0, width: source.width, height: source.height }, target) : undefined;
     output.push(new SceneNode({ ...node, id: `${prefix}-${node.id}`, geometry, bounds, children: [] }));
   });

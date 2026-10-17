@@ -66,7 +66,7 @@ const presets = {
   },
   diagram: {
     typography: { title: [16, 650, 1.25], subtitle: [13, 400, 1.4], axis: [12, 400, 1.4], legend: [12, 500, 1.4], label: [12, 550, 1.35], tooltip: [12, 400, 1.45], metric: [24, 650, 1.15] },
-    layout: { padding: { top: 50, right: 28, bottom: 44, left: 58 }, spacing: 8, legendGap: 12, axisGap: 10, density: 'comfortable', minimumTargetSize: 24 },
+    layout: { padding: { top: 16, right: 16, bottom: 16, left: 16 }, spacing: 8, legendGap: 12, axisGap: 10, density: 'comfortable', minimumTargetSize: 24 },
     marks: { lineWidth: 1.75, selectedLineWidth: 3, radius: 6, opacity: 1, gridWidth: 1, dashPatterns: [[], [6, 4], [2, 3]] }
   }
 };
@@ -149,24 +149,43 @@ export function planStyle(spec = {}, options = {}) {
   return { version: '1.0', preset, mode, resolvedMode, palette, reasons, warnings, userOverride: request.preset !== 'auto' || request.mode !== 'auto' || request.palette !== 'auto' };
 }
 
-function channel(value) {
+function rgba(value) {
   const text = String(value || '').trim();
-  const hex = text.replace('#', '');
-  const rgb = /^rgba?\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)/i.exec(text);
-  const values = /^[0-9a-f]{6}$/i.test(hex) ? [0, 2, 4].map(index => parseInt(hex.slice(index, index + 2), 16)) : rgb ? rgb.slice(1, 4).map(Number) : null;
-  if (!values || values.some(value => value < 0 || value > 255)) return null;
-  return values.map(value => value / 255).map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+  if (text === 'transparent') return [0, 0, 0, 0];
+  let hex = text.replace('#', '');
+  if (/^[\da-f]{3,4}$/i.test(hex)) hex = [...hex].map(part => part + part).join('');
+  const rgb = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)$/i.exec(text);
+  const values = /^(?:[\da-f]{6}|[\da-f]{8})$/i.test(hex) ? [0, 2, 4].map(index => parseInt(hex.slice(index, index + 2), 16)).concat(hex.length === 8 ? parseInt(hex.slice(6), 16) / 255 : 1) : rgb ? [...rgb.slice(1, 4).map(Number), Number(rgb[4] ?? 1)] : null;
+  return values && values.slice(0, 3).every(value => value >= 0 && value <= 255) && values[3] >= 0 && values[3] <= 1 ? values : null;
+}
+
+export function compositeColor(foreground, background, opacity = 1) {
+  const first = rgba(foreground), second = rgba(background);
+  if (!first || !second) return null;
+  const alpha = first[3] * opacity, combined = alpha + second[3] * (1 - alpha);
+  if (combined < 0.999999) return null;
+  return '#' + first.slice(0, 3).map((value, index) => Math.round((value * alpha + second[index] * second[3] * (1 - alpha)) / combined).toString(16).padStart(2, '0')).join('');
 }
 
 function luminance(value) {
-  const rgb = channel(value);
+  const rgb = rgba(value)?.slice(0, 3).map(value => value / 255).map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
   return rgb ? 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2] : null;
 }
 
 export function contrastRatio(foreground, background) {
-  const first = luminance(foreground), second = luminance(background);
+  const first = luminance(compositeColor(foreground, background)), second = luminance(compositeColor(background, background));
   if (first == null || second == null) return null;
   return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+}
+
+export function readableTextColor(theme, background, explicit, warnings = [], path = 'labels.color') {
+  const backdrop = compositeColor(background, theme.background), candidates = [theme.text, '#000000', '#ffffff'];
+  if (explicit != null) {
+    const ratio = contrastRatio(explicit, backdrop);
+    if (ratio != null && ratio < 4.5 && !warnings.some(warning => warning.code === 'INSUFFICIENT_TEXT_CONTRAST' && warning.path === path && warning.background === backdrop)) warnings.push({ code: 'INSUFFICIENT_TEXT_CONTRAST', path, background: backdrop, ratio, expected: 4.5, message: 'The explicit text color has insufficient contrast against its rendered background.', suggestion: 'Choose a higher-contrast color or omit the explicit text color.' });
+    return explicit;
+  }
+  return candidates.find(color => (contrastRatio(color, backdrop) || 0) >= 4.5) || theme.text;
 }
 
 export function validateThemeContrast(theme) {

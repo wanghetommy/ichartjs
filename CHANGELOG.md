@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.35 - 2026-10-17
+
+- Protected inline and offset Diagram edge labels against all crossing connectors using final text geometry, opaque local plates and transparent-safe render-only gaps, preserving routes, arrows, hit targets and manual waypoints across SVG, Canvas and Board composition.
+- Made unspecified Diagram node sizes content-aware across Flow, Architecture, Swimlane and tree Mindmap, coordinating semantic shape interiors, icons, typography, bounded strokes and compact default gutters while preserving explicit geometry.
+- Improved foreground contrast with actual fill opacity, retained and diagnosed explicit label colors, avoided mixed-color Gauge metric boundaries, and placed Line/Area labels clear of all series paths and points without adding ordinary chart label backgrounds.
+- Added default-first visual acceptance across chart families, widths, themes, renderers and Profiles; synchronized bilingual guides, Skill readability guidance and measured footprint reports without raising budgets.
+
 ## 2.0.34 - 2026-10-17
 
 - Fixed reciprocal Flow connectors sharing a reversed path; automatic return channels now remain distinct while respecting node shapes, plot boundaries, explicit ports and manual routes.

@@ -50,6 +50,18 @@ const resolved = chart.getTheme();
 
 自定义 token 后调用 `validateThemeContrast()`；Agent 不应隐藏对比度警告。
 
+### 默认视觉质量
+
+普通 Spec 不应依赖逐图表调样式才能使用。继续使用现有字体角色（通常标签/坐标轴 12px、标题 16px；演示预设更大）。Diagram 未指定的节点尺寸按文字、形状和图标测量，宽度有界、最多两行适配；显式尺寸与位置保持不变。默认 `diagram` 预设外边距为 16px，标题、副标题及泳道/层名称另按实际内容占位，不再预留日期坐标轴空间。字号、主题和尺寸变化重建共享场景，不改变视图。
+
+自动前景色根据实际填充和背景选择，支持常见 Hex/RGB/RGBA 的透明度及数据图元 opacity 合成。显式 `labels.color` 保留，实测对比度低于 4.5:1 时报告 `INSUFFICIENT_TEXT_CONTRAST`。完全透明区域无法确定宿主底色，需要保证对比度时应明确匹配的背景和主题；这不是完整 CSS 颜色解析器，也不代表视觉质量认证。
+
+Diagram 连线文字优先于穿过它的线，包括已偏移的标签。仅显示层的断线，以及不透明局部背景上的无边框实色底板保护最终文字范围；透明导出只保留断线，不涂白。逻辑路线、箭头、人工折点和命中几何不变。普通图表标签仍没有背景底板；Line/Area 标签优先避开所有系列线及数据点，有限候选均放不下时给出隐藏诊断。Gauge 数字根据实际已填充/未填充扇区选色，颜色分界穿过文字时在扇区内调整位置。
+
+物理空间不足仍须诊断并按交付尺寸验收，不强制缩成小字、不设统一占用比例、不擅自缩小人工图形。自动布局的溢出/重叠，Flow 使用 `FLOW_LAYOUT_OVERFLOW` / `FLOW_NODE_OVERLAP`，其他 Diagram 使用 `DIAGRAM_LAYOUT_OVERFLOW` / `DIAGRAM_NODE_OVERLAP`。有限候选均无法满足节点、标签及边框约束而采用尽力显示的连线标签回退时，报告 `LABEL_LAYOUT_CONSTRAINED`。
+
+默认数据线/连接线按绘图区及非 Connector 节点平均高度，在预设线宽的 0.8–1.35 倍内有界调整。单纯放大空白画布不会无限加粗；边框从属于主线，箭头与虚线间距随线宽协调，命中容差和网格线独立。显式 `theme.tokens.marks.lineWidth` 固定主线宽。SVG/Canvas/导出共用场景，不重复乘 DPR 或视图缩放。
+
 预览与验收：`http://localhost:3000/playground/theme-gallery.html`。
 
 ## 单图表与页面级偏好
