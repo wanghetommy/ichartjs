@@ -12,7 +12,7 @@
 | 轴标题 / 刻度格式 | `xAxis.title`、`yAxis.title` 与轴 `format`；按图表类型判断适用性。 |
 | 数值标签 | `labels.enabled` / `format` / `font` / `color`；CSS 像素字体，如 `500 14px system-ui`。 |
 | 标签位置 | 仅 Bar / Column 支持 `labels.position: 'inside' | 'outside'`，其他类型的显式位置配置会诊断。 |
-| 图类文字 | `nodes[].label` / `edges[].label`；显式换行、有界换行 / 缩小 / 截断，线上连线文字保留背景。 |
+| 图类文字 | `nodes[].label` / `edges[].label`；显式换行、有界适配，连线文字默认在线旁、文字与线条外沿间隙在 2–10 CSS px 内自适应；2px 是常规最小值，其他位置均放不下后才放宽；仅实际相交时局部加底板 / 断线。 |
 | 独立说明 | Board `kind: 'text'`、盒子、字体、对齐、内边距、换行和最小字号。 |
 | 目标 / 阈值 | `annotations[]` 的 `reference-line`。 |
 | 特定记录说明 | `annotations[]` 的 `callout`，稳定 `recordId`；多系列可用 `field` 选度量。 |

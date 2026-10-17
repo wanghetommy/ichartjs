@@ -1,14 +1,18 @@
-/** Shared chart chrome and bounded stroke sizing; no renderer or chart-family imports. */
+/** Shared chart chrome and bounded visual sizing; no renderer or chart-family imports. */
 import { SceneNode } from './scene.mjs';
 import { resolveTheme } from './theme.mjs';
 import { diagramNodeSize } from './layout.mjs';
 
-export function markWidth(spec, plot) {
-  const width = Math.max(0.5, Number(spec.theme?.marks?.lineWidth) || 2);
-  if (!plot || spec.theme?.automaticLineWidth !== width) return width;
+export function visualScale(spec, plot) {
+  if (!plot) return 1;
   const nodes = (spec.nodes || []).filter(node => node.kind !== 'connector');
   const nodeScale = nodes.length ? nodes.reduce((sum, node) => sum + diagramNodeSize(node, spec).height, 0) / nodes.length / 36 : Infinity;
-  return width * Math.max(0.8, Math.min(1.35, Math.sqrt(Math.max(0, Math.min(plot.width / 560, plot.height / 280, nodeScale)))));
+  return Math.max(0.8, Math.min(1.35, Math.sqrt(Math.max(0, Math.min(plot.width / 560, plot.height / 280, nodeScale)))));
+}
+
+export function markWidth(spec, plot) {
+  const width = Math.max(0.5, Number(spec.theme?.marks?.lineWidth) || 2);
+  return !plot || spec.theme?.automaticLineWidth !== width ? width : width * visualScale(spec, plot);
 }
 export function markRadius(spec) { return Math.max(2, Number(spec.theme?.marks?.radius) || 5); }
 export function markOpacity(spec) { return Math.max(0, Math.min(1, Number(spec.theme?.marks?.opacity ?? 1))); }

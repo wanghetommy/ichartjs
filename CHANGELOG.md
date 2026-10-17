@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.37 - 2026-10-18
+
+- Made Diagram edge-label clearance adaptive within 2–10 CSS pixels using typography, actual stroke width and bounded chart/content proportions, with a normal 2px minimum and smaller clearance only after alternate placements fail.
+- Kept clear adjacent connectors continuous and plate-free; restricted render-only cuts and opaque plates to genuine text/stroke intersections without masking nearby clear lines, preserving transparent exports, routes, arrows and hit geometry.
+- Added compact collision offsets and nearby straight-segment candidates so bent routes and narrow Chinese labels stay readable without rewriting nodes, saved routes or the viewport across Flow, Architecture, Mindmap and Swimlane.
+- Synchronized bilingual Diagram/Theme/text guides and Skill readability guidance; added SVG/Canvas, font/stroke/zoom/DPR, physical-space fallback, reload and Board composition regressions within unchanged footprint budgets.
+
 ## 2.0.36 - 2026-10-17
 
 - Fixed missing and prematurely truncated Diagram node labels after enlargement or font changes by fitting against visible shape dimensions, preserving explicit geometry, routes, display-sized multiline spacing and SVG/Canvas parity.

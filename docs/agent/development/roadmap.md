@@ -1,10 +1,12 @@
 # iChart.js 2.0 Roadmap
 
-> Roadmap baseline: 2026-09-14. Current release line: `v2.0.36` hardens enlarged Diagram labels and actionable diagnostics on top of default visual quality, retaining reviewed fixed footprint limits.
+> Roadmap baseline: 2026-09-14. Current release line: `v2.0.37` hardens adaptive Diagram edge-label clearance and continuous-line readability, retaining reviewed fixed footprint limits.
 
 ## Current Status
 
-- Release `v2.0.36` is prepared and publication explicitly authorized: visible-space Diagram label fitting, accurate color-group diagnostics, current Profile theme warnings, strict node/layout repair guidance and measured overflow recommendations. See the [Iteration 35 follow-up evidence](iteration-35.md). No chart type or automatic viewport behavior was added.
+- Release `v2.0.37` includes bounded adaptive edge-label gaps, continuous clear connectors, actual-intersection protection, compact offsets and local segment placement across both renderers. Publication was explicitly authorized on 2026-10-18. See the [Iteration 35 follow-up evidence](iteration-35.md). No public option, chart type or automatic viewport behavior was added.
+
+- Release `v2.0.36` shipped visible-space Diagram label fitting, accurate color-group diagnostics, current Profile theme warnings, strict node/layout repair guidance and measured overflow recommendations.
 
 - Iteration 35 is implemented and accepted for `v2.0.35`: final-geometry Diagram edge-text protection, content-aware node sizing, compact Diagram gutters, shared label contrast, Gauge metric placement and Line/Area label avoidance. Default-first browser and installed-package acceptance cover both renderers; existing footprint budgets are unchanged. Publication is explicitly authorized by the author. See [scope and evidence](iteration-35.md).
 

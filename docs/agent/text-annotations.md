@@ -12,7 +12,7 @@ Read root `getCapabilities().text`, `.annotations` and `getChartContract(type).a
 | Axis title / tick format | `xAxis.title`, `yAxis.title`, axis `format`; chart-specific applicability still applies. |
 | Numeric labels | `labels.enabled`, `format`, `font`, `color`; CSS pixel font such as `500 14px system-ui`. |
 | Label position | Bar / Column: `labels.position: 'inside' | 'outside'`; other types diagnose explicit positions as unsupported. |
-| Diagram labels | `nodes[].label`, `edges[].label`; explicit newlines, bounded wrapping/scaling/truncation, inline edge background plates. |
+| Diagram labels | `nodes[].label`, `edges[].label`; explicit newlines, bounded fitting, line-adjacent edge labels with an adaptive 2–10 CSS px text-to-stroke gap; 2px is the normal minimum, relaxed only after other placements fail; plates/cuts only for actual intersections. |
 | Independent note | Board `kind: 'text'`: box, font, alignment, padding, wrap and minimum size. |
 | Numeric threshold | `annotations[]` with `type: 'reference-line'`. |
 | Explain an observation | `annotations[]` with `type: 'callout'`, stable `recordId` and optional measure `field`. |

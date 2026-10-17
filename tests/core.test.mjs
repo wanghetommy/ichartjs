@@ -691,8 +691,8 @@ test('reroutes flow arrows after a node moves', () => {
   assert.equal(edge.geometry.points.at(-1).y, destination.geometry.y + destination.geometry.height / 2);
   assert.equal(arrow.geometry.points[0].y, edge.geometry.points.at(-1).y);
   const label = model.scene.find('edge-label-0'), middle = edge.geometry.points[Math.floor(edge.geometry.points.length / 2)];
-  assert.equal(label.geometry.x, middle.x);
-  assert.equal(label.geometry.y, middle.y - 8);
+  assert.equal(label.geometry.x, middle.x + label.dataRef.offsetX);
+  assert.equal(label.geometry.y, middle.y + label.dataRef.offsetY);
 });
 
 test('commits guarded business edits and tracks audit state', async () => {
