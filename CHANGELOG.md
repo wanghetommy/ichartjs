@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.34 - 2026-10-17
+
+- Fixed reciprocal Flow connectors sharing a reversed path; automatic return channels now remain distinct while respecting node shapes, plot boundaries, explicit ports and manual routes.
+- Routed cross-group connectors against final internal-content bounds with a preferred 12-unit exterior clearance, diagnosed constrained fallback, and corrected connector-label measurements under zoom across SVG and Canvas.
+- Aligned rendering Profile and Board TypeScript exports with their actual APIs, clarified Agent/Skill entry selection, and added installed-package task and delivery acceptance.
+- Fixed packaged documentation links and excluded development history and test fixtures from npm while retaining consumer guides, recipes, manifests, Skill resources and declarations.
+- Consolidated approved footprint limits to 640 KiB root source / 160 KiB source gzip, preserving historical reviews and unchanged npm tarball/unpacked ceilings.
+
 ## 2.0.33 - 2026-10-16
 
 - Added bounded shared stroke sizing, proportional arrows/dashes, preserved explicit widths and consistent resize, rerouting and SVG/Canvas exports.

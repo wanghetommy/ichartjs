@@ -10,7 +10,7 @@ import { Scene } from '../src/scene.mjs';
 import { sceneToSvgString } from '../src/scene-svg.mjs';
 import { CanvasRenderer } from '../src/renderer.mjs';
 import { rerouteDiagramScene } from '../src/project.mjs';
-import { baseline, allowedGrowth, featureAllowance, footprintLimits, footprintFailures } from '../scripts/footprint-lib.mjs';
+import { baseline, allowedGrowth, featureAllowance, fixAllowance, footprintLimits, footprintFailures } from '../scripts/footprint-lib.mjs';
 
 const spec = { type: 'flow', renderer: 'svg', width: 680, height: 400, nodes: [{ id: 'request', kind: 'process', label: 'Request', icon: 'user', position: { x: 40, y: 80 }, size: { width: 180, height: 72 } }, { id: 'check', kind: 'process', label: 'Risk check', icon: 'shield', tone: 'secondary', position: { x: 380, y: 240 }, size: { width: 180, height: 72 } }], edges: [{ id: 'link', from: 'request', to: 'check' }], theme: { mode: 'light', palette: 'soft' }, diagram: { layout: 'manual', appearance: 'soft', routing: 'orthogonal' } };
 
@@ -131,9 +131,16 @@ test('Board glyphs use existing shapes, survive edits/history and retain opacity
   assert.ok(validateBoardSpec({ items: [{ ...item, icon: 'unknown' }] }).warnings.some(warning => warning.code === 'UNKNOWN_ICON'));
 });
 
-test('reviewed feature allowance preserves the original footprint baseline and enforces exact ceilings', () => {
+test('fixed footprint limits preserve review history without accumulating historical allowances', () => {
   assert.deepEqual(baseline, { moduleRawBytes: 535216, moduleGzipBytes: 129561, packageBytes: 344082, unpackedBytes: 1231449 });
   assert.equal(allowedGrowth, 1.15); assert.equal(featureAllowance.iteration, 33);
+  assert.equal(fixAllowance.iteration, 34);
+  assert.deepEqual(fixAllowance.bytes, { moduleRawBytes: 1432, moduleGzipBytes: 493, packageBytes: 0, unpackedBytes: 0 });
+  assert.deepEqual(footprintLimits, { moduleRawBytes: 655360, moduleGzipBytes: 163840, packageBytes: 405935, unpackedBytes: 1440743 });
+  for (const key of ['packageBytes', 'unpackedBytes']) assert.equal(footprintLimits[key], Math.ceil(baseline[key] * allowedGrowth) + featureAllowance.bytes[key] + fixAllowance.bytes[key]);
   assert.deepEqual(footprintFailures(footprintLimits), []);
-  for (const key of Object.keys(footprintLimits)) assert.equal(footprintFailures({ ...footprintLimits, [key]: footprintLimits[key] + 1 }).length, 1);
+  for (const [key, limit] of Object.entries(footprintLimits)) {
+    assert.deepEqual(footprintFailures({ ...footprintLimits, [key]: limit - 1 }), []);
+    assert.deepEqual(footprintFailures({ ...footprintLimits, [key]: limit + 1 }), [`${key} ${limit + 1} exceeds fixed reviewed limit ${limit}`]);
+  }
 });

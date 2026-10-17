@@ -9,7 +9,14 @@ import {
   type EditCommand,
   type LinkedFilters
 } from '@taylorwong/ichartjs';
-import { createChart as createProfileChart } from '@taylorwong/ichartjs/standard';
+import { createChart as createProfileChart, getCapabilities as getProfileCapabilities } from '@taylorwong/ichartjs/standard';
+import { FreeformBoard as ProfileBoard, getCapabilities as getBoardProfileCapabilities } from '@taylorwong/ichartjs/board';
+
+const profileBoundary: Extract<keyof ReturnType<typeof getProfileCapabilities>, 'intents' | 'charts' | 'editing'> extends never ? true : never = true;
+const boardBoundary: Extract<keyof typeof import('@taylorwong/ichartjs/board'), 'createChart' | 'planChart' | 'getChartContract'> extends never ? true : never = true;
+getProfileCapabilities().export.delivery.representations.svg;
+getBoardProfileCapabilities().boardCapabilities.items;
+new ProfileBoard({ items: [] }).destroy();
 
 declare const spec: ChartSpec;
 declare const command: EditCommand;

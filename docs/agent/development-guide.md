@@ -1,10 +1,10 @@
 # Development Guide
 
-Execution workflow for maintainers and Coding Agents changing iChart.js itself. For using the library, start with the [Agent Guide](README.md); for plans and historical evidence, use the [development index](development/README.md).
+Execution workflow for maintainers and Coding Agents changing iChart.js itself. For using the library, start with the [Agent Guide](README.md); for plans and historical evidence, use the [development index](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/development/README.md).
 
 ## Required Reading
 
-Read and follow the [Seven Development Principles](development/development-principles.md), as required by the root `AGENTS.md`, then the relevant scenario and iteration plan. The principles are maintained there, not repeated here.
+Read and follow the [Seven Development Principles](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/development/development-principles.md), as required by the root `AGENTS.md`, then the relevant scenario and iteration plan. The principles are maintained there, not repeated here.
 
 ## Select the Change Surface
 
@@ -20,10 +20,10 @@ Read and follow the [Seven Development Principles](development/development-princ
 
 1. Confirm the task and iteration scope, reproduce the problem if applicable, and identify the smallest shared change surface.
 2. Add focused regression coverage and implement the change without unrelated fixes.
-3. Synchronize affected API/types, manifests, bilingual guides, recipes and maintained demos. Use the [Playground policy](development/playground-plan.md) to choose the owning page.
+3. Synchronize affected API/types, manifests, bilingual guides, recipes and maintained demos. Use the [Playground policy](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/development/playground-plan.md) to choose the owning page.
 4. Run focused tests first, then `npm run agent:check` and `git diff --check`. The Agent gate covers contracts, types, dependencies, recipes, docs, package consumers, footprint, profiles, syntax and unit tests; it does not prove translation equivalence or browser correctness.
 5. For layout or interaction changes, run `npm run test:browser` and inspect the affected SVG/Canvas previews. For README/Quickstart examples, run `npm run docs:snippets`; use `npm run performance:check` when the change affects performance. If package contents or source sizes change, refresh `npm run footprint:generate` and verify `npm run footprint:check` without increasing budgets to hide regressions.
-6. Return changed behavior, actual test results, remaining limits, exact HTTP preview URLs and manual acceptance actions. Commit or release only when explicitly authorized; releases follow the [author-only SOP](development/release-sop.md).
+6. Return changed behavior, actual test results, remaining limits, exact HTTP preview URLs and manual acceptance actions. Commit or release only when explicitly authorized; releases follow the [author-only SOP](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/development/release-sop.md).
 
 ## Documentation and Source Rules
 

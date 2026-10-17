@@ -21,6 +21,10 @@ The package is ESM and declares `sideEffects: false`, so a bundler may remove un
 
 Use only documented profile entries; do not use undocumented deep imports from `src/` as a mobile optimization strategy.
 
+Profiles expose reduced capabilities, not root planning/discovery (`planChart`, `getChartContract`). Chart rendering Profiles omit root Chart editing/preferences APIs; `/board` retains its separate Board editing contract. Run planning in the Agent's Node environment, or read packaged manifests/recipes, then ship only the rendering Profile to the browser. This does not require bundling root into the application.
+
+The npm tarball keeps consumer guides, Skill references, recipes, manifests and declarations. Maintenance/iteration records and TypeScript test fixtures remain in Git, not npm; maintained contribution links use GitHub URLs. Package checks resolve local documentation/image links against the actual packed inventory. Removing these resources reduces installation size, not browser JavaScript bytes or the runtime source budgets.
+
 ## What is measured
 
 Run:
@@ -30,6 +34,17 @@ npm run footprint:check
 ```
 
 `npm run footprint:check` reports the root ESM module graph, gzip size, npm tarball size, unpacked package size, and grouped packaged resources. `npm run footprint:generate` refreshes the checked-in `playground/footprint.json` used by the Playground home page. CI compares the generated report with the current repository state, so stale size data fails the check instead of silently drifting.
+
+On 2026-10-17, the user approved these fixed ceilings:
+
+| Metric | Limit in bytes | Limit in KiB |
+| --- | ---: | ---: |
+| Root source module graph | 655,360 | 640 |
+| Root source graph gzip | 163,840 | 160 |
+| npm tarball | 405,935 | 396.42 (unchanged) |
+| npm unpacked package | 1,440,743 | 1,406.98 (unchanged) |
+
+One KiB is 1,024 bytes. The root figures measure the source graph, not a minified production bundle or actual browser transfer. The generated report's `budget.history` retains the original baseline × 1.15, Iteration 33 feature allowance and measured Iteration 34 group-clearance increment (1,432 raw / 493 gzip bytes). They are historical records, not additional allowances on top of the fixed limits. Limits do not increase automatically with releases; report each change's measured delta, and explain its value and obtain explicit approval before raising a ceiling. Do not remove necessary validation or compromise maintainability to save a few bytes.
 
 The Playground home page at `playground/index.html` displays the same report in a collapsed “Footprint and on-demand integration” panel. Runtime entries are shown separately from documentation, Skill, Recipes, manifests, and TypeScript declarations because Agent resources do not enter the browser runtime automatically.
 
@@ -56,4 +71,4 @@ Profile entries are additive and should be selected when the host knows its capa
 
 Chart Profiles provide render-focused `update()`, `resize()`, `setTheme()`, state and export APIs; they do not implement root's editing/history or settings-menu runtime. Explicit renderer updates and auto threshold changes use the same current Spec and scene; rejected updates do not affect later theme changes. Use `getState().rendererSelection` to verify selection. Accept the lifecycle at `http://localhost:3000/playground/profile-loading.html`; use Performance Lab for mounted update, resize and theme timings. Timings are synchronous API durations, not total frame-paint latency or a mobile-device guarantee.
 
-Iteration 26 incremental Flow preview/commit/history uses the root entry, not the render-focused `/diagram` Profile. Its node commands, layout algorithm, and discovery metadata enter the runtime graph; its recipe, Skill, and guides remain Agent resources. The package-resource baseline is refreshed for the added Iteration 25–26 documentation and recipe. The browser module raw/gzip baselines and the 15% growth allowance remain unchanged; `playground/footprint.json` reports the actual current sizes rather than treating the npm package as the browser download size.
+Iteration 26 incremental Flow preview/commit/history uses the root entry, not the render-focused `/diagram` Profile. Its node commands, layout algorithm, and discovery metadata enter the runtime graph; its recipe, Skill, and guides remain Agent resources. That iteration refreshed the package-resource baseline for the added documentation and recipe while retaining the browser module raw/gzip baselines and 15% growth allowance. Current fixed limits are listed above; `playground/footprint.json` reports actual sizes rather than treating the npm package as the browser download size.

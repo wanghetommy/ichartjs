@@ -44,6 +44,7 @@ For visible Agent-driven construction, use the existing workbenches:
 - Flow: `http://localhost:3000/playground/diagram-editor.html?scenario=incremental`
 - Board: `http://localhost:3000/playground/canvas-board.html?scenario=incremental`
 - Both URLs and bare pages default to an empty four-step example with Next, Previous step and Restart. Next authorizes the displayed preset step, executing preview/confirmed commit internally; Developer tools are collapsed. Use `?scenario=advanced` for editable command templates, explicit preview/confirmation, cancellation/history and delivery review; `?scenario=editor` opens the manual Flow editor, `?scenario=composition` opens the full Board composition. Append `&renderer=canvas` for Canvas; `lang=zh-CN` or `lang=en` overrides browser language. Developer mutations invalidate the simple sequence until Restart. These are structured-command host demos, not built-in language models; see the [shared workflow](../conversational-workflow.md#agent-driven-incremental-construction).
+- Flow `?scenario=editor&loop=1` reuses the manual editor to show aligned forward and return channels. Drag the return edge's middle segment twice, move QA, then Undo/Redo and Save/Reload to verify channel persistence; use the Renderer selector for SVG/Canvas.
 
 Delivery reports name the owning page, exact URL, reproducible actions, actual checks and remaining environment limits. An entry in the catalog is not itself evidence that browser acceptance passed.
 

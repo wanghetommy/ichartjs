@@ -2,6 +2,9 @@ node_modules/
 playground/
 tests/
 scripts/
+docs/agent/development/
+docs/agent/zh-CN/iteration-*.md
+types/consumer-fixture.ts
 .trae/
 .git/
 .github/

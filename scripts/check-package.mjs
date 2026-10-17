@@ -2,12 +2,13 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { packageLinkFailures } from './package-links.mjs';
 
 const packageJson = JSON.parse(readFileSync('package.json', 'utf8'));
 const cache = mkdtempSync(join(tmpdir(), 'ichartjs-package-check-'));
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const required = ['package.json', 'src/index.mjs', 'src/standard.mjs', 'src/project-profile.mjs', 'src/diagram-profile.mjs', 'src/board-profile.mjs', 'types/index.d.ts', 'types/standard.d.ts', 'types/project.d.ts', 'types/diagram.d.ts', 'types/board.d.ts', 'docs/manifests/capabilities.json', 'skills/ichartjs/SKILL.md', 'agent-recipes/minimal-specs.json'];
-const forbiddenPrefixes = ['.trae/', '.github/', 'tests/', 'playground/'];
+const forbiddenPrefixes = ['.trae/', '.github/', 'tests/', 'playground/', 'docs/agent/development/', 'docs/agent/zh-CN/iteration-', 'types/consumer-fixture.ts'];
 try {
   const output = execFileSync(npm, ['pack', '--dry-run', '--json', '--ignore-scripts'], { encoding: 'utf8', env: { ...process.env, npm_config_cache: cache } });
   const report = JSON.parse(output.trim()).at(-1);
@@ -16,6 +17,7 @@ try {
   if (report?.name !== packageJson.name || report?.version !== packageJson.version) failures.push('package metadata does not match package.json');
   required.forEach(file => { if (!files.has(file)) failures.push(`published package is missing ${file}`); });
   forbiddenPrefixes.forEach(prefix => { if ([...files].some(file => file.startsWith(prefix))) failures.push(`published package contains development path ${prefix}`); });
+  failures.push(...packageLinkFailures(files, file => readFileSync(file, 'utf8')));
   if (failures.length) { console.error(failures.join('\n')); process.exitCode = 1; }
   else console.log(`Package check passed: ${report.entryCount} files, ${packageJson.name}@${packageJson.version}.`);
 } finally {

@@ -1,6 +1,6 @@
 /**
  * Diagram data model, validation, deterministic layout, and edge routing.
- * Supports nodes, edges, lanes, flat groups, ports, and 2D routing modes.
+ * Supports nodes, edges, lanes, groups, ports, and separated reciprocal routes.
  */
 import { copyJSON } from './schema.mjs';
 import { sampleCubicBezier } from './scene.mjs';
@@ -276,13 +276,7 @@ function preferredSide(source, target, sourcePoint) {
 }
 
 function pointFor(box, port, fallbackSide) {
-  if (!port) {
-    if (fallbackSide === 'left') return { x: box.x, y: box.y + box.height / 2 };
-    if (fallbackSide === 'top') return { x: box.x + box.width / 2, y: box.y };
-    if (fallbackSide === 'bottom') return { x: box.x + box.width / 2, y: box.y + box.height };
-    return { x: box.x + box.width, y: box.y + box.height / 2 };
-  }
-    const side = port.side || fallbackSide, offset = Math.max(0, Math.min(1, Number(port.offset ?? 0.5)));
+    const side = port?.side || fallbackSide, offset = Math.max(0, Math.min(1, Number(port?.offset ?? 0.5)));
     if (side === 'left') return { x: box.x, y: box.y + box.height * offset };
     if (side === 'top') return { x: box.x + box.width * offset, y: box.y };
     if (side === 'bottom') return { x: box.x + box.width * offset, y: box.y + box.height };
@@ -412,9 +406,9 @@ export function routeEdgePath(edge, from, to, mode = 'orthogonal') {
     const bounds = obstacleBounds(obstacle);
     return obstacle?.obstacle !== false && bounds && Number.isFinite(bounds.x) && Number.isFinite(bounds.y) && Number.isFinite(bounds.width) && Number.isFinite(bounds.height);
   });
-  const compact = points => {
+  const compact = (points, simplify = mode === 'auto') => {
     const unique = points.filter((point, index) => !index || point.x !== points[index - 1].x || point.y !== points[index - 1].y);
-    if (mode !== 'auto') return unique;
+    if (!simplify) return unique;
     return unique.filter((point, index) => {
       const previous = unique[index - 1], next = unique[index + 1];
       if (!previous || !next) return true;
@@ -422,7 +416,7 @@ export function routeEdgePath(edge, from, to, mode = 'orthogonal') {
     });
   };
   const leavesSide = (start, next, side) => side === 'left' ? next.x < start.x : side === 'right' ? next.x > start.x : side === 'top' ? next.y < start.y : next.y > start.y;
-  const entersSide = (previous, end, side) => side === 'left' ? previous.x < end.x : side === 'right' ? previous.x > end.x : side === 'top' ? previous.y < end.y : previous.y > end.y;
+  const entersSide = (previous, end, side) => leavesSide(end, previous, side);
   const waypoints = Array.isArray(edge.waypoints) ? edge.waypoints.filter(point => Number.isFinite(point?.x) && Number.isFinite(point?.y)).map(point => ({ x: point.x, y: point.y })) : [];
   const manualRouting = edge.routingMode === 'manual' || (edge.routingMode !== 'auto' && waypoints.length > 0);
   if (manualRouting) {
@@ -439,11 +433,14 @@ export function routeEdgePath(edge, from, to, mode = 'orthogonal') {
     const warning = { code: 'EDGE_MANUAL_ROUTE_INVALID', reason, message: `Manual connector route is invalid (${reason}); a safe automatic route is displayed instead.`, suggestion: 'Keep orthogonal segments, respect connection sides, avoid node interiors and self-intersections, or set routingMode to auto.' };
     return { ...fallback, routingMode: 'auto', warning, warnings: [warning, ...(fallback.warning ? [fallback.warning] : [])] };
   }
+  const horizontal = startSide === 'left' || startSide === 'right';
+  const groupClearance = edge.groupBounds?.some(Boolean) && (mode === 'auto' || mode === 'orthogonal');
+  const returnRoute = edge.reciprocal && !edge.fromPortDefinition && !edge.toPortDefinition && (mode === 'auto' || mode === 'orthogonal') && (startSide === 'left' || startSide === 'top');
   const direct = [initial.start, initial.end], directPadding = Math.max(4, Number(edge.grid) || 8) / 2;
   const axisAligned = initial.start.x === initial.end.x || initial.start.y === initial.end.y;
   const directAccess = leavesSide(initial.start, initial.end, startSide) && entersSide(initial.start, initial.end, endSide);
   if (mode === 'straight' && !pathHitsObstacles(direct, obstacles, directPadding)) return { points: direct, curve: null };
-  if (mode === 'auto' && axisAligned && directAccess && !pathHitsObstacles(direct, obstacles, directPadding)) return { points: direct, curve: null };
+  if (mode === 'auto' && !returnRoute && axisAligned && directAccess && !pathHitsObstacles(direct, obstacles, directPadding)) return { points: direct, curve: null };
   if (mode === 'curved') {
     const tension = Math.max(0.2, Math.min(0.8, Number(edge.curveTension) || 0.4)), distance = Math.hypot(initial.end.x - initial.start.x, initial.end.y - initial.start.y), bend = Math.max(24, distance * tension);
     const direction = side => side === 'left' ? { x: -1, y: 0 } : side === 'right' ? { x: 1, y: 0 } : side === 'top' ? { x: 0, y: -1 } : { x: 0, y: 1 };
@@ -454,39 +451,25 @@ export function routeEdgePath(edge, from, to, mode = 'orthogonal') {
     return routeEdgePath({ ...edge, waypoints: [] }, from, to, 'orthogonal');
   }
   const sidePairs = edge.preserveSides || edge.fromPortDefinition || edge.toPortDefinition ? [[startSide, endSide]] : [[startSide, endSide], ...['right', 'left', 'top', 'bottom'].flatMap(fromSide => ['right', 'left', 'top', 'bottom'].map(toSide => [fromSide, toSide]))].filter((pair, index, pairs) => pairs.findIndex(item => item[0] === pair[0] && item[1] === pair[1]) === index);
+  const opposite = returnRoute ? JSON.stringify(compact(routeEdgePath({ ...edge, reciprocal: false }, to, from, mode).points, true).reverse()) : null;
   const endpointInteriors = [from, to].map(box => ({ x: box.x + 0.001, y: box.y + 0.001, width: Math.max(0, box.width - 0.002), height: Math.max(0, box.height - 0.002) }));
   const routeForSides = (fromSide, toSide) => {
     const fromPort = edge.fromPortDefinition || { side: fromSide }, toPort = edge.toPortDefinition || { side: toSide }, { start, end } = diagramConnectionPoints(from, to, fromPort, toPort), padding = Math.max(12, Number(edge.grid) || 8);
     const localRouting = mode === 'auto' || mode === 'orthogonal';
-    const leavesFromSide = points => {
-      if (points.length < 2) return false;
-      const next = points[1];
-      if (fromSide === 'left') return next.x < start.x && next.y === start.y;
-      if (fromSide === 'top') return next.y < start.y && next.x === start.x;
-      if (fromSide === 'bottom') return next.y > start.y && next.x === start.x;
-      return next.x > start.x && next.y === start.y;
-    };
-    const entersToSide = points => {
-      if (points.length < 2) return false;
-      const previous = points.at(-2);
-      if (toSide === 'left') return previous.x < end.x && previous.y === end.y;
-      if (toSide === 'top') return previous.y < end.y && previous.x === end.x;
-      if (toSide === 'bottom') return previous.y > end.y && previous.x === end.x;
-      return previous.x > end.x && previous.y === end.y;
-    };
-    const connectionAccess = points => leavesFromSide(points) && entersToSide(points);
-    const terminalLength = points => Math.min(Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y), Math.hypot(points.at(-1).x - points.at(-2).x, points.at(-1).y - points.at(-2).y));
-    const validPath = points => connectionAccess(points) && !pathIntersectsItself(points) && (mode !== 'auto' || terminalLength(points) >= padding) && !pathHitsObstacles(points, obstacles, padding) && (mode !== 'auto' || !pathHitsObstacles(points, endpointInteriors));
+    const connectionAccess = points => points.length >= 2 && leavesSide(start, points[1], fromSide) && entersSide(points.at(-2), end, toSide);
+    const gap = (group, point, side) => { const axis = side === 'left' || side === 'right' ? 'x' : 'y'; return group ? Math.max(padding, Math.abs(point[axis] - pointFor(group, null, side)[axis]) + 12) : padding; };
+    const fromGap = gap(groupClearance && edge.groupBounds[0], start, fromSide), toGap = gap(groupClearance && edge.groupBounds[1], end, toSide);
+    const validPath = points => connectionAccess(points) && !pathIntersectsItself(points) && (mode !== 'auto' && !returnRoute && !groupClearance || points.length === 2 || Math.hypot(points[1].x - start.x, points[1].y - start.y) >= fromGap && Math.hypot(points.at(-2).x - end.x, points.at(-2).y - end.y) >= toGap) && !pathHitsObstacles(points, obstacles, padding) && (mode !== 'auto' && !returnRoute || !pathHitsObstacles(points, endpointInteriors)) && (!returnRoute || JSON.stringify(compact(points, true)) !== opposite && points.some(point => horizontal ? point.y < Math.min(from.y, to.y) || point.y > Math.max(from.y + from.height, to.y + to.height) : point.x < Math.min(from.x, to.x) || point.x > Math.max(from.x + from.width, to.x + to.width)));
     const snap = value => { const grid = Number(edge.grid) || 8; return Math.round(value / grid) * grid; };
     const middle = snap((start.x + end.x) / 2), middleY = snap((start.y + end.y) / 2);
     const xChannels = new Set([start.x, end.x, middle]), yChannels = new Set([start.y, end.y, middleY]);
-    const channelGap = padding + (Number(edge.grid) || 8);
+    const channelGap = Math.max(fromGap, toGap, padding + (returnRoute ? 0 : Number(edge.grid) || 8));
     if (localRouting) [from, to].forEach(box => {
       [box.x - channelGap, box.x + box.width + channelGap].forEach(x => xChannels.add(snap(x)));
       [box.y - channelGap, box.y + box.height + channelGap].forEach(y => yChannels.add(snap(y)));
     });
     const length = points => points.slice(1).reduce((sum, point, index) => sum + Math.abs(point.x - points[index].x) + Math.abs(point.y - points[index].y), 0);
-    const score = points => length(points) + (mode === 'auto' ? Math.max(0, points.length - 2) * padding * 2 : 0);
+    const score = points => length(points) + (mode === 'auto' ? Math.max(0, points.length - 2) * padding * 2 : 0) + (returnRoute && edge.plot && points.some(point => point.x < edge.plot.x || point.y < edge.plot.y || point.x > edge.plot.x + edge.plot.width || point.y > edge.plot.y + edge.plot.height) ? (edge.plot.width + edge.plot.height) * 2 : 0);
     const bestRoute = () => {
       const candidates = [
         [start, { x: middle, y: start.y }, { x: middle, y: end.y }, end],
@@ -504,7 +487,7 @@ export function routeEdgePath(edge, from, to, mode = 'orthogonal') {
         yChannels.forEach(y => candidates.push([start, sourceStub, { x: sourceStub.x, y }, { x: targetStub.x, y }, targetStub, end]));
         xChannels.forEach(x => candidates.push([start, sourceStub, { x, y: sourceStub.y }, { x, y: targetStub.y }, targetStub, end]));
       }
-      return candidates.map(compact).filter(validPath).sort((left, right) => score(left) - score(right) || left.length - right.length || JSON.stringify(left).localeCompare(JSON.stringify(right)))[0] || null;
+      return candidates.map(points => compact(points)).filter(validPath).sort((left, right) => score(left) - score(right) || left.length - right.length || JSON.stringify(left).localeCompare(JSON.stringify(right)))[0] || null;
     };
     if (localRouting) {
       const localRoute = bestRoute();
@@ -526,7 +509,13 @@ export function routeEdgePath(edge, from, to, mode = 'orthogonal') {
     const lastSpan = Math.abs(route.at(-1)?.x - route.at(-2)?.x) + Math.abs(route.at(-1)?.y - route.at(-2)?.y);
     if (firstSpan >= bendGap && lastSpan >= bendGap) return { points: route, curve: null };
   }
-  if (edge.preserveSides && mode === 'orthogonal') {
+  if (groupClearance) {
+    const fallback = routeEdgePath({ ...edge, groupBounds: null }, from, to, mode === 'orthogonal' ? 'auto' : mode);
+    if (!fallback.points.length) return fallback;
+    const warning = { code: 'EDGE_GROUP_CLEARANCE_REDUCED', message: 'No safe route meets the default 12-unit group gap; clearance was reduced.' };
+    return { ...fallback, warning: fallback.warning || warning, warnings: [warning, ...(fallback.warnings || (fallback.warning ? [fallback.warning] : []))] };
+  }
+  if (edge.preserveSides && mode === 'orthogonal' && !returnRoute) {
     const horizontal = ['left', 'right'].includes(startSide) && ['left', 'right'].includes(endSide);
     const vertical = ['top', 'bottom'].includes(startSide) && ['top', 'bottom'].includes(endSide);
     const bendGap = Math.max(12, Number(edge.grid) || 8), snapFallback = value => Math.round(value / (Number(edge.grid) || 8)) * (Number(edge.grid) || 8);
@@ -543,7 +532,7 @@ export function routeEdgePath(edge, from, to, mode = 'orthogonal') {
       return { points: compact([initial.start, { x: initial.start.x, y: snapFallback(sourceChannelY) }, { x: snapFallback(channelX), y: snapFallback(sourceChannelY) }, { x: snapFallback(channelX), y: snapFallback(targetChannelY) }, { x: initial.end.x, y: snapFallback(targetChannelY) }, initial.end]), curve: null };
     }
   }
-  if (mode === 'auto') return { points: [], curve: null, warning: { code: 'EDGE_ROUTE_BLOCKED', message: 'No obstacle-free orthogonal route was found. The connector is hidden rather than drawing a misleading diagonal or crossing a node.', suggestion: 'Separate overlapping nodes or adjust the ports and node positions.' } };
+  if (mode === 'auto' || returnRoute) return { points: [], curve: null, warning: { code: 'EDGE_ROUTE_BLOCKED', message: 'No obstacle-free orthogonal route was found. The connector is hidden rather than drawing a misleading diagonal or crossing a node.', suggestion: 'Separate overlapping nodes or adjust the ports and node positions.' } };
   if (!pathHitsObstacles(direct, obstacles, directPadding)) return { points: direct, curve: null };
   return { points: direct, curve: null, warning: { code: 'EDGE_ROUTE_BLOCKED', message: 'No obstacle-free route was found; the direct connector is retained as a last-resort fallback.' } };
 }

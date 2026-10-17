@@ -15,11 +15,13 @@ The Skill guides an Agent; it is not the JavaScript runtime or a live update cha
 npx skills add wanghetommy/ichartjs --skill ichartjs
 ```
 
-For global non-interactive Codex installation add `--agent codex --global --yes`. For reproducibility use `https://github.com/wanghetommy/ichartjs/tree/v2.0.33/skills/ichartjs`. WorkBuddy can import that directory; do not assume a CLI adapter unless declared by the installed CLI.
+For global non-interactive Codex installation add `--agent codex --global --yes`. For reproducibility use `https://github.com/wanghetommy/ichartjs/tree/v2.0.34/skills/ichartjs`. WorkBuddy can import that directory; do not assume a CLI adapter unless declared by the installed CLI.
 
 Reuse the host's package manager and installed runtime. If missing, install `@taylorwong/ichartjs@^2`, not unscoped `ichartjs`. Installed capabilities override online examples; do not silently upgrade.
 
 Use independent `/standard`, `/project`, `/diagram`, or `/board` for known families; root supplies cross-family discovery and Chart preview/commit/history absent from rendering Profiles. Setup: [Quickstart](https://github.com/wanghetommy/ichartjs/blob/master/docs/agent/quickstart.md).
+
+`planChart()`, `getChartContract()` and preference discovery are root APIs, not Profile exports. Run planning/discovery in the Agent's Node workspace or read the packaged manifest/recipes; browser code can still import only its rendering Profile. Profile `getCapabilities()` lacks root `intents`/`charts`. Chart rendering Profiles (`/standard`, `/project`, `/diagram`) use validated `update()`, `resize()`, `setTheme()`, state and exports; do not assume root `setData()`, `setPreferences()`, `getTheme()` or Chart editing methods exist. `/board` uses its own Board capabilities and editing APIs.
 
 | Deliverable | Host and output |
 | --- | --- |

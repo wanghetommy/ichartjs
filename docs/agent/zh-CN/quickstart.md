@@ -24,6 +24,8 @@ import {
 
 四个 Profile 入口可以独立使用，不需要先引入根入口：已知图表族时直接使用 `/standard`、`/project`、`/diagram` 或 `/board`；需要跨图表族发现和完整 API 时才使用根入口。可运行的消费者示例是 `examples/consumer-quickstart.mjs`，浏览器示例是 `examples/consumer-browser.html`。
 
+`planChart()`、`getChartContract()`、偏好能力发现仅由根入口导出，不属于 Profile。Agent 可在 Node 侧规划 Spec，浏览器仅引入对应渲染 Profile；已有 Spec 也可结合包内 Manifest/Recipe 和 Profile 校验使用。Profile `getCapabilities()` 不含根入口的 `intents/charts`；图表渲染 Profile 的数据、样式修改使用 `update()/setTheme()`，不要假定具有根入口的 Chart 编辑、偏好方法。`/board` 使用独立的 Board 能力与编辑接口。
+
 主题枚举可从 `getCapabilities().styleSystem` 发现：`mode` 为 `auto`、`light`、`dark`、`contrast`；`preset` 为 `auto`、`analysis`、`dashboard`、`report`、`presentation`、`project`、`diagram`；`palette` 为 `auto`、`categorical`、`sequential`、`diverging`、`status`。
 
 Agent 与开发者使用同一个 ESM 入口。编码 Agent 的完整方式见 [编码 Agent 集成](coding-agent-integration.md)，普通应用集成见 [前端项目集成](frontend-integration.md)。

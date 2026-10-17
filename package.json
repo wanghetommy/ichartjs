@@ -1,6 +1,6 @@
 {
   "name": "@taylorwong/ichartjs",
-  "version": "2.0.33",
+  "version": "2.0.34",
   "description": "Agent-first, renderer-independent charting and project visualization runtime",
   "type": "module",
   "main": "./src/index.mjs",
@@ -39,8 +39,10 @@
   },
   "files": [
     "src/",
-    "types/",
-    "docs/agent/",
+    "types/*.d.ts",
+    "docs/agent/*.md",
+    "docs/agent/zh-CN/*.md",
+    "!docs/agent/zh-CN/iteration-*.md",
     "docs/manifests/",
     "agent-recipes/",
     "examples/",
