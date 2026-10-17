@@ -173,3 +173,15 @@ export function axisLabelLayout(spec, labels = [], availableWidth = 0) {
 export function boxesOverlap(left, right, gap = 0) {
   return left.x < right.x + right.width + gap && left.x + left.width + gap > right.x && left.y < right.y + right.height + gap && left.y + left.height + gap > right.y;
 }
+
+export function diagramNodeSize(node, spec = {}) {
+  if (node.kind === 'connector') return { width: node.size?.width ?? 28, height: node.size?.height ?? 28 };
+  const size = fontSize(spec, 'label', 12), padding = Math.max(8, size * 0.75), decision = node.kind === 'decision', ellipse = ['start', 'end'].includes(node.kind);
+  const icon = Boolean(node.icon), top = icon && spec.diagram?.iconPosition === 'top', iconSpace = icon ? Math.min(24, size * 2) + 10 : 0;
+  const inset = decision && !icon ? size * 3.6 : size * 2.5, content = icon ? decision ? 0.5 : ellipse ? 0.7 : 1 : 1;
+  const width = node.size?.width ?? Math.ceil(Math.max(decision ? 144 : 112, Math.min(224, (estimateTextWidth(node.label || node.id, size, spec.theme?.typography?.label?.font) + inset + (top ? 0 : iconSpace)) / (icon ? content : ellipse ? 0.85 : 1))) / 8) * 8;
+  const maxWidth = icon ? width * content - inset - (top ? 0 : iconSpace) : Math.min(width - inset, width * (decision ? 0.65 : ellipse ? 0.85 : 1));
+  const block = fitTextBlock(node.label || node.id, { maxWidth: Math.max(1, maxWidth), maxHeight: size * 2.6, size, minSize: size, maxLines: 2, wordWrap: true, font: spec.theme?.typography?.label?.font });
+  const height = node.size?.height ?? Math.ceil(Math.max(decision ? size * 5 : 36, icon ? (Math.max(size * 2, block.height + padding * 2) + (top ? iconSpace : 0)) / content : Math.max(block.height + padding * 2, block.height / (decision ? 0.35 : ellipse ? 0.5 : 1)), icon ? 44 : 0) / 4) * 4;
+  return { width, height };
+}

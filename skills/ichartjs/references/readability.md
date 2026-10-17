@@ -20,6 +20,8 @@ Check labels, whitespace, connectors, branches and contrast. Preserve grouping, 
 
 ## Repair Without Losing Meaning
 
+Start from runtime defaults: omit unnecessary node sizes/positions and style overrides for new automatic diagrams. Content-sized nodes, bounded strokes, foreground selection and final-geometry edge-text protection belong to the runtime, not a large Agent-authored styling recipe. Keep explicit user geometry, colors and the viewport. Inspect `INSUFFICIENT_TEXT_CONTRAST`, label fitting and Diagram overflow/overlap warnings. Transparent output needs a known host background to guarantee contrast; it must not gain white label patches. Ordinary chart labels stay plate-free. Do not treat `onLine: false`, `valid: true` or renderable health as proof of readable output.
+
 Prefer runtime stroke sizing; arrows/dashes follow it, grid/borders stay subordinate. Explicit `theme.tokens.marks.lineWidth` fixes the main width, not a preference field. Check delivery-size legibility; never multiply by DPR or zoom again.
 
 Trace excessive gaps to Agent coordinates, auto layout, host dimensions or saved preferences/view. Adjust supported layout/sizing/label placement; do not invent gap controls, fixed occupancy ratios or a universal aspect ratio.

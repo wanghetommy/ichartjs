@@ -6,6 +6,7 @@ import { copyJSON } from './schema.mjs';
 import { sampleCubicBezier } from './scene.mjs';
 import { flowNodeKinds } from './contract-registry.mjs';
 import { diagramTones, diagramVisualContract } from './diagram-style.mjs';
+import { diagramNodeSize } from './layout.mjs';
 
 export const diagramLayoutModes = ['manual', 'layered', 'tree', 'radial'];
 export const edgeRoutingModes = ['auto', 'straight', 'orthogonal', 'curved'];
@@ -144,7 +145,7 @@ export function layoutArchitectureNodes(spec, bounds = { x: 0, y: 0, width: 640,
   layers.forEach((layer, layerIndex) => {
     const members = nodes.filter(node => node.layerId === layer.id);
     if (!members.length) return;
-    const widest = Math.max(72, ...members.map(node => Number(node.size?.width) || 112));
+    const widest = Math.max(72, ...members.map(node => diagramNodeSize(node, normalized).width));
     const columns = Math.max(1, Math.min(members.length, Math.floor((bounds.width + 12) / (widest + 12))));
     const rows = Math.ceil(members.length / columns);
     const slotWidth = Math.min(widest + 48, bounds.width / columns), slotHeight = layerHeight / rows;
@@ -152,8 +153,7 @@ export function layoutArchitectureNodes(spec, bounds = { x: 0, y: 0, width: 640,
       const row = Math.floor(index / columns), column = index % columns;
       const count = row === rows - 1 ? members.length - row * columns : columns;
       const rowOffset = (bounds.width - count * slotWidth) / 2;
-      const width = Number(node.size?.width) || Math.min(112, Math.max(72, slotWidth - 12));
-      const height = Number(node.size?.height) || Math.min(36, Math.max(14, slotHeight - 6));
+      const { width, height } = diagramNodeSize(node, normalized);
       boxes[node.id] = {
         x: snap(node.position?.x ?? bounds.x + rowOffset + column * slotWidth + (slotWidth - width) / 2),
         y: snap(node.position?.y ?? bounds.y + layerIndex * layerHeight + row * slotHeight + (slotHeight - height) / 2),
@@ -194,8 +194,7 @@ function layoutFlowNodes(graph, bounds) {
   graph.nodes.forEach(node => {
     const depth = rank.get(node.id);
     if (!columns.has(depth)) columns.set(depth, []);
-    const small = node.kind === 'connector';
-    columns.get(depth).push({ node, width: node.size?.width ?? (small ? 28 : 112), height: node.size?.height ?? (small ? 28 : 36) });
+    columns.get(depth).push({ node, ...diagramNodeSize(node, graph.spec) });
   });
   const ordered = [...columns.entries()].sort(([left], [right]) => left - right).map(([, nodes]) => nodes);
   const widths = ordered.map(nodes => Math.max(...nodes.map(node => node.width)));
@@ -215,7 +214,7 @@ function layoutFlowNodes(graph, bounds) {
 
 export function layoutDiagram(spec, bounds = { x: 0, y: 0, width: 640, height: 360 }) {
   const graph = diagramGraph(spec), mode = graph.spec.diagram.layout, positions = new Map(), gapX = Math.max(150, bounds.width / Math.max(1, graph.nodes.length)), gapY = 72;
-  if (graph.spec.type === 'flow' && mode === 'layered' && !graph.spec.lanes.length) return layoutFlowNodes(graph, bounds);
+  if (mode === 'layered' && !graph.spec.layers.length) return layoutFlowNodes(graph, bounds);
   if (mode === 'manual') graph.nodes.forEach(node => positions.set(node.id, { x: node.position?.x ?? bounds.x, y: node.position?.y ?? bounds.y }));
   else if (graph.spec.diagram.mode === 'architecture' && graph.spec.layers.length) Object.entries(layoutArchitectureNodes(graph.spec, bounds)).forEach(([id, box]) => positions.set(id, { x: box.x, y: box.y }));
   else if (graph.spec.diagram.mode === 'mindmap') {
@@ -232,7 +231,7 @@ export function layoutDiagram(spec, bounds = { x: 0, y: 0, width: 640, height: 3
       const levels = new Map();
       ordered.forEach(item => { if (!levels.has(item.depth)) levels.set(item.depth, []); levels.get(item.depth).push(item); });
       const columns = [...levels.entries()].sort(([left], [right]) => left - right);
-      const nodeSize = node => ({ width: Number(node?.size?.width) || 112, height: Number(node?.size?.height) || 36 });
+      const nodeSize = node => diagramNodeSize(node, graph.spec);
       const columnWidths = columns.map(([, items]) => Math.max(...items.map(item => nodeSize(graph.nodes.find(node => node.id === item.id)).width)));
       const totalWidth = columnWidths.reduce((sum, width) => sum + width, 0);
       const availableGap = columns.length > 1 ? (bounds.width - totalWidth) / (columns.length - 1) : 0;

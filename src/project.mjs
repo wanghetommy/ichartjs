@@ -9,9 +9,10 @@ import { diagramVisuals, tintedFill, toneColor } from './diagram-style.mjs';
 import { iconNames, iconNodes } from './icons.mjs';
 import { analyzeBurndownSeries, analyzeSchedule } from './project-analytics.mjs';
 import { createLinkedProjectState, filterProjectRows, linkedRecordId } from './project-linking.mjs';
-import { contrastRatio } from './theme.mjs';
+import { compositeColor, readableTextColor } from './theme.mjs';
+import { pathIntersectsBox } from './path.mjs';
 import { prepareChartChrome, addBranding, addEmptyState, markRadius, markStyle, markWidth } from './chart-chrome.mjs';
-import { axisLabelLayout, boxesOverlap, estimateTextWidth, fitTextBlock, fontAtSize, fontSize, titleLayout, truncateText } from './layout.mjs';
+import { axisLabelLayout, boxesOverlap, diagramNodeSize, estimateTextWidth, fitTextBlock, fontAtSize, fontPixels, fontSize, titleLayout, truncateText } from './layout.mjs';
 import { addTitleText } from './text-scene.mjs';
 
 export const projectTypes = ['gantt', 'timeline', 'milestone', 'burndown', 'flow', 'swimlane', 'architecture', 'mindmap'];
@@ -58,16 +59,17 @@ function projectDateDomain(spec, rows) {
 }
 const dependencyId = dependency => typeof dependency === 'string' ? dependency : dependency?.id || null;
 const dependencyType = dependency => typeof dependency === 'object' && dependency?.type ? dependency.type : 'finish-to-start';
-const markText = (theme, background) => (contrastRatio(theme.text, background) || 0) >= (contrastRatio(theme.background, background) || 0) ? theme.text : theme.background;
+const markText = (theme, background) => readableTextColor(theme, background);
 const flowNodeKind = node => node?.kind || 'process';
 
-function diagramNodeLabelLayout(row, kind, geometry, spec, font = null, wordWrap = false) {
+function diagramNodeLabelLayout(row, kind, geometry, spec, font = null, wordWrap = true) {
   const size = font ? Number(String(font).match(/(\d+(?:\.\d+)?)px/)?.[1]) || fontSize(spec, 'label', 12) : fontSize(spec, 'label', 12);
   const minDimension = Math.min(geometry.width, geometry.height);
   const horizontalPadding = kind === 'decision' ? size * 1.8 : size * 1.25;
-  const maxWidth = Math.max(0, geometry.width - horizontalPadding * 2);
-  if (minDimension < Math.max(24, size * 2) || maxWidth < size * 2.4) return null;
-  return fitTextBlock(row.label || row.id, { maxWidth, maxHeight: Math.max(size, geometry.height - size * 0.45), size, minSize: Math.max(10, Math.min(size, size - 2)), maxLines: 2, wordWrap, font: font || spec.theme.typography.label.font });
+  const ellipse = ['start', 'end'].includes(kind), maxWidth = Math.max(0, Math.min(geometry.width - horizontalPadding * 2, geometry.width * (kind === 'decision' ? 0.65 : ellipse ? 0.85 : 1)));
+  const maxHeight = Math.min(geometry.height - size * 0.45, geometry.height * (kind === 'decision' ? 0.35 : ellipse ? 0.5 : 1));
+  if (minDimension < Math.max(24, size * 2) || maxWidth < size * 2.4 || maxHeight < 12) return null;
+  return fitTextBlock(row.label || row.id, { maxWidth, maxHeight, size, minSize: Math.max(10, Math.min(size, size - 2)), maxLines: 2, wordWrap, font: font || spec.theme.typography.label.font });
 }
 
 function flowNodeVisual(kind, box) {
@@ -88,9 +90,8 @@ function diagramObstacle(kind, box, id = null) {
   return { id, shape, geometry: visual.geometry, bounds: { ...box }, padding: 0, obstacle: true };
 }
 
-function flowNodeBox(row, generated, fallback) {
-  const kind = flowNodeKind(row), connector = kind === 'connector';
-  const width = Number(row.size?.width) || Number(generated?.width) || (connector ? 28 : 112), height = Number(row.size?.height) || Number(generated?.height) || (connector ? 28 : 36);
+function flowNodeBox(row, generated, fallback, spec) {
+  const size = diagramNodeSize(row, spec), width = Number(row.size?.width) || Number(generated?.width) || size.width, height = Number(row.size?.height) || Number(generated?.height) || size.height;
   return { x: row.position?.x ?? generated?.x ?? fallback.x, y: row.position?.y ?? generated?.y ?? fallback.y, width, height };
 }
 
@@ -132,8 +133,30 @@ function textBlock(scene, id, block, x, y, style = {}, dataRef = null) {
   block.lines.forEach((line, index) => text(scene, index ? `${id}-${index}` : id, line, x, start + index * block.lineHeight, { textAnchor: 'middle', textBaseline: 'middle', baseline: 'middle', ...style }, dataRef));
 }
 
-function labelPlate(scene, id, box, fill, opacity = 0.94) {
-  scene.add({ id: `${id}-background`, type: 'rect', geometry: { x: box.x - 3, y: box.y - 2, width: box.width + 6, height: box.height + 4 }, style: { fill, opacity, stroke: 'none' }, zIndex: 3 });
+function protectDiagramLabels(scene) {
+  scene.root.children = scene.root.children.filter(node => !/^edge-label-.*-background$/.test(node.id));
+  const edges = [], labels = [], surfaces = [], protectedLabels = new Set();
+  scene.walk(node => {
+    if (!node.visible) return;
+    if (node.type === 'path' && node.dataRef?.edgeId && node.dataRef.from) { delete node.geometry.exclusions; edges.push(node); }
+    if (node.type === 'text' && node.dataRef?.edgeId) {
+      const size = fontPixels(node.style.font), width = estimateTextWidth(node.geometry.text, size, node.style.font);
+      labels.push({ node, box: { x: node.geometry.x - width / 2 - 3, y: node.geometry.y - size * 0.6 - 2, width: width + 6, height: size * 1.2 + 4 } });
+    }
+    if (node.type === 'rect' && /^(lane-|layer-|group-)/.test(node.id) && node.style.fill !== 'none') surfaces.push(node);
+  });
+  for (const edge of edges) {
+    const boxes = labels.filter(({ box }) => pathIntersectsBox(edge.geometry, { x: box.x - edge.style.strokeWidth / 2, y: box.y - edge.style.strokeWidth / 2, width: box.width + edge.style.strokeWidth, height: box.height + edge.style.strokeWidth }));
+    if (boxes.length) edge.geometry.exclusions = boxes.map(({ node, box }) => { protectedLabels.add(node.id); return { x: box.x - edge.style.strokeWidth / 2, y: box.y - edge.style.strokeWidth / 2, width: box.width + edge.style.strokeWidth, height: box.height + edge.style.strokeWidth }; });
+  }
+  const backgrounds = new Set();
+  for (const { node, box } of labels) {
+    let fill = compositeColor(scene.background, scene.background);
+    for (const surface of surfaces) if (box.x >= surface.geometry.x && box.y >= surface.geometry.y && box.x + box.width <= surface.geometry.x + surface.geometry.width && box.y + box.height <= surface.geometry.y + surface.geometry.height) fill = compositeColor(surface.style.fill, fill || 'transparent', surface.style.opacity ?? 1);
+    node.style.fill = readableTextColor(scene.theme, fill || scene.background, scene.labelColor, scene.textWarnings);
+    if (fill && (node.dataRef.onLine || protectedLabels.has(node.id))) { scene.add({ id: `${node.id}-background`, type: 'rect', geometry: box, style: { fill, opacity: 1, stroke: 'none' }, zIndex: 3.5, decorative: true }); backgrounds.add(node.dataRef.edgeId); }
+  }
+  if (scene.diagramLabelStats) scene.diagramLabelStats.backgrounded = backgrounds.size;
 }
 
 function polylineMidpoint(points) {
@@ -156,7 +179,7 @@ function polylineMidpoint(points) {
 function edgeLabelLayout(edge, spec, positions, occupied = []) {
   const points = edge.points, midpoint = edge.curve === 'cubic' ? { point: cubicBezierPoint(points, 0.5), start: cubicBezierPoint(points, 0.45), end: cubicBezierPoint(points, 0.55) } : polylineMidpoint(points);
   if (!midpoint) return null;
-  const angle = Math.atan2(midpoint.end.y - midpoint.start.y, midpoint.end.x - midpoint.start.x), normal = { x: -Math.sin(angle), y: Math.cos(angle) }, size = fontSize(spec, 'axis', 12);
+  const angle = Math.atan2(midpoint.end.y - midpoint.start.y, midpoint.end.x - midpoint.start.x), normal = { x: Math.abs(Math.sin(angle)) < 1e-10 ? 0 : -Math.sin(angle), y: Math.abs(Math.cos(angle)) < 1e-10 ? 0 : Math.cos(angle) }, size = fontSize(spec, 'axis', 12);
   const nodeBoxes = [...positions.values()], view = projectView(spec);
   const fit = (maxWidth, maxLines) => {
     const block = fitTextBlock(edge.label, { maxWidth: maxWidth * view.scale, maxHeight: size * 2.6, size, minSize: 10, maxLines, wordWrap: true, font: spec.theme.typography.axis.font });
@@ -189,10 +212,10 @@ function edgeLabelLayout(edge, spec, positions, occupied = []) {
       if (!block.truncated && !nodeBoxes.some(node => boxesOverlap(box, node, 2)) && !occupied.some(item => boxesOverlap(box, item, 3)) && (edge.groupBounds || []).every(frame => !frame || !boxesOverlap(box, frame, 14) || box.x >= frame.x + 14 && box.y >= frame.y + 14 && box.x + box.width <= frame.x + frame.width - 14 && box.y + box.height <= frame.y + frame.height - 14)) return placement;
     }
   }
-  if (fallback) return fallback;
+  if (fallback) return { ...fallback, constrained: true };
   const block = fit(36 / view.scale, 2);
   const candidate = { x: midpoint.point.x, y: midpoint.point.y - 8 / view.scale, onLine: true };
-  return { ...candidate, anchor: midpoint.point, box: { x: candidate.x - block.width / 2, y: candidate.y - block.height / 2, width: block.width, height: block.height }, block, suppressed: false };
+  return { ...candidate, anchor: midpoint.point, box: { x: candidate.x - block.width / 2, y: candidate.y - block.height / 2, width: block.width, height: block.height }, block, suppressed: false, constrained: true };
 }
 
 function connectorGeometry(points, curve = null, width = 2, scale = 1) {
@@ -469,6 +492,7 @@ function diagramScene(scene, spec, rows, state) {
   state.routingWarnings = [];
   state.edgeRoutes = [];
   state.labelLayout = { ...(state.labelLayout || {}), diagram: labelLayout };
+  scene.diagramLabelStats = labelLayout;
   state.labelWarnings = [];
   lanes.forEach((lane, index) => {
     scene.add({ id: `lane-${index}`, type: 'rect', geometry: { x: plot.x, y: plot.y + index * laneHeight, width: Math.max(plot.width, columns * gapX), height: laneHeight }, style: { fill: index % 2 ? spec.theme.surface : spec.theme.background, stroke: spec.theme.border }, zIndex: -1 });
@@ -486,11 +510,11 @@ function diagramScene(scene, spec, rows, state) {
     slots.set(slotKey, slot + 1);
     const sameCell = rows.filter(item => ranks.get(item.id) === rank && (!lanes.length || item.laneId === row.laneId)).length;
     const generated = layout[row.id];
-    const nodeFont = mode === 'architecture' && state.compact ? '550 10px system-ui, sans-serif' : null;
+    const nodeFont = null;
       const architectureBox = architectureLayout[row.id];
       const geometry = architectureBox
         ? { ...architectureBox, x: row.position?.x ?? architectureBox.x, y: row.position?.y ?? architectureBox.y }
-        : flowNodeBox(row, lanes.length ? { ...generated, y: undefined } : generated, { x: plot.x + rank * gapX + 12, y: plot.y + (lanes.length ? lane * laneHeight : 0) + (slot + 0.5) * (lanes.length ? laneHeight : Math.max(plot.height, sameCell * 64)) / sameCell - (flowNodeKind(row) === 'connector' ? 14 : 18) });
+        : flowNodeBox(row, lanes.length ? { ...generated, y: undefined } : generated, { x: plot.x + rank * gapX + 12, y: plot.y + (lanes.length ? lane * laneHeight : 0) + (slot + 0.5) * (lanes.length ? laneHeight : Math.max(plot.height, sameCell * 64)) / sameCell - diagramNodeSize(row, spec).height / 2 }, spec);
     positions.set(row.id, geometry);
     if (collapsedGroups.has(row.groupId)) return;
     const depth = row.parentId ? (ranks.get(row.id) || 0) : 0;
@@ -508,7 +532,7 @@ function diagramScene(scene, spec, rows, state) {
       const content = kind === 'decision' ? { x: geometry.x + geometry.width / 4, y: geometry.y + geometry.height / 4, width: geometry.width / 2, height: geometry.height / 2 } : kind === 'start' || kind === 'end' ? { x: geometry.x + geometry.width * 0.15, y: geometry.y + geometry.height * 0.15, width: geometry.width * 0.7, height: geometry.height * 0.7 } : geometry;
       const top = visualStyle.iconPosition === 'top', size = Math.min(24, content.height - 12), gap = size + 10;
       const candidate = top ? { ...content, y: content.y + gap, height: content.height - gap } : { ...content, x: content.x + gap, width: content.width - gap };
-      const fitted = diagramNodeLabelLayout(row, kind, candidate, spec, nodeFont, true);
+      const fitted = diagramNodeLabelLayout(row, 'process', candidate, spec, nodeFont, true);
       if (kind !== 'connector' && size >= 16 && fitted && (!fitted.truncated || label?.truncated)) {
         label = fitted; labelBox = candidate;
         const box = { x: top ? content.x + (content.width - size) / 2 : content.x + 10, y: top ? content.y + 8 : content.y + (content.height - size) / 2, width: size, height: size };
@@ -583,13 +607,13 @@ function diagramScene(scene, spec, rows, state) {
       const placement = edgeLabelLayout({ ...edge, groupBounds, points, curve: path.curve }, spec, positions, edgeLabelBoxes);
       if (placement) {
         edgeLabelBoxes.push(placement.box);
-        if (groupContent) groupContent.push({ x: placement.box.x - 3, y: placement.box.y - 2, width: placement.box.width + 6, height: placement.box.height + 4 });
+        if (groupContent) { const scale = projectView(spec).scale; groupContent.push({ x: placement.box.x - 3 / scale, y: placement.box.y - 2 / scale, width: placement.box.width + 6 / scale, height: placement.box.height + 4 / scale }); }
         const rawLabel = String(edge.label), labelFont = fontAtSize(spec.theme.typography.axis.font, placement.block.size);
+        if (placement.constrained) state.labelWarnings.push({ code: 'LABEL_LAYOUT_CONSTRAINED', path: `edges.${index}.label`, edgeId: edge.id || `edge-${index}`, message: 'No bounded edge-label candidate avoids all node, label and frame constraints; a best-effort placement is displayed.', suggestion: 'Increase the available space or simplify the visible diagram; the route and viewport are preserved.' });
         if (placement.onLine) labelLayout.edgeOnLine += 1; else labelLayout.edgeOffset += 1;
         if (placement.block.wrapped) labelLayout.wrapped += 1;
         if (placement.block.scaled) labelLayout.scaled += 1;
         if (placement.block.truncated) { labelLayout.truncated += 1; state.labelWarnings.push({ code: 'LABEL_TRUNCATED', path: `edges.${index}.label`, edgeId: edge.id || `edge-${index}`, rawLabel, renderedLabel: placement.block.lines.join('\n'), message: `Edge label "${rawLabel}" was truncated to fit the available label space.`, suggestion: 'Increase the space around the connector or shorten the label.' }); }
-        if (placement.onLine) { labelPlate(scene, `edge-label-${index}`, placement.box, spec.theme.background); labelLayout.backgrounded += 1; }
         textBlock(scene, `edge-label-${index}`, placement.block, placement.x, placement.y, { fill: spec.theme.text, font: labelFont }, { edgeId: edge.id || `edge-${index}`, rawLabel, renderedLabel: placement.block.lines.join('\n'), onLine: placement.onLine, offsetX: placement.x - placement.anchor.x, offsetY: placement.y - placement.anchor.y });
       }
     }
@@ -605,16 +629,16 @@ function diagramScene(scene, spec, rows, state) {
   });
   state.nodePositions = Object.fromEntries(positions);
   state.diagramWarnings = [];
-  if (spec.type === 'flow' && diagramSpec.diagram.layout === 'layered') {
+  if (diagramSpec.diagram.layout !== 'manual') {
     const visible = rows.filter(row => !collapsedGroups.has(row.groupId));
     const overflow = visible.filter(row => {
       const box = positions.get(row.id);
       return box.x < plot.x - 1e-6 || box.y < plot.y - 1e-6 || box.x + box.width > plot.x + plot.width + 1e-6 || box.y + box.height > plot.y + plot.height + 1e-6;
     }).map(row => row.id);
-    if (overflow.length) state.diagramWarnings.push({ code: 'FLOW_LAYOUT_OVERFLOW', path: 'diagram.layout', nodeIds: overflow, message: 'Flow nodes exceed the available plot area; node sizes and the viewport were preserved.', suggestion: 'Increase chart width/height or simplify the visible workflow.' });
+    if (overflow.length) state.diagramWarnings.push({ code: spec.type === 'flow' ? 'FLOW_LAYOUT_OVERFLOW' : 'DIAGRAM_LAYOUT_OVERFLOW', path: 'diagram.layout', nodeIds: overflow, message: 'Diagram nodes exceed the available plot area; node sizes and the viewport were preserved.', suggestion: 'Increase chart width/height or simplify the visible diagram.' });
     const overlaps = [];
     visible.forEach((row, index) => visible.slice(index + 1).forEach(other => { if (boxesOverlap(positions.get(row.id), positions.get(other.id))) overlaps.push([row.id, other.id]); }));
-    if (overlaps.length) state.diagramWarnings.push({ code: 'FLOW_NODE_OVERLAP', path: 'nodes', pairs: overlaps, message: 'Flow nodes overlap, including explicitly positioned nodes.', suggestion: 'Adjust explicit positions or increase the available chart area.' });
+    if (overlaps.length) state.diagramWarnings.push({ code: spec.type === 'flow' ? 'FLOW_NODE_OVERLAP' : 'DIAGRAM_NODE_OVERLAP', path: 'nodes', pairs: overlaps, message: 'Diagram nodes overlap, including explicitly positioned nodes.', suggestion: 'Adjust explicit positions or increase the available chart area.' });
   }
   state.diagramLayout = { mode: diagramSpec.diagram.layout, coordinate: 'diagram', nodes: Object.fromEntries([...positions].map(([id, box]) => [id, { ...box }])), edgeRoutes: state.edgeRoutes.map(route => ({ ...route })), warnings: state.diagramWarnings.map(warning => ({ ...warning })) };
   state.groupBoxes = Object.fromEntries(groupBoxes);
@@ -635,11 +659,14 @@ export function buildProjectScene(spec) {
   const data = { ...normalizeData(visibleRows), rows: visibleRows.map(row => ({ ...row })), sourceRows: sourceRows.map(row => ({ ...row })) };
   const scene = new Scene(spec.width, spec.height);
   scene.theme = spec.theme;
+  scene.background = spec.background;
+  scene.labelColor = spec.labels?.color;
+  scene.textWarnings = data.warnings;
   const left = spec.type === 'architecture' ? architectureLabelReserve(spec) : ['gantt', 'timeline', 'milestone', 'swimlane'].includes(spec.type) ? projectLabelReserve(spec, sourceRows) : spec.padding.left;
   const title = titleLayout(spec);
   const plotTop = Math.max(spec.padding.top, title.bottom + (title.bottom ? 12 : 0)) + (spec.type === 'burndown' ? 16 : 0);
   const plotWidth = Math.max(1, spec.width - left - spec.padding.right), dateDomain = projectDateDomain(spec, sourceRows), xLabels = axisLabelLayout(spec, projectTickLabels(dateDomain[0], dateDomain[1], plotWidth, spec.locale), plotWidth);
-  const bottomReserve = Math.max(spec.padding.bottom + 16, Math.ceil(16 + xLabels.projectedHeight));
+  const bottomReserve = diagram ? spec.padding.bottom : Math.max(spec.padding.bottom + 16, Math.ceil(16 + xLabels.projectedHeight));
   const temporalProject = ['gantt', 'timeline', 'milestone'].includes(spec.type);
   const timeAxis = ['timeline', 'milestone'].includes(spec.type) ? {
     orientation: 'horizontal',
@@ -689,6 +716,7 @@ export function buildProjectScene(spec) {
     if (node.bounds) node.bounds = { x: mapX(node.bounds.x), y: mapY(node.bounds.y), width: node.bounds.width * view.scale, height: node.bounds.height * view.scale };
   });
   addTitleText(scene, spec, title, data.warnings);
+  if (diagram) protectDiagramLabels(scene);
   state.view = view;
   addBranding(scene, spec);
   return { scene, data, state };
@@ -764,5 +792,6 @@ export function rerouteDiagramScene(scene) {
       for (let lineIndex = 1; ; lineIndex += 1) { const line = scene.find(`edge-label-${edgeIndex}-${lineIndex}`); if (!line) break; line.geometry.x += dx; line.geometry.y += dy; }
     }
   });
+  protectDiagramLabels(scene);
   return scene;
 }

@@ -1,8 +1,10 @@
 # iChart.js 2.0 Roadmap
 
-> Roadmap baseline: 2026-09-14. Current release line: `v2.0.34` hardens consumer delivery, Profile declarations and automatic diagram routing, with reviewed fixed footprint limits.
+> Roadmap baseline: 2026-09-14. Current release line: `v2.0.35` improves default visual quality, connector text protection, content-sized Diagram nodes and foreground contrast, retaining reviewed fixed footprint limits.
 
 ## Current Status
+
+- Iteration 35 is implemented and accepted for `v2.0.35`: final-geometry Diagram edge-text protection, content-aware node sizing, compact Diagram gutters, shared label contrast, Gauge metric placement and Line/Area label avoidance. Default-first browser and installed-package acceptance cover both renderers; existing footprint budgets are unchanged. Publication is explicitly authorized by the author. See [scope and evidence](iteration-35.md).
 
 - Iteration 34 is included in `v2.0.34`: reciprocal Flow return channels, group-boundary clearance, zoom-aware connector labels, installed-package acceptance, Profile type/Skill boundaries and npm documentation cleanup. Root source budgets are fixed at 640 KiB raw / 160 KiB gzip; npm ceilings are unchanged. See [scope and evidence](iteration-34.md).
 

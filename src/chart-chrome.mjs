@@ -1,12 +1,13 @@
 /** Shared chart chrome and bounded stroke sizing; no renderer or chart-family imports. */
 import { SceneNode } from './scene.mjs';
 import { resolveTheme } from './theme.mjs';
+import { diagramNodeSize } from './layout.mjs';
 
 export function markWidth(spec, plot) {
   const width = Math.max(0.5, Number(spec.theme?.marks?.lineWidth) || 2);
   if (!plot || spec.theme?.automaticLineWidth !== width) return width;
   const nodes = (spec.nodes || []).filter(node => node.kind !== 'connector');
-  const nodeScale = nodes.length ? nodes.reduce((sum, node) => sum + (node.size?.height || 36), 0) / nodes.length / 36 : Infinity;
+  const nodeScale = nodes.length ? nodes.reduce((sum, node) => sum + diagramNodeSize(node, spec).height, 0) / nodes.length / 36 : Infinity;
   return width * Math.max(0.8, Math.min(1.35, Math.sqrt(Math.max(0, Math.min(plot.width / 560, plot.height / 280, nodeScale)))));
 }
 export function markRadius(spec) { return Math.max(2, Number(spec.theme?.marks?.radius) || 5); }
